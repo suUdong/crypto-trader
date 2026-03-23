@@ -9,10 +9,8 @@ from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
-from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.journal import StrategyRunJournal
-from crypto_trader.operator.memo import OperatorDailyMemo
-from crypto_trader.operator.promotion import PromotionGate
+from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
@@ -64,104 +62,40 @@ def main() -> None:
         return
 
     if args.command == "drift-report":
-        candles = market_data.get_ohlcv(
-            config.trading.symbol,
-            interval=config.trading.interval,
-            count=config.trading.candle_count,
-        )
-        engine = BacktestEngine(
+        artifacts = generate_operator_artifacts(
+            config=config,
+            market_data=market_data,
             strategy=strategy,
             risk_manager=risk_manager,
-            config=config.backtest,
-            symbol=config.trading.symbol,
         )
-        backtest_result = engine.run(candles)
-        journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
-        report = DriftReportGenerator().generate(
-            symbol=config.trading.symbol,
-            backtest_result=backtest_result,
-            recent_runs=journal.load_recent(),
-        )
-        DriftReportGenerator().save(report, config.runtime.drift_report_path)
         print(
-            f"drift_status={report.status.value} "
-            f"paper_pnl={report.paper_realized_pnl_pct:.2%} "
-            f"backtest_return={report.backtest_total_return_pct:.2%}"
+            f"drift_status={artifacts.drift_report.status.value} "
+            f"paper_pnl={artifacts.drift_report.paper_realized_pnl_pct:.2%} "
+            f"backtest_return={artifacts.drift_report.backtest_total_return_pct:.2%}"
         )
         return
 
     if args.command == "promotion-gate":
-        candles = market_data.get_ohlcv(
-            config.trading.symbol,
-            interval=config.trading.interval,
-            count=config.trading.candle_count,
-        )
-        engine = BacktestEngine(
+        artifacts = generate_operator_artifacts(
+            config=config,
+            market_data=market_data,
             strategy=strategy,
             risk_manager=risk_manager,
-            config=config.backtest,
-            symbol=config.trading.symbol,
         )
-        backtest_result = engine.run(candles)
-        journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
-        recent_runs = journal.load_recent()
-        drift_generator = DriftReportGenerator()
-        drift_report = drift_generator.generate(
-            symbol=config.trading.symbol,
-            backtest_result=backtest_result,
-            recent_runs=recent_runs,
-        )
-        drift_generator.save(drift_report, config.runtime.drift_report_path)
-        decision = PromotionGate().evaluate(
-            symbol=config.trading.symbol,
-            backtest_result=backtest_result,
-            drift_report=drift_report,
-            latest_run=recent_runs[-1] if recent_runs else None,
-        )
-        PromotionGate().save(decision, config.runtime.promotion_gate_path)
         print(
-            f"promotion_status={decision.status.value} "
-            f"paper_runs={decision.observed_paper_runs} "
-            f"drift_status={decision.drift_status.value}"
+            f"promotion_status={artifacts.promotion_decision.status.value} "
+            f"paper_runs={artifacts.promotion_decision.observed_paper_runs} "
+            f"drift_status={artifacts.promotion_decision.drift_status.value}"
         )
         return
 
     if args.command == "daily-memo":
-        candles = market_data.get_ohlcv(
-            config.trading.symbol,
-            interval=config.trading.interval,
-            count=config.trading.candle_count,
-        )
-        engine = BacktestEngine(
+        generate_operator_artifacts(
+            config=config,
+            market_data=market_data,
             strategy=strategy,
             risk_manager=risk_manager,
-            config=config.backtest,
-            symbol=config.trading.symbol,
         )
-        backtest_result = engine.run(candles)
-        journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
-        recent_runs = journal.load_recent()
-        drift_generator = DriftReportGenerator()
-        drift_report = drift_generator.generate(
-            symbol=config.trading.symbol,
-            backtest_result=backtest_result,
-            recent_runs=recent_runs,
-        )
-        drift_generator.save(drift_report, config.runtime.drift_report_path)
-        promotion_gate = PromotionGate()
-        decision = promotion_gate.evaluate(
-            symbol=config.trading.symbol,
-            backtest_result=backtest_result,
-            drift_report=drift_report,
-            latest_run=recent_runs[-1] if recent_runs else None,
-        )
-        promotion_gate.save(decision, config.runtime.promotion_gate_path)
-        memo = OperatorDailyMemo().render(
-            latest_run=recent_runs[-1] if recent_runs else None,
-            drift_report=drift_report,
-            promotion_decision=decision,
-        )
-        OperatorDailyMemo().save(memo, config.runtime.daily_memo_path)
         print(config.runtime.daily_memo_path)
         return
 
@@ -192,3 +126,7 @@ def main() -> None:
 
     pipeline_result = pipeline.run_once()
     print(pipeline_result.message)
+
+
+if __name__ == "__main__":
+    main()
