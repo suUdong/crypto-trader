@@ -5,10 +5,14 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 
+from crypto_trader.config import DriftConfig
 from crypto_trader.models import BacktestResult, DriftReport, DriftStatus, StrategyRunRecord
 
 
 class DriftReportGenerator:
+    def __init__(self, config: DriftConfig | None = None) -> None:
+        self._config = config or DriftConfig()
+
     def generate(
         self,
         *,
@@ -46,20 +50,29 @@ class DriftReportGenerator:
         paper_realized_pnl_pct = latest.realized_pnl / starting_equity
         paper_error_rate = error_count / paper_run_count
         reasons: list[str] = []
+        return_tolerance = self._return_tolerance_for_regime(latest.market_regime)
+        error_rate_threshold = self._error_threshold_for_regime(latest.market_regime)
 
-        if paper_error_rate >= 0.2:
+        if paper_error_rate >= error_rate_threshold:
             reasons.append("paper runtime error rate is elevated")
 
         if _different_direction(backtest_result.total_return_pct, paper_realized_pnl_pct):
             reasons.append("paper pnl direction diverges from backtest expectation")
 
-        if abs(backtest_result.total_return_pct - paper_realized_pnl_pct) >= 0.1:
+        return_gap = abs(backtest_result.total_return_pct - paper_realized_pnl_pct)
+        major_return_gap = return_gap >= return_tolerance
+        if major_return_gap:
             reasons.append("paper performance is materially offset from backtest return")
+        elif return_gap >= return_tolerance * 0.5:
+            reasons.append("paper performance is starting to drift from backtest return")
 
         if not reasons:
             status = DriftStatus.ON_TRACK
             reasons.append("paper behavior is directionally aligned with backtest")
-        elif paper_error_rate >= 0.2 or len(reasons) >= 2:
+        elif paper_error_rate >= error_rate_threshold or _different_direction(
+            backtest_result.total_return_pct,
+            paper_realized_pnl_pct,
+        ) or major_return_gap:
             status = DriftStatus.OUT_OF_SYNC
         else:
             status = DriftStatus.CAUTION
@@ -85,6 +98,20 @@ class DriftReportGenerator:
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")
+
+    def _return_tolerance_for_regime(self, regime: str | None) -> float:
+        if regime == "bull":
+            return self._config.bull_return_tolerance_pct
+        if regime == "bear":
+            return self._config.bear_return_tolerance_pct
+        return self._config.sideways_return_tolerance_pct
+
+    def _error_threshold_for_regime(self, regime: str | None) -> float:
+        if regime == "bull":
+            return self._config.bull_error_rate_threshold
+        if regime == "bear":
+            return self._config.bear_error_rate_threshold
+        return self._config.sideways_error_rate_threshold
 
 
 def _different_direction(backtest_return_pct: float, paper_realized_pnl_pct: float) -> bool:

@@ -39,6 +39,16 @@ class RegimeConfig:
 
 
 @dataclass(slots=True)
+class DriftConfig:
+    bull_return_tolerance_pct: float = 0.15
+    sideways_return_tolerance_pct: float = 0.08
+    bear_return_tolerance_pct: float = 0.05
+    bull_error_rate_threshold: float = 0.25
+    sideways_error_rate_threshold: float = 0.2
+    bear_error_rate_threshold: float = 0.1
+
+
+@dataclass(slots=True)
 class RiskConfig:
     risk_per_trade_pct: float = 0.01
     stop_loss_pct: float = 0.02
@@ -91,6 +101,7 @@ class AppConfig:
     trading: TradingConfig
     strategy: StrategyConfig
     regime: RegimeConfig
+    drift: DriftConfig
     risk: RiskConfig
     backtest: BacktestConfig
     telegram: TelegramConfig
@@ -163,6 +174,68 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         ),
         bear_threshold_pct=float(
             _read_value(raw, env, "regime", "bear_threshold_pct", "CT_REGIME_BEAR_THRESHOLD", -0.03)
+        ),
+    )
+    drift = DriftConfig(
+        bull_return_tolerance_pct=float(
+            _read_value(
+                raw,
+                env,
+                "drift",
+                "bull_return_tolerance_pct",
+                "CT_BULL_DRIFT_TOLERANCE",
+                0.15,
+            )
+        ),
+        sideways_return_tolerance_pct=float(
+            _read_value(
+                raw,
+                env,
+                "drift",
+                "sideways_return_tolerance_pct",
+                "CT_SIDEWAYS_DRIFT_TOLERANCE",
+                0.08,
+            )
+        ),
+        bear_return_tolerance_pct=float(
+            _read_value(
+                raw,
+                env,
+                "drift",
+                "bear_return_tolerance_pct",
+                "CT_BEAR_DRIFT_TOLERANCE",
+                0.05,
+            )
+        ),
+        bull_error_rate_threshold=float(
+            _read_value(
+                raw,
+                env,
+                "drift",
+                "bull_error_rate_threshold",
+                "CT_BULL_ERROR_RATE_THRESHOLD",
+                0.25,
+            )
+        ),
+        sideways_error_rate_threshold=float(
+            _read_value(
+                raw,
+                env,
+                "drift",
+                "sideways_error_rate_threshold",
+                "CT_SIDEWAYS_ERROR_RATE_THRESHOLD",
+                0.2,
+            )
+        ),
+        bear_error_rate_threshold=float(
+            _read_value(
+                raw,
+                env,
+                "drift",
+                "bear_error_rate_threshold",
+                "CT_BEAR_ERROR_RATE_THRESHOLD",
+                0.1,
+            )
         ),
     )
     risk = RiskConfig(
@@ -294,6 +367,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         trading=trading,
         strategy=strategy,
         regime=regime,
+        drift=drift,
         risk=risk,
         backtest=backtest,
         telegram=telegram,

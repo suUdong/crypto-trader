@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from crypto_trader.config import DriftConfig
 from crypto_trader.models import BacktestResult, DriftStatus, StrategyRunRecord, TradeRecord
 from crypto_trader.operator.drift import DriftReportGenerator
 
@@ -33,12 +34,17 @@ def build_backtest(total_return_pct: float) -> BacktestResult:
     )
 
 
-def build_run(realized_pnl: float, *, success: bool = True) -> StrategyRunRecord:
+def build_run(
+    realized_pnl: float,
+    *,
+    success: bool = True,
+    market_regime: str = "sideways",
+) -> StrategyRunRecord:
     return StrategyRunRecord(
         recorded_at="2026-03-23T00:00:00Z",
         symbol="KRW-BTC",
         latest_price=100.0,
-        market_regime="sideways",
+        market_regime=market_regime,
         signal_action="hold",
         signal_reason="noop",
         signal_confidence=0.5,
@@ -71,6 +77,24 @@ class DriftReportGeneratorTests(unittest.TestCase):
             symbol="KRW-BTC",
             backtest_result=build_backtest(0.12),
             recent_runs=[build_run(-120.0)],
+        )
+        self.assertEqual(report.status, DriftStatus.OUT_OF_SYNC)
+
+    def test_bull_regime_allows_wider_return_tolerance(self) -> None:
+        generator = DriftReportGenerator(DriftConfig(bull_return_tolerance_pct=0.15))
+        report = generator.generate(
+            symbol="KRW-BTC",
+            backtest_result=build_backtest(0.12),
+            recent_runs=[build_run(20.0, market_regime="bull")],
+        )
+        self.assertEqual(report.status, DriftStatus.CAUTION)
+
+    def test_bear_regime_uses_tighter_return_tolerance(self) -> None:
+        generator = DriftReportGenerator(DriftConfig(bear_return_tolerance_pct=0.05))
+        report = generator.generate(
+            symbol="KRW-BTC",
+            backtest_result=build_backtest(0.12),
+            recent_runs=[build_run(20.0, market_regime="bear")],
         )
         self.assertEqual(report.status, DriftStatus.OUT_OF_SYNC)
 

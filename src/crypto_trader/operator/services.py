@@ -42,7 +42,7 @@ def generate_operator_artifacts(
     backtest_result = engine.run(candles)
     journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
     recent_runs = journal.load_recent()
-    drift_generator = DriftReportGenerator()
+    drift_generator = DriftReportGenerator(config.drift)
     drift_report = drift_generator.generate(
         symbol=config.trading.symbol,
         backtest_result=backtest_result,
