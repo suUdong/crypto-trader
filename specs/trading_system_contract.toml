@@ -1,0 +1,44 @@
+[project]
+name = "crypto-trader"
+primary_exchange = "upbit"
+secondary_exchange = "binance"
+market_scope = "krw-spot"
+paper_trading_default = true
+
+[strategy]
+name = "momentum-bollinger-rsi"
+supports_backtest = true
+entry_requires_all = true
+components = ["momentum", "bollinger_bands", "rsi"]
+timeframe = "minute60"
+momentum_lookback = 20
+bollinger_window = 20
+bollinger_stddev = 2.0
+rsi_period = 14
+rsi_oversold_floor = 25
+rsi_recovery_ceiling = 45
+rsi_overbought = 70
+
+[risk]
+position_sizing = "risk_percent"
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+max_daily_loss_pct = 0.05
+max_concurrent_positions = 1
+
+[pipeline]
+stages = [
+  "market_data",
+  "feature_calculation",
+  "signal_generation",
+  "risk_evaluation",
+  "order_execution",
+  "notifications",
+]
+
+[backtest]
+requires_ohlcv = true
+includes_fees = true
+includes_slippage = true
+outputs = ["equity_curve", "trade_log", "win_rate", "profit_factor", "max_drawdown"]
