@@ -12,6 +12,7 @@ from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
+from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -28,6 +29,7 @@ def main() -> None:
             "run-once",
             "run-loop",
             "backtest",
+            "regime-report",
             "drift-report",
             "promotion-gate",
             "daily-memo",
@@ -62,6 +64,25 @@ def main() -> None:
             f"return={backtest_result.total_return_pct:.2%} "
             f"win_rate={backtest_result.win_rate:.2%} "
             f"max_drawdown={backtest_result.max_drawdown:.2%}"
+        )
+        return
+
+    if args.command == "regime-report":
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+        report = RegimeReportGenerator(config.regime).generate(
+            symbol=config.trading.symbol,
+            strategy=config.strategy,
+            candles=candles,
+        )
+        RegimeReportGenerator(config.regime).save(report, config.runtime.regime_report_path)
+        print(
+            f"market_regime={report.market_regime} "
+            f"short_return={report.short_return_pct:.2%} "
+            f"long_return={report.long_return_pct:.2%}"
         )
         return
 

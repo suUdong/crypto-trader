@@ -132,6 +132,18 @@ class DailyPerformanceReport:
 
 
 @dataclass(slots=True)
+class RegimeReport:
+    generated_at: str
+    symbol: str
+    market_regime: str
+    short_return_pct: float
+    long_return_pct: float
+    base_parameters: dict[str, float | int]
+    adjusted_parameters: dict[str, float | int]
+    reasons: list[str]
+
+
+@dataclass(slots=True)
 class BacktestResult:
     initial_capital: float
     final_equity: float
