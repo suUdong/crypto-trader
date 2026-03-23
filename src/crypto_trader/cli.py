@@ -10,6 +10,7 @@ from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
+from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.regime_report import RegimeReportGenerator
@@ -30,6 +31,7 @@ def main() -> None:
             "run-loop",
             "backtest",
             "regime-report",
+            "calibrate-drift",
             "drift-report",
             "promotion-gate",
             "daily-memo",
@@ -83,6 +85,26 @@ def main() -> None:
             f"market_regime={report.market_regime} "
             f"short_return={report.short_return_pct:.2%} "
             f"long_return={report.long_return_pct:.2%}"
+        )
+        return
+
+    if args.command == "calibrate-drift":
+        loaded_baseline = BacktestBaselineStore(config.runtime.backtest_baseline_path).load()
+        if loaded_baseline is None:
+            raise RuntimeError("No backtest baseline found. Run `backtest` first.")
+        recent_runs = StrategyRunJournal(config.runtime.strategy_run_journal_path).load_recent(200)
+        calibration_report = DriftCalibrationToolkit().generate(
+            symbol=config.trading.symbol,
+            backtest_baseline=loaded_baseline,
+            recent_runs=recent_runs,
+        )
+        DriftCalibrationToolkit().save(
+            calibration_report,
+            config.runtime.drift_calibration_path,
+        )
+        print(
+            f"calibration_entries={len(calibration_report.entries)} "
+            f"path={config.runtime.drift_calibration_path}"
         )
         return
 

@@ -144,6 +144,23 @@ class RegimeReport:
 
 
 @dataclass(slots=True)
+class DriftCalibrationEntry:
+    regime: str
+    sample_count: int
+    average_abs_return_gap_pct: float
+    suggested_return_tolerance_pct: float
+    observed_error_rate: float
+    suggested_error_rate_threshold: float
+
+
+@dataclass(slots=True)
+class DriftCalibrationReport:
+    generated_at: str
+    symbol: str
+    entries: list[DriftCalibrationEntry]
+
+
+@dataclass(slots=True)
 class BacktestResult:
     initial_capital: float
     final_equity: float

@@ -54,6 +54,7 @@ max_iterations = 0
 healthcheck_path = "artifacts/health.json"
 backtest_baseline_path = "artifacts/backtest-baseline.json"
 regime_report_path = "artifacts/regime-report.json"
+drift_calibration_path = "artifacts/drift-calibration.json"
 strategy_run_journal_path = "artifacts/strategy-runs.jsonl"
 paper_trade_journal_path = "artifacts/paper-trades.jsonl"
 position_snapshot_path = "artifacts/positions.json"
