@@ -11,6 +11,7 @@ from crypto_trader.models import (
     DriftStatus,
     PromotionGateDecision,
     PromotionStatus,
+    StrategyRunRecord,
 )
 
 
@@ -24,6 +25,7 @@ class PromotionGate:
         symbol: str,
         backtest_result: BacktestResult,
         drift_report: DriftReport,
+        latest_run: StrategyRunRecord | None,
     ) -> PromotionGateDecision:
         reasons: list[str] = []
 
@@ -39,6 +41,11 @@ class PromotionGate:
             reasons.append("paper behavior still needs more observation")
         if drift_report.paper_realized_pnl_pct <= 0:
             reasons.append("paper pnl is not yet positive")
+        if (
+            latest_run is not None
+            and latest_run.verdict_status in {"pause_strategy", "reduce_risk"}
+        ):
+            reasons.append("latest strategy verdict does not support promotion")
 
         if (
             "backtest return is not positive" in reasons

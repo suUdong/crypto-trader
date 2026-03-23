@@ -104,17 +104,19 @@ def main() -> None:
         )
         backtest_result = engine.run(candles)
         journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
+        recent_runs = journal.load_recent()
         drift_generator = DriftReportGenerator()
         drift_report = drift_generator.generate(
             symbol=config.trading.symbol,
             backtest_result=backtest_result,
-            recent_runs=journal.load_recent(),
+            recent_runs=recent_runs,
         )
         drift_generator.save(drift_report, config.runtime.drift_report_path)
         decision = PromotionGate().evaluate(
             symbol=config.trading.symbol,
             backtest_result=backtest_result,
             drift_report=drift_report,
+            latest_run=recent_runs[-1] if recent_runs else None,
         )
         PromotionGate().save(decision, config.runtime.promotion_gate_path)
         print(
@@ -151,6 +153,7 @@ def main() -> None:
             symbol=config.trading.symbol,
             backtest_result=backtest_result,
             drift_report=drift_report,
+            latest_run=recent_runs[-1] if recent_runs else None,
         )
         promotion_gate.save(decision, config.runtime.promotion_gate_path)
         memo = OperatorDailyMemo().render(
