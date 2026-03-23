@@ -161,6 +161,16 @@ class DriftCalibrationReport:
 
 
 @dataclass(slots=True)
+class OperatorReport:
+    generated_at: str
+    symbol: str
+    market_regime: str
+    drift_status: str
+    promotion_status: str
+    report_markdown: str
+
+
+@dataclass(slots=True)
 class BacktestResult:
     initial_capital: float
     final_equity: float

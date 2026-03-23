@@ -83,6 +83,7 @@ class RuntimeConfig:
     backtest_baseline_path: str = "artifacts/backtest-baseline.json"
     regime_report_path: str = "artifacts/regime-report.json"
     drift_calibration_path: str = "artifacts/drift-calibration.json"
+    operator_report_path: str = "artifacts/operator-report.md"
     strategy_run_journal_path: str = "artifacts/strategy-runs.jsonl"
     paper_trade_journal_path: str = "artifacts/paper-trades.jsonl"
     position_snapshot_path: str = "artifacts/positions.json"
@@ -336,6 +337,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "artifacts/drift-calibration.json",
             )
         ),
+        operator_report_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "operator_report_path",
+                "CT_OPERATOR_REPORT_PATH",
+                "artifacts/operator-report.md",
+            )
+        ),
         strategy_run_journal_path=str(
             _read_value(
                 raw,
@@ -554,6 +565,8 @@ def _validate_config(config: AppConfig) -> None:
         errors.append("runtime.regime_report_path must not be empty")
     if not config.runtime.drift_calibration_path.strip():
         errors.append("runtime.drift_calibration_path must not be empty")
+    if not config.runtime.operator_report_path.strip():
+        errors.append("runtime.operator_report_path must not be empty")
     if not config.runtime.strategy_run_journal_path.strip():
         errors.append("runtime.strategy_run_journal_path must not be empty")
     if not config.runtime.paper_trade_journal_path.strip():

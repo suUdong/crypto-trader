@@ -14,6 +14,7 @@ from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.regime_report import RegimeReportGenerator
+from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -32,6 +33,7 @@ def main() -> None:
             "backtest",
             "regime-report",
             "calibrate-drift",
+            "operator-report",
             "drift-report",
             "promotion-gate",
             "daily-memo",
@@ -106,6 +108,42 @@ def main() -> None:
             f"calibration_entries={len(calibration_report.entries)} "
             f"path={config.runtime.drift_calibration_path}"
         )
+        return
+
+    if args.command == "operator-report":
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+        regime_report = RegimeReportGenerator(config.regime).generate(
+            symbol=config.trading.symbol,
+            strategy=config.strategy,
+            candles=candles,
+        )
+        RegimeReportGenerator(config.regime).save(regime_report, config.runtime.regime_report_path)
+        artifacts = generate_operator_artifacts(
+            config=config,
+            market_data=market_data,
+            strategy=strategy,
+            risk_manager=risk_manager,
+        )
+        calibration = DriftCalibrationToolkit().generate(
+            symbol=config.trading.symbol,
+            backtest_baseline=artifacts.backtest_baseline,
+            recent_runs=StrategyRunJournal(config.runtime.strategy_run_journal_path).load_recent(200),
+        )
+        DriftCalibrationToolkit().save(calibration, config.runtime.drift_calibration_path)
+        operator_report = OperatorReportBuilder().build(
+            baseline=artifacts.backtest_baseline,
+            regime_report=regime_report,
+            drift_report=artifacts.drift_report,
+            promotion_decision=artifacts.promotion_decision,
+            memo=artifacts.daily_memo,
+            calibration_report=calibration,
+        )
+        OperatorReportBuilder().save(operator_report, config.runtime.operator_report_path)
+        print(config.runtime.operator_report_path)
         return
 
     if args.command == "drift-report":
