@@ -11,6 +11,7 @@ from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.journal import StrategyRunJournal
+from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -125,6 +126,11 @@ def main() -> None:
             monitor=HealthMonitor(config.runtime.healthcheck_path),
             journal=StrategyRunJournal(config.runtime.strategy_run_journal_path),
             verdict_engine=StrategyVerdictEngine(config.risk),
+            paper_trading_operations=PaperTradingOperations(
+                config.runtime.paper_trade_journal_path,
+                config.runtime.position_snapshot_path,
+                config.runtime.daily_performance_path,
+            ),
             poll_interval_seconds=config.runtime.poll_interval_seconds,
         )
         runtime.run(config.runtime.max_iterations)

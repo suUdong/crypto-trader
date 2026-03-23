@@ -6,6 +6,7 @@ import time
 from crypto_trader.models import StrategyRunRecord
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.operator.journal import StrategyRunJournal
+from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
 
@@ -17,12 +18,14 @@ class TradingRuntime:
         monitor: HealthMonitor,
         journal: StrategyRunJournal,
         verdict_engine: StrategyVerdictEngine,
+        paper_trading_operations: PaperTradingOperations,
         poll_interval_seconds: int,
     ) -> None:
         self._pipeline = pipeline
         self._monitor = monitor
         self._journal = journal
         self._verdict_engine = verdict_engine
+        self._paper_trading_operations = paper_trading_operations
         self._poll_interval_seconds = poll_interval_seconds
         self._logger = logging.getLogger(__name__)
 
@@ -61,6 +64,10 @@ class TradingRuntime:
                 verdict_reasons=verdict.reasons,
             )
             self._journal.append(record)
+            latest_prices = {}
+            if result.latest_price is not None:
+                latest_prices[result.symbol] = result.latest_price
+            self._paper_trading_operations.sync(self._pipeline.broker, latest_prices)
             if result.error is None:
                 self._logger.info(result.message)
             else:

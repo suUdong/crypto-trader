@@ -101,6 +101,37 @@ class TradeRecord:
 
 
 @dataclass(slots=True)
+class PositionStatus:
+    symbol: str
+    quantity: float
+    entry_price: float
+    market_price: float
+    unrealized_pnl: float
+    unrealized_pnl_pct: float
+
+
+@dataclass(slots=True)
+class PositionSnapshot:
+    generated_at: str
+    positions: list[PositionStatus]
+    open_position_count: int
+    mark_to_market_equity: float
+
+
+@dataclass(slots=True)
+class DailyPerformanceReport:
+    generated_at: str
+    trade_count: int
+    winning_trade_count: int
+    losing_trade_count: int
+    realized_pnl: float
+    realized_return_pct: float
+    win_rate: float
+    open_position_count: int
+    mark_to_market_equity: float
+
+
+@dataclass(slots=True)
 class BacktestResult:
     initial_capital: float
     final_equity: float

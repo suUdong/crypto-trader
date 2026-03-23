@@ -10,6 +10,7 @@ from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.models import PipelineResult, Signal, SignalAction
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.operator.journal import StrategyRunJournal
+from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.runtime import TradingRuntime
 
@@ -42,6 +43,11 @@ class TradingRuntimeTests(unittest.TestCase):
                 monitor=HealthMonitor(Path(temp_dir) / "health.json"),
                 journal=StrategyRunJournal(Path(temp_dir) / "runs.jsonl"),
                 verdict_engine=StrategyVerdictEngine(RiskConfig()),
+                paper_trading_operations=PaperTradingOperations(
+                    Path(temp_dir) / "trades.jsonl",
+                    Path(temp_dir) / "positions.json",
+                    Path(temp_dir) / "daily.json",
+                ),
                 poll_interval_seconds=1,
             )
             runtime.run(max_iterations=1)

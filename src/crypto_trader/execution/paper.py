@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from crypto_trader.models import OrderRequest, OrderResult, OrderSide, Position
+from crypto_trader.models import OrderRequest, OrderResult, OrderSide, Position, TradeRecord
 
 
 class PaperBroker:
@@ -11,6 +11,7 @@ class PaperBroker:
         self._fee_rate = fee_rate
         self._slippage_pct = slippage_pct
         self.positions: dict[str, Position] = {}
+        self.closed_trades: list[TradeRecord] = []
         self.realized_pnl = 0.0
         self._sequence = 0
 
@@ -73,6 +74,22 @@ class PaperBroker:
         entry_fee_allocated = position.entry_fee_paid * (request.quantity / position.quantity)
         pnl = (fill_price - position.entry_price) * request.quantity - fee - entry_fee_allocated
         self.realized_pnl += pnl
+        self.closed_trades.append(
+            TradeRecord(
+                symbol=request.symbol,
+                entry_time=position.entry_time,
+                exit_time=request.requested_at,
+                entry_price=position.entry_price,
+                exit_price=fill_price,
+                quantity=request.quantity,
+                pnl=pnl,
+                pnl_pct=(
+                    pnl
+                    / max(1.0, (position.entry_price * request.quantity) + entry_fee_allocated)
+                ),
+                exit_reason=request.reason,
+            )
+        )
         remaining = position.quantity - request.quantity
         if remaining <= 0:
             self.positions.pop(request.symbol, None)
@@ -103,6 +120,15 @@ class PaperBroker:
             position.quantity * prices.get(symbol, position.entry_price)
             for symbol, position in self.positions.items()
         )
+
+    def unrealized_positions(self, prices: Mapping[str, float]) -> dict[str, float]:
+        return {
+            symbol: (
+                prices.get(symbol, position.entry_price) - position.entry_price
+            )
+            * position.quantity
+            for symbol, position in self.positions.items()
+        }
 
     def _apply_slippage(self, side: OrderSide, market_price: float) -> float:
         if side is OrderSide.BUY:

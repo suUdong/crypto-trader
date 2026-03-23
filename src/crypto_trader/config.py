@@ -82,6 +82,9 @@ class RuntimeConfig:
     healthcheck_path: str = "artifacts/health.json"
     backtest_baseline_path: str = "artifacts/backtest-baseline.json"
     strategy_run_journal_path: str = "artifacts/strategy-runs.jsonl"
+    paper_trade_journal_path: str = "artifacts/paper-trades.jsonl"
+    position_snapshot_path: str = "artifacts/positions.json"
+    daily_performance_path: str = "artifacts/daily-performance.json"
     drift_report_path: str = "artifacts/drift-report.json"
     promotion_gate_path: str = "artifacts/promotion-gate.json"
     daily_memo_path: str = "artifacts/daily-memo.md"
@@ -321,6 +324,36 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "artifacts/strategy-runs.jsonl",
             )
         ),
+        paper_trade_journal_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "paper_trade_journal_path",
+                "CT_PAPER_TRADE_JOURNAL_PATH",
+                "artifacts/paper-trades.jsonl",
+            )
+        ),
+        position_snapshot_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "position_snapshot_path",
+                "CT_POSITION_SNAPSHOT_PATH",
+                "artifacts/positions.json",
+            )
+        ),
+        daily_performance_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "daily_performance_path",
+                "CT_DAILY_PERFORMANCE_PATH",
+                "artifacts/daily-performance.json",
+            )
+        ),
         drift_report_path=str(
             _read_value(
                 raw,
@@ -497,6 +530,12 @@ def _validate_config(config: AppConfig) -> None:
         errors.append("runtime.backtest_baseline_path must not be empty")
     if not config.runtime.strategy_run_journal_path.strip():
         errors.append("runtime.strategy_run_journal_path must not be empty")
+    if not config.runtime.paper_trade_journal_path.strip():
+        errors.append("runtime.paper_trade_journal_path must not be empty")
+    if not config.runtime.position_snapshot_path.strip():
+        errors.append("runtime.position_snapshot_path must not be empty")
+    if not config.runtime.daily_performance_path.strip():
+        errors.append("runtime.daily_performance_path must not be empty")
     if not config.runtime.drift_report_path.strip():
         errors.append("runtime.drift_report_path must not be empty")
     if not config.runtime.promotion_gate_path.strip():
