@@ -23,6 +23,13 @@ class VerdictStatus(StrEnum):
     CANDIDATE_FOR_PROMOTION = "candidate_for_promotion"
 
 
+class DriftStatus(StrEnum):
+    INSUFFICIENT_DATA = "insufficient_data"
+    ON_TRACK = "on_track"
+    CAUTION = "caution"
+    OUT_OF_SYNC = "out_of_sync"
+
+
 @dataclass(slots=True)
 class Candle:
     timestamp: datetime
@@ -115,6 +122,7 @@ class StrategyRunRecord:
     signal_confidence: float
     order_status: str | None
     order_side: str | None
+    session_starting_equity: float
     cash: float
     open_positions: int
     realized_pnl: float
@@ -124,6 +132,24 @@ class StrategyRunRecord:
     verdict_status: str
     verdict_confidence: float
     verdict_reasons: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class DriftReport:
+    generated_at: str
+    symbol: str
+    status: DriftStatus
+    reasons: list[str]
+    backtest_total_return_pct: float
+    backtest_win_rate: float
+    backtest_max_drawdown: float
+    backtest_trade_count: int
+    paper_run_count: int
+    paper_error_rate: float
+    paper_buy_rate: float
+    paper_sell_rate: float
+    paper_hold_rate: float
+    paper_realized_pnl_pct: float
 
 
 @dataclass(slots=True)

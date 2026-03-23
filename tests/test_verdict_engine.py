@@ -22,6 +22,7 @@ def build_run(
         signal_confidence=0.5,
         order_status=None,
         order_side=None,
+        session_starting_equity=1_000.0,
         cash=1_000.0,
         open_positions=0,
         realized_pnl=realized_pnl,

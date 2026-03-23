@@ -22,6 +22,7 @@ class StrategyRunJournalTests(unittest.TestCase):
                     signal_confidence=0.8,
                     order_status="filled",
                     order_side="buy",
+                    session_starting_equity=1_000.0,
                     cash=900.0,
                     open_positions=1,
                     realized_pnl=0.0,

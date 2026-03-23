@@ -39,6 +39,7 @@ poll_interval_seconds = 60
 max_iterations = 0
 healthcheck_path = "artifacts/health.json"
 strategy_run_journal_path = "artifacts/strategy-runs.jsonl"
+drift_report_path = "artifacts/drift-report.json"
 
 [credentials]
 upbit_access_key = ""

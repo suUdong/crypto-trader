@@ -48,6 +48,7 @@ class TradingRuntime:
                 signal_confidence=result.signal.confidence,
                 order_status=None if result.order is None else result.order.status,
                 order_side=None if result.order is None else result.order.side.value,
+                session_starting_equity=self._pipeline.session_starting_equity,
                 cash=self._pipeline.broker.cash,
                 open_positions=len(self._pipeline.broker.positions),
                 realized_pnl=self._pipeline.broker.realized_pnl,

@@ -63,6 +63,7 @@ class RuntimeConfig:
     max_iterations: int = 0
     healthcheck_path: str = "artifacts/health.json"
     strategy_run_journal_path: str = "artifacts/strategy-runs.jsonl"
+    drift_report_path: str = "artifacts/drift-report.json"
 
 
 @dataclass(slots=True)
@@ -209,6 +210,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "strategy_run_journal_path",
                 "CT_STRATEGY_RUN_JOURNAL_PATH",
                 "artifacts/strategy-runs.jsonl",
+            )
+        ),
+        drift_report_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "drift_report_path",
+                "CT_DRIFT_REPORT_PATH",
+                "artifacts/drift-report.json",
             )
         ),
     )

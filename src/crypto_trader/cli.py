@@ -9,6 +9,7 @@ from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
+from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -19,7 +20,7 @@ from crypto_trader.strategy.composite import CompositeStrategy
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crypto trader control plane")
-    parser.add_argument("command", choices=["run-once", "run-loop", "backtest"])
+    parser.add_argument("command", choices=["run-once", "run-loop", "backtest", "drift-report"])
     parser.add_argument("--config", default=None)
     args = parser.parse_args()
 
@@ -47,6 +48,33 @@ def main() -> None:
             f"return={backtest_result.total_return_pct:.2%} "
             f"win_rate={backtest_result.win_rate:.2%} "
             f"max_drawdown={backtest_result.max_drawdown:.2%}"
+        )
+        return
+
+    if args.command == "drift-report":
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk_manager,
+            config=config.backtest,
+            symbol=config.trading.symbol,
+        )
+        backtest_result = engine.run(candles)
+        journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
+        report = DriftReportGenerator().generate(
+            symbol=config.trading.symbol,
+            backtest_result=backtest_result,
+            recent_runs=journal.load_recent(),
+        )
+        DriftReportGenerator().save(report, config.runtime.drift_report_path)
+        print(
+            f"drift_status={report.status.value} "
+            f"paper_pnl={report.paper_realized_pnl_pct:.2%} "
+            f"backtest_return={report.backtest_total_return_pct:.2%}"
         )
         return
 
