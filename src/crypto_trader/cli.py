@@ -11,6 +11,7 @@ from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.journal import StrategyRunJournal
+from crypto_trader.operator.memo import OperatorDailyMemo
 from crypto_trader.operator.promotion import PromotionGate
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -23,7 +24,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Crypto trader control plane")
     parser.add_argument(
         "command",
-        choices=["run-once", "run-loop", "backtest", "drift-report", "promotion-gate"],
+        choices=[
+            "run-once",
+            "run-loop",
+            "backtest",
+            "drift-report",
+            "promotion-gate",
+            "daily-memo",
+        ],
     )
     parser.add_argument("--config", default=None)
     args = parser.parse_args()
@@ -114,6 +122,44 @@ def main() -> None:
             f"paper_runs={decision.observed_paper_runs} "
             f"drift_status={decision.drift_status.value}"
         )
+        return
+
+    if args.command == "daily-memo":
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk_manager,
+            config=config.backtest,
+            symbol=config.trading.symbol,
+        )
+        backtest_result = engine.run(candles)
+        journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
+        recent_runs = journal.load_recent()
+        drift_generator = DriftReportGenerator()
+        drift_report = drift_generator.generate(
+            symbol=config.trading.symbol,
+            backtest_result=backtest_result,
+            recent_runs=recent_runs,
+        )
+        drift_generator.save(drift_report, config.runtime.drift_report_path)
+        promotion_gate = PromotionGate()
+        decision = promotion_gate.evaluate(
+            symbol=config.trading.symbol,
+            backtest_result=backtest_result,
+            drift_report=drift_report,
+        )
+        promotion_gate.save(decision, config.runtime.promotion_gate_path)
+        memo = OperatorDailyMemo().render(
+            latest_run=recent_runs[-1] if recent_runs else None,
+            drift_report=drift_report,
+            promotion_decision=decision,
+        )
+        OperatorDailyMemo().save(memo, config.runtime.daily_memo_path)
+        print(config.runtime.daily_memo_path)
         return
 
     broker = PaperBroker(
