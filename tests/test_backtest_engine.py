@@ -26,7 +26,7 @@ def build_candles(closes: list[float]) -> list[Candle]:
 
 
 class BacktestEngineTests(unittest.TestCase):
-    def test_backtest_produces_trade_log_and_positive_return_on_rebound_series(self) -> None:
+    def test_backtest_trade_log_pnl_sum_matches_fee_adjusted_final_equity(self) -> None:
         candles = build_candles([100.0] * 20 + [90.0, 89.0, 93.0, 96.0, 100.0])
         strategy = CompositeStrategy(
             StrategyConfig(
@@ -42,9 +42,11 @@ class BacktestEngineTests(unittest.TestCase):
         engine = BacktestEngine(
             strategy=strategy,
             risk_manager=RiskManager(RiskConfig(stop_loss_pct=0.02, take_profit_pct=0.03)),
-            config=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            config=BacktestConfig(initial_capital=1_000.0, fee_rate=0.01, slippage_pct=0.0),
             symbol="KRW-BTC",
         )
         result = engine.run(candles)
-        self.assertGreaterEqual(len(result.trade_log), 1)
-        self.assertGreater(result.final_equity, result.initial_capital)
+        self.assertAlmostEqual(
+            sum(trade.pnl for trade in result.trade_log),
+            result.final_equity - result.initial_capital,
+        )

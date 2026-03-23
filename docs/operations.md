@@ -6,6 +6,8 @@
 - `run-once`: executes one market-data -> signal -> paper-order cycle
 - `run-loop`: runs the same cycle repeatedly using `runtime.poll_interval_seconds`
 
+The runtime currently supports paper trading only. Setting `CT_PAPER_TRADING=false` is treated as a configuration error until a real execution adapter is implemented.
+
 ## Configuration Layers
 
 1. TOML file, default `config/example.toml`

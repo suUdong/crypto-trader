@@ -23,3 +23,5 @@ Automated crypto trading system with Upbit-first market support, composite signa
 - `mypy src`
 - `python3 -m crypto_trader.cli backtest --config config/example.toml`
 - `python3 -m crypto_trader.cli run-loop --config config/example.toml`
+
+Current execution mode is paper trading only. `CT_PAPER_TRADING=false` is rejected until a real order adapter and live-trading safeguards exist.

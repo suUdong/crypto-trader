@@ -41,6 +41,7 @@ class Position:
     entry_price: float
     entry_time: datetime
     entry_index: int | None = None
+    entry_fee_paid: float = 0.0
 
 
 @dataclass(slots=True)

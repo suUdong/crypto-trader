@@ -36,6 +36,7 @@ class TradingPipeline:
         self._broker = broker
         self._notifier = notifier
         self._logger = logging.getLogger(__name__)
+        self._session_starting_equity = broker.cash
 
     @property
     def broker(self) -> PaperBroker:
@@ -59,7 +60,7 @@ class TradingPipeline:
                 if self._risk_manager.can_open(
                     active_positions=len(self._broker.positions),
                     realized_pnl=self._broker.realized_pnl,
-                    starting_equity=self._broker.cash,
+                    starting_equity=self._session_starting_equity,
                 ):
                     quantity = self._risk_manager.size_position(self._broker.cash, latest_price)
                     if quantity > 0:

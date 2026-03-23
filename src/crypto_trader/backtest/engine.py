@@ -45,6 +45,7 @@ class BacktestEngine:
                     pnl = (
                         (exit_price - open_position.entry_price) * open_position.quantity
                         - exit_fee
+                        - open_position.entry_fee_paid
                     )
                     realized_pnl += pnl
                     trades.append(
@@ -57,7 +58,12 @@ class BacktestEngine:
                             quantity=open_position.quantity,
                             pnl=pnl,
                             pnl_pct=(
-                                pnl / max(1.0, open_position.entry_price * open_position.quantity)
+                                pnl
+                                / max(
+                                    1.0,
+                                    (open_position.entry_price * open_position.quantity)
+                                    + open_position.entry_fee_paid,
+                                )
                             ),
                             exit_reason=exit_reason,
                         )
@@ -86,6 +92,7 @@ class BacktestEngine:
                                 entry_price=fill_price,
                                 entry_time=current.timestamp,
                                 entry_index=index,
+                                entry_fee_paid=fee,
                             )
 
             marked_equity = cash
@@ -99,7 +106,11 @@ class BacktestEngine:
             gross = open_position.quantity * exit_price
             exit_fee = gross * self._config.fee_rate
             cash += gross - exit_fee
-            pnl = (exit_price - open_position.entry_price) * open_position.quantity - exit_fee
+            pnl = (
+                (exit_price - open_position.entry_price) * open_position.quantity
+                - exit_fee
+                - open_position.entry_fee_paid
+            )
             trades.append(
                 TradeRecord(
                     symbol=self._symbol,
@@ -109,7 +120,14 @@ class BacktestEngine:
                     exit_price=exit_price,
                     quantity=open_position.quantity,
                     pnl=pnl,
-                    pnl_pct=pnl / max(1.0, open_position.entry_price * open_position.quantity),
+                    pnl_pct=(
+                        pnl
+                        / max(
+                            1.0,
+                            (open_position.entry_price * open_position.quantity)
+                            + open_position.entry_fee_paid,
+                        )
+                    ),
                     exit_reason="forced_close_end_of_backtest",
                 )
             )

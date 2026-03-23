@@ -42,6 +42,16 @@ class RecorderNotifier(Notifier):
         self.messages.append(message)
 
 
+class RecordingRiskManager(RiskManager):
+    def __init__(self, config: RiskConfig) -> None:
+        super().__init__(config)
+        self.starting_equities: list[float] = []
+
+    def can_open(self, active_positions: int, realized_pnl: float, starting_equity: float) -> bool:
+        self.starting_equities.append(starting_equity)
+        return super().can_open(active_positions, realized_pnl, starting_equity)
+
+
 def build_candles(closes: list[float]) -> list[Candle]:
     start = datetime(2025, 1, 1, 0, 0, 0)
     return [
@@ -114,3 +124,37 @@ class TradingPipelineTests(unittest.TestCase):
         self.assertIsNotNone(result.error)
         self.assertIn("pipeline_error", result.message)
         self.assertEqual(len(notifier.messages), 1)
+
+    def test_pipeline_uses_session_starting_equity_for_daily_loss_checks(self) -> None:
+        candles = build_candles([100.0] * 20 + [90.0, 89.0])
+        config = AppConfig(
+            trading=TradingConfig(symbol="KRW-BTC", candle_count=len(candles)),
+            strategy=StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                bollinger_window=20,
+                bollinger_stddev=1.5,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+            ),
+            risk=RiskConfig(max_daily_loss_pct=0.05),
+            backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        broker = PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0)
+        risk_manager = RecordingRiskManager(config.risk)
+        pipeline = TradingPipeline(
+            config=config,
+            market_data=FakeMarketData(candles),
+            strategy=CompositeStrategy(config.strategy),
+            risk_manager=risk_manager,
+            broker=broker,
+            notifier=RecorderNotifier(),
+        )
+        broker.cash = 800.0
+        broker.realized_pnl = -40.0
+        pipeline.run_once()
+        self.assertEqual(risk_manager.starting_equities, [1_000.0])

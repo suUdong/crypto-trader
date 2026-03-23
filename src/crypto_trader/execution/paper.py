@@ -40,6 +40,7 @@ class PaperBroker:
                 quantity=request.quantity,
                 entry_price=fill_price,
                 entry_time=request.requested_at,
+                entry_fee_paid=fee,
             )
             return OrderResult(
                 order_id=f"paper-{self._sequence}",
@@ -69,7 +70,8 @@ class PaperBroker:
 
         proceeds = notional - fee
         self.cash += proceeds
-        pnl = (fill_price - position.entry_price) * request.quantity - fee
+        entry_fee_allocated = position.entry_fee_paid * (request.quantity / position.quantity)
+        pnl = (fill_price - position.entry_price) * request.quantity - fee - entry_fee_allocated
         self.realized_pnl += pnl
         remaining = position.quantity - request.quantity
         if remaining <= 0:
@@ -81,6 +83,7 @@ class PaperBroker:
                 entry_price=position.entry_price,
                 entry_time=position.entry_time,
                 entry_index=position.entry_index,
+                entry_fee_paid=position.entry_fee_paid - entry_fee_allocated,
             )
 
         return OrderResult(

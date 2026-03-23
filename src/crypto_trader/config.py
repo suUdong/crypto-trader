@@ -272,8 +272,7 @@ def _validate_config(config: AppConfig) -> None:
         raise ValueError("runtime.poll_interval_seconds must be positive")
     if config.risk.max_concurrent_positions <= 0:
         raise ValueError("risk.max_concurrent_positions must be positive")
-    if not config.trading.paper_trading and not config.credentials.has_upbit_credentials:
+    if not config.trading.paper_trading:
         raise ValueError(
-            "Live trading requires CT_UPBIT_ACCESS_KEY and CT_UPBIT_SECRET_KEY "
-            "or matching TOML values"
+            "Live trading is not implemented yet. Keep CT_PAPER_TRADING=true."
         )

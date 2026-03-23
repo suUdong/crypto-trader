@@ -8,8 +8,8 @@ from crypto_trader.models import OrderRequest, OrderSide
 
 
 class PaperBrokerTests(unittest.TestCase):
-    def test_buy_then_sell_round_trip_updates_cash_and_positions(self) -> None:
-        broker = PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0)
+    def test_buy_then_sell_round_trip_updates_cash_positions_and_fee_inclusive_pnl(self) -> None:
+        broker = PaperBroker(starting_cash=1_000.0, fee_rate=0.01, slippage_pct=0.0)
         buy = broker.submit_order(
             OrderRequest(
                 symbol="KRW-BTC",
@@ -35,4 +35,5 @@ class PaperBrokerTests(unittest.TestCase):
         )
         self.assertEqual(sell.status, "filled")
         self.assertNotIn("KRW-BTC", broker.positions)
-        self.assertEqual(broker.cash, 1_020.0)
+        self.assertAlmostEqual(broker.cash, 1_015.8)
+        self.assertAlmostEqual(broker.realized_pnl, 15.8)
