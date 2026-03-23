@@ -39,3 +39,19 @@ class StrategyRunJournalTests(unittest.TestCase):
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0].symbol, "KRW-BTC")
             self.assertEqual(records[0].verdict_status, "continue_paper")
+
+    def test_load_recent_accepts_legacy_records_without_market_regime(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "runs.jsonl"
+            path.write_text(
+                '{"recorded_at":"2026-03-23T00:00:00Z","symbol":"KRW-BTC","latest_price":100.0,'
+                '"signal_action":"hold","signal_reason":"noop","signal_confidence":0.5,'
+                '"order_status":null,"order_side":null,"session_starting_equity":1000.0,'
+                '"cash":1000.0,"open_positions":0,"realized_pnl":0.0,"success":true,'
+                '"error":null,"consecutive_failures":0,"verdict_status":"continue_paper",'
+                '"verdict_confidence":0.6,"verdict_reasons":[]}\n',
+                encoding="utf-8",
+            )
+            records = StrategyRunJournal(path).load_recent()
+            self.assertEqual(len(records), 1)
+            self.assertIsNone(records[0].market_regime)

@@ -25,5 +25,6 @@ class StrategyRunJournal:
         records: list[StrategyRunRecord] = []
         for line in recent:
             payload = json.loads(line)
+            payload.setdefault("market_regime", None)
             records.append(StrategyRunRecord(**payload))
         return records
