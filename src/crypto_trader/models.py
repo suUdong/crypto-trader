@@ -96,3 +96,4 @@ class PipelineResult:
     signal: Signal
     order: OrderResult | None
     message: str
+    error: str | None = None

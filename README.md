@@ -15,3 +15,11 @@ Automated crypto trading system with Upbit-first market support, composite signa
 - Strategy: momentum + Bollinger Bands + RSI
 - Risk controls: position sizing, stop loss, take profit, daily loss cap
 - Runtime flow: market data -> signals -> risk -> execution -> notifications
+
+## Local Commands
+
+- `python3 -m unittest discover -s tests -t . -v`
+- `ruff check .`
+- `mypy src`
+- `python3 -m crypto_trader.cli backtest --config config/example.toml`
+- `python3 -m crypto_trader.cli run-loop --config config/example.toml`

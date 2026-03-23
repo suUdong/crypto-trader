@@ -26,3 +26,10 @@ class ConfigTests(unittest.TestCase):
         )
         self.assertEqual(config.trading.symbol, "KRW-ETH")
         self.assertTrue(config.telegram.enabled)
+
+    def test_live_trading_requires_credentials(self) -> None:
+        with self.assertRaises(ValueError):
+            load_config(
+                ROOT / "config" / "example.toml",
+                {"CT_PAPER_TRADING": "false"},
+            )

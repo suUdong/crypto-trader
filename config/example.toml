@@ -32,3 +32,13 @@ slippage_pct = 0.0005
 [telegram]
 bot_token = ""
 chat_id = ""
+
+[runtime]
+log_level = "INFO"
+poll_interval_seconds = 60
+max_iterations = 0
+healthcheck_path = "artifacts/health.json"
+
+[credentials]
+upbit_access_key = ""
+upbit_secret_key = ""

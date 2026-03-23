@@ -57,12 +57,32 @@ class TelegramConfig:
 
 
 @dataclass(slots=True)
+class RuntimeConfig:
+    log_level: str = "INFO"
+    poll_interval_seconds: int = 60
+    max_iterations: int = 0
+    healthcheck_path: str = "artifacts/health.json"
+
+
+@dataclass(slots=True)
+class CredentialsConfig:
+    upbit_access_key: str = ""
+    upbit_secret_key: str = ""
+
+    @property
+    def has_upbit_credentials(self) -> bool:
+        return bool(self.upbit_access_key and self.upbit_secret_key)
+
+
+@dataclass(slots=True)
 class AppConfig:
     trading: TradingConfig
     strategy: StrategyConfig
     risk: RiskConfig
     backtest: BacktestConfig
     telegram: TelegramConfig
+    runtime: RuntimeConfig
+    credentials: CredentialsConfig
 
 
 def load_config(path: str | Path | None = None, environ: dict[str, str] | None = None) -> AppConfig:
@@ -155,13 +175,65 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         bot_token=str(_read_value(raw, env, "telegram", "bot_token", "CT_TELEGRAM_BOT_TOKEN", "")),
         chat_id=str(_read_value(raw, env, "telegram", "chat_id", "CT_TELEGRAM_CHAT_ID", "")),
     )
-    return AppConfig(
+    runtime = RuntimeConfig(
+        log_level=str(_read_value(raw, env, "runtime", "log_level", "CT_LOG_LEVEL", "INFO")),
+        poll_interval_seconds=int(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "poll_interval_seconds",
+                "CT_POLL_INTERVAL_SECONDS",
+                60,
+            )
+        ),
+        max_iterations=int(
+            _read_value(raw, env, "runtime", "max_iterations", "CT_MAX_ITERATIONS", 0)
+        ),
+        healthcheck_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "healthcheck_path",
+                "CT_HEALTHCHECK_PATH",
+                "artifacts/health.json",
+            )
+        ),
+    )
+    credentials = CredentialsConfig(
+        upbit_access_key=str(
+            _read_value(
+                raw,
+                env,
+                "credentials",
+                "upbit_access_key",
+                "CT_UPBIT_ACCESS_KEY",
+                "",
+            )
+        ),
+        upbit_secret_key=str(
+            _read_value(
+                raw,
+                env,
+                "credentials",
+                "upbit_secret_key",
+                "CT_UPBIT_SECRET_KEY",
+                "",
+            )
+        ),
+    )
+    app_config = AppConfig(
         trading=trading,
         strategy=strategy,
         risk=risk,
         backtest=backtest,
         telegram=telegram,
+        runtime=runtime,
+        credentials=credentials,
     )
+    _validate_config(app_config)
+    return app_config
 
 
 def _read_toml(path: Path) -> dict[str, Any]:
@@ -193,3 +265,15 @@ def _read_bool(
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _validate_config(config: AppConfig) -> None:
+    if config.runtime.poll_interval_seconds <= 0:
+        raise ValueError("runtime.poll_interval_seconds must be positive")
+    if config.risk.max_concurrent_positions <= 0:
+        raise ValueError("risk.max_concurrent_positions must be positive")
+    if not config.trading.paper_trading and not config.credentials.has_upbit_credentials:
+        raise ValueError(
+            "Live trading requires CT_UPBIT_ACCESS_KEY and CT_UPBIT_SECRET_KEY "
+            "or matching TOML values"
+        )

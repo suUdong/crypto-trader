@@ -6,19 +6,23 @@ from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import load_config
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
 from crypto_trader.execution.paper import PaperBroker
+from crypto_trader.logging_utils import setup_logging
+from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.runtime import TradingRuntime
 from crypto_trader.strategy.composite import CompositeStrategy
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crypto trader control plane")
-    parser.add_argument("command", choices=["run-once", "backtest"])
+    parser.add_argument("command", choices=["run-once", "run-loop", "backtest"])
     parser.add_argument("--config", default=None)
     args = parser.parse_args()
 
     config = load_config(args.config)
+    setup_logging(config.runtime.log_level)
     strategy = CompositeStrategy(config.strategy)
     risk_manager = RiskManager(config.risk)
     market_data = PyUpbitMarketDataClient()
@@ -58,5 +62,14 @@ def main() -> None:
         broker=broker,
         notifier=notifier,
     )
+    if args.command == "run-loop":
+        runtime = TradingRuntime(
+            pipeline=pipeline,
+            monitor=HealthMonitor(config.runtime.healthcheck_path),
+            poll_interval_seconds=config.runtime.poll_interval_seconds,
+        )
+        runtime.run(config.runtime.max_iterations)
+        return
+
     pipeline_result = pipeline.run_once()
     print(pipeline_result.message)

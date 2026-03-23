@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 from crypto_trader.config import (
     AppConfig,
     BacktestConfig,
+    CredentialsConfig,
     RiskConfig,
+    RuntimeConfig,
     StrategyConfig,
     TelegramConfig,
     TradingConfig,
@@ -25,6 +27,11 @@ class FakeMarketData:
 
     def get_ohlcv(self, symbol: str, interval: str, count: int) -> list[Candle]:
         return self._candles[-count:]
+
+
+class BrokenMarketData:
+    def get_ohlcv(self, symbol: str, interval: str, count: int) -> list[Candle]:
+        raise RuntimeError("upbit unavailable")
 
 
 class RecorderNotifier(Notifier):
@@ -67,6 +74,8 @@ class TradingPipelineTests(unittest.TestCase):
             risk=RiskConfig(),
             backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
             telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
         )
         pipeline = TradingPipeline(
             config=config,
@@ -81,3 +90,27 @@ class TradingPipelineTests(unittest.TestCase):
         assert result.order is not None
         self.assertEqual(result.order.status, "filled")
         self.assertIn("signal=buy", result.message)
+
+    def test_pipeline_returns_error_result_on_market_data_failure(self) -> None:
+        config = AppConfig(
+            trading=TradingConfig(symbol="KRW-BTC", candle_count=10),
+            strategy=StrategyConfig(),
+            risk=RiskConfig(),
+            backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        notifier = RecorderNotifier()
+        pipeline = TradingPipeline(
+            config=config,
+            market_data=BrokenMarketData(),
+            strategy=CompositeStrategy(config.strategy),
+            risk_manager=RiskManager(config.risk),
+            broker=PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            notifier=notifier,
+        )
+        result = pipeline.run_once()
+        self.assertIsNotNone(result.error)
+        self.assertIn("pipeline_error", result.message)
+        self.assertEqual(len(notifier.messages), 1)

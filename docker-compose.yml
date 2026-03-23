@@ -1,0 +1,9 @@
+services:
+  trader:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./config:/app/config:ro
+    command: ["python", "-m", "crypto_trader.cli", "run-loop", "--config", "config/example.toml"]
