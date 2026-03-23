@@ -7,6 +7,7 @@ from crypto_trader.config import (
     AppConfig,
     BacktestConfig,
     CredentialsConfig,
+    RegimeConfig,
     RiskConfig,
     RuntimeConfig,
     StrategyConfig,
@@ -81,6 +82,7 @@ class TradingPipelineTests(unittest.TestCase):
                 rsi_oversold_floor=0.0,
                 rsi_recovery_ceiling=100.0,
             ),
+            regime=RegimeConfig(),
             risk=RiskConfig(),
             backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
             telegram=TelegramConfig(),
@@ -90,7 +92,7 @@ class TradingPipelineTests(unittest.TestCase):
         pipeline = TradingPipeline(
             config=config,
             market_data=FakeMarketData(candles),
-            strategy=CompositeStrategy(config.strategy),
+            strategy=CompositeStrategy(config.strategy, config.regime),
             risk_manager=RiskManager(config.risk),
             broker=PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0),
             notifier=RecorderNotifier(),
@@ -105,6 +107,7 @@ class TradingPipelineTests(unittest.TestCase):
         config = AppConfig(
             trading=TradingConfig(symbol="KRW-BTC", candle_count=10),
             strategy=StrategyConfig(),
+            regime=RegimeConfig(),
             risk=RiskConfig(),
             backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
             telegram=TelegramConfig(),
@@ -115,7 +118,7 @@ class TradingPipelineTests(unittest.TestCase):
         pipeline = TradingPipeline(
             config=config,
             market_data=BrokenMarketData(),
-            strategy=CompositeStrategy(config.strategy),
+            strategy=CompositeStrategy(config.strategy, config.regime),
             risk_manager=RiskManager(config.risk),
             broker=PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0),
             notifier=notifier,
@@ -138,6 +141,7 @@ class TradingPipelineTests(unittest.TestCase):
                 rsi_oversold_floor=0.0,
                 rsi_recovery_ceiling=100.0,
             ),
+            regime=RegimeConfig(),
             risk=RiskConfig(max_daily_loss_pct=0.05),
             backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
             telegram=TelegramConfig(),
@@ -149,7 +153,7 @@ class TradingPipelineTests(unittest.TestCase):
         pipeline = TradingPipeline(
             config=config,
             market_data=FakeMarketData(candles),
-            strategy=CompositeStrategy(config.strategy),
+            strategy=CompositeStrategy(config.strategy, config.regime),
             risk_manager=risk_manager,
             broker=broker,
             notifier=RecorderNotifier(),

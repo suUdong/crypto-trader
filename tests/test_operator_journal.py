@@ -17,6 +17,7 @@ class StrategyRunJournalTests(unittest.TestCase):
                     recorded_at="2026-03-23T00:00:00Z",
                     symbol="KRW-BTC",
                     latest_price=100.0,
+                    market_regime="sideways",
                     signal_action="buy",
                     signal_reason="entry",
                     signal_confidence=0.8,

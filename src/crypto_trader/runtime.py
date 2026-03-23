@@ -43,6 +43,7 @@ class TradingRuntime:
                 recorded_at=snapshot.updated_at,
                 symbol=result.symbol,
                 latest_price=result.latest_price,
+                market_regime=result.signal.context.get("market_regime"),
                 signal_action=result.signal.action.value,
                 signal_reason=result.signal.reason,
                 signal_confidence=result.signal.confidence,

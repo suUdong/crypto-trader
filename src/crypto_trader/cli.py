@@ -36,7 +36,7 @@ def main() -> None:
 
     config = load_config(args.config)
     setup_logging(config.runtime.log_level)
-    strategy = CompositeStrategy(config.strategy)
+    strategy = CompositeStrategy(config.strategy, config.regime)
     risk_manager = RiskManager(config.risk)
     market_data = PyUpbitMarketDataClient()
 

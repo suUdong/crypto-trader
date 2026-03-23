@@ -31,6 +31,14 @@ class StrategyConfig:
 
 
 @dataclass(slots=True)
+class RegimeConfig:
+    short_lookback: int = 10
+    long_lookback: int = 30
+    bull_threshold_pct: float = 0.03
+    bear_threshold_pct: float = -0.03
+
+
+@dataclass(slots=True)
 class RiskConfig:
     risk_per_trade_pct: float = 0.01
     stop_loss_pct: float = 0.02
@@ -82,6 +90,7 @@ class CredentialsConfig:
 class AppConfig:
     trading: TradingConfig
     strategy: StrategyConfig
+    regime: RegimeConfig
     risk: RiskConfig
     backtest: BacktestConfig
     telegram: TelegramConfig
@@ -140,6 +149,20 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         ),
         max_holding_bars=int(
             _read_value(raw, env, "strategy", "max_holding_bars", "CT_MAX_HOLDING_BARS", 24)
+        ),
+    )
+    regime = RegimeConfig(
+        short_lookback=int(
+            _read_value(raw, env, "regime", "short_lookback", "CT_REGIME_SHORT_LOOKBACK", 10)
+        ),
+        long_lookback=int(
+            _read_value(raw, env, "regime", "long_lookback", "CT_REGIME_LONG_LOOKBACK", 30)
+        ),
+        bull_threshold_pct=float(
+            _read_value(raw, env, "regime", "bull_threshold_pct", "CT_REGIME_BULL_THRESHOLD", 0.03)
+        ),
+        bear_threshold_pct=float(
+            _read_value(raw, env, "regime", "bear_threshold_pct", "CT_REGIME_BEAR_THRESHOLD", -0.03)
         ),
     )
     risk = RiskConfig(
@@ -270,6 +293,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
     app_config = AppConfig(
         trading=trading,
         strategy=strategy,
+        regime=regime,
         risk=risk,
         backtest=backtest,
         telegram=telegram,

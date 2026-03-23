@@ -22,7 +22,12 @@ class FakePipeline:
     def run_once(self) -> PipelineResult:
         return PipelineResult(
             symbol="KRW-BTC",
-            signal=Signal(action=SignalAction.HOLD, reason="noop", confidence=0.5),
+            signal=Signal(
+                action=SignalAction.HOLD,
+                reason="noop",
+                confidence=0.5,
+                context={"market_regime": "sideways"},
+            ),
             order=None,
             message="noop",
             latest_price=100.0,

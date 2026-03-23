@@ -9,6 +9,7 @@ from crypto_trader.config import (
     AppConfig,
     BacktestConfig,
     CredentialsConfig,
+    RegimeConfig,
     RiskConfig,
     RuntimeConfig,
     StrategyConfig,
@@ -60,6 +61,7 @@ class OperatorServicesTests(unittest.TestCase):
                     rsi_oversold_floor=0.0,
                     rsi_recovery_ceiling=100.0,
                 ),
+                regime=RegimeConfig(),
                 risk=RiskConfig(),
                 backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
                 telegram=TelegramConfig(),
@@ -76,6 +78,7 @@ class OperatorServicesTests(unittest.TestCase):
                     recorded_at="2026-03-23T00:00:00Z",
                     symbol="KRW-BTC",
                     latest_price=100.0,
+                    market_regime="sideways",
                     signal_action="hold",
                     signal_reason="noop",
                     signal_confidence=0.5,
@@ -98,7 +101,7 @@ class OperatorServicesTests(unittest.TestCase):
                 market_data=FakeMarketData(
                     build_candles([100.0] * 20 + [90.0, 89.0, 93.0, 96.0, 100.0])
                 ),
-                strategy=CompositeStrategy(config.strategy),
+                strategy=CompositeStrategy(config.strategy, config.regime),
                 risk_manager=RiskManager(config.risk),
             )
             self.assertTrue(Path(config.runtime.drift_report_path).exists())

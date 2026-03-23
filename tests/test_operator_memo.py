@@ -19,6 +19,7 @@ def build_run() -> StrategyRunRecord:
         recorded_at="2026-03-23T00:00:00Z",
         symbol="KRW-BTC",
         latest_price=100.0,
+        market_regime="bull",
         signal_action="buy",
         signal_reason="entry",
         signal_confidence=0.8,
@@ -82,6 +83,7 @@ class OperatorDailyMemoTests(unittest.TestCase):
         self.assertIn("## Drift Status", memo)
         self.assertIn("## Promotion Gate", memo)
         self.assertIn("candidate_for_promotion", memo)
+        self.assertIn("bull", memo)
 
     def test_save_writes_memo_to_disk(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

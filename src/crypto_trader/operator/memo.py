@@ -53,6 +53,7 @@ Reasons:
         return (
             f"- Recorded at: `{latest_run.recorded_at}`\n"
             f"- Symbol: `{latest_run.symbol}`\n"
+            f"- Market regime: `{latest_run.market_regime}`\n"
             f"- Signal: `{latest_run.signal_action}` ({latest_run.signal_reason})\n"
             f"- Verdict: `{latest_run.verdict_status}`\n"
             f"- Latest price: `{latest_run.latest_price}`\n"

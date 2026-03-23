@@ -52,6 +52,7 @@ class Signal:
     reason: str
     confidence: float
     indicators: dict[str, float] = field(default_factory=dict)
+    context: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -123,6 +124,7 @@ class StrategyRunRecord:
     recorded_at: str
     symbol: str
     latest_price: float | None
+    market_regime: str | None
     signal_action: str
     signal_reason: str
     signal_confidence: float

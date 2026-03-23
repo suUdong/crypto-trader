@@ -17,6 +17,7 @@ def build_run(
         recorded_at="2026-03-23T00:00:00Z",
         symbol="KRW-BTC",
         latest_price=100.0,
+        market_regime="sideways",
         signal_action="hold",
         signal_reason="noop",
         signal_confidence=0.5,
