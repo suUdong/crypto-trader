@@ -50,6 +50,13 @@ Generated local artifacts:
 
 These are intentionally not committed.
 
+Observed real-data snapshot after sequential verification:
+
+- `promotion_status=do_not_promote`
+- `paper_runs=2`
+- `drift_status=on_track`
+- latest memo reflects `market_regime`, drift, and promotion output together
+
 ## Validation State
 
 Latest validation run passed:
@@ -90,6 +97,13 @@ PYTHONPATH=src .venv/bin/python -m crypto_trader.cli daily-memo --config config/
 - `4c7abdb` Make operator artifacts run end-to-end from the CLI
 - `c40c065` Judge drift through the lens of market regime
 - `14a61de` Deliver the daily memo through the notification boundary
+
+Most recent related commits overall:
+
+- `b71b5cd` Leave the next session a runnable map instead of a mystery
+- `14a61de` Deliver the daily memo through the notification boundary
+- `c40c065` Judge drift through the lens of market regime
+- `d54f9a6` Adapt the strategy to market regime instead of trading every tape the same way
 
 ## Notes For The Next Agent
 
