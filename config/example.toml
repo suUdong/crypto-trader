@@ -52,6 +52,7 @@ log_level = "INFO"
 poll_interval_seconds = 60
 max_iterations = 0
 healthcheck_path = "artifacts/health.json"
+runtime_checkpoint_path = "artifacts/runtime-checkpoint.json"
 backtest_baseline_path = "artifacts/backtest-baseline.json"
 regime_report_path = "artifacts/regime-report.json"
 drift_calibration_path = "artifacts/drift-calibration.json"

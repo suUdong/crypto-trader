@@ -15,6 +15,7 @@ from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
+from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -212,6 +213,7 @@ def main() -> None:
                 config.runtime.position_snapshot_path,
                 config.runtime.daily_performance_path,
             ),
+            checkpoint_store=RuntimeCheckpointStore(config.runtime.runtime_checkpoint_path),
             poll_interval_seconds=config.runtime.poll_interval_seconds,
         )
         runtime.run(config.runtime.max_iterations)

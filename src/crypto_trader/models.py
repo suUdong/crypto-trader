@@ -171,6 +171,20 @@ class OperatorReport:
 
 
 @dataclass(slots=True)
+class RuntimeCheckpoint:
+    generated_at: str
+    iteration: int
+    symbol: str
+    latest_price: float | None
+    last_signal_action: str
+    last_verdict_status: str
+    success: bool
+    error: str | None
+    cash: float
+    mark_to_market_equity: float
+
+
+@dataclass(slots=True)
 class BacktestResult:
     initial_capital: float
     final_equity: float

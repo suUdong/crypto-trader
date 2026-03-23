@@ -11,6 +11,7 @@ from crypto_trader.models import PipelineResult, Signal, SignalAction
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
+from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.runtime import TradingRuntime
 
@@ -48,6 +49,7 @@ class TradingRuntimeTests(unittest.TestCase):
                     Path(temp_dir) / "positions.json",
                     Path(temp_dir) / "daily.json",
                 ),
+                checkpoint_store=RuntimeCheckpointStore(Path(temp_dir) / "checkpoint.json"),
                 poll_interval_seconds=1,
             )
             runtime.run(max_iterations=1)
@@ -56,3 +58,4 @@ class TradingRuntimeTests(unittest.TestCase):
             payload = json.loads(lines[0])
             self.assertEqual(payload["verdict_status"], "continue_paper")
             self.assertEqual(payload["symbol"], "KRW-BTC")
+            self.assertTrue((Path(temp_dir) / "checkpoint.json").exists())

@@ -80,6 +80,7 @@ class RuntimeConfig:
     poll_interval_seconds: int = 60
     max_iterations: int = 0
     healthcheck_path: str = "artifacts/health.json"
+    runtime_checkpoint_path: str = "artifacts/runtime-checkpoint.json"
     backtest_baseline_path: str = "artifacts/backtest-baseline.json"
     regime_report_path: str = "artifacts/regime-report.json"
     drift_calibration_path: str = "artifacts/drift-calibration.json"
@@ -305,6 +306,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "healthcheck_path",
                 "CT_HEALTHCHECK_PATH",
                 "artifacts/health.json",
+            )
+        ),
+        runtime_checkpoint_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "runtime_checkpoint_path",
+                "CT_RUNTIME_CHECKPOINT_PATH",
+                "artifacts/runtime-checkpoint.json",
             )
         ),
         backtest_baseline_path=str(
@@ -559,6 +570,8 @@ def _validate_config(config: AppConfig) -> None:
         errors.append("runtime.poll_interval_seconds must be positive")
     if not config.runtime.healthcheck_path.strip():
         errors.append("runtime.healthcheck_path must not be empty")
+    if not config.runtime.runtime_checkpoint_path.strip():
+        errors.append("runtime.runtime_checkpoint_path must not be empty")
     if not config.runtime.backtest_baseline_path.strip():
         errors.append("runtime.backtest_baseline_path must not be empty")
     if not config.runtime.regime_report_path.strip():
