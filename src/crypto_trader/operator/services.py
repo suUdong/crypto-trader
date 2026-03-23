@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from crypto_trader.backtest.baseline import (
+    BacktestBaselineStore,
+    build_backtest_fingerprint,
+    build_baseline,
+)
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import AppConfig
 from crypto_trader.data.base import MarketDataClient
-from crypto_trader.models import DriftReport, PromotionGateDecision
+from crypto_trader.models import BacktestBaseline, DriftReport, PromotionGateDecision
 from crypto_trader.notifications.telegram import Notifier
 from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.journal import StrategyRunJournal
@@ -17,6 +22,7 @@ from crypto_trader.strategy.composite import CompositeStrategy
 
 @dataclass(slots=True)
 class OperatorArtifacts:
+    backtest_baseline: BacktestBaseline
     drift_report: DriftReport
     promotion_decision: PromotionGateDecision
     daily_memo: str
@@ -31,31 +37,37 @@ def generate_operator_artifacts(
     notifier: Notifier | None = None,
     send_daily_memo: bool = False,
 ) -> OperatorArtifacts:
-    candles = market_data.get_ohlcv(
-        config.trading.symbol,
-        interval=config.trading.interval,
-        count=config.trading.candle_count,
-    )
-    engine = BacktestEngine(
-        strategy=strategy,
-        risk_manager=risk_manager,
-        config=config.backtest,
-        symbol=config.trading.symbol,
-    )
-    backtest_result = engine.run(candles)
+    baseline_store = BacktestBaselineStore(config.runtime.backtest_baseline_path)
+    baseline = baseline_store.load()
+    fingerprint = build_backtest_fingerprint(config)
+    if baseline is None or baseline.config_fingerprint != fingerprint:
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk_manager,
+            config=config.backtest,
+            symbol=config.trading.symbol,
+        )
+        backtest_result = engine.run(candles)
+        baseline = build_baseline(config=config, result=backtest_result)
+        baseline_store.save(baseline)
     journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
     recent_runs = journal.load_recent()
     drift_generator = DriftReportGenerator(config.drift)
     drift_report = drift_generator.generate(
         symbol=config.trading.symbol,
-        backtest_result=backtest_result,
+        backtest_baseline=baseline,
         recent_runs=recent_runs,
     )
     drift_generator.save(drift_report, config.runtime.drift_report_path)
     promotion_gate = PromotionGate()
     decision = promotion_gate.evaluate(
         symbol=config.trading.symbol,
-        backtest_result=backtest_result,
+        backtest_baseline=baseline,
         drift_report=drift_report,
         latest_run=recent_runs[-1] if recent_runs else None,
     )
@@ -69,6 +81,7 @@ def generate_operator_artifacts(
     if send_daily_memo and notifier is not None:
         notifier.send_message(memo)
     return OperatorArtifacts(
+        backtest_baseline=baseline,
         drift_report=drift_report,
         promotion_decision=decision,
         daily_memo=memo,

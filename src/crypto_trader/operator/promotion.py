@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from crypto_trader.models import (
-    BacktestResult,
+    BacktestBaseline,
     DriftReport,
     DriftStatus,
     PromotionGateDecision,
@@ -23,15 +23,15 @@ class PromotionGate:
         self,
         *,
         symbol: str,
-        backtest_result: BacktestResult,
+        backtest_baseline: BacktestBaseline,
         drift_report: DriftReport,
         latest_run: StrategyRunRecord | None,
     ) -> PromotionGateDecision:
         reasons: list[str] = []
 
-        if backtest_result.total_return_pct <= 0:
+        if backtest_baseline.total_return_pct <= 0:
             reasons.append("backtest return is not positive")
-        if backtest_result.max_drawdown > 0.2:
+        if backtest_baseline.max_drawdown > 0.2:
             reasons.append("backtest drawdown is above 20%")
         if drift_report.paper_run_count < self._minimum_paper_runs_required:
             reasons.append("not enough paper runs have been recorded yet")
@@ -65,7 +65,7 @@ class PromotionGate:
             reasons=reasons,
             minimum_paper_runs_required=self._minimum_paper_runs_required,
             observed_paper_runs=drift_report.paper_run_count,
-            backtest_total_return_pct=backtest_result.total_return_pct,
+            backtest_total_return_pct=backtest_baseline.total_return_pct,
             paper_realized_pnl_pct=drift_report.paper_realized_pnl_pct,
             drift_status=drift_report.status,
         )

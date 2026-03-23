@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from crypto_trader.config import DriftConfig
-from crypto_trader.models import BacktestResult, DriftReport, DriftStatus, StrategyRunRecord
+from crypto_trader.models import BacktestBaseline, DriftReport, DriftStatus, StrategyRunRecord
 
 
 class DriftReportGenerator:
@@ -17,7 +17,7 @@ class DriftReportGenerator:
         self,
         *,
         symbol: str,
-        backtest_result: BacktestResult,
+        backtest_baseline: BacktestBaseline,
         recent_runs: list[StrategyRunRecord],
     ) -> DriftReport:
         if not recent_runs:
@@ -26,10 +26,10 @@ class DriftReportGenerator:
                 symbol=symbol,
                 status=DriftStatus.INSUFFICIENT_DATA,
                 reasons=["no paper runs recorded yet"],
-                backtest_total_return_pct=backtest_result.total_return_pct,
-                backtest_win_rate=backtest_result.win_rate,
-                backtest_max_drawdown=backtest_result.max_drawdown,
-                backtest_trade_count=len(backtest_result.trade_log),
+                backtest_total_return_pct=backtest_baseline.total_return_pct,
+                backtest_win_rate=backtest_baseline.win_rate,
+                backtest_max_drawdown=backtest_baseline.max_drawdown,
+                backtest_trade_count=backtest_baseline.trade_count,
                 paper_run_count=0,
                 paper_error_rate=0.0,
                 paper_buy_rate=0.0,
@@ -56,10 +56,10 @@ class DriftReportGenerator:
         if paper_error_rate >= error_rate_threshold:
             reasons.append("paper runtime error rate is elevated")
 
-        if _different_direction(backtest_result.total_return_pct, paper_realized_pnl_pct):
+        if _different_direction(backtest_baseline.total_return_pct, paper_realized_pnl_pct):
             reasons.append("paper pnl direction diverges from backtest expectation")
 
-        return_gap = abs(backtest_result.total_return_pct - paper_realized_pnl_pct)
+        return_gap = abs(backtest_baseline.total_return_pct - paper_realized_pnl_pct)
         major_return_gap = return_gap >= return_tolerance
         if major_return_gap:
             reasons.append("paper performance is materially offset from backtest return")
@@ -70,7 +70,7 @@ class DriftReportGenerator:
             status = DriftStatus.ON_TRACK
             reasons.append("paper behavior is directionally aligned with backtest")
         elif paper_error_rate >= error_rate_threshold or _different_direction(
-            backtest_result.total_return_pct,
+            backtest_baseline.total_return_pct,
             paper_realized_pnl_pct,
         ) or major_return_gap:
             status = DriftStatus.OUT_OF_SYNC
@@ -82,10 +82,10 @@ class DriftReportGenerator:
             symbol=symbol,
             status=status,
             reasons=reasons,
-            backtest_total_return_pct=backtest_result.total_return_pct,
-            backtest_win_rate=backtest_result.win_rate,
-            backtest_max_drawdown=backtest_result.max_drawdown,
-            backtest_trade_count=len(backtest_result.trade_log),
+            backtest_total_return_pct=backtest_baseline.total_return_pct,
+            backtest_win_rate=backtest_baseline.win_rate,
+            backtest_max_drawdown=backtest_baseline.max_drawdown,
+            backtest_trade_count=backtest_baseline.trade_count,
             paper_run_count=paper_run_count,
             paper_error_rate=paper_error_rate,
             paper_buy_rate=buy_count / paper_run_count,

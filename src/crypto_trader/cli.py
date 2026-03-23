@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+from crypto_trader.backtest.baseline import BacktestBaselineStore, build_baseline
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import load_config
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
@@ -53,6 +54,8 @@ def main() -> None:
             symbol=config.trading.symbol,
         )
         backtest_result = engine.run(candles)
+        baseline = build_baseline(config=config, result=backtest_result)
+        BacktestBaselineStore(config.runtime.backtest_baseline_path).save(baseline)
         print(
             f"final_equity={backtest_result.final_equity:.2f} "
             f"return={backtest_result.total_return_pct:.2%} "

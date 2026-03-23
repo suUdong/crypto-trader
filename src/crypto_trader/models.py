@@ -113,6 +113,21 @@ class BacktestResult:
 
 
 @dataclass(slots=True)
+class BacktestBaseline:
+    generated_at: str
+    symbol: str
+    interval: str
+    candle_count: int
+    config_fingerprint: str
+    total_return_pct: float
+    win_rate: float
+    profit_factor: float
+    max_drawdown: float
+    trade_count: int
+    average_trade_pnl_pct: float
+
+
+@dataclass(slots=True)
 class StrategyVerdict:
     status: VerdictStatus
     confidence: float

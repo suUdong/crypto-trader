@@ -52,6 +52,7 @@ log_level = "INFO"
 poll_interval_seconds = 60
 max_iterations = 0
 healthcheck_path = "artifacts/health.json"
+backtest_baseline_path = "artifacts/backtest-baseline.json"
 strategy_run_journal_path = "artifacts/strategy-runs.jsonl"
 drift_report_path = "artifacts/drift-report.json"
 promotion_gate_path = "artifacts/promotion-gate.json"

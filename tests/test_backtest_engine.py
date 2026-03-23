@@ -3,8 +3,20 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timedelta
 
+from crypto_trader.backtest.baseline import build_baseline
 from crypto_trader.backtest.engine import BacktestEngine
-from crypto_trader.config import BacktestConfig, RiskConfig, StrategyConfig
+from crypto_trader.config import (
+    AppConfig,
+    BacktestConfig,
+    CredentialsConfig,
+    DriftConfig,
+    RegimeConfig,
+    RiskConfig,
+    RuntimeConfig,
+    StrategyConfig,
+    TelegramConfig,
+    TradingConfig,
+)
 from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
@@ -50,3 +62,38 @@ class BacktestEngineTests(unittest.TestCase):
             sum(trade.pnl for trade in result.trade_log),
             result.final_equity - result.initial_capital,
         )
+
+    def test_build_baseline_summarizes_backtest_result(self) -> None:
+        candles = build_candles([100.0] * 20 + [90.0, 89.0, 93.0, 96.0, 100.0])
+        strategy = CompositeStrategy(
+            StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                bollinger_window=20,
+                bollinger_stddev=1.5,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+            )
+        )
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=RiskManager(RiskConfig(stop_loss_pct=0.02, take_profit_pct=0.03)),
+            config=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            symbol="KRW-BTC",
+        )
+        result = engine.run(candles)
+        config = AppConfig(
+            trading=TradingConfig(),
+            strategy=StrategyConfig(),
+            regime=RegimeConfig(),
+            drift=DriftConfig(),
+            risk=RiskConfig(),
+            backtest=BacktestConfig(),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        baseline = build_baseline(config=config, result=result)
+        self.assertEqual(baseline.symbol, "KRW-BTC")
+        self.assertEqual(baseline.trade_count, len(result.trade_log))

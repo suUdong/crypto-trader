@@ -3,38 +3,28 @@ from __future__ import annotations
 import unittest
 
 from crypto_trader.models import (
-    BacktestResult,
+    BacktestBaseline,
     DriftReport,
     DriftStatus,
     PromotionStatus,
     StrategyRunRecord,
-    TradeRecord,
 )
 from crypto_trader.operator.promotion import PromotionGate
 
 
-def build_backtest(total_return_pct: float, max_drawdown: float = 0.1) -> BacktestResult:
-    return BacktestResult(
-        initial_capital=1_000.0,
-        final_equity=1_000.0 * (1.0 + total_return_pct),
+def build_baseline(total_return_pct: float, max_drawdown: float = 0.1) -> BacktestBaseline:
+    return BacktestBaseline(
+        generated_at="2026-03-24T00:00:00Z",
+        symbol="KRW-BTC",
+        interval="minute60",
+        candle_count=200,
+        config_fingerprint="fingerprint",
         total_return_pct=total_return_pct,
         win_rate=0.6,
         profit_factor=1.4,
         max_drawdown=max_drawdown,
-        trade_log=[
-            TradeRecord(
-                symbol="KRW-BTC",
-                entry_time=None,  # type: ignore[arg-type]
-                exit_time=None,  # type: ignore[arg-type]
-                entry_price=100.0,
-                exit_price=105.0,
-                quantity=1.0,
-                pnl=5.0,
-                pnl_pct=0.05,
-                exit_reason="take_profit",
-            )
-        ],
-        equity_curve=[1_000.0, 1_050.0],
+        trade_count=5,
+        average_trade_pnl_pct=0.05,
     )
 
 
@@ -90,7 +80,7 @@ class PromotionGateTests(unittest.TestCase):
     def test_stays_in_paper_when_runs_are_insufficient(self) -> None:
         decision = PromotionGate().evaluate(
             symbol="KRW-BTC",
-            backtest_result=build_backtest(0.1),
+            backtest_baseline=build_baseline(0.1),
             drift_report=build_drift(
                 status=DriftStatus.ON_TRACK,
                 paper_run_count=2,
@@ -103,7 +93,7 @@ class PromotionGateTests(unittest.TestCase):
     def test_blocks_promotion_when_backtest_is_weak(self) -> None:
         decision = PromotionGate().evaluate(
             symbol="KRW-BTC",
-            backtest_result=build_backtest(-0.05),
+            backtest_baseline=build_baseline(-0.05),
             drift_report=build_drift(
                 status=DriftStatus.ON_TRACK,
                 paper_run_count=10,
@@ -116,7 +106,7 @@ class PromotionGateTests(unittest.TestCase):
     def test_marks_candidate_when_all_conditions_are_met(self) -> None:
         decision = PromotionGate().evaluate(
             symbol="KRW-BTC",
-            backtest_result=build_backtest(0.1),
+            backtest_baseline=build_baseline(0.1),
             drift_report=build_drift(
                 status=DriftStatus.ON_TRACK,
                 paper_run_count=6,
@@ -129,7 +119,7 @@ class PromotionGateTests(unittest.TestCase):
     def test_stays_in_paper_when_latest_verdict_is_reduce_risk(self) -> None:
         decision = PromotionGate().evaluate(
             symbol="KRW-BTC",
-            backtest_result=build_backtest(0.1),
+            backtest_baseline=build_baseline(0.1),
             drift_report=build_drift(
                 status=DriftStatus.ON_TRACK,
                 paper_run_count=6,
