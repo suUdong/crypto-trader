@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 import time
 
+from crypto_trader.models import StrategyRunRecord
 from crypto_trader.monitoring import HealthMonitor
+from crypto_trader.operator.journal import StrategyRunJournal
+from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
 
 
@@ -12,10 +15,14 @@ class TradingRuntime:
         self,
         pipeline: TradingPipeline,
         monitor: HealthMonitor,
+        journal: StrategyRunJournal,
+        verdict_engine: StrategyVerdictEngine,
         poll_interval_seconds: int,
     ) -> None:
         self._pipeline = pipeline
         self._monitor = monitor
+        self._journal = journal
+        self._verdict_engine = verdict_engine
         self._poll_interval_seconds = poll_interval_seconds
         self._logger = logging.getLogger(__name__)
 
@@ -24,16 +31,45 @@ class TradingRuntime:
         while True:
             result = self._pipeline.run_once()
             snapshot = self._monitor.record(result, self._pipeline.broker)
+            recent_runs = self._journal.load_recent()
+            verdict = self._verdict_engine.evaluate(
+                consecutive_failures=snapshot.consecutive_failures,
+                realized_pnl=self._pipeline.broker.realized_pnl,
+                session_starting_equity=self._pipeline.session_starting_equity,
+                current_success=result.error is None,
+                recent_runs=recent_runs,
+            )
+            record = StrategyRunRecord(
+                recorded_at=snapshot.updated_at,
+                symbol=result.symbol,
+                latest_price=result.latest_price,
+                signal_action=result.signal.action.value,
+                signal_reason=result.signal.reason,
+                signal_confidence=result.signal.confidence,
+                order_status=None if result.order is None else result.order.status,
+                order_side=None if result.order is None else result.order.side.value,
+                cash=self._pipeline.broker.cash,
+                open_positions=len(self._pipeline.broker.positions),
+                realized_pnl=self._pipeline.broker.realized_pnl,
+                success=result.error is None,
+                error=result.error,
+                consecutive_failures=snapshot.consecutive_failures,
+                verdict_status=verdict.status.value,
+                verdict_confidence=verdict.confidence,
+                verdict_reasons=verdict.reasons,
+            )
+            self._journal.append(record)
             if result.error is None:
                 self._logger.info(result.message)
             else:
                 self._logger.error(result.message)
             self._logger.info(
-                "health success=%s failures=%s positions=%s cash=%.2f",
+                "health success=%s failures=%s positions=%s cash=%.2f verdict=%s",
                 snapshot.success,
                 snapshot.consecutive_failures,
                 snapshot.open_positions,
                 snapshot.cash,
+                verdict.status.value,
             )
 
             iteration += 1

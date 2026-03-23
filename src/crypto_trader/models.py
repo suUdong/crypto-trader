@@ -16,6 +16,13 @@ class OrderSide(StrEnum):
     SELL = "sell"
 
 
+class VerdictStatus(StrEnum):
+    CONTINUE_PAPER = "continue_paper"
+    REDUCE_RISK = "reduce_risk"
+    PAUSE_STRATEGY = "pause_strategy"
+    CANDIDATE_FOR_PROMOTION = "candidate_for_promotion"
+
+
 @dataclass(slots=True)
 class Candle:
     timestamp: datetime
@@ -92,9 +99,38 @@ class BacktestResult:
 
 
 @dataclass(slots=True)
+class StrategyVerdict:
+    status: VerdictStatus
+    confidence: float
+    reasons: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class StrategyRunRecord:
+    recorded_at: str
+    symbol: str
+    latest_price: float | None
+    signal_action: str
+    signal_reason: str
+    signal_confidence: float
+    order_status: str | None
+    order_side: str | None
+    cash: float
+    open_positions: int
+    realized_pnl: float
+    success: bool
+    error: str | None
+    consecutive_failures: int
+    verdict_status: str
+    verdict_confidence: float
+    verdict_reasons: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class PipelineResult:
     symbol: str
     signal: Signal
     order: OrderResult | None
     message: str
+    latest_price: float | None = None
     error: str | None = None

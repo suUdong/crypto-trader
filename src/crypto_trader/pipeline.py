@@ -42,6 +42,10 @@ class TradingPipeline:
     def broker(self) -> PaperBroker:
         return self._broker
 
+    @property
+    def session_starting_equity(self) -> float:
+        return self._session_starting_equity
+
     def run_once(self) -> PipelineResult:
         symbol = self._config.trading.symbol
         try:
@@ -96,6 +100,7 @@ class TradingPipeline:
                 signal=signal,
                 order=order,
                 message=message,
+                latest_price=latest_price,
             )
         except Exception as exc:
             self._logger.exception("Pipeline iteration failed for %s", symbol)
@@ -111,6 +116,7 @@ class TradingPipeline:
                 signal=signal,
                 order=None,
                 message=message,
+                latest_price=None,
                 error=str(exc),
             )
 

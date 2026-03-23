@@ -62,6 +62,7 @@ class RuntimeConfig:
     poll_interval_seconds: int = 60
     max_iterations: int = 0
     healthcheck_path: str = "artifacts/health.json"
+    strategy_run_journal_path: str = "artifacts/strategy-runs.jsonl"
 
 
 @dataclass(slots=True)
@@ -198,6 +199,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "healthcheck_path",
                 "CT_HEALTHCHECK_PATH",
                 "artifacts/health.json",
+            )
+        ),
+        strategy_run_journal_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "strategy_run_journal_path",
+                "CT_STRATEGY_RUN_JOURNAL_PATH",
+                "artifacts/strategy-runs.jsonl",
             )
         ),
     )
