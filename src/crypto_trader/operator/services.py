@@ -6,6 +6,7 @@ from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import AppConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.models import DriftReport, PromotionGateDecision
+from crypto_trader.notifications.telegram import Notifier
 from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.memo import OperatorDailyMemo
@@ -27,6 +28,8 @@ def generate_operator_artifacts(
     market_data: MarketDataClient,
     strategy: CompositeStrategy,
     risk_manager: RiskManager,
+    notifier: Notifier | None = None,
+    send_daily_memo: bool = False,
 ) -> OperatorArtifacts:
     candles = market_data.get_ohlcv(
         config.trading.symbol,
@@ -63,6 +66,8 @@ def generate_operator_artifacts(
         promotion_decision=decision,
     )
     OperatorDailyMemo().save(memo, config.runtime.daily_memo_path)
+    if send_daily_memo and notifier is not None:
+        notifier.send_message(memo)
     return OperatorArtifacts(
         drift_report=drift_report,
         promotion_decision=decision,

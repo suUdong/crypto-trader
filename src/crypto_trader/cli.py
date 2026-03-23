@@ -90,11 +90,14 @@ def main() -> None:
         return
 
     if args.command == "daily-memo":
+        notifier = TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
         generate_operator_artifacts(
             config=config,
             market_data=market_data,
             strategy=strategy,
             risk_manager=risk_manager,
+            notifier=notifier,
+            send_daily_memo=True,
         )
         print(config.runtime.daily_memo_path)
         return
