@@ -421,11 +421,91 @@ def _read_bool(
 
 
 def _validate_config(config: AppConfig) -> None:
-    if config.runtime.poll_interval_seconds <= 0:
-        raise ValueError("runtime.poll_interval_seconds must be positive")
+    errors: list[str] = []
+
+    if config.trading.candle_count <= 1:
+        errors.append("trading.candle_count must be greater than 1")
+
+    if config.strategy.momentum_lookback <= 0:
+        errors.append("strategy.momentum_lookback must be positive")
+    if config.strategy.bollinger_window <= 1:
+        errors.append("strategy.bollinger_window must be greater than 1")
+    if config.strategy.bollinger_stddev <= 0:
+        errors.append("strategy.bollinger_stddev must be positive")
+    if config.strategy.rsi_period <= 0:
+        errors.append("strategy.rsi_period must be positive")
+    if config.strategy.max_holding_bars <= 0:
+        errors.append("strategy.max_holding_bars must be positive")
+
+    if config.regime.short_lookback <= 0:
+        errors.append("regime.short_lookback must be positive")
+    if config.regime.long_lookback <= config.regime.short_lookback:
+        errors.append("regime.long_lookback must be greater than regime.short_lookback")
+    if config.regime.bull_threshold_pct <= 0:
+        errors.append("regime.bull_threshold_pct must be positive")
+    if config.regime.bear_threshold_pct >= 0:
+        errors.append("regime.bear_threshold_pct must be negative")
+
+    if config.drift.bull_return_tolerance_pct <= 0:
+        errors.append("drift.bull_return_tolerance_pct must be positive")
+    if config.drift.sideways_return_tolerance_pct <= 0:
+        errors.append("drift.sideways_return_tolerance_pct must be positive")
+    if config.drift.bear_return_tolerance_pct <= 0:
+        errors.append("drift.bear_return_tolerance_pct must be positive")
+
+    for field_name, value in {
+        "drift.bull_error_rate_threshold": config.drift.bull_error_rate_threshold,
+        "drift.sideways_error_rate_threshold": config.drift.sideways_error_rate_threshold,
+        "drift.bear_error_rate_threshold": config.drift.bear_error_rate_threshold,
+        "backtest.fee_rate": config.backtest.fee_rate,
+        "backtest.slippage_pct": config.backtest.slippage_pct,
+        "risk.risk_per_trade_pct": config.risk.risk_per_trade_pct,
+        "risk.stop_loss_pct": config.risk.stop_loss_pct,
+        "risk.take_profit_pct": config.risk.take_profit_pct,
+        "risk.max_daily_loss_pct": config.risk.max_daily_loss_pct,
+    }.items():
+        if value <= 0:
+            errors.append(f"{field_name} must be positive")
+
+    for field_name, value in {
+        "drift.bull_error_rate_threshold": config.drift.bull_error_rate_threshold,
+        "drift.sideways_error_rate_threshold": config.drift.sideways_error_rate_threshold,
+        "drift.bear_error_rate_threshold": config.drift.bear_error_rate_threshold,
+        "backtest.fee_rate": config.backtest.fee_rate,
+        "backtest.slippage_pct": config.backtest.slippage_pct,
+        "risk.risk_per_trade_pct": config.risk.risk_per_trade_pct,
+        "risk.stop_loss_pct": config.risk.stop_loss_pct,
+        "risk.take_profit_pct": config.risk.take_profit_pct,
+        "risk.max_daily_loss_pct": config.risk.max_daily_loss_pct,
+    }.items():
+        if value >= 1:
+            errors.append(f"{field_name} must be less than 1")
+
+    if config.backtest.initial_capital <= 0:
+        errors.append("backtest.initial_capital must be positive")
+
+    if config.risk.take_profit_pct <= config.risk.stop_loss_pct:
+        errors.append("risk.take_profit_pct must be greater than risk.stop_loss_pct")
     if config.risk.max_concurrent_positions <= 0:
-        raise ValueError("risk.max_concurrent_positions must be positive")
+        errors.append("risk.max_concurrent_positions must be positive")
+
+    if config.runtime.poll_interval_seconds <= 0:
+        errors.append("runtime.poll_interval_seconds must be positive")
+    if not config.runtime.healthcheck_path.strip():
+        errors.append("runtime.healthcheck_path must not be empty")
+    if not config.runtime.backtest_baseline_path.strip():
+        errors.append("runtime.backtest_baseline_path must not be empty")
+    if not config.runtime.strategy_run_journal_path.strip():
+        errors.append("runtime.strategy_run_journal_path must not be empty")
+    if not config.runtime.drift_report_path.strip():
+        errors.append("runtime.drift_report_path must not be empty")
+    if not config.runtime.promotion_gate_path.strip():
+        errors.append("runtime.promotion_gate_path must not be empty")
+    if not config.runtime.daily_memo_path.strip():
+        errors.append("runtime.daily_memo_path must not be empty")
+
     if not config.trading.paper_trading:
-        raise ValueError(
-            "Live trading is not implemented yet. Keep CT_PAPER_TRADING=true."
-        )
+        errors.append("Live trading is not implemented yet. Keep CT_PAPER_TRADING=true.")
+
+    if errors:
+        raise ValueError("Invalid configuration:\n- " + "\n- ".join(errors))

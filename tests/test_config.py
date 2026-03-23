@@ -37,3 +37,44 @@ class ConfigTests(unittest.TestCase):
                     "CT_UPBIT_SECRET_KEY": "secret",
                 },
             )
+
+    def test_invalid_percentage_and_path_values_raise_clear_errors(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "risk.take_profit_pct must be greater than risk.stop_loss_pct",
+        ):
+            load_config(
+                ROOT / "config" / "example.toml",
+                {
+                    "CT_STOP_LOSS_PCT": "0.05",
+                    "CT_TAKE_PROFIT_PCT": "0.03",
+                    "CT_DAILY_MEMO_PATH": "",
+                },
+            )
+
+    def test_invalid_regime_values_raise_clear_errors(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "regime.long_lookback must be greater than regime.short_lookback",
+        ):
+            load_config(
+                ROOT / "config" / "example.toml",
+                {
+                    "CT_REGIME_SHORT_LOOKBACK": "30",
+                    "CT_REGIME_LONG_LOOKBACK": "10",
+                    "CT_REGIME_BEAR_THRESHOLD": "0.01",
+                },
+            )
+
+    def test_invalid_candle_count_and_fee_values_raise_clear_errors(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError,
+            "trading.candle_count must be greater than 1",
+        ):
+            load_config(
+                ROOT / "config" / "example.toml",
+                {
+                    "CT_CANDLE_COUNT": "1",
+                    "CT_FEE_RATE": "1.2",
+                },
+            )
