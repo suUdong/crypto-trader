@@ -11,6 +11,7 @@ from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.journal import StrategyRunJournal
+from crypto_trader.operator.promotion import PromotionGate
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
@@ -20,7 +21,10 @@ from crypto_trader.strategy.composite import CompositeStrategy
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crypto trader control plane")
-    parser.add_argument("command", choices=["run-once", "run-loop", "backtest", "drift-report"])
+    parser.add_argument(
+        "command",
+        choices=["run-once", "run-loop", "backtest", "drift-report", "promotion-gate"],
+    )
     parser.add_argument("--config", default=None)
     args = parser.parse_args()
 
@@ -75,6 +79,40 @@ def main() -> None:
             f"drift_status={report.status.value} "
             f"paper_pnl={report.paper_realized_pnl_pct:.2%} "
             f"backtest_return={report.backtest_total_return_pct:.2%}"
+        )
+        return
+
+    if args.command == "promotion-gate":
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk_manager,
+            config=config.backtest,
+            symbol=config.trading.symbol,
+        )
+        backtest_result = engine.run(candles)
+        journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
+        drift_generator = DriftReportGenerator()
+        drift_report = drift_generator.generate(
+            symbol=config.trading.symbol,
+            backtest_result=backtest_result,
+            recent_runs=journal.load_recent(),
+        )
+        drift_generator.save(drift_report, config.runtime.drift_report_path)
+        decision = PromotionGate().evaluate(
+            symbol=config.trading.symbol,
+            backtest_result=backtest_result,
+            drift_report=drift_report,
+        )
+        PromotionGate().save(decision, config.runtime.promotion_gate_path)
+        print(
+            f"promotion_status={decision.status.value} "
+            f"paper_runs={decision.observed_paper_runs} "
+            f"drift_status={decision.drift_status.value}"
         )
         return
 

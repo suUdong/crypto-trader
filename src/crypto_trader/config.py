@@ -64,6 +64,7 @@ class RuntimeConfig:
     healthcheck_path: str = "artifacts/health.json"
     strategy_run_journal_path: str = "artifacts/strategy-runs.jsonl"
     drift_report_path: str = "artifacts/drift-report.json"
+    promotion_gate_path: str = "artifacts/promotion-gate.json"
 
 
 @dataclass(slots=True)
@@ -220,6 +221,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "drift_report_path",
                 "CT_DRIFT_REPORT_PATH",
                 "artifacts/drift-report.json",
+            )
+        ),
+        promotion_gate_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "promotion_gate_path",
+                "CT_PROMOTION_GATE_PATH",
+                "artifacts/promotion-gate.json",
             )
         ),
     )

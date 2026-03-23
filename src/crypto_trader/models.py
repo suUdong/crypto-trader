@@ -30,6 +30,12 @@ class DriftStatus(StrEnum):
     OUT_OF_SYNC = "out_of_sync"
 
 
+class PromotionStatus(StrEnum):
+    STAY_IN_PAPER = "stay_in_paper"
+    CANDIDATE_FOR_PROMOTION = "candidate_for_promotion"
+    DO_NOT_PROMOTE = "do_not_promote"
+
+
 @dataclass(slots=True)
 class Candle:
     timestamp: datetime
@@ -150,6 +156,19 @@ class DriftReport:
     paper_sell_rate: float
     paper_hold_rate: float
     paper_realized_pnl_pct: float
+
+
+@dataclass(slots=True)
+class PromotionGateDecision:
+    generated_at: str
+    symbol: str
+    status: PromotionStatus
+    reasons: list[str]
+    minimum_paper_runs_required: int
+    observed_paper_runs: int
+    backtest_total_return_pct: float
+    paper_realized_pnl_pct: float
+    drift_status: DriftStatus
 
 
 @dataclass(slots=True)
