@@ -1,0 +1,34 @@
+[trading]
+exchange = "upbit"
+symbol = "KRW-BTC"
+interval = "minute60"
+candle_count = 200
+paper_trading = true
+
+[strategy]
+momentum_lookback = 20
+momentum_entry_threshold = 0.02
+momentum_exit_threshold = -0.01
+bollinger_window = 20
+bollinger_stddev = 2.0
+rsi_period = 14
+rsi_oversold_floor = 25.0
+rsi_recovery_ceiling = 45.0
+rsi_overbought = 70.0
+max_holding_bars = 24
+
+[risk]
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+max_daily_loss_pct = 0.05
+max_concurrent_positions = 1
+
+[backtest]
+initial_capital = 1000000.0
+fee_rate = 0.0005
+slippage_pct = 0.0005
+
+[telegram]
+bot_token = ""
+chat_id = ""

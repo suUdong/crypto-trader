@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crypto-trader"
+version = "0.1.0"
+description = "Upbit-first crypto trading system with backtesting and paper trading."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+live = ["pyupbit>=0.2.33"]
+dev = ["mypy>=1.10", "pytest>=8.3", "ruff>=0.5"]
+
+[project.scripts]
+crypto-trader = "crypto_trader.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["crypto_trader"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

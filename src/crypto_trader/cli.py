@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import argparse
+
+from crypto_trader.backtest.engine import BacktestEngine
+from crypto_trader.config import load_config
+from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
+from crypto_trader.execution.paper import PaperBroker
+from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
+from crypto_trader.pipeline import TradingPipeline
+from crypto_trader.risk.manager import RiskManager
+from crypto_trader.strategy.composite import CompositeStrategy
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Crypto trader control plane")
+    parser.add_argument("command", choices=["run-once", "backtest"])
+    parser.add_argument("--config", default=None)
+    args = parser.parse_args()
+
+    config = load_config(args.config)
+    strategy = CompositeStrategy(config.strategy)
+    risk_manager = RiskManager(config.risk)
+    market_data = PyUpbitMarketDataClient()
+
+    if args.command == "backtest":
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk_manager,
+            config=config.backtest,
+            symbol=config.trading.symbol,
+        )
+        backtest_result = engine.run(candles)
+        print(
+            f"final_equity={backtest_result.final_equity:.2f} "
+            f"return={backtest_result.total_return_pct:.2%} "
+            f"win_rate={backtest_result.win_rate:.2%} "
+            f"max_drawdown={backtest_result.max_drawdown:.2%}"
+        )
+        return
+
+    broker = PaperBroker(
+        starting_cash=config.backtest.initial_capital,
+        fee_rate=config.backtest.fee_rate,
+        slippage_pct=config.backtest.slippage_pct,
+    )
+    notifier = TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
+    pipeline = TradingPipeline(
+        config=config,
+        market_data=market_data,
+        strategy=strategy,
+        risk_manager=risk_manager,
+        broker=broker,
+        notifier=notifier,
+    )
+    pipeline_result = pipeline.run_once()
+    print(pipeline_result.message)
