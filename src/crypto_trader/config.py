@@ -159,7 +159,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "strategy",
                 "momentum_entry_threshold",
                 "CT_MOMENTUM_ENTRY_THRESHOLD",
-                0.02,
+                0.005,
             )
         ),
         momentum_exit_threshold=float(
@@ -171,22 +171,22 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
             _read_value(raw, env, "strategy", "bollinger_window", "CT_BOLLINGER_WINDOW", 20)
         ),
         bollinger_stddev=float(
-            _read_value(raw, env, "strategy", "bollinger_stddev", "CT_BOLLINGER_STDDEV", 2.0)
+            _read_value(raw, env, "strategy", "bollinger_stddev", "CT_BOLLINGER_STDDEV", 1.8)
         ),
         rsi_period=int(_read_value(raw, env, "strategy", "rsi_period", "CT_RSI_PERIOD", 14)),
         rsi_oversold_floor=float(
-            _read_value(raw, env, "strategy", "rsi_oversold_floor", "CT_RSI_OVERSOLD_FLOOR", 25.0)
+            _read_value(raw, env, "strategy", "rsi_oversold_floor", "CT_RSI_OVERSOLD_FLOOR", 20.0)
         ),
         rsi_recovery_ceiling=float(
             _read_value(
-                raw, env, "strategy", "rsi_recovery_ceiling", "CT_RSI_RECOVERY_CEILING", 45.0
+                raw, env, "strategy", "rsi_recovery_ceiling", "CT_RSI_RECOVERY_CEILING", 60.0
             )
         ),
         rsi_overbought=float(
             _read_value(raw, env, "strategy", "rsi_overbought", "CT_RSI_OVERBOUGHT", 70.0)
         ),
         max_holding_bars=int(
-            _read_value(raw, env, "strategy", "max_holding_bars", "CT_MAX_HOLDING_BARS", 24)
+            _read_value(raw, env, "strategy", "max_holding_bars", "CT_MAX_HOLDING_BARS", 48)
         ),
     )
     regime = RegimeConfig(
@@ -270,10 +270,10 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
             _read_value(raw, env, "risk", "risk_per_trade_pct", "CT_RISK_PER_TRADE_PCT", 0.01)
         ),
         stop_loss_pct=float(
-            _read_value(raw, env, "risk", "stop_loss_pct", "CT_STOP_LOSS_PCT", 0.02)
+            _read_value(raw, env, "risk", "stop_loss_pct", "CT_STOP_LOSS_PCT", 0.03)
         ),
         take_profit_pct=float(
-            _read_value(raw, env, "risk", "take_profit_pct", "CT_TAKE_PROFIT_PCT", 0.04)
+            _read_value(raw, env, "risk", "take_profit_pct", "CT_TAKE_PROFIT_PCT", 0.06)
         ),
         max_daily_loss_pct=float(
             _read_value(raw, env, "risk", "max_daily_loss_pct", "CT_MAX_DAILY_LOSS_PCT", 0.05)
