@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python -m ruff check src/ tests/ 2>&1\",\"description\":\"Run ruff linter\"}",
-  "error": "Exit code 127\n(eval):1: command not found: python",
-  "timestamp": "2026-03-24T04:20:38.474Z",
-  "retry_count": 1
-}

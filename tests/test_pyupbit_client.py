@@ -2,10 +2,16 @@ import unittest
 from datetime import datetime
 from unittest.mock import MagicMock
 
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient, _to_datetime
 from crypto_trader.models import Candle
+
+
+@unittest.skipIf(pd is None, "pandas not installed")
 
 
 def _make_df():

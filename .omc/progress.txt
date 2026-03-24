@@ -1,8 +1,0 @@
-# Strategy Parameter Tuning Progress
-
-## Root Cause Analysis
-- Composite: momentum >= 0.02 AND near_lower_band AND RSI 25-45 are contradictory
-- Momentum: momentum >= 0.02 AND RSI 25-45 conflict (strong momentum => high RSI)
-- Mean Reversion: 2-sigma lower band is too rare (~5% of candles)
-- BacktestEngine hardcoded to CompositeStrategy type hint — can't backtest other strategies
-- All strategies share one StrategyConfig, so tuning affects all three
