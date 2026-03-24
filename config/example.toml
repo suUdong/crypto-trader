@@ -1,6 +1,7 @@
 [trading]
 exchange = "upbit"
 symbol = "KRW-BTC"
+symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 interval = "minute60"
 candle_count = 200
 paper_trading = true
@@ -51,6 +52,7 @@ chat_id = ""
 log_level = "INFO"
 poll_interval_seconds = 60
 max_iterations = 0
+daemon_mode = true
 healthcheck_path = "artifacts/health.json"
 runtime_checkpoint_path = "artifacts/runtime-checkpoint.json"
 backtest_baseline_path = "artifacts/backtest-baseline.json"
@@ -64,6 +66,21 @@ daily_performance_path = "artifacts/daily-performance.json"
 drift_report_path = "artifacts/drift-report.json"
 promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
+
+[[wallets]]
+name = "momentum_wallet"
+strategy = "momentum"
+initial_capital = 1000000.0
+
+[[wallets]]
+name = "mean_reversion_wallet"
+strategy = "mean_reversion"
+initial_capital = 1000000.0
+
+[[wallets]]
+name = "composite_wallet"
+strategy = "composite"
+initial_capital = 1000000.0
 
 [credentials]
 upbit_access_key = ""

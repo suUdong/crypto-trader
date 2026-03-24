@@ -9,6 +9,7 @@ from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
+from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
@@ -17,11 +18,13 @@ from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.operator.services import generate_operator_artifacts
+from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.runtime import TradingRuntime
 from crypto_trader.strategy.composite import CompositeStrategy
+from crypto_trader.wallet import build_wallets
 
 
 def main() -> None:
@@ -31,6 +34,7 @@ def main() -> None:
         choices=[
             "run-once",
             "run-loop",
+            "run-multi",
             "backtest",
             "regime-report",
             "calibrate-drift",
@@ -38,6 +42,7 @@ def main() -> None:
             "drift-report",
             "promotion-gate",
             "daily-memo",
+            "strategy-report",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -188,6 +193,40 @@ def main() -> None:
         print(config.runtime.daily_memo_path)
         return
 
+    if args.command == "run-multi":
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=market_data,
+            config=config,
+        )
+        runtime.run()
+        return
+
+    if args.command == "strategy-report":
+        wallets = build_wallets(config)
+        latest_prices: dict[str, float] = {}
+        for symbol in config.trading.symbols:
+            try:
+                candles = market_data.get_ohlcv(
+                    symbol=symbol,
+                    interval=config.trading.interval,
+                    count=1,
+                )
+                if candles:
+                    latest_prices[symbol] = candles[-1].close
+            except Exception:
+                pass
+        report_text = StrategyComparisonReport().generate(
+            wallets=wallets,
+            symbols=config.trading.symbols,
+            latest_prices=latest_prices,
+        )
+        report_path = config.runtime.strategy_report_path
+        StrategyComparisonReport().save(report_text, report_path)
+        print(report_text)
+        return
+
     broker = PaperBroker(
         starting_cash=config.backtest.initial_capital,
         fee_rate=config.backtest.fee_rate,
@@ -203,7 +242,7 @@ def main() -> None:
         notifier=notifier,
     )
     if args.command == "run-loop":
-        runtime = TradingRuntime(
+        runtime_single = TradingRuntime(
             pipeline=pipeline,
             monitor=HealthMonitor(config.runtime.healthcheck_path),
             journal=StrategyRunJournal(config.runtime.strategy_run_journal_path),
@@ -216,7 +255,7 @@ def main() -> None:
             checkpoint_store=RuntimeCheckpointStore(config.runtime.runtime_checkpoint_path),
             poll_interval_seconds=config.runtime.poll_interval_seconds,
         )
-        runtime.run(config.runtime.max_iterations)
+        runtime_single.run(config.runtime.max_iterations)
         return
 
     pipeline_result = pipeline.run_once()

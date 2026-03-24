@@ -2,15 +2,23 @@ from __future__ import annotations
 
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+
+@dataclass(slots=True)
+class WalletConfig:
+    name: str = "default"
+    strategy: str = "composite"
+    initial_capital: float = 1_000_000.0
 
 
 @dataclass(slots=True)
 class TradingConfig:
     exchange: str = "upbit"
     symbol: str = "KRW-BTC"
+    symbols: list[str] = field(default_factory=lambda: ["KRW-BTC"])
     interval: str = "minute60"
     candle_count: int = 200
     paper_trading: bool = True
@@ -79,6 +87,7 @@ class RuntimeConfig:
     log_level: str = "INFO"
     poll_interval_seconds: int = 60
     max_iterations: int = 0
+    daemon_mode: bool = True
     healthcheck_path: str = "artifacts/health.json"
     runtime_checkpoint_path: str = "artifacts/runtime-checkpoint.json"
     backtest_baseline_path: str = "artifacts/backtest-baseline.json"
@@ -92,6 +101,7 @@ class RuntimeConfig:
     drift_report_path: str = "artifacts/drift-report.json"
     promotion_gate_path: str = "artifacts/promotion-gate.json"
     daily_memo_path: str = "artifacts/daily-memo.md"
+    strategy_report_path: str = "artifacts/strategy-report.md"
 
 
 @dataclass(slots=True)
@@ -115,6 +125,11 @@ class AppConfig:
     telegram: TelegramConfig
     runtime: RuntimeConfig
     credentials: CredentialsConfig
+    wallets: list[WalletConfig] = field(default_factory=lambda: [
+        WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
+        WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
+        WalletConfig("composite_wallet", "composite", 1_000_000.0),
+    ])
 
 
 def load_config(path: str | Path | None = None, environ: dict[str, str] | None = None) -> AppConfig:
@@ -122,9 +137,13 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
     config_path = Path(path or env.get("CT_CONFIG", "config/example.toml"))
     raw = _read_toml(config_path) if config_path.exists() else {}
 
+    single_symbol = _read_value(raw, env, "trading", "symbol", "CT_SYMBOL", "KRW-BTC")
+    raw_symbols = raw.get("trading", {}).get("symbols", None)
+    symbols_list: list[str] = list(raw_symbols) if raw_symbols else [str(single_symbol)]
     trading = TradingConfig(
         exchange=_read_value(raw, env, "trading", "exchange", "CT_EXCHANGE", "upbit"),
-        symbol=_read_value(raw, env, "trading", "symbol", "CT_SYMBOL", "KRW-BTC"),
+        symbol=str(single_symbol),
+        symbols=symbols_list,
         interval=_read_value(raw, env, "trading", "interval", "CT_INTERVAL", "minute60"),
         candle_count=int(_read_value(raw, env, "trading", "candle_count", "CT_CANDLE_COUNT", 200)),
         paper_trading=_read_bool(raw, env, "trading", "paper_trading", "CT_PAPER_TRADING", True),
@@ -298,6 +317,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         max_iterations=int(
             _read_value(raw, env, "runtime", "max_iterations", "CT_MAX_ITERATIONS", 0)
         ),
+        daemon_mode=_read_bool(raw, env, "runtime", "daemon_mode", "CT_DAEMON_MODE", True),
         healthcheck_path=str(
             _read_value(
                 raw,
@@ -428,6 +448,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "artifacts/daily-memo.md",
             )
         ),
+        strategy_report_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "strategy_report_path",
+                "CT_STRATEGY_REPORT_PATH",
+                "artifacts/strategy-report.md",
+            )
+        ),
     )
     credentials = CredentialsConfig(
         upbit_access_key=str(
@@ -451,6 +481,22 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
             )
         ),
     )
+    raw_wallets = raw.get("wallets", None)
+    if raw_wallets and isinstance(raw_wallets, list):
+        wallets = [
+            WalletConfig(
+                name=str(w.get("name", f"wallet_{i}")),
+                strategy=str(w.get("strategy", "composite")),
+                initial_capital=float(w.get("initial_capital", 1_000_000.0)),
+            )
+            for i, w in enumerate(raw_wallets)
+        ]
+    else:
+        wallets = [
+            WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
+            WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
+            WalletConfig("composite_wallet", "composite", 1_000_000.0),
+        ]
     app_config = AppConfig(
         trading=trading,
         strategy=strategy,
@@ -461,6 +507,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         telegram=telegram,
         runtime=runtime,
         credentials=credentials,
+        wallets=wallets,
     )
     _validate_config(app_config)
     return app_config
@@ -594,6 +641,23 @@ def _validate_config(config: AppConfig) -> None:
         errors.append("runtime.promotion_gate_path must not be empty")
     if not config.runtime.daily_memo_path.strip():
         errors.append("runtime.daily_memo_path must not be empty")
+    if not config.runtime.strategy_report_path.strip():
+        errors.append("runtime.strategy_report_path must not be empty")
+
+    if not config.trading.symbols:
+        errors.append("trading.symbols must contain at least one symbol")
+    for sym in config.trading.symbols:
+        if not sym.startswith("KRW-"):
+            errors.append(f"trading.symbols: '{sym}' must start with 'KRW-'")
+
+    valid_strategies = {"momentum", "mean_reversion", "composite"}
+    for wc in config.wallets:
+        if not wc.name.strip():
+            errors.append("wallet name must not be empty")
+        if wc.strategy not in valid_strategies:
+            errors.append(f"wallet '{wc.name}': strategy must be one of {valid_strategies}")
+        if wc.initial_capital <= 0:
+            errors.append(f"wallet '{wc.name}': initial_capital must be positive")
 
     if not config.trading.paper_trading:
         errors.append("Live trading is not implemented yet. Keep CT_PAPER_TRADING=true.")
