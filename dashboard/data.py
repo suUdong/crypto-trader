@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 
 

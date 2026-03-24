@@ -1,0 +1,426 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1774317693105,
+  "projectRoot": "/home/wdsr88/workspace/crypto-trader",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "src",
+      "tests"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "__pycache__": {
+      "path": "__pycache__",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774317693090,
+      "keyFiles": [
+        "sitecustomize.cpython-312.pyc"
+      ]
+    },
+    "artifacts": {
+      "path": "artifacts",
+      "purpose": null,
+      "fileCount": 12,
+      "lastAccessed": 1774317693095,
+      "keyFiles": [
+        "backtest-baseline.json",
+        "daily-memo.md",
+        "daily-performance.json",
+        "drift-calibration.json",
+        "drift-report.json"
+      ]
+    },
+    "config": {
+      "path": "config",
+      "purpose": "Configuration files",
+      "fileCount": 1,
+      "lastAccessed": 1774317693096,
+      "keyFiles": [
+        "example.toml"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 3,
+      "lastAccessed": 1774317693096,
+      "keyFiles": [
+        "operations.md",
+        "strategy.md",
+        "system-architecture.md"
+      ]
+    },
+    "specs": {
+      "path": "specs",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774317693096,
+      "keyFiles": [
+        "trading_system_contract.toml"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1774317693096,
+      "keyFiles": []
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 23,
+      "lastAccessed": 1774317693096,
+      "keyFiles": [
+        "__init__.py",
+        "test_backtest_engine.py",
+        "test_calibration.py",
+        "test_cli.py",
+        "test_config.py"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/crypto_trader/config.py",
+      "accessCount": 39,
+      "lastAccessed": 1774326027782,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 23,
+      "lastAccessed": 1774324292731,
+      "type": "directory"
+    },
+    {
+      "path": "src/crypto_trader/models.py",
+      "accessCount": 12,
+      "lastAccessed": 1774326026698,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/cli.py",
+      "accessCount": 10,
+      "lastAccessed": 1774323179316,
+      "type": "file"
+    },
+    {
+      "path": "config/example.toml",
+      "accessCount": 9,
+      "lastAccessed": 1774323176903,
+      "type": "file"
+    },
+    {
+      "path": "SESSION_HANDOFF.md",
+      "accessCount": 9,
+      "lastAccessed": 1774323180790,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/wallet.py",
+      "accessCount": 8,
+      "lastAccessed": 1774326027398,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/strategy/momentum.py",
+      "accessCount": 6,
+      "lastAccessed": 1774323500882,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/strategy/indicators.py",
+      "accessCount": 6,
+      "lastAccessed": 1774324279585,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/operator/strategy_report.py",
+      "accessCount": 5,
+      "lastAccessed": 1774322504265,
+      "type": "file"
+    },
+    {
+      "path": "config/daemon.toml",
+      "accessCount": 5,
+      "lastAccessed": 1774323177196,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/strategy/regime.py",
+      "accessCount": 5,
+      "lastAccessed": 1774323179214,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/strategy/mean_reversion.py",
+      "accessCount": 5,
+      "lastAccessed": 1774323469477,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_strategy.py",
+      "accessCount": 5,
+      "lastAccessed": 1774324279377,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_multi_symbol.py",
+      "accessCount": 4,
+      "lastAccessed": 1774318177420,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/strategy/composite.py",
+      "accessCount": 4,
+      "lastAccessed": 1774323185301,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/risk/manager.py",
+      "accessCount": 3,
+      "lastAccessed": 1774323497653,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/execution/paper.py",
+      "accessCount": 3,
+      "lastAccessed": 1774323501706,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/strategy/__init__.py",
+      "accessCount": 3,
+      "lastAccessed": 1774324279479,
+      "type": "file"
+    },
+    {
+      "path": "docs/strategy-playbook.md",
+      "accessCount": 2,
+      "lastAccessed": 1774322245792,
+      "type": "file"
+    },
+    {
+      "path": "pyproject.toml",
+      "accessCount": 2,
+      "lastAccessed": 1774324346747,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/pipeline.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317720497,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/operator/verdicts.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317721153,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/runtime.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317728634,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/operator/services.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317729978,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/operator/paper_trading.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317730274,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_paper_broker.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317741971,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_stage1_contract.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317742716,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader/multi_runtime.py",
+      "accessCount": 1,
+      "lastAccessed": 1774317948167,
+      "type": "file"
+    },
+    {
+      "path": "docs/strategy.md",
+      "accessCount": 1,
+      "lastAccessed": 1774320247980,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/runtime-checkpoint.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320567721,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/positions.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320568615,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/regime-report.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320568736,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/drift-report.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320569009,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/promotion-gate.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320569420,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/daily-performance.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320569867,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/drift-calibration.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320570276,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/backtest-baseline.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320570751,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/health.json",
+      "accessCount": 1,
+      "lastAccessed": 1774320571143,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/operator-report.md",
+      "accessCount": 1,
+      "lastAccessed": 1774320579628,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/strategy-runs.jsonl",
+      "accessCount": 1,
+      "lastAccessed": 1774320579785,
+      "type": "file"
+    },
+    {
+      "path": "artifacts/daily-memo.md",
+      "accessCount": 1,
+      "lastAccessed": 1774320580058,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1774320651920,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/auth.py",
+      "accessCount": 1,
+      "lastAccessed": 1774320658480,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/data.py",
+      "accessCount": 1,
+      "lastAccessed": 1774320665232,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/styles.py",
+      "accessCount": 1,
+      "lastAccessed": 1774320684602,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/app.py",
+      "accessCount": 1,
+      "lastAccessed": 1774320749873,
+      "type": "file"
+    },
+    {
+      "path": ".streamlit/config.toml",
+      "accessCount": 1,
+      "lastAccessed": 1774320751086,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_dashboard.py",
+      "accessCount": 1,
+      "lastAccessed": 1774320789473,
+      "type": "file"
+    },
+    {
+      "path": "src/crypto_trader",
+      "accessCount": 1,
+      "lastAccessed": 1774322255627,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}

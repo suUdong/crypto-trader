@@ -21,7 +21,6 @@ from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from crypto_trader.wallet import create_strategy  # noqa: E402
 
-
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 STRATEGIES = ["momentum", "mean_reversion", "composite"]
 INTERVAL = "minute60"
@@ -168,7 +167,8 @@ def main() -> None:
         print("\n  WARNING: No trades generated. Parameters may still be too conservative.")
         sys.exit(1)
     else:
-        print(f"\n  SUCCESS: {total_trades} trades generated across {len(strategies_with_trades)} strategies")
+        count = len(strategies_with_trades)
+        print(f"\n  SUCCESS: {total_trades} trades across {count} strategies")
 
 
 if __name__ == "__main__":

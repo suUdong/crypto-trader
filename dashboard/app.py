@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import plotly.graph_objects as go
 import streamlit as st
@@ -21,7 +21,6 @@ from dashboard.data import (
     load_strategy_runs,
 )
 from dashboard.styles import inject_css
-
 
 # ── Auth Gate ──────────────────────────────────────────────
 if not check_auth():
@@ -82,7 +81,7 @@ with tab_trading:
         wallet_states = checkpoint.get("wallet_states", {})
         if wallet_states:
             cols = st.columns(len(wallet_states))
-            for col, (name, state) in zip(cols, wallet_states.items()):
+            for col, (name, state) in zip(cols, wallet_states.items(), strict=False):
                 with col:
                     display_name = name.replace("_wallet", "").replace("_", " ").title()
                     equity = state.get("equity", 0)
@@ -387,5 +386,5 @@ with tab_perf:
 
 # ── Footer ─────────────────────────────────────────────────
 st.divider()
-now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 st.caption(f"마지막 새로고침: {now}")

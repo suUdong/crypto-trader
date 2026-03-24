@@ -6,7 +6,6 @@ import os
 
 import streamlit as st
 
-
 DEFAULT_TOKEN = "demo"
 
 

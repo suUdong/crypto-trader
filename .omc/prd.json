@@ -1,0 +1,11 @@
+{
+  "title": "Playbook Strategy Implementation: Kimchi Premium, OBI, VPIN",
+  "stories": [
+    {"id": "US-001", "title": "External data providers", "passes": true, "acceptanceCriteria": ["binance_client.py, fx_client.py, OrderbookSnapshot model created", "Tests exist"]},
+    {"id": "US-002", "title": "KimchiPremiumStrategy", "passes": true, "acceptanceCriteria": ["Strategy implemented with premium calculation", "8 tests pass"]},
+    {"id": "US-003", "title": "OBIStrategy", "passes": true, "acceptanceCriteria": ["Strategy with orderbook + candle fallback", "6 tests pass"]},
+    {"id": "US-004", "title": "VPINStrategy", "passes": true, "acceptanceCriteria": ["Strategy with bulk volume classification", "6 tests pass"]},
+    {"id": "US-005", "title": "Integration", "passes": true, "acceptanceCriteria": ["config, wallet factory updated", "174 tests pass, ruff+mypy clean"]},
+    {"id": "US-006", "title": "Commit and push", "passes": true, "acceptanceCriteria": ["Committed as 7152eec", "Pushed to remote", "174 total tests"]}
+  ]
+}
