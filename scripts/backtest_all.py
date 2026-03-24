@@ -22,7 +22,7 @@ from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from crypto_trader.wallet import create_strategy  # noqa: E402
 
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
-STRATEGIES = ["momentum", "mean_reversion", "composite"]
+STRATEGIES = ["momentum", "mean_reversion", "composite", "obi", "vpin"]
 INTERVAL = "minute60"
 
 
