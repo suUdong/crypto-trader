@@ -16,7 +16,7 @@ class BinancePriceClient:
         try:
             url = f"{self.BASE_URL}?symbol=BTCUSDT"
             req = request.Request(url, headers={"Accept": "application/json"})
-            with request.urlopen(req, timeout=10) as resp:
+            with request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return float(data["price"])
         except Exception:

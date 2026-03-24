@@ -14,7 +14,7 @@ class FXRateClient:
         try:
             url = "https://open.er-api.com/v6/latest/USD"
             req = request.Request(url, headers={"Accept": "application/json"})
-            with request.urlopen(req, timeout=10) as resp:
+            with request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return float(data["rates"]["KRW"])
         except Exception:
