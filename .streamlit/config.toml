@@ -1,0 +1,18 @@
+[server]
+port = 8502
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#60a5fa"
+backgroundColor = "#0e1117"
+secondaryBackgroundColor = "#1a1f2e"
+textColor = "#fafafa"
+font = "sans serif"
+
+[client]
+showSidebarNavigation = false
