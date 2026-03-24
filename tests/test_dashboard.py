@@ -9,10 +9,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from dashboard import data as data_mod
-from dashboard.auth import DEFAULT_TOKEN, check_auth
+try:
+    from dashboard import data as data_mod
+    from dashboard.auth import DEFAULT_TOKEN, check_auth
+    _HAS_STREAMLIT = True
+except ImportError:
+    _HAS_STREAMLIT = False
 
 
+_skip = unittest.skipIf(not _HAS_STREAMLIT, "streamlit not installed")
+
+
+@_skip
 class TestDataLoaders(unittest.TestCase):
     """Test artifact data loading functions."""
 
@@ -117,6 +125,7 @@ class TestDataLoaders(unittest.TestCase):
         self.assertEqual(data_mod.load_strategy_runs(), [])
 
 
+@_skip
 class TestAuth(unittest.TestCase):
     """Test URL token authentication."""
 
