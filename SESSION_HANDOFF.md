@@ -5,99 +5,104 @@ Branch: `master`
 
 ## What Landed This Session
 
-### 1. Regime-aware drift thresholds
+### 10. Multi-symbol support
 
-Commit: `c40c065`
+Commit: `7b7cb00`
 
-- Drift tolerance now depends on detected market regime
-- Bull markets tolerate wider deviation before escalating
-- Bear markets escalate faster on the same deviation
-- Drift reports now consume regime metadata carried from runtime journal entries
+- `TradingConfig.symbols` accepts a list of KRW pairs (BTC, ETH, XRP, SOL)
+- Backward compatible: if only `trading.symbol` (singular) is set, it wraps into a one-element list
+- Config validation enforces all symbols start with `KRW-`
+- `config/example.toml` updated with 4 default symbols
 
-### 2. Daily memo notification integration
+### 11. Individual strategy implementations
 
-Commit: `14a61de`
+Commit: `7b7cb00`
 
-- The shared operator service can now send the generated daily memo through a `Notifier`
-- CLI `daily-memo` stays file-first, but the service layer now supports Telegram delivery
-- Memo generation remains channel-agnostic
+- `MomentumStrategy` in `strategy/momentum.py` — momentum + RSI entry/exit signals
+- `MeanReversionStrategy` in `strategy/mean_reversion.py` — Bollinger band mean reversion signals
+- Both implement the same `evaluate(candles, position) -> Signal` interface
+- `CompositeStrategy` unchanged (no regression)
+- Factory function `create_strategy(type, config, regime_config)` in `wallet.py`
 
-### 3. Backtest baseline persistence
+### 12. Strategy wallet isolation
 
-Commit: `ca6f3bf`
+Commit: `7b7cb00`
 
-- Operator flows now reuse a persisted backtest baseline artifact
-- Baselines are keyed by a config fingerprint
-- Drift and promotion logic no longer need to recompute a fresh backtest every time
+- `WalletConfig` dataclass: name, strategy type, initial capital
+- `StrategyWallet` bundles strategy instance + PaperBroker + RiskManager
+- Each wallet tracks independent cash, positions, realized PnL
+- Configurable via `[[wallets]]` array in TOML
+- Default: three wallets (momentum, mean_reversion, composite) at 1M KRW each
 
-### 4. Config validation hardening
+### 13. Multi-symbol multi-wallet runtime
 
-Commit: `b8b4009`
+Commit: `7b7cb00`
 
-- Invalid ranges and inconsistent thresholds now fail fast with clear messages
-- Runtime artifact paths are validated explicitly
+- `MultiSymbolRuntime` in `multi_runtime.py` iterates all symbols x all wallets per tick
+- Candle caching: one fetch per symbol per tick, shared across wallets
+- Per-wallet checkpoint state saved to `runtime-checkpoint.json`
+- CLI command: `run-multi`
 
-### 5. Paper-trading operations layer
+### 14. Strategy comparison report
 
-Commit: `51b5470`
+Commit: `7b7cb00`
 
-- Closed paper trades can be persisted
-- Open positions are tracked via a snapshot artifact
-- Daily performance report is emitted during runtime sync
+- `StrategyComparisonReport` in `operator/strategy_report.py`
+- Markdown dashboard: per-wallet summary table, position details, performance rankings
+- Rankings by return % and trade count
+- CLI command: `strategy-report`
 
-### 6. Regime report artifact
+### 15. Daemon mode with signal handling
 
-Commit: `8d75e5c`
+Commit: `7b7cb00`
 
-- Added an explicit regime artifact showing detected regime, returns, and adjusted parameters
+- `RuntimeConfig.daemon_mode` (default `true`) — runs indefinitely ignoring `max_iterations`
+- SIGINT and SIGTERM trigger graceful shutdown (finish current tick, then exit)
+- Poll interval configurable via `runtime.poll_interval_seconds`
 
-### 7. Drift calibration toolkit
-
-Commit: `44ec56a`
-
-- Added calibration artifact generation from recent run history
-- Produces suggested regime-specific drift tolerances
-
-### 8. Unified operator report
-
-Commit: `f223945`
-
-- Baseline, regime, drift, promotion, calibration, and memo are now merged into one report
-
-### 9. Runtime checkpoint
-
-Commit: `ce2b95e`
-
-- Runtime now writes a checkpoint artifact with iteration, price, signal, verdict, and equity state
-
-## Existing Operator / Strategy-Lab Capabilities
+## Previous Session Capabilities
 
 Already landed before this session:
 
+- Regime-aware drift thresholds
+- Daily memo notification integration
+- Backtest baseline persistence
+- Config validation hardening
+- Paper-trading operations layer
+- Regime report artifact
+- Drift calibration toolkit
+- Unified operator report
+- Runtime checkpoint
 - Strategy run journal
 - Strategy verdict engine
 - Drift report generation
 - Promotion gate
-- Daily operator memo
 - Regime detection and parameter adjustment
-- Backtest baseline persistence
-- Regime report generation
-- Drift calibration artifact
-- Unified operator report
-- Runtime checkpointing
 
 ## Real-Data Verification Completed
 
-Using real Upbit OHLCV data through `pyupbit` in a local `.venv`, I verified:
+### Multi-symbol daemon verification
 
-1. `run-loop` creates real strategy-run journal entries
-2. `promotion-gate` reads the journal and emits a gate artifact
-3. `daily-memo` writes a markdown memo artifact
-4. `operator-report` writes a unified markdown report artifact
-5. `runtime-checkpoint` is updated during the live loop
+Using real Upbit OHLCV data through `pyupbit`, verified `run-multi` with:
+
+- 4 symbols: KRW-BTC (105M), KRW-ETH (3.1M), KRW-XRP (2,107), KRW-SOL (134,900)
+- 3 wallets: momentum, mean_reversion, composite
+- 12 strategy-symbol evaluations per tick (4 x 3)
+- Daemon running with 60s poll interval, graceful shutdown on SIGINT
+- Checkpoint artifact updating every tick with per-wallet state
+
+### Previous single-symbol verification
+
+- `run-loop` creates real strategy-run journal entries
+- `promotion-gate` reads the journal and emits a gate artifact
+- `daily-memo` writes a markdown memo artifact
+- `operator-report` writes a unified markdown report artifact
+- `runtime-checkpoint` is updated during the live loop
 
 Generated local artifacts:
 
+- `artifacts/runtime-checkpoint.json` (now includes per-wallet states)
+- `artifacts/strategy-report.md` (new)
 - `artifacts/strategy-runs.jsonl`
 - `artifacts/backtest-baseline.json`
 - `artifacts/regime-report.json`
@@ -106,20 +111,10 @@ Generated local artifacts:
 - `artifacts/promotion-gate.json`
 - `artifacts/daily-memo.md`
 - `artifacts/operator-report.md`
-- `artifacts/runtime-checkpoint.json`
 - `artifacts/positions.json`
 - `artifacts/daily-performance.json`
 
 These are intentionally not committed.
-
-Observed real-data snapshot after sequential verification:
-
-- `promotion_status=do_not_promote`
-- `paper_runs=7`
-- `drift_status=on_track`
-- latest memo reflects `market_regime`, drift, and promotion output together
-- 5-iteration real loop completed with live Upbit prices and `continue_paper` verdicts
-- no actual fills occurred during this smoke run, so `paper-trades.jsonl` was not created yet
 
 ## Validation State
 
@@ -129,14 +124,26 @@ Latest validation run passed:
 - `mypy src`
 - `python3 -m unittest discover -s tests -t . -v`
 
-The suite now includes 65 tests.
+The suite now includes 81 tests (66 existing + 15 new).
 
 ## Commands Worth Knowing
 
 From the repo root:
 
 ```bash
+# Multi-symbol daemon mode (default, runs indefinitely)
+PYTHONPATH=src .venv/bin/python -m crypto_trader.cli run-multi --config config/daemon.toml
+
+# Multi-symbol daemon with example config
+PYTHONPATH=src .venv/bin/python -m crypto_trader.cli run-multi --config config/example.toml
+
+# Strategy comparison report
+PYTHONPATH=src .venv/bin/python -m crypto_trader.cli strategy-report --config config/example.toml
+
+# Legacy single-symbol loop
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli run-loop --config config/example.toml
+
+# Operator commands (unchanged)
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli regime-report --config config/example.toml
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli calibrate-drift --config config/example.toml
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli drift-report --config config/example.toml
@@ -145,32 +152,52 @@ PYTHONPATH=src .venv/bin/python -m crypto_trader.cli daily-memo --config config/
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli operator-report --config config/example.toml
 ```
 
+## Architecture: New Modules
+
+```
+src/crypto_trader/
+  strategy/
+    momentum.py          # MomentumStrategy (momentum + RSI)
+    mean_reversion.py    # MeanReversionStrategy (Bollinger bands)
+    composite.py         # CompositeStrategy (unchanged, all three factors)
+  wallet.py              # StrategyWallet, build_wallets(), create_strategy()
+  multi_runtime.py       # MultiSymbolRuntime with daemon mode + signal handling
+  operator/
+    strategy_report.py   # StrategyComparisonReport (markdown dashboard)
+  config.py              # +WalletConfig, +symbols list, +daemon_mode
+```
+
 ## Current Gaps / Risks
 
 1. Real Telegram send was not live-verified because no bot token/chat ID were configured.
-2. The smoke run produced no fills, so the paper-trade journal path is still unverified against actual entry/exit traffic.
+2. No fills have occurred yet in the multi-symbol daemon — all strategies are holding, waiting for entry conditions to align.
 3. Regime classification and drift calibration remain heuristic and should be tuned against longer historical windows.
-4. Runtime checkpointing is visibility-focused, not full broker-state restart recovery.
+4. Runtime checkpointing is visibility-focused, not full broker-state restart recovery. Restarting the daemon resets all wallet state.
+5. The operator-layer commands (drift-report, promotion-gate, etc.) still operate on a single symbol. They have not been extended to multi-symbol yet.
 
 ## Recommended Next Moves
 
-1. Force or observe a real paper trade fill to verify `paper-trades.jsonl` and daily performance against an actual entry/exit.
-2. Tune regime and drift thresholds against longer historical windows and more filled-trade samples.
-3. Extend runtime checkpointing into fuller restart semantics for broker/session state.
-4. Decide whether `operator-report` becomes the primary operator surface or just the base for a future UI.
+1. Let the daemon run long enough to observe real paper fills across multiple symbols and strategies.
+2. Extend operator-layer commands (drift, promotion, memo) to work across all configured symbols.
+3. Implement wallet state persistence so daemon restarts don't lose position/PnL history.
+4. Add per-symbol strategy parameter overrides (different thresholds per coin).
+5. Build a web UI or richer terminal dashboard on top of `strategy-report.md`.
 
 ## Most Recent Related Commits
 
+- `7b7cb00` Let each strategy prove itself across multiple coins with its own wallet
+- `48c1432` Read older run journals without blowing up the live loop
+- `b9108f4` Refresh the handoff with the fully runnable operator stack
 - `ce2b95e` Leave a checkpoint behind so the operator knows where the loop last stood
 - `f223945` Give the operator one report instead of five scattered artifacts
 - `44ec56a` Teach the strategy lab to calibrate its own drift tolerances
-- `8d75e5c` Explain the detected market regime instead of hiding it inside the strategy
-- `51b5470` Make paper trading behave like an operating environment instead of a demo loop
-- `ca6f3bf` Stop recomputing the backtest baseline every time an operator asks a question
 
 ## Notes For The Next Agent
 
-- The repo is in a good state to keep iterating on the Strategy Lab layer without touching live trading.
+- The repo is in a good state. Multi-symbol daemon is the primary runtime now.
 - Keep paper-first posture intact.
+- `run-multi` is the recommended command; `run-loop` is the legacy single-symbol path.
+- Prefer extending `wallet.py` and `multi_runtime.py` for new multi-symbol features.
 - Prefer extending `src/crypto_trader/operator/services.py` rather than duplicating orchestration logic in CLI branches.
+- `config/daemon.toml` is the production daemon config; `config/example.toml` is the reference config.
 - If you need a real fill for end-to-end validation, lower entry strictness in a temporary config or run on a more volatile timeframe rather than weakening the committed default config.

@@ -1,0 +1,88 @@
+[trading]
+exchange = "upbit"
+symbol = "KRW-BTC"
+symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
+interval = "minute60"
+candle_count = 200
+paper_trading = true
+
+[strategy]
+momentum_lookback = 20
+momentum_entry_threshold = 0.02
+momentum_exit_threshold = -0.01
+bollinger_window = 20
+bollinger_stddev = 2.0
+rsi_period = 14
+rsi_oversold_floor = 25.0
+rsi_recovery_ceiling = 45.0
+rsi_overbought = 70.0
+max_holding_bars = 24
+
+[regime]
+short_lookback = 10
+long_lookback = 30
+bull_threshold_pct = 0.03
+bear_threshold_pct = -0.03
+
+[drift]
+bull_return_tolerance_pct = 0.15
+sideways_return_tolerance_pct = 0.08
+bear_return_tolerance_pct = 0.05
+bull_error_rate_threshold = 0.25
+sideways_error_rate_threshold = 0.20
+bear_error_rate_threshold = 0.10
+
+[risk]
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+max_daily_loss_pct = 0.05
+max_concurrent_positions = 4
+
+[backtest]
+initial_capital = 1000000.0
+fee_rate = 0.0005
+slippage_pct = 0.0005
+
+[telegram]
+bot_token = ""
+chat_id = ""
+
+[runtime]
+log_level = "INFO"
+poll_interval_seconds = 60
+max_iterations = 0
+daemon_mode = true
+healthcheck_path = "artifacts/health.json"
+runtime_checkpoint_path = "artifacts/runtime-checkpoint.json"
+backtest_baseline_path = "artifacts/backtest-baseline.json"
+regime_report_path = "artifacts/regime-report.json"
+drift_calibration_path = "artifacts/drift-calibration.json"
+operator_report_path = "artifacts/operator-report.md"
+strategy_run_journal_path = "artifacts/strategy-runs.jsonl"
+paper_trade_journal_path = "artifacts/paper-trades.jsonl"
+position_snapshot_path = "artifacts/positions.json"
+daily_performance_path = "artifacts/daily-performance.json"
+drift_report_path = "artifacts/drift-report.json"
+promotion_gate_path = "artifacts/promotion-gate.json"
+daily_memo_path = "artifacts/daily-memo.md"
+strategy_report_path = "artifacts/strategy-report.md"
+
+[[wallets]]
+name = "momentum_wallet"
+strategy = "momentum"
+initial_capital = 1000000.0
+
+[[wallets]]
+name = "mean_reversion_wallet"
+strategy = "mean_reversion"
+initial_capital = 1000000.0
+
+[[wallets]]
+name = "composite_wallet"
+strategy = "composite"
+initial_capital = 1000000.0
+
+[credentials]
+upbit_access_key = ""
+upbit_secret_key = ""
