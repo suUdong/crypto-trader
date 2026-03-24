@@ -71,6 +71,26 @@ class DriftCalibrationToolkitTests(unittest.TestCase):
         self.assertGreater(report.entries[0].suggested_return_tolerance_pct, 0.0)
         self.assertGreater(report.entries[0].suggested_error_rate_threshold, 0.0)
 
+    def test_generate_handles_unknown_regime(self) -> None:
+        report = DriftCalibrationToolkit().generate(
+            symbol="KRW-BTC",
+            backtest_baseline=build_baseline(),
+            recent_runs=[build_run(10.0, "unknown")],
+        )
+        self.assertEqual(report.entries[0].regime, "unknown")
+
+    def test_generate_tracks_error_rate_correctly(self) -> None:
+        report = DriftCalibrationToolkit().generate(
+            symbol="KRW-BTC",
+            backtest_baseline=build_baseline(),
+            recent_runs=[
+                build_run(0.0, "bull", success=False),
+                build_run(0.0, "bull", success=False),
+            ],
+        )
+        self.assertAlmostEqual(report.entries[0].observed_error_rate, 1.0)
+        self.assertGreaterEqual(report.entries[0].suggested_error_rate_threshold, 0.05)
+
     def test_save_writes_calibration_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "calibration.json"

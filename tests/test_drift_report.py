@@ -101,6 +101,35 @@ class DriftReportGeneratorTests(unittest.TestCase):
         )
         self.assertEqual(report.status, DriftStatus.ON_TRACK)
 
+    def test_caution_when_return_gap_is_partial(self) -> None:
+        config = DriftConfig(sideways_return_tolerance_pct=0.10)
+        report = DriftReportGenerator(config).generate(
+            symbol="KRW-BTC",
+            backtest_baseline=build_baseline(0.10),
+            recent_runs=[build_run(50.0)],
+        )
+        self.assertEqual(report.status, DriftStatus.CAUTION)
+
+    def test_out_of_sync_when_error_rate_is_elevated(self) -> None:
+        config = DriftConfig(sideways_error_rate_threshold=0.3)
+        runs = [build_run(10.0, success=False) for _ in range(3)] + [build_run(10.0)]
+        report = DriftReportGenerator(config).generate(
+            symbol="KRW-BTC",
+            backtest_baseline=build_baseline(0.05),
+            recent_runs=runs,
+        )
+        self.assertEqual(report.status, DriftStatus.OUT_OF_SYNC)
+
+    def test_signal_rates_are_tracked(self) -> None:
+        runs = [build_run(10.0)]
+        report = DriftReportGenerator().generate(
+            symbol="KRW-BTC",
+            backtest_baseline=build_baseline(0.05),
+            recent_runs=runs,
+        )
+        total = report.paper_buy_rate + report.paper_sell_rate + report.paper_hold_rate
+        self.assertAlmostEqual(total, 1.0)
+
     def test_save_writes_report_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "drift.json"

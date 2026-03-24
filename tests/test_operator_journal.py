@@ -55,3 +55,39 @@ class StrategyRunJournalTests(unittest.TestCase):
             records = StrategyRunJournal(path).load_recent()
             self.assertEqual(len(records), 1)
             self.assertIsNone(records[0].market_regime)
+
+    def test_load_recent_returns_empty_when_file_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            journal = StrategyRunJournal(Path(temp_dir) / "nonexistent.jsonl")
+            records = journal.load_recent()
+            self.assertEqual(records, [])
+
+    def test_load_recent_respects_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            journal = StrategyRunJournal(Path(temp_dir) / "runs.jsonl")
+            for i in range(5):
+                journal.append(
+                    StrategyRunRecord(
+                        recorded_at=f"2026-03-23T0{i}:00:00Z",
+                        symbol="KRW-BTC",
+                        latest_price=100.0,
+                        market_regime="sideways",
+                        signal_action="hold",
+                        signal_reason="noop",
+                        signal_confidence=0.5,
+                        order_status=None,
+                        order_side=None,
+                        session_starting_equity=1_000.0,
+                        cash=1_000.0,
+                        open_positions=0,
+                        realized_pnl=0.0,
+                        success=True,
+                        error=None,
+                        consecutive_failures=0,
+                        verdict_status="continue_paper",
+                        verdict_confidence=0.6,
+                        verdict_reasons=[],
+                    )
+                )
+            records = journal.load_recent(limit=3)
+            self.assertEqual(len(records), 3)

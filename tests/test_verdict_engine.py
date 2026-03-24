@@ -81,3 +81,36 @@ class StrategyVerdictEngineTests(unittest.TestCase):
             recent_runs=[],
         )
         self.assertEqual(verdict.status, VerdictStatus.CONTINUE_PAPER)
+
+    def test_pause_strategy_when_daily_loss_cap_fully_consumed(self) -> None:
+        engine = StrategyVerdictEngine(RiskConfig(max_daily_loss_pct=0.1))
+        verdict = engine.evaluate(
+            consecutive_failures=0,
+            realized_pnl=-110.0,
+            session_starting_equity=1_000.0,
+            current_success=True,
+            recent_runs=[],
+        )
+        self.assertEqual(verdict.status, VerdictStatus.PAUSE_STRATEGY)
+
+    def test_pause_on_current_failure_even_without_consecutive(self) -> None:
+        engine = StrategyVerdictEngine(RiskConfig())
+        verdict = engine.evaluate(
+            consecutive_failures=0,
+            realized_pnl=0.0,
+            session_starting_equity=1_000.0,
+            current_success=False,
+            recent_runs=[],
+        )
+        self.assertEqual(verdict.status, VerdictStatus.PAUSE_STRATEGY)
+
+    def test_continue_paper_when_zero_starting_equity(self) -> None:
+        engine = StrategyVerdictEngine(RiskConfig())
+        verdict = engine.evaluate(
+            consecutive_failures=0,
+            realized_pnl=-50.0,
+            session_starting_equity=0.0,
+            current_success=True,
+            recent_runs=[],
+        )
+        self.assertEqual(verdict.status, VerdictStatus.CONTINUE_PAPER)

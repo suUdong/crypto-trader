@@ -85,6 +85,22 @@ class OperatorDailyMemoTests(unittest.TestCase):
         self.assertIn("candidate_for_promotion", memo)
         self.assertIn("bull", memo)
 
+    def test_render_with_no_latest_run(self) -> None:
+        memo = OperatorDailyMemo().render(
+            latest_run=None,
+            drift_report=build_drift(),
+            promotion_decision=build_decision(),
+        )
+        self.assertIn("No strategy runs have been recorded yet", memo)
+
+    def test_render_includes_drift_reasons(self) -> None:
+        memo = OperatorDailyMemo().render(
+            latest_run=build_run(),
+            drift_report=build_drift(),
+            promotion_decision=build_decision(),
+        )
+        self.assertIn("aligned", memo)
+
     def test_save_writes_memo_to_disk(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "memo.md"

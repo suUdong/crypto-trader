@@ -47,6 +47,16 @@ class RegimeReportGeneratorTests(unittest.TestCase):
         self.assertEqual(report.market_regime, "bear")
         self.assertTrue(any("tighten entries" in reason for reason in report.reasons))
 
+    def test_generate_sideways_report_stays_near_baseline(self) -> None:
+        closes = [100 + (index % 3) - 1 for index in range(40)]
+        report = RegimeReportGenerator(RegimeConfig(short_lookback=5, long_lookback=10)).generate(
+            symbol="KRW-BTC",
+            strategy=StrategyConfig(),
+            candles=build_candles(closes),
+        )
+        self.assertEqual(report.market_regime, "sideways")
+        self.assertTrue(any("baseline" in reason for reason in report.reasons))
+
     def test_save_writes_report_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "regime.json"
