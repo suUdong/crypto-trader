@@ -17,8 +17,11 @@ from crypto_trader.models import (
 )
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
+from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
+from crypto_trader.strategy.obi import OBIStrategy
+from crypto_trader.strategy.vpin import VPINStrategy
 
 
 class StrategyProtocol(Protocol):
@@ -34,6 +37,12 @@ def create_strategy(
         return MomentumStrategy(strategy_config, regime_config)
     if strategy_type == "mean_reversion":
         return MeanReversionStrategy(strategy_config, regime_config)
+    if strategy_type == "kimchi_premium":
+        return KimchiPremiumStrategy(strategy_config)
+    if strategy_type == "obi":
+        return OBIStrategy(strategy_config)
+    if strategy_type == "vpin":
+        return VPINStrategy(strategy_config)
     return CompositeStrategy(strategy_config, regime_config)
 
 

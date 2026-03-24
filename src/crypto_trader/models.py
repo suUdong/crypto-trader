@@ -273,6 +273,20 @@ class PromotionGateDecision:
 
 
 @dataclass(slots=True)
+class OrderbookEntry:
+    price: float
+    size: float
+
+
+@dataclass(slots=True)
+class OrderbookSnapshot:
+    symbol: str
+    bids: list[OrderbookEntry]
+    asks: list[OrderbookEntry]
+    timestamp: datetime | None = None
+
+
+@dataclass(slots=True)
 class PipelineResult:
     symbol: str
     signal: Signal
