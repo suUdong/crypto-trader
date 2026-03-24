@@ -27,15 +27,15 @@ class TradingConfig:
 @dataclass(slots=True)
 class StrategyConfig:
     momentum_lookback: int = 20
-    momentum_entry_threshold: float = 0.02
+    momentum_entry_threshold: float = 0.005
     momentum_exit_threshold: float = -0.01
     bollinger_window: int = 20
-    bollinger_stddev: float = 2.0
+    bollinger_stddev: float = 1.8
     rsi_period: int = 14
-    rsi_oversold_floor: float = 25.0
-    rsi_recovery_ceiling: float = 45.0
+    rsi_oversold_floor: float = 20.0
+    rsi_recovery_ceiling: float = 60.0
     rsi_overbought: float = 70.0
-    max_holding_bars: int = 24
+    max_holding_bars: int = 48
 
 
 @dataclass(slots=True)
@@ -59,8 +59,8 @@ class DriftConfig:
 @dataclass(slots=True)
 class RiskConfig:
     risk_per_trade_pct: float = 0.01
-    stop_loss_pct: float = 0.02
-    take_profit_pct: float = 0.04
+    stop_loss_pct: float = 0.03
+    take_profit_pct: float = 0.06
     max_daily_loss_pct: float = 0.05
     max_concurrent_positions: int = 1
 

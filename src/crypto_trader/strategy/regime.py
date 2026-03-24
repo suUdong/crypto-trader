@@ -64,15 +64,15 @@ class RegimeDetector:
         if regime is MarketRegime.BULL:
             return replace(
                 strategy,
-                momentum_entry_threshold=max(0.0, strategy.momentum_entry_threshold - 0.01),
-                rsi_recovery_ceiling=min(60.0, strategy.rsi_recovery_ceiling + 10.0),
+                momentum_entry_threshold=max(0.0, strategy.momentum_entry_threshold - 0.003),
+                rsi_recovery_ceiling=min(75.0, strategy.rsi_recovery_ceiling + 10.0),
                 rsi_overbought=min(85.0, strategy.rsi_overbought + 10.0),
                 max_holding_bars=strategy.max_holding_bars + 8,
             )
         if regime is MarketRegime.BEAR:
             return replace(
                 strategy,
-                momentum_entry_threshold=strategy.momentum_entry_threshold + 0.02,
+                momentum_entry_threshold=strategy.momentum_entry_threshold + 0.01,
                 momentum_exit_threshold=max(0.0, strategy.momentum_exit_threshold),
                 rsi_recovery_ceiling=max(30.0, strategy.rsi_recovery_ceiling - 10.0),
                 rsi_overbought=max(55.0, strategy.rsi_overbought - 10.0),

@@ -75,14 +75,18 @@ class StrategyComparisonReport:
 
         if wallet_metrics:
             lines.append("\n## Performance Rankings\n")
-            by_return = sorted(wallet_metrics, key=lambda m: float(str(m["return_pct"])), reverse=True)
+            by_return = sorted(
+                wallet_metrics, key=lambda m: float(str(m["return_pct"])), reverse=True
+            )
             lines.append("### By Return %\n")
             for i, m in enumerate(by_return, 1):
                 lines.append(
                     f"{i}. **{m['name']}** ({m['strategy']}): {m['return_pct']:+.4f}%"
                 )
 
-            by_trades = sorted(wallet_metrics, key=lambda m: int(str(m["trade_count"])), reverse=True)
+            by_trades = sorted(
+                wallet_metrics, key=lambda m: int(str(m["trade_count"])), reverse=True
+            )
             lines.append("\n### By Trade Count\n")
             for i, m in enumerate(by_trades, 1):
                 lines.append(

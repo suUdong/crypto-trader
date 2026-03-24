@@ -24,7 +24,7 @@ from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.runtime import TradingRuntime
 from crypto_trader.strategy.composite import CompositeStrategy
-from crypto_trader.wallet import build_wallets
+from crypto_trader.wallet import build_wallets, create_strategy
 
 
 def main() -> None:
@@ -46,6 +46,12 @@ def main() -> None:
         ],
     )
     parser.add_argument("--config", default=None)
+    parser.add_argument(
+        "--strategy",
+        choices=["momentum", "mean_reversion", "composite"],
+        default="composite",
+        help="Strategy type for backtest (default: composite)",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -55,13 +61,14 @@ def main() -> None:
     market_data = PyUpbitMarketDataClient()
 
     if args.command == "backtest":
+        backtest_strategy = create_strategy(args.strategy, config.strategy, config.regime)
         candles = market_data.get_ohlcv(
             config.trading.symbol,
             interval=config.trading.interval,
             count=config.trading.candle_count,
         )
         engine = BacktestEngine(
-            strategy=strategy,
+            strategy=backtest_strategy,
             risk_manager=risk_manager,
             config=config.backtest,
             symbol=config.trading.symbol,

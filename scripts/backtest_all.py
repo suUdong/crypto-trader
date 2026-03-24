@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""Run backtests for all strategy x symbol combinations on real Upbit data."""
+from __future__ import annotations
+
+import sys
+import time
+from datetime import datetime, timedelta
+
+sys.path.insert(0, "src")
+
+import pyupbit  # noqa: E402
+
+from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
+from crypto_trader.config import (  # noqa: E402
+    BacktestConfig,
+    RegimeConfig,
+    RiskConfig,
+    StrategyConfig,
+)
+from crypto_trader.models import Candle  # noqa: E402
+from crypto_trader.risk.manager import RiskManager  # noqa: E402
+from crypto_trader.wallet import create_strategy  # noqa: E402
+
+
+SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
+STRATEGIES = ["momentum", "mean_reversion", "composite"]
+INTERVAL = "minute60"
+
+
+def fetch_candles(symbol: str, days: int) -> list[Candle]:
+    """Fetch hourly candles by paginating pyupbit (max 200 per call)."""
+    total_needed = days * 24
+    all_candles: list[Candle] = []
+    to_dt: datetime | None = None
+
+    while len(all_candles) < total_needed:
+        remaining = total_needed - len(all_candles)
+        batch_size = min(200, remaining)
+        df = pyupbit.get_ohlcv(
+            symbol, interval=INTERVAL, count=batch_size, to=to_dt
+        )
+        if df is None or df.empty:
+            break
+
+        batch: list[Candle] = []
+        for idx, row in df.iterrows():
+            ts = idx if isinstance(idx, datetime) else datetime.fromisoformat(str(idx))
+            batch.append(
+                Candle(
+                    timestamp=ts,
+                    open=float(row["open"]),
+                    high=float(row["high"]),
+                    low=float(row["low"]),
+                    close=float(row["close"]),
+                    volume=float(row["volume"]),
+                )
+            )
+
+        if not batch:
+            break
+
+        to_dt = batch[0].timestamp - timedelta(seconds=1)
+        all_candles = batch + all_candles
+
+        if len(batch) < batch_size:
+            break
+        time.sleep(0.15)  # rate limit
+
+    return all_candles
+
+
+def run_backtest(
+    strategy_type: str,
+    candles: list[Candle],
+    symbol: str,
+) -> dict[str, float | int | str]:
+    strategy_config = StrategyConfig()
+    regime_config = RegimeConfig()
+    risk_config = RiskConfig()
+    backtest_config = BacktestConfig(
+        initial_capital=1_000_000.0,
+        fee_rate=0.0005,
+        slippage_pct=0.0005,
+    )
+
+    strategy = create_strategy(strategy_type, strategy_config, regime_config)
+    risk_manager = RiskManager(risk_config)
+    engine = BacktestEngine(
+        strategy=strategy,
+        risk_manager=risk_manager,
+        config=backtest_config,
+        symbol=symbol,
+    )
+    result = engine.run(candles)
+
+    return {
+        "strategy": strategy_type,
+        "symbol": symbol,
+        "candles": len(candles),
+        "return_pct": result.total_return_pct * 100,
+        "max_drawdown": result.max_drawdown * 100,
+        "win_rate": result.win_rate * 100,
+        "trade_count": len(result.trade_log),
+        "profit_factor": result.profit_factor,
+        "final_equity": result.final_equity,
+    }
+
+
+def main() -> None:
+    days = 90
+    if len(sys.argv) > 1:
+        days = int(sys.argv[1])
+
+    print(f"\n{'='*80}")
+    print(f"  BACKTEST ALL STRATEGIES - {days}-day hourly candles from Upbit")
+    print(f"{'='*80}\n")
+
+    header = (
+        f"{'Strategy':<16} {'Symbol':<10} {'Candles':>7} "
+        f"{'Return%':>9} {'MDD%':>7} {'WinRate%':>9} "
+        f"{'Trades':>7} {'PF':>7}"
+    )
+    print(header)
+    print("-" * len(header))
+
+    all_results: list[dict[str, float | int | str]] = []
+
+    for symbol in SYMBOLS:
+        print(f"\nFetching {symbol} ({days}d)...", end=" ", flush=True)
+        candles = fetch_candles(symbol, days)
+        print(f"{len(candles)} candles")
+
+        if len(candles) < 50:
+            print(f"  SKIP: insufficient data ({len(candles)} candles)")
+            continue
+
+        for strategy_type in STRATEGIES:
+            result = run_backtest(strategy_type, candles, symbol)
+            all_results.append(result)
+            pf = result["profit_factor"]
+            pf_str = f"{pf:.2f}" if isinstance(pf, float) and pf < 1000 else "inf"
+            print(
+                f"{result['strategy']:<16} {result['symbol']:<10} "
+                f"{result['candles']:>7} "
+                f"{result['return_pct']:>+8.2f}% "
+                f"{result['max_drawdown']:>6.2f}% "
+                f"{result['win_rate']:>8.1f}% "
+                f"{result['trade_count']:>7} "
+                f"{pf_str:>7}"
+            )
+
+    # Summary
+    print(f"\n{'='*80}")
+    print("  SUMMARY")
+    print(f"{'='*80}")
+    total_trades = sum(int(r["trade_count"]) for r in all_results)
+    strategies_with_trades = {
+        r["strategy"] for r in all_results if int(r["trade_count"]) > 0
+    }
+    symbols_with_trades = {
+        r["symbol"] for r in all_results if int(r["trade_count"]) > 0
+    }
+    print(f"  Total trades across all combos: {total_trades}")
+    print(f"  Strategies generating trades: {strategies_with_trades or 'NONE'}")
+    print(f"  Symbols with trades: {symbols_with_trades or 'NONE'}")
+
+    if total_trades == 0:
+        print("\n  WARNING: No trades generated. Parameters may still be too conservative.")
+        sys.exit(1)
+    else:
+        print(f"\n  SUCCESS: {total_trades} trades generated across {len(strategies_with_trades)} strategies")
+
+
+if __name__ == "__main__":
+    main()

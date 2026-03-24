@@ -8,15 +8,15 @@ paper_trading = true
 
 [strategy]
 momentum_lookback = 20
-momentum_entry_threshold = 0.02
+momentum_entry_threshold = 0.005
 momentum_exit_threshold = -0.01
 bollinger_window = 20
-bollinger_stddev = 2.0
+bollinger_stddev = 1.8
 rsi_period = 14
-rsi_oversold_floor = 25.0
-rsi_recovery_ceiling = 45.0
+rsi_oversold_floor = 20.0
+rsi_recovery_ceiling = 60.0
 rsi_overbought = 70.0
-max_holding_bars = 24
+max_holding_bars = 48
 
 [regime]
 short_lookback = 10
@@ -34,8 +34,8 @@ bear_error_rate_threshold = 0.10
 
 [risk]
 risk_per_trade_pct = 0.01
-stop_loss_pct = 0.02
-take_profit_pct = 0.04
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
 max_daily_loss_pct = 0.05
 max_concurrent_positions = 1
 

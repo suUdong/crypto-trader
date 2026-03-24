@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+from typing import Protocol
+
 from crypto_trader.config import BacktestConfig
-from crypto_trader.models import BacktestResult, Candle, Position, SignalAction, TradeRecord
+from crypto_trader.models import BacktestResult, Candle, Position, Signal, SignalAction, TradeRecord
 from crypto_trader.risk.manager import RiskManager
-from crypto_trader.strategy.composite import CompositeStrategy
+
+
+class _StrategyProtocol(Protocol):
+    def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal: ...
 
 
 class BacktestEngine:
     def __init__(
         self,
-        strategy: CompositeStrategy,
+        strategy: _StrategyProtocol,
         risk_manager: RiskManager,
         config: BacktestConfig,
         symbol: str,
