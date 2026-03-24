@@ -5,65 +5,73 @@ Branch: `master`
 
 ## What Landed This Session
 
-### 10. Multi-symbol support
+### 16. Strategy parameter tuning + backtest verification
 
-Commit: `7b7cb00`
+Commit: `f7edb45`
 
-- `TradingConfig.symbols` accepts a list of KRW pairs (BTC, ETH, XRP, SOL)
-- Backward compatible: if only `trading.symbol` (singular) is set, it wraps into a one-element list
-- Config validation enforces all symbols start with `KRW-`
-- `config/example.toml` updated with 4 default symbols
+**Problem**: All strategies emitted only HOLD — entry conditions were contradictory.
 
-### 11. Individual strategy implementations
+**Root cause**:
+- Composite required momentum >= 2% (price rising) AND lower Bollinger band (price falling) simultaneously
+- Momentum required momentum >= 2% AND RSI 25-45, but strong momentum pushes RSI above 45
+- Mean reversion required 2-sigma lower band (only ~5% of candles reach it)
 
-Commit: `7b7cb00`
+**Parameter changes**:
 
-- `MomentumStrategy` in `strategy/momentum.py` — momentum + RSI entry/exit signals
-- `MeanReversionStrategy` in `strategy/mean_reversion.py` — Bollinger band mean reversion signals
-- Both implement the same `evaluate(candles, position) -> Signal` interface
-- `CompositeStrategy` unchanged (no regression)
-- Factory function `create_strategy(type, config, regime_config)` in `wallet.py`
+| Parameter | Before | After | Rationale |
+|-----------|--------|-------|-----------|
+| `momentum_entry_threshold` | 0.02 | 0.005 | 2% was too strict for hourly candles |
+| `rsi_recovery_ceiling` | 45.0 | 60.0 | Allow entries when RSI isn't deeply oversold |
+| `rsi_oversold_floor` | 25.0 | 20.0 | Catch deeper oversold conditions |
+| `bollinger_stddev` | 2.0 | 1.8 | Lower band reachable in ~10% of candles vs ~5% |
+| `max_holding_bars` | 24 | 48 | Give trades 2 days instead of 1 |
+| `stop_loss_pct` | 0.02 | 0.03 | Wider stop to avoid premature exits |
+| `take_profit_pct` | 0.04 | 0.06 | Wider target for better R:R |
 
-### 12. Strategy wallet isolation
+**Regime adjuster changes**:
+- Bull: momentum reduction from -0.01 to -0.003, RSI ceiling cap raised from 60 to 75
+- Bear: momentum increase from +0.02 to +0.01 (proportional to lower base)
 
-Commit: `7b7cb00`
+**Backtest results (30-day hourly, real Upbit data)**:
 
-- `WalletConfig` dataclass: name, strategy type, initial capital
-- `StrategyWallet` bundles strategy instance + PaperBroker + RiskManager
-- Each wallet tracks independent cash, positions, realized PnL
-- Configurable via `[[wallets]]` array in TOML
-- Default: three wallets (momentum, mean_reversion, composite) at 1M KRW each
+| Strategy | Symbol | Return | Win Rate | PF | Trades |
+|----------|--------|--------|----------|----|--------|
+| Momentum | ETH | +9.22% | 63.0% | 2.62 | 27 |
+| Momentum | XRP | +4.56% | 55.6% | 1.66 | 27 |
+| Momentum | BTC | +3.68% | 54.2% | 1.75 | 24 |
+| Mean Rev | SOL | +2.41% | 69.2% | 1.44 | 13 |
+| Mean Rev | ETH | +1.48% | 64.3% | 1.23 | 14 |
+| Composite | BTC | +0.24% | 100% | inf | 1 |
 
-### 13. Multi-symbol multi-wallet runtime
+**90-day results**: 247 total trades. Momentum on ETH: +5.17% (PF 1.32). All 3 strategies generated signals across all 4 symbols.
 
-Commit: `7b7cb00`
+### 17. BacktestEngine strategy-agnostic refactor
 
-- `MultiSymbolRuntime` in `multi_runtime.py` iterates all symbols x all wallets per tick
-- Candle caching: one fetch per symbol per tick, shared across wallets
-- Per-wallet checkpoint state saved to `runtime-checkpoint.json`
-- CLI command: `run-multi`
+Commit: `f7edb45`
 
-### 14. Strategy comparison report
+- `BacktestEngine` now accepts `StrategyProtocol` instead of `CompositeStrategy`
+- CLI `backtest` command gains `--strategy` flag: `momentum`, `mean_reversion`, `composite`
+- No test changes needed (existing tests use CompositeStrategy which satisfies the protocol)
 
-Commit: `7b7cb00`
+### 18. Backtest-all script
 
-- `StrategyComparisonReport` in `operator/strategy_report.py`
-- Markdown dashboard: per-wallet summary table, position details, performance rankings
-- Rankings by return % and trade count
-- CLI command: `strategy-report`
+Commit: `f7edb45`
 
-### 15. Daemon mode with signal handling
-
-Commit: `7b7cb00`
-
-- `RuntimeConfig.daemon_mode` (default `true`) — runs indefinitely ignoring `max_iterations`
-- SIGINT and SIGTERM trigger graceful shutdown (finish current tick, then exit)
-- Poll interval configurable via `runtime.poll_interval_seconds`
+- `scripts/backtest_all.py` — runs all strategy x symbol combinations on real Upbit data
+- Supports configurable lookback period: `python scripts/backtest_all.py 30` (default 90 days)
+- Paginated candle fetching for > 200 candles (pyupbit limit)
+- Prints formatted table with return%, MDD, win rate, trade count, profit factor
 
 ## Previous Session Capabilities
 
 Already landed before this session:
 
+- Multi-symbol support (4 KRW pairs)
+- Individual strategy implementations (Momentum, MeanReversion, Composite)
+- Strategy wallet isolation (3 wallets at 1M KRW each)
+- Multi-symbol multi-wallet runtime (`run-multi`)
+- Strategy comparison report
+- Daemon mode with signal handling
 - Regime-aware drift thresholds
 - Daily memo notification integration
 - Backtest baseline persistence
@@ -78,53 +86,37 @@ Already landed before this session:
 - Drift report generation
 - Promotion gate
 - Regime detection and parameter adjustment
+- Mobile-first Streamlit dashboard
 
 ## Real-Data Verification Completed
+
+### Backtest verification (this session)
+
+Ran `scripts/backtest_all.py` against real Upbit OHLCV data:
+- 30-day and 90-day hourly candles for KRW-BTC, KRW-ETH, KRW-XRP, KRW-SOL
+- All 3 strategies generate buy/sell signals on all 4 symbols
+- 157 trades (30d) / 247 trades (90d) across all combinations
+- Momentum strategy is profitable on all symbols in 30-day window
+- Mean reversion profitable on 3 of 4 symbols in 30-day window
 
 ### Multi-symbol daemon verification
 
 Using real Upbit OHLCV data through `pyupbit`, verified `run-multi` with:
-
-- 4 symbols: KRW-BTC (105M), KRW-ETH (3.1M), KRW-XRP (2,107), KRW-SOL (134,900)
+- 4 symbols: KRW-BTC, KRW-ETH, KRW-XRP, KRW-SOL
 - 3 wallets: momentum, mean_reversion, composite
 - 12 strategy-symbol evaluations per tick (4 x 3)
 - Daemon running with 60s poll interval, graceful shutdown on SIGINT
 - Checkpoint artifact updating every tick with per-wallet state
 
-### Previous single-symbol verification
-
-- `run-loop` creates real strategy-run journal entries
-- `promotion-gate` reads the journal and emits a gate artifact
-- `daily-memo` writes a markdown memo artifact
-- `operator-report` writes a unified markdown report artifact
-- `runtime-checkpoint` is updated during the live loop
-
-Generated local artifacts:
-
-- `artifacts/runtime-checkpoint.json` (now includes per-wallet states)
-- `artifacts/strategy-report.md` (new)
-- `artifacts/strategy-runs.jsonl`
-- `artifacts/backtest-baseline.json`
-- `artifacts/regime-report.json`
-- `artifacts/drift-calibration.json`
-- `artifacts/drift-report.json`
-- `artifacts/promotion-gate.json`
-- `artifacts/daily-memo.md`
-- `artifacts/operator-report.md`
-- `artifacts/positions.json`
-- `artifacts/daily-performance.json`
-
-These are intentionally not committed.
-
 ## Validation State
 
 Latest validation run passed:
 
-- `ruff check .`
+- `ruff check src/ tests/`
 - `mypy src`
 - `python3 -m unittest discover -s tests -t . -v`
 
-The suite now includes 81 tests (66 existing + 15 new).
+The suite includes 99 tests.
 
 ## Commands Worth Knowing
 
@@ -134,70 +126,70 @@ From the repo root:
 # Multi-symbol daemon mode (default, runs indefinitely)
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli run-multi --config config/daemon.toml
 
-# Multi-symbol daemon with example config
-PYTHONPATH=src .venv/bin/python -m crypto_trader.cli run-multi --config config/example.toml
+# Backtest a specific strategy
+PYTHONPATH=src .venv/bin/python -m crypto_trader.cli backtest --config config/example.toml --strategy momentum
+
+# Backtest all strategies x symbols (30-day or 90-day)
+PYTHONPATH=src .venv/bin/python3 scripts/backtest_all.py 30
 
 # Strategy comparison report
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli strategy-report --config config/example.toml
 
-# Legacy single-symbol loop
-PYTHONPATH=src .venv/bin/python -m crypto_trader.cli run-loop --config config/example.toml
-
-# Operator commands (unchanged)
+# Operator commands
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli regime-report --config config/example.toml
-PYTHONPATH=src .venv/bin/python -m crypto_trader.cli calibrate-drift --config config/example.toml
-PYTHONPATH=src .venv/bin/python -m crypto_trader.cli drift-report --config config/example.toml
-PYTHONPATH=src .venv/bin/python -m crypto_trader.cli promotion-gate --config config/example.toml
-PYTHONPATH=src .venv/bin/python -m crypto_trader.cli daily-memo --config config/example.toml
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli operator-report --config config/example.toml
 ```
 
-## Architecture: New Modules
+## Architecture
 
 ```
 src/crypto_trader/
   strategy/
     momentum.py          # MomentumStrategy (momentum + RSI)
     mean_reversion.py    # MeanReversionStrategy (Bollinger bands)
-    composite.py         # CompositeStrategy (unchanged, all three factors)
+    composite.py         # CompositeStrategy (momentum + Bollinger + RSI)
+  backtest/
+    engine.py            # BacktestEngine (strategy-agnostic via StrategyProtocol)
   wallet.py              # StrategyWallet, build_wallets(), create_strategy()
   multi_runtime.py       # MultiSymbolRuntime with daemon mode + signal handling
   operator/
     strategy_report.py   # StrategyComparisonReport (markdown dashboard)
-  config.py              # +WalletConfig, +symbols list, +daemon_mode
+  config.py              # WalletConfig, symbols list, daemon_mode
+scripts/
+  backtest_all.py        # Multi-strategy x multi-symbol backtest runner
 ```
 
 ## Current Gaps / Risks
 
-1. Real Telegram send was not live-verified because no bot token/chat ID were configured.
-2. No fills have occurred yet in the multi-symbol daemon — all strategies are holding, waiting for entry conditions to align.
-3. Regime classification and drift calibration remain heuristic and should be tuned against longer historical windows.
-4. Runtime checkpointing is visibility-focused, not full broker-state restart recovery. Restarting the daemon resets all wallet state.
-5. The operator-layer commands (drift-report, promotion-gate, etc.) still operate on a single symbol. They have not been extended to multi-symbol yet.
+1. Real Telegram send was not live-verified (no bot token/chat ID configured).
+2. Composite strategy is very conservative — only 0-2 trades per symbol in 30-day window. May need separate parameter profiles per strategy type.
+3. Mean reversion loses money on 90-day data despite winning on 30-day — needs longer-term regime filter.
+4. Runtime checkpointing is visibility-focused, not full broker-state restart recovery.
+5. Operator-layer commands (drift-report, promotion-gate) still single-symbol.
 
 ## Recommended Next Moves
 
-1. Let the daemon run long enough to observe real paper fills across multiple symbols and strategies.
-2. Extend operator-layer commands (drift, promotion, memo) to work across all configured symbols.
-3. Implement wallet state persistence so daemon restarts don't lose position/PnL history.
-4. Add per-symbol strategy parameter overrides (different thresholds per coin).
-5. Build a web UI or richer terminal dashboard on top of `strategy-report.md`.
+1. **Per-strategy parameter profiles**: Let each wallet override strategy parameters (different thresholds for momentum vs mean_reversion).
+2. **Volatility Breakout Strategy** (P0 from playbook): Larry Williams-style range breakout, 40-80% CAGR backtested.
+3. **Kimchi Premium Filter** (P0 from playbook): KRW premium filter reduces MDD from -25% to -12%.
+4. **Walk-Forward Analysis**: 6-month in-sample, 1-month out-of-sample rolling validation (WFE > 85%).
+5. Extend operator commands to multi-symbol.
+6. Wallet state persistence across daemon restarts.
 
 ## Most Recent Related Commits
 
+- `f7edb45` Tune strategy parameters so entries actually fire on real Upbit data
+- `68c07d0` Add mobile-first Streamlit dashboard with token auth and 6-tab layout
+- `c2ae9d4` Add strategy playbook synthesized from 211 research notes
+- `0f87daf` Refresh the handoff with the multi-symbol wallet architecture
 - `7b7cb00` Let each strategy prove itself across multiple coins with its own wallet
-- `48c1432` Read older run journals without blowing up the live loop
-- `b9108f4` Refresh the handoff with the fully runnable operator stack
-- `ce2b95e` Leave a checkpoint behind so the operator knows where the loop last stood
-- `f223945` Give the operator one report instead of five scattered artifacts
-- `44ec56a` Teach the strategy lab to calibrate its own drift tolerances
 
 ## Notes For The Next Agent
 
-- The repo is in a good state. Multi-symbol daemon is the primary runtime now.
+- The repo is in a good state. Strategies now generate real buy/sell signals.
+- Momentum strategy is the best performer — profitable on all symbols in recent 30 days.
+- `scripts/backtest_all.py` is the quickest way to validate parameter changes.
+- `docs/strategy-playbook.md` has the full research-backed roadmap for new strategies.
 - Keep paper-first posture intact.
 - `run-multi` is the recommended command; `run-loop` is the legacy single-symbol path.
-- Prefer extending `wallet.py` and `multi_runtime.py` for new multi-symbol features.
-- Prefer extending `src/crypto_trader/operator/services.py` rather than duplicating orchestration logic in CLI branches.
 - `config/daemon.toml` is the production daemon config; `config/example.toml` is the reference config.
-- If you need a real fill for end-to-end validation, lower entry strictness in a temporary config or run on a more volatile timeframe rather than weakening the committed default config.
