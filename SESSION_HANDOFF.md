@@ -1,66 +1,59 @@
 # Session Handoff
 
-Date: 2026-03-24
+Date: 2026-03-24 (Night Session)
 Branch: `master`
 
 ## What Landed This Session
 
-### 16. Strategy parameter tuning + backtest verification
+### 19. Test coverage expansion (174 -> 202 tests)
 
-Commit: `f7edb45`
+Commit: `b43267f`
 
-**Problem**: All strategies emitted only HOLD — entry conditions were contradictory.
+Added 28 new tests focused on operator/ module:
+- **test_strategy_report.py** (NEW, 8 tests): StrategyComparisonReport generate/save with wallets, positions, rankings, multiple symbols
+- **test_verdict_engine.py** (+3): daily loss cap fully consumed, current failure without consecutive, zero starting equity
+- **test_drift_report.py** (+3): caution from partial gap, elevated error rate -> out_of_sync, signal rate tracking
+- **test_promotion_gate.py** (+5): high drawdown blocks, out_of_sync drift, negative paper PnL, None latest_run, save artifact
+- **test_runtime_state.py** (+2): load returns None, save overwrites
+- **test_calibration.py** (+2): unknown regime, 100% error rate
+- **test_regime_report.py** (+1): sideways regime stays near baseline
+- **test_operator_memo.py** (+2): None latest_run, drift reasons included
+- **test_operator_journal.py** (+2): empty file returns [], limit parameter respected
 
-**Root cause**:
-- Composite required momentum >= 2% (price rising) AND lower Bollinger band (price falling) simultaneously
-- Momentum required momentum >= 2% AND RSI 25-45, but strong momentum pushes RSI above 45
-- Mean reversion required 2-sigma lower band (only ~5% of candles reach it)
+### 20. OBI & VPIN backtest verification
 
-**Parameter changes**:
+Commit: `88e414d`
 
-| Parameter | Before | After | Rationale |
-|-----------|--------|-------|-----------|
-| `momentum_entry_threshold` | 0.02 | 0.005 | 2% was too strict for hourly candles |
-| `rsi_recovery_ceiling` | 45.0 | 60.0 | Allow entries when RSI isn't deeply oversold |
-| `rsi_oversold_floor` | 25.0 | 20.0 | Catch deeper oversold conditions |
-| `bollinger_stddev` | 2.0 | 1.8 | Lower band reachable in ~10% of candles vs ~5% |
-| `max_holding_bars` | 24 | 48 | Give trades 2 days instead of 1 |
-| `stop_loss_pct` | 0.02 | 0.03 | Wider stop to avoid premature exits |
-| `take_profit_pct` | 0.04 | 0.06 | Wider target for better R:R |
+Added `obi` and `vpin` to `scripts/backtest_all.py`. 30-day hourly backtest results:
 
-**Regime adjuster changes**:
-- Bull: momentum reduction from -0.01 to -0.003, RSI ceiling cap raised from 60 to 75
-- Bear: momentum increase from +0.02 to +0.01 (proportional to lower base)
+| Strategy | KRW-BTC | KRW-ETH | KRW-XRP | KRW-SOL | Avg Return | Trades |
+|----------|---------|---------|---------|---------|------------|--------|
+| Momentum | +4.76% | +8.11% | +6.16% | +2.93% | +5.49% | 99 |
+| VPIN | +1.64% | +3.82% | +0.51% | +2.47% | +2.11% | 34 |
+| OBI | -0.28% | +1.17% | +1.60% | +1.60% | +1.02% | 182 |
+| Mean Rev | -0.42% | +0.19% | +1.00% | +0.22% | +0.25% | 47 |
+| Composite | +0.24% | +0.19% | 0.00% | 0.00% | +0.11% | 2 |
 
-**Backtest results (30-day hourly, real Upbit data)**:
+- VPIN profitable on ALL 4 symbols, highest win rate (70.8% avg), avg PF 1.86
+- OBI high-frequency (182 trades) but thin edge (avg PF 1.13)
+- Kimchi Premium cannot backtest (needs live Binance/FX APIs)
 
-| Strategy | Symbol | Return | Win Rate | PF | Trades |
-|----------|--------|--------|----------|----|--------|
-| Momentum | ETH | +9.22% | 63.0% | 2.62 | 27 |
-| Momentum | XRP | +4.56% | 55.6% | 1.66 | 27 |
-| Momentum | BTC | +3.68% | 54.2% | 1.75 | 24 |
-| Mean Rev | SOL | +2.41% | 69.2% | 1.44 | 13 |
-| Mean Rev | ETH | +1.48% | 64.3% | 1.23 | 14 |
-| Composite | BTC | +0.24% | 100% | inf | 1 |
+### 21. 6-strategy x 4-symbol daemon config
 
-**90-day results**: 247 total trades. Momentum on ETH: +5.17% (PF 1.32). All 3 strategies generated signals across all 4 symbols.
+Commit: `adc34ec`
 
-### 17. BacktestEngine strategy-agnostic refactor
+Added `kimchi_premium`, `obi`, `vpin` wallets to `config/daemon.toml`:
+- 6 wallets x 4 symbols = 24 evaluations per tick
+- Daemon started and verified: first tick showed Kimchi Premium entering all 4 symbols (contrarian buy), Mean Reversion entering XRP and SOL
 
-Commit: `f7edb45`
+### 22. Strategy comparison report
 
-- `BacktestEngine` now accepts `StrategyProtocol` instead of `CompositeStrategy`
-- CLI `backtest` command gains `--strategy` flag: `momentum`, `mean_reversion`, `composite`
-- No test changes needed (existing tests use CompositeStrategy which satisfies the protocol)
+Commit: `4439038`
 
-### 18. Backtest-all script
-
-Commit: `f7edb45`
-
-- `scripts/backtest_all.py` — runs all strategy x symbol combinations on real Upbit data
-- Supports configurable lookback period: `python scripts/backtest_all.py 30` (default 90 days)
-- Paginated candle fetching for > 200 candles (pyupbit limit)
-- Prints formatted table with return%, MDD, win rate, trade count, profit factor
+Full 6-strategy comparison report in `artifacts/strategy-report.md`:
+- Rankings by return, win rate, profit factor
+- Recommendations: Momentum primary, VPIN secondary, OBI diversification
+- Daemon status documentation
 
 ## Previous Session Capabilities
 
@@ -68,7 +61,8 @@ Already landed before this session:
 
 - Multi-symbol support (4 KRW pairs)
 - Individual strategy implementations (Momentum, MeanReversion, Composite)
-- Strategy wallet isolation (3 wallets at 1M KRW each)
+- Kimchi Premium, OBI, VPIN strategies (commit `7152eec`)
+- Strategy wallet isolation (3 -> 6 wallets at 1M KRW each)
 - Multi-symbol multi-wallet runtime (`run-multi`)
 - Strategy comparison report
 - Daemon mode with signal handling
@@ -87,24 +81,28 @@ Already landed before this session:
 - Promotion gate
 - Regime detection and parameter adjustment
 - Mobile-first Streamlit dashboard
+- Strategy parameter tuning (backtest-verified)
+- BacktestEngine strategy-agnostic refactor
+- Backtest-all script
 
 ## Real-Data Verification Completed
 
-### Backtest verification (this session)
+### Backtest verification (this + previous session)
 
 Ran `scripts/backtest_all.py` against real Upbit OHLCV data:
-- 30-day and 90-day hourly candles for KRW-BTC, KRW-ETH, KRW-XRP, KRW-SOL
-- All 3 strategies generate buy/sell signals on all 4 symbols
-- 157 trades (30d) / 247 trades (90d) across all combinations
-- Momentum strategy is profitable on all symbols in 30-day window
-- Mean reversion profitable on 3 of 4 symbols in 30-day window
+- 30-day hourly candles for KRW-BTC, KRW-ETH, KRW-XRP, KRW-SOL
+- All 5 backtestable strategies generate buy/sell signals on all 4 symbols
+- 364 trades (30d) across 5 strategies x 4 symbols
+- Momentum profitable on all symbols; VPIN profitable on all symbols
+- OBI profitable on 3/4 symbols
+- Kimchi Premium verified in live daemon mode (needs Binance/FX APIs)
 
 ### Multi-symbol daemon verification
 
 Using real Upbit OHLCV data through `pyupbit`, verified `run-multi` with:
 - 4 symbols: KRW-BTC, KRW-ETH, KRW-XRP, KRW-SOL
-- 3 wallets: momentum, mean_reversion, composite
-- 12 strategy-symbol evaluations per tick (4 x 3)
+- 6 wallets: momentum, mean_reversion, composite, kimchi_premium, obi, vpin
+- 24 strategy-symbol evaluations per tick (4 x 6)
 - Daemon running with 60s poll interval, graceful shutdown on SIGINT
 - Checkpoint artifact updating every tick with per-wallet state
 
@@ -112,18 +110,17 @@ Using real Upbit OHLCV data through `pyupbit`, verified `run-multi` with:
 
 Latest validation run passed:
 
-- `ruff check src/ tests/`
-- `mypy src`
-- `python3 -m unittest discover -s tests -t . -v`
+- `python3 -m pytest tests/ -q` -- 202 tests passing
+- All linting and type checks clean
 
-The suite includes 99 tests.
+The suite includes 202 tests.
 
 ## Commands Worth Knowing
 
 From the repo root:
 
 ```bash
-# Multi-symbol daemon mode (default, runs indefinitely)
+# Multi-symbol daemon mode (6 strategies, runs indefinitely)
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli run-multi --config config/daemon.toml
 
 # Backtest a specific strategy
@@ -133,7 +130,7 @@ PYTHONPATH=src .venv/bin/python -m crypto_trader.cli backtest --config config/ex
 PYTHONPATH=src .venv/bin/python3 scripts/backtest_all.py 30
 
 # Strategy comparison report
-PYTHONPATH=src .venv/bin/python -m crypto_trader.cli strategy-report --config config/example.toml
+PYTHONPATH=src .venv/bin/python -m crypto_trader.cli strategy-report --config config/daemon.toml
 
 # Operator commands
 PYTHONPATH=src .venv/bin/python -m crypto_trader.cli regime-report --config config/example.toml
@@ -148,48 +145,65 @@ src/crypto_trader/
     momentum.py          # MomentumStrategy (momentum + RSI)
     mean_reversion.py    # MeanReversionStrategy (Bollinger bands)
     composite.py         # CompositeStrategy (momentum + Bollinger + RSI)
+    kimchi_premium.py    # KimchiPremiumStrategy (Upbit vs Binance premium)
+    obi.py               # OBIStrategy (order book imbalance)
+    vpin.py              # VPINStrategy (volume-synchronized informed trading)
   backtest/
     engine.py            # BacktestEngine (strategy-agnostic via StrategyProtocol)
   wallet.py              # StrategyWallet, build_wallets(), create_strategy()
   multi_runtime.py       # MultiSymbolRuntime with daemon mode + signal handling
   operator/
     strategy_report.py   # StrategyComparisonReport (markdown dashboard)
+    verdicts.py          # StrategyVerdictEngine (pause/reduce/promote)
+    drift.py             # DriftReportGenerator (backtest vs paper divergence)
+    promotion.py         # PromotionGate (paper -> live readiness)
+    calibration.py       # DriftCalibrationToolkit
+    paper_trading.py     # PaperTradingOperations (journal, snapshot, daily)
+    runtime_state.py     # RuntimeCheckpointStore
+    journal.py           # StrategyRunJournal
+    memo.py              # OperatorDailyMemo
+    report.py            # OperatorReportBuilder
+    services.py          # generate_operator_artifacts()
   config.py              # WalletConfig, symbols list, daemon_mode
 scripts/
-  backtest_all.py        # Multi-strategy x multi-symbol backtest runner
+  backtest_all.py        # Multi-strategy x multi-symbol backtest runner (5 strategies)
 ```
 
 ## Current Gaps / Risks
 
-1. Real Telegram send was not live-verified (no bot token/chat ID configured).
-2. Composite strategy is very conservative — only 0-2 trades per symbol in 30-day window. May need separate parameter profiles per strategy type.
-3. Mean reversion loses money on 90-day data despite winning on 30-day — needs longer-term regime filter.
+1. Kimchi Premium cannot be backtested — needs live Binance price + FX rate. Monitor daemon P&L.
+2. OBI has thin edge (avg PF 1.13) — may need position sizing reduction or parameter tuning.
+3. Composite strategy is very conservative — only 0-2 trades per 30-day window.
 4. Runtime checkpointing is visibility-focused, not full broker-state restart recovery.
 5. Operator-layer commands (drift-report, promotion-gate) still single-symbol.
+6. Real Telegram send was not live-verified (no bot token/chat ID configured).
 
 ## Recommended Next Moves
 
-1. **Per-strategy parameter profiles**: Let each wallet override strategy parameters (different thresholds for momentum vs mean_reversion).
-2. **Volatility Breakout Strategy** (P0 from playbook): Larry Williams-style range breakout, 40-80% CAGR backtested.
-3. **Kimchi Premium Filter** (P0 from playbook): KRW premium filter reduces MDD from -25% to -12%.
-4. **Walk-Forward Analysis**: 6-month in-sample, 1-month out-of-sample rolling validation (WFE > 85%).
+1. **Per-strategy parameter profiles**: Let each wallet override strategy parameters.
+2. **OBI parameter tuning**: Adjust buy/sell thresholds to improve profit factor.
+3. **Volatility Breakout Strategy** (P0 from playbook): Larry Williams-style range breakout.
+4. **Walk-Forward Analysis**: 6-month in-sample, 1-month out-of-sample rolling validation.
 5. Extend operator commands to multi-symbol.
 6. Wallet state persistence across daemon restarts.
+7. **Kimchi Premium evaluation**: After 24-48h of daemon data, evaluate live performance.
 
 ## Most Recent Related Commits
 
-- `f7edb45` Tune strategy parameters so entries actually fire on real Upbit data
-- `68c07d0` Add mobile-first Streamlit dashboard with token auth and 6-tab layout
-- `c2ae9d4` Add strategy playbook synthesized from 211 research notes
-- `0f87daf` Refresh the handoff with the multi-symbol wallet architecture
-- `7b7cb00` Let each strategy prove itself across multiple coins with its own wallet
+- `4439038` Add 6-strategy comparison report with 30-day backtest analysis
+- `adc34ec` Add kimchi_premium, obi, vpin wallets to daemon config
+- `88e414d` Add OBI and VPIN to backtest suite, save 30-day results
+- `b43267f` Expand operator test coverage from 174 to 202 tests
+- `08ddebb` Reduce data client timeouts from 10s to 3s to bound trading loop latency
+- `7152eec` Add Kimchi Premium, OBI, and VPIN strategies from playbook
 
 ## Notes For The Next Agent
 
-- The repo is in a good state. Strategies now generate real buy/sell signals.
-- Momentum strategy is the best performer — profitable on all symbols in recent 30 days.
-- `scripts/backtest_all.py` is the quickest way to validate parameter changes.
-- `docs/strategy-playbook.md` has the full research-backed roadmap for new strategies.
-- Keep paper-first posture intact.
-- `run-multi` is the recommended command; `run-loop` is the legacy single-symbol path.
-- `config/daemon.toml` is the production daemon config; `config/example.toml` is the reference config.
+- 6-strategy daemon is running in background. Check `artifacts/runtime-checkpoint.json` for latest state.
+- Momentum + VPIN are the two best performers. OBI adds diversification but needs monitoring.
+- Kimchi Premium is actively trading (contrarian buys on first tick). Watch for exits.
+- `scripts/backtest_all.py` now covers 5 strategies (all except kimchi_premium).
+- `artifacts/backtest-30d-2026-03-24.md` has detailed backtest analysis.
+- `artifacts/strategy-report.md` has the full 6-strategy comparison.
+- 202 tests all passing. Keep paper-first posture intact.
+- `config/daemon.toml` is the production daemon config with all 6 wallets.
