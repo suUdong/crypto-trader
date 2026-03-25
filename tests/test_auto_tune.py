@@ -4,10 +4,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from crypto_trader.config import load_config
 from crypto_trader.wallet import build_wallets
-from scripts.auto_tune import TuneResult, write_optimized_toml, write_results_json
+from scripts.auto_tune import TuneResult, tune_strategy, write_optimized_toml, write_results_json
 
 
 class TestAutoTuneOutputs(unittest.TestCase):
@@ -132,6 +133,58 @@ class TestAutoTuneOutputs(unittest.TestCase):
         self.assertEqual(wallet.strategy._k_base, 0.7)
         self.assertEqual(wallet.risk_manager._trailing_stop_pct, 0.04)
         self.assertEqual(wallet.risk_manager._atr_stop_multiplier, 3.0)
+
+    def test_tune_strategy_selects_best_candidate_by_optimized_score(self) -> None:
+        class Candidate:
+            def __init__(self, params: dict[str, int], score: float) -> None:
+                self.params = params
+                self.score = score
+
+        candles_by_symbol = {"KRW-BTC": []}
+        candidates = [
+            Candidate({"x": 1}, 0.5),
+            Candidate({"x": 2}, 0.6),
+        ]
+
+        def fake_optimize(strategy_type, strategy_params, candles):
+            if strategy_params["x"] == 1:
+                return {"stop_loss_pct": 0.02}, 0.8
+            return {"stop_loss_pct": 0.03}, 1.2
+
+        def fake_evaluate(strategy_type, strategy_params, risk_params, candles):
+            if strategy_params["x"] == 1:
+                return {
+                    "avg_return_pct": 1.0,
+                    "avg_sharpe": 0.9,
+                    "avg_mdd_pct": 2.0,
+                    "avg_win_rate": 50.0,
+                    "avg_profit_factor": 1.1,
+                    "total_trades": 4,
+                    "per_symbol": {"KRW-BTC": {"return_pct": 1.0}},
+                }
+            return {
+                "avg_return_pct": 2.0,
+                "avg_sharpe": 1.1,
+                "avg_mdd_pct": 3.0,
+                "avg_win_rate": 55.0,
+                "avg_profit_factor": 1.2,
+                "total_trades": 5,
+                "per_symbol": {"KRW-BTC": {"return_pct": 2.0}},
+            }
+
+        with (
+            patch("scripts.auto_tune.run_grid_for_strategy", return_value=["grid"]),
+            patch("scripts.auto_tune.top_param_sets", return_value=candidates),
+            patch("scripts.auto_tune.optimize_risk_for_strategy", side_effect=fake_optimize),
+            patch("scripts.auto_tune.evaluate_strategy_params", side_effect=fake_evaluate),
+        ):
+            result = tune_strategy("momentum", candles_by_symbol, top_n=2, verbose=False)
+
+        assert result is not None
+        self.assertEqual(result.candidate_rank, 2)
+        self.assertEqual(result.params, {"x": 2})
+        self.assertEqual(result.risk_params, {"stop_loss_pct": 0.03})
+        self.assertEqual(len(result.top_candidates), 2)
 
 
 if __name__ == "__main__":

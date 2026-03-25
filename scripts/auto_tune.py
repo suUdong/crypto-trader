@@ -32,6 +32,21 @@ from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy  # noqa: E402
 from crypto_trader.wallet import create_strategy  # noqa: E402
 
+try:
+    from scripts.grid_search import (  # noqa: E402
+        SYMBOLS,
+        fetch_candles,
+        run_grid_for_strategy,
+        top_param_sets,
+    )
+except ModuleNotFoundError:
+    from grid_search import (  # type: ignore[no-redef]  # noqa: E402
+        SYMBOLS,
+        fetch_candles,
+        run_grid_for_strategy,
+        top_param_sets,
+    )
+
 
 @dataclass
 class TuneResult:
@@ -176,6 +191,156 @@ def optimize_risk_for_strategy(
     return best_risk, best_score
 
 
+def evaluate_strategy_params(
+    strategy_type: str,
+    strategy_params: dict[str, float | int],
+    risk_params: dict[str, float],
+    candles_by_symbol: dict[str, list[Candle]],
+) -> dict[str, object] | None:
+    """Evaluate a strategy/risk parameter set across all provided symbols."""
+    totals = {
+        "return_pct": 0.0,
+        "sharpe": 0.0,
+        "mdd_pct": 0.0,
+        "win_rate": 0.0,
+        "profit_factor": 0.0,
+        "trade_count": 0,
+    }
+    per_symbol: dict[str, dict[str, float]] = {}
+    count = 0
+
+    for symbol, candles in candles_by_symbol.items():
+        result = _run_single_backtest(strategy_type, strategy_params, risk_params, candles, symbol)
+        for key in totals:
+            totals[key] += result[key]
+        per_symbol[symbol] = result
+        count += 1
+
+    if count == 0:
+        return None
+
+    return {
+        "avg_return_pct": totals["return_pct"] / count,
+        "avg_sharpe": totals["sharpe"] / count,
+        "avg_mdd_pct": totals["mdd_pct"] / count,
+        "avg_win_rate": totals["win_rate"] / count,
+        "avg_profit_factor": totals["profit_factor"] / count,
+        "total_trades": int(totals["trade_count"]),
+        "per_symbol": per_symbol,
+    }
+
+
+def collect_baseline_results(
+    strategies: list[str],
+    candles_by_symbol: dict[str, list[Candle]],
+) -> list[dict[str, object]]:
+    """Collect baseline backtest results using default params."""
+    baseline_results: list[dict[str, object]] = []
+    for strategy_type in strategies:
+        for symbol, candles in candles_by_symbol.items():
+            baseline = _run_single_backtest(strategy_type, {}, {}, candles, symbol)
+            baseline_results.append(
+                {
+                    "strategy": strategy_type,
+                    "symbol": symbol,
+                    **baseline,
+                }
+            )
+    return baseline_results
+
+
+def tune_strategy(
+    strategy_type: str,
+    candles_by_symbol: dict[str, list[Candle]],
+    top_n: int = 3,
+    verbose: bool = True,
+) -> TuneResult | None:
+    """Tune one strategy on a symbol->candles dataset."""
+    risk_combo_count = len(list(itertools.product(*RISK_GRID.values())))
+
+    if verbose:
+        print(f"\n{'─'*60}")
+        print(f"  Optimizing: {strategy_type}")
+        print(f"{'─'*60}")
+
+    grid_results = run_grid_for_strategy(strategy_type, candles_by_symbol)
+    if not grid_results:
+        if verbose:
+            print(f"  SKIP: no grid results for {strategy_type}")
+        return None
+
+    top_candidates = top_param_sets(grid_results, top_n=top_n)
+    if not top_candidates:
+        if verbose:
+            print(f"  SKIP: no candidate summaries for {strategy_type}")
+        return None
+
+    candidate_results: list[dict[str, object]] = []
+    for idx, candidate in enumerate(top_candidates, start=1):
+        if verbose:
+            print(f"  Candidate #{idx} params: {candidate.params}")
+            print(f"  Optimizing risk params ({risk_combo_count} combos)...")
+
+        best_risk, best_score = optimize_risk_for_strategy(
+            strategy_type,
+            candidate.params,
+            candles_by_symbol,
+        )
+        evaluation = evaluate_strategy_params(
+            strategy_type,
+            candidate.params,
+            best_risk,
+            candles_by_symbol,
+        )
+        if evaluation is None:
+            continue
+
+        candidate_results.append(
+            {
+                "rank": idx,
+                "params": candidate.params,
+                "base_score": candidate.score,
+                "risk_params": best_risk,
+                "optimized_score": best_score,
+                **evaluation,
+            }
+        )
+
+    if not candidate_results:
+        return None
+
+    best_candidate = max(
+        candidate_results,
+        key=lambda item: (
+            float(item["optimized_score"]),
+            float(item["avg_sharpe"]),
+            float(item["avg_return_pct"]),
+        ),
+    )
+    if verbose:
+        print(
+            f"  Best candidate: #{best_candidate['rank']} "
+            f"score={float(best_candidate['optimized_score']):.4f} "
+            f"sharpe={float(best_candidate['avg_sharpe']):.2f}"
+        )
+
+    return TuneResult(
+        strategy=strategy_type,
+        params=dict(best_candidate["params"]),
+        risk_params=dict(best_candidate["risk_params"]),
+        avg_return_pct=float(best_candidate["avg_return_pct"]),
+        avg_sharpe=float(best_candidate["avg_sharpe"]),
+        avg_mdd_pct=float(best_candidate["avg_mdd_pct"]),
+        avg_win_rate=float(best_candidate["avg_win_rate"]),
+        avg_profit_factor=float(best_candidate["avg_profit_factor"]),
+        total_trades=int(best_candidate["total_trades"]),
+        best_score=float(best_candidate["optimized_score"]),
+        candidate_rank=int(best_candidate["rank"]),
+        top_candidates=candidate_results,
+        per_symbol=dict(best_candidate["per_symbol"]),
+    )
+
+
 def write_results_json(
     baseline_results: list[dict[str, object]],
     tune_results: list[TuneResult],
@@ -304,22 +469,6 @@ def main() -> None:
     print(f"  AUTO-TUNE: Grid Search + Risk Optimization ({days}d)")
     print(f"{'='*80}")
 
-    # Import grid search components
-    try:
-        from scripts.grid_search import (
-            SYMBOLS,
-            fetch_candles,
-            run_grid_for_strategy,
-            top_param_sets,
-        )
-    except ModuleNotFoundError:
-        from grid_search import (  # type: ignore[no-redef]
-            SYMBOLS,
-            fetch_candles,
-            run_grid_for_strategy,
-            top_param_sets,
-        )
-
     # Fetch data
     candles_by_symbol: dict[str, list[Candle]] = {}
     for symbol in SYMBOLS:
@@ -329,123 +478,14 @@ def main() -> None:
         if len(candles) >= 50:
             candles_by_symbol[symbol] = candles
 
-    baseline_results: list[dict[str, object]] = []
-    risk_combo_count = len(list(itertools.product(*RISK_GRID.values())))
-
-    for strategy_type in args.strategies:
-        for symbol, candles in candles_by_symbol.items():
-            baseline = _run_single_backtest(strategy_type, {}, {}, candles, symbol)
-            baseline_results.append(
-                {
-                    "strategy": strategy_type,
-                    "symbol": symbol,
-                    **baseline,
-                }
-            )
+    baseline_results = collect_baseline_results(args.strategies, candles_by_symbol)
 
     tune_results: list[TuneResult] = []
 
     for strategy_type in args.strategies:
-        print(f"\n{'─'*60}")
-        print(f"  Optimizing: {strategy_type}")
-        print(f"{'─'*60}")
-
-        # Phase 1: Find best strategy params
-        grid_results = run_grid_for_strategy(strategy_type, candles_by_symbol)
-        if not grid_results:
-            print(f"  SKIP: no grid results for {strategy_type}")
-            continue
-
-        top_candidates = top_param_sets(grid_results, top_n=args.top_n)
-        if not top_candidates:
-            print(f"  SKIP: no candidate summaries for {strategy_type}")
-            continue
-
-        candidate_results: list[dict[str, object]] = []
-        for idx, candidate in enumerate(top_candidates, start=1):
-            print(f"  Candidate #{idx} params: {candidate.params}")
-            print(f"  Optimizing risk params ({risk_combo_count} combos)...")
-            best_risk, best_score = optimize_risk_for_strategy(
-                strategy_type, candidate.params, candles_by_symbol,
-            )
-
-            totals = {
-                "return_pct": 0.0,
-                "sharpe": 0.0,
-                "mdd_pct": 0.0,
-                "win_rate": 0.0,
-                "profit_factor": 0.0,
-                "trade_count": 0,
-            }
-            per_symbol: dict[str, dict[str, float]] = {}
-            count = 0
-            for symbol, candles in candles_by_symbol.items():
-                result = _run_single_backtest(
-                    strategy_type,
-                    candidate.params,
-                    best_risk,
-                    candles,
-                    symbol,
-                )
-                for key in totals:
-                    totals[key] += result[key]
-                per_symbol[symbol] = result
-                count += 1
-
-            if count == 0:
-                continue
-
-            candidate_results.append(
-                {
-                    "rank": idx,
-                    "params": candidate.params,
-                    "base_score": candidate.score,
-                    "risk_params": best_risk,
-                    "optimized_score": best_score,
-                    "avg_return_pct": totals["return_pct"] / count,
-                    "avg_sharpe": totals["sharpe"] / count,
-                    "avg_mdd_pct": totals["mdd_pct"] / count,
-                    "avg_win_rate": totals["win_rate"] / count,
-                    "avg_profit_factor": totals["profit_factor"] / count,
-                    "total_trades": int(totals["trade_count"]),
-                    "per_symbol": per_symbol,
-                }
-            )
-
-        if not candidate_results:
-            continue
-
-        best_candidate = max(
-            candidate_results,
-            key=lambda item: (
-                float(item["optimized_score"]),
-                float(item["avg_sharpe"]),
-                float(item["avg_return_pct"]),
-            ),
-        )
-        print(
-            f"  Best candidate: #{best_candidate['rank']} "
-            f"score={float(best_candidate['optimized_score']):.4f} "
-            f"sharpe={float(best_candidate['avg_sharpe']):.2f}"
-        )
-
-        tune_results.append(
-            TuneResult(
-                strategy=strategy_type,
-                params=dict(best_candidate["params"]),
-                risk_params=dict(best_candidate["risk_params"]),
-                avg_return_pct=float(best_candidate["avg_return_pct"]),
-                avg_sharpe=float(best_candidate["avg_sharpe"]),
-                avg_mdd_pct=float(best_candidate["avg_mdd_pct"]),
-                avg_win_rate=float(best_candidate["avg_win_rate"]),
-                avg_profit_factor=float(best_candidate["avg_profit_factor"]),
-                total_trades=int(best_candidate["total_trades"]),
-                best_score=float(best_candidate["optimized_score"]),
-                candidate_rank=int(best_candidate["rank"]),
-                top_candidates=candidate_results,
-                per_symbol=dict(best_candidate["per_symbol"]),
-            )
-        )
+        result = tune_strategy(strategy_type, candles_by_symbol, top_n=args.top_n, verbose=True)
+        if result is not None:
+            tune_results.append(result)
 
     # Summary
     print(f"\n{'='*80}")

@@ -171,3 +171,21 @@ Cache freshness: `artifacts/candle-cache` is treated as a session cache. Entries
 - Baseline JSON: `artifacts/backtest-baseline-90d.json`
 - Combined tune JSON: `artifacts/auto-tune-90d/combined.json`
 - Runnable config: `config/optimized.toml`
+
+## Next validation step
+
+Use the new walk-forward validator to measure how the tuned strategy families hold up out-of-sample:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/walk_forward.py 120 --train-days 60 --test-days 15 --cache-dir artifacts/candle-cache --json-out artifacts/walk-forward.json
+```
+
+Smoke result on the current 90-day cache for `momentum` only:
+
+- Command: `PYTHONPATH=src .venv/bin/python scripts/walk_forward.py 90 --train-days 60 --test-days 15 --top-n 2 --strategies momentum --cache-dir artifacts/candle-cache --json-out artifacts/walk-forward-smoke.json`
+- Folds: `2`
+- Avg train Sharpe: `1.29`
+- Avg test Sharpe: `1.61`
+- Avg test return: `+0.81%`
+- Avg test MDD: `2.75%`
+- Total test trades: `104`

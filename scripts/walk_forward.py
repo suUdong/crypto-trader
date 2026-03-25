@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""Walk-forward validation for strategy tuning on cached/live candle data."""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+sys.path.insert(0, "src")
+
+from crypto_trader.models import Candle  # noqa: E402
+
+try:
+    from scripts.auto_tune import (  # noqa: E402
+        DEFAULT_STRATEGIES,
+        SYMBOLS,
+        collect_baseline_results,
+        evaluate_strategy_params,
+        fetch_candles,
+        tune_strategy,
+    )
+except ModuleNotFoundError:
+    from auto_tune import (  # type: ignore[no-redef]  # noqa: E402
+        DEFAULT_STRATEGIES,
+        SYMBOLS,
+        collect_baseline_results,
+        evaluate_strategy_params,
+        fetch_candles,
+        tune_strategy,
+    )
+
+
+@dataclass
+class FoldResult:
+    fold_index: int
+    strategy: str
+    train_start: str
+    train_end: str
+    test_start: str
+    test_end: str
+    tuned_params: dict[str, float | int]
+    tuned_risk_params: dict[str, float]
+    train_sharpe: float
+    train_return_pct: float
+    train_mdd_pct: float
+    test_sharpe: float
+    test_return_pct: float
+    test_mdd_pct: float
+    test_win_rate: float
+    test_profit_factor: float
+    test_total_trades: int
+    candidate_rank: int
+
+
+def build_walk_forward_windows(
+    candles_by_symbol: dict[str, list[Candle]],
+    train_bars: int,
+    test_bars: int,
+) -> list[tuple[dict[str, list[Candle]], dict[str, list[Candle]]]]:
+    """Build rolling train/test windows using the shared shortest history."""
+    if not candles_by_symbol:
+        return []
+
+    min_len = min(len(candles) for candles in candles_by_symbol.values())
+    if min_len < train_bars + test_bars:
+        return []
+
+    windows: list[tuple[dict[str, list[Candle]], dict[str, list[Candle]]]] = []
+    start = 0
+    while start + train_bars + test_bars <= min_len:
+        train_slice: dict[str, list[Candle]] = {}
+        test_slice: dict[str, list[Candle]] = {}
+        for symbol, candles in candles_by_symbol.items():
+            aligned = candles[-min_len:]
+            train_slice[symbol] = aligned[start : start + train_bars]
+            test_slice[symbol] = aligned[start + train_bars : start + train_bars + test_bars]
+        windows.append((train_slice, test_slice))
+        start += test_bars
+
+    return windows
+
+
+def summarize_fold_with_boundaries(
+    fold_index: int,
+    strategy: str,
+    tuned_result,
+    train_slice: dict[str, list[Candle]],
+    test_slice: dict[str, list[Candle]],
+    test_evaluation: dict[str, object],
+) -> FoldResult:
+    symbol = next(iter(train_slice))
+    return FoldResult(
+        fold_index=fold_index,
+        strategy=strategy,
+        train_start=train_slice[symbol][0].timestamp.isoformat(),
+        train_end=train_slice[symbol][-1].timestamp.isoformat(),
+        test_start=test_slice[symbol][0].timestamp.isoformat(),
+        test_end=test_slice[symbol][-1].timestamp.isoformat(),
+        tuned_params=tuned_result.params,
+        tuned_risk_params=tuned_result.risk_params,
+        train_sharpe=tuned_result.avg_sharpe,
+        train_return_pct=tuned_result.avg_return_pct,
+        train_mdd_pct=tuned_result.avg_mdd_pct,
+        test_sharpe=float(test_evaluation["avg_sharpe"]),
+        test_return_pct=float(test_evaluation["avg_return_pct"]),
+        test_mdd_pct=float(test_evaluation["avg_mdd_pct"]),
+        test_win_rate=float(test_evaluation["avg_win_rate"]),
+        test_profit_factor=float(test_evaluation["avg_profit_factor"]),
+        test_total_trades=int(test_evaluation["total_trades"]),
+        candidate_rank=tuned_result.candidate_rank,
+    )
+
+
+def aggregate_fold_results(folds: list[FoldResult]) -> dict[str, float | int]:
+    """Aggregate walk-forward folds into one summary row."""
+    if not folds:
+        return {
+            "fold_count": 0,
+            "avg_train_sharpe": 0.0,
+            "avg_test_sharpe": 0.0,
+            "avg_test_return_pct": 0.0,
+            "avg_test_mdd_pct": 0.0,
+            "avg_test_win_rate": 0.0,
+            "avg_test_profit_factor": 0.0,
+            "total_test_trades": 0,
+        }
+
+    count = len(folds)
+    return {
+        "fold_count": count,
+        "avg_train_sharpe": sum(fold.train_sharpe for fold in folds) / count,
+        "avg_test_sharpe": sum(fold.test_sharpe for fold in folds) / count,
+        "avg_test_return_pct": sum(fold.test_return_pct for fold in folds) / count,
+        "avg_test_mdd_pct": sum(fold.test_mdd_pct for fold in folds) / count,
+        "avg_test_win_rate": sum(fold.test_win_rate for fold in folds) / count,
+        "avg_test_profit_factor": sum(fold.test_profit_factor for fold in folds) / count,
+        "total_test_trades": sum(fold.test_total_trades for fold in folds),
+    }
+
+
+def write_walk_forward_json(
+    output_path: str,
+    folds_by_strategy: dict[str, list[FoldResult]],
+    baseline_results: list[dict[str, object]],
+    total_days: int,
+    train_days: int,
+    test_days: int,
+) -> None:
+    payload = {
+        "total_days": total_days,
+        "train_days": train_days,
+        "test_days": test_days,
+        "baseline_results": baseline_results,
+        "strategies": {
+            strategy: {
+                "aggregate": aggregate_fold_results(folds),
+                "folds": [asdict(fold) for fold in folds],
+            }
+            for strategy, folds in folds_by_strategy.items()
+        },
+    }
+    Path(output_path).write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(f"Walk-forward results written to: {output_path}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run walk-forward validation on tuned strategies.")
+    parser.add_argument("total_days", nargs="?", type=int, default=120)
+    parser.add_argument("--train-days", dest="train_days", type=int, default=60)
+    parser.add_argument("--test-days", dest="test_days", type=int, default=15)
+    parser.add_argument("--top-n", dest="top_n", type=int, default=3)
+    parser.add_argument("--json-out", dest="json_out", default="artifacts/walk-forward.json")
+    parser.add_argument("--cache-dir", dest="cache_dir")
+    parser.add_argument(
+        "--strategies",
+        nargs="+",
+        default=DEFAULT_STRATEGIES,
+        help="Strategies to validate.",
+    )
+    args = parser.parse_args()
+
+    if args.cache_dir:
+        os.environ["CT_CANDLE_CACHE_DIR"] = args.cache_dir
+
+    total_days = args.total_days
+    train_bars = args.train_days * 24
+    test_bars = args.test_days * 24
+    print(f"\n{'='*80}")
+    print(
+        f"  WALK-FORWARD VALIDATION ({total_days}d total / "
+        f"{args.train_days}d train / {args.test_days}d test)"
+    )
+    print(f"{'='*80}")
+
+    candles_by_symbol: dict[str, list[Candle]] = {}
+    for symbol in SYMBOLS:
+        print(f"\nFetching {symbol} ({total_days}d)...", end=" ", flush=True)
+        candles = fetch_candles(symbol, total_days)
+        print(f"{len(candles)} candles")
+        if len(candles) >= train_bars + test_bars:
+            candles_by_symbol[symbol] = candles
+
+    windows = build_walk_forward_windows(candles_by_symbol, train_bars, test_bars)
+    if not windows:
+        raise RuntimeError("Insufficient data for the requested walk-forward windows.")
+
+    baseline_results = collect_baseline_results(args.strategies, candles_by_symbol)
+    folds_by_strategy: dict[str, list[FoldResult]] = {strategy: [] for strategy in args.strategies}
+
+    for strategy in args.strategies:
+        print(f"\n{'─'*60}")
+        print(f"  Walk-forward: {strategy}")
+        print(f"{'─'*60}")
+        for fold_index, (train_slice, test_slice) in enumerate(windows, start=1):
+            print(f"  Fold #{fold_index}: tuning on train window")
+            tuned = tune_strategy(strategy, train_slice, top_n=args.top_n, verbose=False)
+            if tuned is None:
+                continue
+            test_evaluation = evaluate_strategy_params(
+                strategy,
+                tuned.params,
+                tuned.risk_params,
+                test_slice,
+            )
+            if test_evaluation is None:
+                continue
+            fold = summarize_fold_with_boundaries(
+                fold_index,
+                strategy,
+                tuned,
+                train_slice,
+                test_slice,
+                test_evaluation,
+            )
+            folds_by_strategy[strategy].append(fold)
+            print(
+                f"    train_sharpe={fold.train_sharpe:.2f} "
+                f"test_sharpe={fold.test_sharpe:.2f} "
+                f"test_return={fold.test_return_pct:+.2f}%"
+            )
+
+    print(f"\n{'='*80}")
+    print("  WALK-FORWARD SUMMARY")
+    print(f"{'='*80}")
+    print(
+        f"\n  {'Strategy':<20} {'Folds':>5} {'TrainSharpe':>12} "
+        f"{'TestSharpe':>11} {'TestRet%':>10} {'TestMDD%':>9} {'Trades':>8}"
+    )
+    print(f"  {'─'*81}")
+    for strategy in args.strategies:
+        aggregate = aggregate_fold_results(folds_by_strategy[strategy])
+        print(
+            f"  {strategy:<20} {int(aggregate['fold_count']):>5} "
+            f"{float(aggregate['avg_train_sharpe']):>11.2f} "
+            f"{float(aggregate['avg_test_sharpe']):>10.2f} "
+            f"{float(aggregate['avg_test_return_pct']):>+9.2f}% "
+            f"{float(aggregate['avg_test_mdd_pct']):>8.2f}% "
+            f"{int(aggregate['total_test_trades']):>8}"
+        )
+
+    write_walk_forward_json(
+        args.json_out,
+        folds_by_strategy,
+        baseline_results,
+        total_days,
+        args.train_days,
+        args.test_days,
+    )
+
+
+if __name__ == "__main__":
+    main()
