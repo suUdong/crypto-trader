@@ -1,0 +1,36 @@
+# Auto-tuned configuration
+# Generated from grid search optimization
+# Best strategy in evaluated candidate sweep: momentum
+# Avg Sharpe: 1.89
+
+[trading]
+exchange = "upbit"
+interval = "minute60"
+paper_trading = true
+symbols = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP', 'KRW-SOL']
+
+[strategy]
+max_holding_bars = 36
+momentum_entry_threshold = 0.008
+momentum_lookback = 15
+rsi_overbought = 65.0
+rsi_period = 18
+
+[risk]
+atr_stop_multiplier = 0.0
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.03
+take_profit_pct = 0.1
+trailing_stop_pct = 0.0
+
+# Optimized wallet allocation
+
+[[wallets]]
+name = "momentum_wallet"
+strategy = "momentum"
+initial_capital = 1_000_000.0
+
+# === Per-Strategy Optimization Results ===
+# momentum: Sharpe=1.89 Return=+0.99% MDD=2.44% WR=0.0% PF=1.56 Trades=103
+#   params: {'momentum_lookback': 15, 'momentum_entry_threshold': 0.008, 'rsi_period': 18, 'rsi_overbought': 65.0, 'max_holding_bars': 36}
+#   risk: {'stop_loss_pct': 0.03, 'take_profit_pct': 0.1, 'risk_per_trade_pct': 0.01, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 0.0}
