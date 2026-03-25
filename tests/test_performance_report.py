@@ -1,24 +1,18 @@
-"""Tests for scripts/performance_report.py."""
+"""Tests for performance report helpers."""
 from __future__ import annotations
 
 import json
-import sys
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-# Ensure src is on path when running directly
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-
-# Also allow importing from scripts/
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-
-from performance_report import (
-    _build_readiness_section,
-    _compute_paper_days,
-    _compute_profit_factor,
-    generate_report,
+from crypto_trader.operator.performance_report import (
+    build_readiness_section,
+    compute_paper_days,
+    compute_profit_factor,
+    generate_performance_report,
 )
+from crypto_trader.operator.pnl_report import PortfolioPnLReport, StrategyPnLMetrics
 
 
 def _write_checkpoint(path: Path, *, generated_at: str | None = None) -> None:
@@ -84,24 +78,24 @@ class TestGenerateReport(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_report_has_72h_header(self) -> None:
-        md = generate_report(self.checkpoint, self.journal)
+        md = generate_performance_report(self.checkpoint, self.journal)
         self.assertIn("## 72-Hour Performance Report", md)
 
     def test_report_has_portfolio_summary(self) -> None:
-        md = generate_report(self.checkpoint, self.journal)
+        md = generate_performance_report(self.checkpoint, self.journal)
         self.assertIn("Portfolio Summary", md)
 
     def test_report_has_micro_live_readiness_section(self) -> None:
-        md = generate_report(self.checkpoint, self.journal)
+        md = generate_performance_report(self.checkpoint, self.journal)
         self.assertIn("## Micro-Live Readiness", md)
 
     def test_report_contains_strategy_names(self) -> None:
-        md = generate_report(self.checkpoint, self.journal)
+        md = generate_performance_report(self.checkpoint, self.journal)
         self.assertIn("momentum", md)
         self.assertIn("mean_reversion", md)
 
     def test_report_missing_checkpoint_still_returns_markdown(self) -> None:
-        md = generate_report(self.tmp / "nonexistent.json", self.journal)
+        md = generate_performance_report(self.tmp / "nonexistent.json", self.journal)
         self.assertIn("## 72-Hour Performance Report", md)
         self.assertIn("## Micro-Live Readiness", md)
 
@@ -121,7 +115,7 @@ class TestComputePaperDays(unittest.TestCase):
         _write_journal(journal, first_ts=ten_days_ago)
         checkpoint = self.tmp / "cp.json"
         _write_checkpoint(checkpoint)
-        days = _compute_paper_days(checkpoint, journal)
+        days = compute_paper_days(checkpoint, journal)
         self.assertGreaterEqual(days, 9)
 
     def test_paper_days_from_checkpoint_when_no_journal(self) -> None:
@@ -129,11 +123,11 @@ class TestComputePaperDays(unittest.TestCase):
         five_days_ago = (datetime.now(UTC) - timedelta(days=5)).isoformat()
         _write_checkpoint(checkpoint, generated_at=five_days_ago)
         missing_journal = self.tmp / "no-journal.jsonl"
-        days = _compute_paper_days(checkpoint, missing_journal)
+        days = compute_paper_days(checkpoint, missing_journal)
         self.assertGreaterEqual(days, 4)
 
     def test_paper_days_zero_when_both_missing(self) -> None:
-        days = _compute_paper_days(
+        days = compute_paper_days(
             self.tmp / "no-cp.json",
             self.tmp / "no-journal.jsonl",
         )
@@ -158,24 +152,24 @@ class TestComputeProfitFactor(unittest.TestCase):
             {"pnl": -100},
         ]
         journal.write_text("\n".join(json.dumps(t) for t in trades), encoding="utf-8")
-        pf = _compute_profit_factor(journal)
+        pf = compute_profit_factor(journal)
         # gross_profit=300, gross_loss=150 -> PF=2.0
         self.assertAlmostEqual(pf, 2.0)
 
     def test_profit_factor_zero_when_no_losses(self) -> None:
         journal = self.tmp / "trades.jsonl"
         journal.write_text(json.dumps({"pnl": 0}), encoding="utf-8")
-        pf = _compute_profit_factor(journal)
+        pf = compute_profit_factor(journal)
         self.assertEqual(pf, 0.0)
 
     def test_profit_factor_inf_when_no_losses_with_profit(self) -> None:
         journal = self.tmp / "trades.jsonl"
         journal.write_text(json.dumps({"pnl": 500}), encoding="utf-8")
-        pf = _compute_profit_factor(journal)
+        pf = compute_profit_factor(journal)
         self.assertEqual(pf, float("inf"))
 
     def test_profit_factor_missing_journal(self) -> None:
-        pf = _compute_profit_factor(self.tmp / "missing.jsonl")
+        pf = compute_profit_factor(self.tmp / "missing.jsonl")
         self.assertEqual(pf, 0.0)
 
 
@@ -199,7 +193,7 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
 
     def test_readiness_section_contains_criteria_table(self) -> None:
         report = self._make_report()
-        section = _build_readiness_section(report, self.checkpoint, self.journal)
+        section = build_readiness_section(report, self.checkpoint, self.journal)
         self.assertIn("| Criterion |", section)
         self.assertIn("Paper days", section)
         self.assertIn("Win rate", section)
@@ -214,7 +208,7 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
         from crypto_trader.operator.pnl_report import PnLReportGenerator
         gen = PnLReportGenerator()
         report = gen.generate_from_checkpoint(self.checkpoint, self.journal, period="72h")
-        section = _build_readiness_section(report, self.checkpoint, self.journal)
+        section = build_readiness_section(report, self.checkpoint, self.journal)
         self.assertIn("NOT READY", section)
 
     def test_ready_label_shown_when_all_criteria_met(self) -> None:
@@ -223,7 +217,6 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
         _write_journal(self.journal, first_ts=ten_days_ago)
         # Build a report that has >=45% win rate, low MDD, >=2 positive strategies
         _write_checkpoint(self.checkpoint)
-        from crypto_trader.operator.pnl_report import PnLReportGenerator, PortfolioPnLReport, StrategyPnLMetrics
         # Override report to guarantee all metrics pass
         report = PortfolioPnLReport(
             generated_at=datetime.now(UTC).isoformat(),
@@ -251,12 +244,12 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
             total_equity=2_080_000,
             total_initial_capital=2_000_000,
         )
-        section = _build_readiness_section(report, self.checkpoint, self.journal)
+        section = build_readiness_section(report, self.checkpoint, self.journal)
         self.assertIn("READY", section)
 
     def test_details_list_reasons(self) -> None:
         report = self._make_report()
-        section = _build_readiness_section(report, self.checkpoint, self.journal)
+        section = build_readiness_section(report, self.checkpoint, self.journal)
         self.assertIn("### Details", section)
 
 

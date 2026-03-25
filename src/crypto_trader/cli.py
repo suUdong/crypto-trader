@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from crypto_trader.backtest.baseline import BacktestBaselineStore, build_baseline
 from crypto_trader.backtest.engine import BacktestEngine
@@ -14,6 +15,7 @@ from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
+from crypto_trader.operator.performance_report import generate_performance_report
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.operator.promotion import MicroLiveCriteria
 from crypto_trader.operator.regime_report import RegimeReportGenerator
@@ -54,6 +56,7 @@ def main() -> None:
             "daily-memo",
             "strategy-report",
             "pnl-report",
+            "performance-report",
             "micro-live-check",
         ],
     )
@@ -224,6 +227,17 @@ def main() -> None:
         output_path = "artifacts/pnl-report.md"
         generator.save(report, output_path)
         print(generator.to_markdown(report))
+        return
+
+    if args.command == "performance-report":
+        output_path = config.runtime.performance_report_path
+        content = generate_performance_report(
+            Path(config.runtime.runtime_checkpoint_path),
+            Path(config.runtime.paper_trade_journal_path),
+        )
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(output_path).write_text(content, encoding="utf-8")
+        print(content)
         return
 
     if args.command == "micro-live-check":

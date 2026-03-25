@@ -107,6 +107,7 @@ class RuntimeConfig:
     promotion_gate_path: str = "artifacts/promotion-gate.json"
     daily_memo_path: str = "artifacts/daily-memo.md"
     strategy_report_path: str = "artifacts/strategy-report.md"
+    performance_report_path: str = "artifacts/performance-report.md"
 
 
 @dataclass(slots=True)
@@ -492,6 +493,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "strategy_report_path",
                 "CT_STRATEGY_REPORT_PATH",
                 "artifacts/strategy-report.md",
+            )
+        ),
+        performance_report_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "performance_report_path",
+                "CT_PERFORMANCE_REPORT_PATH",
+                "artifacts/performance-report.md",
             )
         ),
     )

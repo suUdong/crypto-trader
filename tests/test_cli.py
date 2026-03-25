@@ -48,3 +48,46 @@ atr_stop_multiplier = 2.0
 
         self.assertEqual(risk_manager._trailing_stop_pct, 0.04)
         self.assertEqual(risk_manager._atr_stop_multiplier, 2.0)
+
+    def test_performance_report_command_writes_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_path = Path(tmpdir) / "runtime-checkpoint.json"
+            journal_path = Path(tmpdir) / "paper-trades.jsonl"
+            output_path = Path(tmpdir) / "performance-report.md"
+            checkpoint_path.write_text(
+                '{"generated_at":"2026-03-26T00:00:00+00:00","wallet_states":{}}',
+                encoding="utf-8",
+            )
+            journal_path.write_text("", encoding="utf-8")
+            config_path = Path(tmpdir) / "config.toml"
+            config_path.write_text(
+                f"""
+[runtime]
+runtime_checkpoint_path = "{checkpoint_path}"
+paper_trade_journal_path = "{journal_path}"
+performance_report_path = "{output_path}"
+""".strip(),
+                encoding="utf-8",
+            )
+
+            env = dict(os.environ)
+            env["PYTHONPATH"] = "src"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "crypto_trader.cli",
+                    "performance-report",
+                    "--config",
+                    str(config_path),
+                ],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertTrue(output_path.exists())
+            self.assertIn("72-Hour Performance Report", output_path.read_text(encoding="utf-8"))
