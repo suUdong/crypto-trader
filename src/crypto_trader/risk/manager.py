@@ -8,7 +8,9 @@ class RiskManager:
     def __init__(self, config: RiskConfig) -> None:
         self._config = config
 
-    def size_position(self, equity: float, price: float) -> float:
+    def size_position(
+        self, equity: float, price: float, macro_multiplier: float = 1.0,
+    ) -> float:
         if equity <= 0 or price <= 0:
             return 0.0
         risk_budget = equity * self._config.risk_per_trade_pct
@@ -16,6 +18,7 @@ class RiskManager:
         if stop_distance <= 0:
             return 0.0
         quantity = risk_budget / stop_distance
+        quantity *= macro_multiplier
         max_affordable = equity / price
         return max(0.0, min(quantity, max_affordable))
 

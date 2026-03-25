@@ -61,6 +61,10 @@ class StrategyWallet:
         self.risk_manager = risk_manager
         self.session_starting_equity = broker.cash
         self._logger = logging.getLogger(f"{__name__}.{self.name}")
+        self._macro_multiplier: float = 1.0
+
+    def set_macro_multiplier(self, multiplier: float) -> None:
+        self._macro_multiplier = multiplier
 
     def run_once(self, symbol: str, candles: list[Candle]) -> PipelineResult:
         try:
@@ -75,7 +79,9 @@ class StrategyWallet:
                     realized_pnl=self.broker.realized_pnl,
                     starting_equity=self.session_starting_equity,
                 ):
-                    quantity = self.risk_manager.size_position(self.broker.cash, latest_price)
+                    quantity = self.risk_manager.size_position(
+                        self.broker.cash, latest_price, self._macro_multiplier,
+                    )
                     if quantity > 0:
                         now = candles[-1].timestamp
                         order = self.broker.submit_order(

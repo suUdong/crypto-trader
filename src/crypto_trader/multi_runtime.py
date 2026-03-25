@@ -11,6 +11,8 @@ from typing import Any
 
 from crypto_trader.config import AppConfig
 from crypto_trader.data.base import MarketDataClient
+from crypto_trader.macro.adapter import MacroRegimeAdapter
+from crypto_trader.macro.client import MacroClient
 from crypto_trader.models import PipelineResult
 from crypto_trader.wallet import StrategyWallet
 
@@ -29,6 +31,12 @@ class MultiSymbolRuntime:
         self._shutdown_requested = False
         self._iteration = 0
         self._start_time = time.monotonic()
+        self._macro_client: MacroClient | None = None
+        self._macro_adapter = MacroRegimeAdapter()
+        if config.macro.enabled:
+            db_path = config.macro.db_path if config.macro.has_db else None
+            self._macro_client = MacroClient(db_path)
+            self._logger.info("Macro layer enabled (db=%s)", db_path or "default")
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -70,6 +78,9 @@ class MultiSymbolRuntime:
         results: list[PipelineResult] = []
         candle_cache: dict[str, Any] = {}
 
+        # Refresh macro regime and update wallet multipliers
+        self._refresh_macro()
+
         for symbol in symbols:
             if symbol not in candle_cache:
                 try:
@@ -95,6 +106,21 @@ class MultiSymbolRuntime:
                     self._logger.info(result.message)
 
         return results
+
+    def _refresh_macro(self) -> None:
+        if self._macro_client is None:
+            return
+        snapshot = self._macro_client.get_snapshot()
+        adjustment = self._macro_adapter.compute(snapshot)
+        for wallet in self._wallets:
+            wallet.set_macro_multiplier(adjustment.position_size_multiplier)
+        if snapshot is not None:
+            self._logger.info(
+                "Macro regime=%s confidence=%.0f%% multiplier=%.2f",
+                snapshot.overall_regime,
+                snapshot.overall_confidence * 100,
+                adjustment.position_size_multiplier,
+            )
 
     def _save_checkpoint(self, results: list[PipelineResult]) -> None:
         checkpoint_path = Path(self._config.runtime.runtime_checkpoint_path)

@@ -105,6 +105,16 @@ class RuntimeConfig:
 
 
 @dataclass(slots=True)
+class MacroConfig:
+    enabled: bool = False
+    db_path: str = ""
+
+    @property
+    def has_db(self) -> bool:
+        return bool(self.db_path.strip())
+
+
+@dataclass(slots=True)
 class CredentialsConfig:
     upbit_access_key: str = ""
     upbit_secret_key: str = ""
@@ -125,6 +135,7 @@ class AppConfig:
     telegram: TelegramConfig
     runtime: RuntimeConfig
     credentials: CredentialsConfig
+    macro: MacroConfig = field(default_factory=MacroConfig)
     wallets: list[WalletConfig] = field(default_factory=lambda: [
         WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
         WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
@@ -481,6 +492,12 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
             )
         ),
     )
+    macro = MacroConfig(
+        enabled=_read_bool(raw, env, "macro", "enabled", "CT_MACRO_ENABLED", False),
+        db_path=str(
+            _read_value(raw, env, "macro", "db_path", "CT_MACRO_DB_PATH", "")
+        ),
+    )
     raw_wallets = raw.get("wallets", None)
     if raw_wallets and isinstance(raw_wallets, list):
         wallets = [
@@ -507,6 +524,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         telegram=telegram,
         runtime=runtime,
         credentials=credentials,
+        macro=macro,
         wallets=wallets,
     )
     _validate_config(app_config)
