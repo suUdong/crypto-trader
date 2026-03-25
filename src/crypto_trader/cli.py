@@ -15,6 +15,7 @@ from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.pnl_report import PnLReportGenerator
+from crypto_trader.operator.promotion import MicroLiveCriteria
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
@@ -53,6 +54,7 @@ def main() -> None:
             "daily-memo",
             "strategy-report",
             "pnl-report",
+            "micro-live-check",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -222,6 +224,17 @@ def main() -> None:
         output_path = "artifacts/pnl-report.md"
         generator.save(report, output_path)
         print(generator.to_markdown(report))
+        return
+
+    if args.command == "micro-live-check":
+        ready, reasons, metrics = MicroLiveCriteria.evaluate_from_artifacts(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            journal_path=config.runtime.paper_trade_journal_path,
+        )
+        for reason in reasons:
+            status = "PASS" if ready or reason.startswith("All micro-live") else "FAIL"
+            print(f"[{status}] {reason}")
+        print("READY" if ready else "NOT READY")
         return
 
     if args.command == "run-multi":

@@ -1,7 +1,12 @@
 """Tests for micro-live promotion criteria."""
 from __future__ import annotations
 
+import json
 import unittest
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+import pytest
 
 from crypto_trader.operator.promotion import MicroLiveCriteria
 
@@ -102,3 +107,80 @@ class MicroLiveCriteriaTests(unittest.TestCase):
         )
         self.assertFalse(ready)
         self.assertGreater(len(reasons), 3)
+
+
+class MicroLiveCriteriaArtifactTests(unittest.TestCase):
+    def _make_checkpoint(self, path: Path, wallet_states: dict, generated_at: str | None = None) -> None:
+        ts = generated_at or datetime.now(UTC).isoformat()
+        data = {"generated_at": ts, "wallet_states": wallet_states}
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+    def _make_journal(self, path: Path, trades: list[dict]) -> None:
+        lines = [json.dumps(t) for t in trades]
+        path.write_text("\n".join(lines), encoding="utf-8")
+
+    def test_evaluate_from_artifacts_passing(self, tmp_path=None) -> None:
+        if tmp_path is None:
+            import tempfile
+            tmp_path = Path(tempfile.mkdtemp())
+        cp = tmp_path / "checkpoint.json"
+        journal = tmp_path / "trades.jsonl"
+
+        # 3 wallets all profitable
+        wallet_states = {
+            "w1": {"equity": 1_100_000.0, "trade_count": 5},
+            "w2": {"equity": 1_050_000.0, "trade_count": 5},
+            "w3": {"equity": 1_020_000.0, "trade_count": 5},
+        }
+        self._make_checkpoint(cp, wallet_states)
+
+        # 15 trades, 10 winning (win_rate=0.667), profit_factor > 1.2
+        first_ts = (datetime.now(UTC) - timedelta(days=10)).isoformat()
+        trades = []
+        for i in range(10):
+            trades.append({"pnl": 5000.0, "timestamp": first_ts if i == 0 else datetime.now(UTC).isoformat()})
+        for _ in range(5):
+            trades.append({"pnl": -2000.0, "timestamp": datetime.now(UTC).isoformat()})
+        self._make_journal(journal, trades)
+
+        ready, reasons, metrics = MicroLiveCriteria.evaluate_from_artifacts(cp, journal)
+
+        self.assertTrue(ready)
+        self.assertEqual(metrics["positive_strategies"], 3)
+        self.assertGreaterEqual(metrics["win_rate"], 0.45)
+        self.assertGreaterEqual(metrics["paper_days"], 10)
+        self.assertEqual(metrics["total_trades"], 15)
+
+    def test_evaluate_from_artifacts_no_trades(self, tmp_path=None) -> None:
+        if tmp_path is None:
+            import tempfile
+            tmp_path = Path(tempfile.mkdtemp())
+        cp = tmp_path / "checkpoint.json"
+        journal = tmp_path / "trades.jsonl"
+
+        wallet_states = {
+            "w1": {"equity": 1_000_000.0, "trade_count": 0},
+        }
+        # generated_at 2 days ago — too few paper days
+        generated_at = (datetime.now(UTC) - timedelta(days=2)).isoformat()
+        self._make_checkpoint(cp, wallet_states, generated_at=generated_at)
+        journal.write_text("", encoding="utf-8")
+
+        ready, reasons, metrics = MicroLiveCriteria.evaluate_from_artifacts(cp, journal)
+
+        self.assertFalse(ready)
+        self.assertEqual(metrics["total_trades"], 0)
+        self.assertEqual(metrics["win_rate"], 0.0)
+        self.assertTrue(any("trades" in r for r in reasons))
+
+    def test_evaluate_from_artifacts_missing_checkpoint(self, tmp_path=None) -> None:
+        if tmp_path is None:
+            import tempfile
+            tmp_path = Path(tempfile.mkdtemp())
+        missing = tmp_path / "nonexistent.json"
+
+        ready, reasons, metrics = MicroLiveCriteria.evaluate_from_artifacts(missing)
+
+        self.assertFalse(ready)
+        self.assertTrue(any("not found" in r.lower() or "checkpoint" in r.lower() for r in reasons))
+        self.assertEqual(metrics, {})

@@ -14,6 +14,8 @@ from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
 from crypto_trader.models import PipelineResult
+from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
+from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.risk.kill_switch import KillSwitch
 from crypto_trader.strategy.regime import (
     WEEKEND_POSITION_MULTIPLIER,
@@ -23,6 +25,8 @@ from crypto_trader.wallet import StrategyWallet
 
 
 class MultiSymbolRuntime:
+    PNL_NOTIFY_INTERVAL = 86400  # 24 hours in seconds
+
     def __init__(
         self,
         wallets: list[StrategyWallet],
@@ -60,6 +64,9 @@ class MultiSymbolRuntime:
             db_path = config.macro.db_path if config.macro.has_db else None
             self._macro_client = MacroClient(db_path)
             self._logger.info("Macro layer enabled (db=%s)", db_path or "default")
+        self._notifier = TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
+        self._pnl_generator = PnLReportGenerator()
+        self._last_pnl_notify: float = 0.0
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -95,6 +102,7 @@ class MultiSymbolRuntime:
             tick_results = self._run_tick(symbols)
             self._check_kill_switch_after_tick(tick_results)
             self._save_checkpoint(tick_results)
+            self._maybe_send_pnl_notify()
             self._iteration += 1
 
             if not daemon and max_iter > 0 and self._iteration >= max_iter:
@@ -247,6 +255,26 @@ class MultiSymbolRuntime:
         }
         checkpoint_path.write_text(json.dumps(checkpoint, indent=2), encoding="utf-8")
         self._save_heartbeat(checkpoint_path.parent)
+
+    def _maybe_send_pnl_notify(self) -> None:
+        if time.time() - self._last_pnl_notify < self.PNL_NOTIFY_INTERVAL:
+            return
+        try:
+            report = self._pnl_generator.generate_from_checkpoint(
+                self._config.runtime.runtime_checkpoint_path,
+                self._config.runtime.paper_trade_journal_path,
+            )
+            lines = [
+                "[Crypto Trader] Daily PnL",
+                f"Portfolio: {report.portfolio_return_pct:+.2f}% | Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
+                "---",
+            ]
+            for s in report.strategies:
+                lines.append(f"{s.strategy}: {s.total_return_pct:+.2f}% ({s.trade_count} trades)")
+            self._notifier.send_message("\n".join(lines))
+            self._last_pnl_notify = time.time()
+        except Exception as exc:
+            self._logger.error("Failed to send PnL notification: %s", exc)
 
     def _save_heartbeat(self, artifacts_dir: Path) -> None:
         heartbeat = {
