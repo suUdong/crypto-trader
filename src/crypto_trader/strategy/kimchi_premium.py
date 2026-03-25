@@ -22,6 +22,8 @@ class KimchiPremiumStrategy:
         config: StrategyConfig,
         binance_client: BinancePriceClient | None = None,
         fx_client: FXRateClient | None = None,
+        min_trade_interval_bars: int = 4,
+        min_confidence: float = 0.5,
     ) -> None:
         self._config = config
         self._binance = binance_client or BinancePriceClient()
@@ -30,6 +32,9 @@ class KimchiPremiumStrategy:
         self._premium_exit_floor = 0.07
         self._contrarian_buy_threshold = -0.01
         self._cached_premium: float | None = None
+        self._min_trade_interval_bars = min_trade_interval_bars
+        self._min_confidence = min_confidence
+        self._last_trade_bar: int | None = None
 
     def evaluate(
         self, candles: list[Candle], position: Position | None = None
@@ -55,11 +60,39 @@ class KimchiPremiumStrategy:
         if premium is not None:
             context["premium_pct"] = f"{premium:.4f}"
 
+        current_bar = len(candles) - 1
+
         if position is not None:
-            return self._evaluate_exit(
+            signal = self._evaluate_exit(
                 candles, position, premium, rsi_value, indicators, context
             )
-        return self._evaluate_entry(premium, rsi_value, indicators, context)
+            if signal.action is SignalAction.SELL:
+                self._last_trade_bar = current_bar
+            return signal
+
+        if self._last_trade_bar is not None:
+            bars_since = current_bar - self._last_trade_bar
+            if bars_since < self._min_trade_interval_bars:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="cooldown_active",
+                    confidence=0.0,
+                    indicators=indicators,
+                    context=context,
+                )
+
+        signal = self._evaluate_entry(premium, rsi_value, indicators, context)
+        if signal.action is SignalAction.BUY:
+            if signal.confidence < self._min_confidence:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="confidence_below_threshold",
+                    confidence=signal.confidence,
+                    indicators=indicators,
+                    context=context,
+                )
+            self._last_trade_bar = current_bar
+        return signal
 
     def _evaluate_entry(
         self,

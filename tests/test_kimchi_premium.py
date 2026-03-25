@@ -27,6 +27,8 @@ def build_candles(closes: list[float]) -> list[Candle]:
 def _make_strategy(
     binance_price: float | None = 78.0,
     fx_rate: float | None = 1300.0,
+    min_trade_interval_bars: int = 0,
+    min_confidence: float = 0.0,
     **config_overrides: object,
 ) -> KimchiPremiumStrategy:
     """Build a KimchiPremiumStrategy with mocked external clients."""
@@ -39,7 +41,13 @@ def _make_strategy(
     mock_fx = MagicMock()
     mock_fx.get_usd_krw_rate.return_value = fx_rate
 
-    return KimchiPremiumStrategy(config, binance_client=mock_binance, fx_client=mock_fx)
+    return KimchiPremiumStrategy(
+        config,
+        binance_client=mock_binance,
+        fx_client=mock_fx,
+        min_trade_interval_bars=min_trade_interval_bars,
+        min_confidence=min_confidence,
+    )
 
 
 # 30 flat candles at a given close price — enough for RSI(14) to have data
@@ -202,6 +210,99 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         signal = strategy.evaluate(candles, position)
         self.assertEqual(signal.action, SignalAction.SELL)
         self.assertEqual(signal.reason, "rsi_overbought")
+
+
+    # ------------------------------------------------------------------
+    # 9. Cooldown blocks re-entry within min_trade_interval_bars
+    # ------------------------------------------------------------------
+    def test_cooldown_blocks_reentry(self) -> None:
+        """After a BUY, next evaluate within cooldown window → HOLD cooldown_active."""
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            min_trade_interval_bars=4,
+            min_confidence=0.0,
+        )
+        # First call: contrarian buy (premium ~ -1.38%)
+        candles = build_candles(_flat_closes(100_000.0, count=30))
+        signal1 = strategy.evaluate(candles)
+        self.assertEqual(signal1.action, SignalAction.BUY)
+
+        # Second call with 1 more candle (1 bar later) → cooldown
+        candles2 = build_candles(_flat_closes(100_000.0, count=31))
+        signal2 = strategy.evaluate(candles2)
+        self.assertEqual(signal2.action, SignalAction.HOLD)
+        self.assertEqual(signal2.reason, "cooldown_active")
+
+    # ------------------------------------------------------------------
+    # 10. Cooldown resets after interval passes
+    # ------------------------------------------------------------------
+    def test_cooldown_resets_after_interval(self) -> None:
+        """After min_trade_interval_bars pass, entry is allowed again."""
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            min_trade_interval_bars=4,
+            min_confidence=0.0,
+        )
+        # Trigger BUY at bar 29 (30 candles)
+        candles = build_candles(_flat_closes(100_000.0, count=30))
+        signal1 = strategy.evaluate(candles)
+        self.assertEqual(signal1.action, SignalAction.BUY)
+
+        # 4 bars later (34 candles, bar 33): cooldown expired
+        candles2 = build_candles(_flat_closes(100_000.0, count=34))
+        signal2 = strategy.evaluate(candles2)
+        self.assertEqual(signal2.action, SignalAction.BUY)
+
+    # ------------------------------------------------------------------
+    # 11. Confidence filter blocks low-confidence entries
+    # ------------------------------------------------------------------
+    def test_confidence_filter_blocks_low_confidence(self) -> None:
+        """Safe-zone entry with low confidence < min_confidence → HOLD."""
+        # Premium ~2%, RSI in range → safe zone buy with confidence ~ 0.4 + 0.03*5 = 0.55
+        # Set min_confidence=0.8 to block it
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            rsi_period=14,
+            rsi_oversold_floor=0.0,
+            rsi_recovery_ceiling=100.0,
+            min_confidence=0.8,
+        )
+        upbit_price = 103_428.0  # premium ~2%
+        candles = build_candles(_flat_closes(upbit_price))
+        signal = strategy.evaluate(candles)
+        self.assertEqual(signal.action, SignalAction.HOLD)
+        self.assertEqual(signal.reason, "confidence_below_threshold")
+
+    # ------------------------------------------------------------------
+    # 12. Exit signals are NOT blocked by cooldown
+    # ------------------------------------------------------------------
+    def test_exit_not_blocked_by_cooldown(self) -> None:
+        """SELL signals must fire even during cooldown period."""
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            min_trade_interval_bars=100,  # very long cooldown
+            max_holding_bars=2,
+        )
+        # Trigger a BUY first to set cooldown
+        candles = build_candles(_flat_closes(100_000.0, count=30))
+        signal1 = strategy.evaluate(candles)
+        self.assertEqual(signal1.action, SignalAction.BUY)
+
+        # Now with a position, max_holding_bars=2 should trigger SELL
+        candles2 = build_candles(_flat_closes(100_000.0, count=32))
+        position = Position(
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100_000.0,
+            entry_time=candles2[0].timestamp,
+            entry_index=0,
+        )
+        signal2 = strategy.evaluate(candles2, position)
+        self.assertEqual(signal2.action, SignalAction.SELL)
 
 
 if __name__ == "__main__":
