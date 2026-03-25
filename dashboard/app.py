@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # Ensure the repo root is on sys.path so that 'dashboard' resolves as a package
@@ -71,7 +71,7 @@ with tab_trading:
         stale_threshold = poll_interval * 2
         try:
             hb_time = datetime.fromisoformat(hb_time_str)
-            age_seconds = (datetime.now(timezone.utc) - hb_time).total_seconds()
+            age_seconds = (datetime.now(UTC) - hb_time).total_seconds()
         except (ValueError, TypeError):
             age_seconds = float("inf")
 
@@ -431,5 +431,5 @@ with tab_perf:
 
 # ── Footer ─────────────────────────────────────────────────
 st.divider()
-now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 st.caption(f"마지막 새로고침: {now}")
