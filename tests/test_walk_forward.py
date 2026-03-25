@@ -4,7 +4,12 @@ import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.models import Candle
-from scripts.walk_forward import FoldResult, aggregate_fold_results, build_walk_forward_windows
+from scripts.walk_forward import (
+    FoldResult,
+    aggregate_fold_results,
+    build_walk_forward_windows,
+    select_validated_strategy,
+)
 
 
 def _make_candles(count: int, start: datetime | None = None) -> list[Candle]:
@@ -96,6 +101,59 @@ class WalkForwardTests(unittest.TestCase):
         self.assertAlmostEqual(float(aggregate["avg_train_sharpe"]), 2.0)
         self.assertAlmostEqual(float(aggregate["avg_test_sharpe"]), 1.0)
         self.assertAlmostEqual(float(aggregate["avg_test_return_pct"]), 1.5)
+
+    def test_select_validated_strategy_prefers_best_out_of_sample_sharpe(self) -> None:
+        momentum_fold = FoldResult(
+            fold_index=2,
+            strategy="momentum",
+            train_start="a",
+            train_end="b",
+            test_start="c",
+            test_end="d",
+            tuned_params={"x": 1},
+            tuned_risk_params={"y": 1.0},
+            train_sharpe=1.5,
+            train_return_pct=2.0,
+            train_mdd_pct=3.0,
+            test_sharpe=1.2,
+            test_return_pct=1.5,
+            test_mdd_pct=2.0,
+            test_win_rate=50.0,
+            test_profit_factor=1.3,
+            test_total_trades=20,
+            candidate_rank=1,
+        )
+        composite_fold = FoldResult(
+            fold_index=2,
+            strategy="composite",
+            train_start="a",
+            train_end="b",
+            test_start="c",
+            test_end="d",
+            tuned_params={"x": 2},
+            tuned_risk_params={"y": 2.0},
+            train_sharpe=1.0,
+            train_return_pct=1.0,
+            train_mdd_pct=2.0,
+            test_sharpe=0.4,
+            test_return_pct=0.5,
+            test_mdd_pct=1.0,
+            test_win_rate=48.0,
+            test_profit_factor=1.1,
+            test_total_trades=10,
+            candidate_rank=2,
+        )
+
+        selection = select_validated_strategy(
+            {
+                "momentum": [momentum_fold],
+                "composite": [composite_fold],
+            }
+        )
+
+        assert selection is not None
+        self.assertEqual(selection[0], "momentum")
+        self.assertEqual(selection[1].tuned_params, {"x": 1})
 
 
 if __name__ == "__main__":

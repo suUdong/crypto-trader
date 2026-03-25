@@ -17,19 +17,23 @@ try:
     from scripts.auto_tune import (  # noqa: E402
         DEFAULT_STRATEGIES,
         SYMBOLS,
+        TuneResult,
         collect_baseline_results,
         evaluate_strategy_params,
         fetch_candles,
         tune_strategy,
+        write_optimized_toml,
     )
 except ModuleNotFoundError:
     from auto_tune import (  # type: ignore[no-redef]  # noqa: E402
         DEFAULT_STRATEGIES,
         SYMBOLS,
+        TuneResult,
         collect_baseline_results,
         evaluate_strategy_params,
         fetch_candles,
         tune_strategy,
+        write_optimized_toml,
     )
 
 
@@ -169,6 +173,130 @@ def write_walk_forward_json(
     print(f"Walk-forward results written to: {output_path}")
 
 
+def select_validated_strategy(
+    folds_by_strategy: dict[str, list[FoldResult]],
+) -> tuple[str, FoldResult, dict[str, float | int]] | None:
+    """Pick the best strategy by aggregate out-of-sample Sharpe and latest fold params."""
+    ranked: list[tuple[str, FoldResult, dict[str, float | int]]] = []
+    for strategy, folds in folds_by_strategy.items():
+        if not folds:
+            continue
+        aggregate = aggregate_fold_results(folds)
+        latest_fold = max(folds, key=lambda fold: fold.fold_index)
+        ranked.append((strategy, latest_fold, aggregate))
+
+    if not ranked:
+        return None
+
+    return max(
+        ranked,
+        key=lambda item: (
+            float(item[2]["avg_test_sharpe"]),
+            float(item[2]["avg_test_return_pct"]),
+            int(item[2]["total_test_trades"]),
+        ),
+    )
+
+
+def write_walk_forward_markdown(
+    output_path: str,
+    folds_by_strategy: dict[str, list[FoldResult]],
+    total_days: int,
+    train_days: int,
+    test_days: int,
+    selection: tuple[str, FoldResult, dict[str, float | int]] | None,
+) -> None:
+    lines = [
+        "# Walk-Forward Validation Results",
+        "",
+        f"- Total days: `{total_days}`",
+        f"- Train window: `{train_days}` days",
+        f"- Test window: `{test_days}` days",
+        "",
+        (
+            "| Strategy | Folds | Avg Train Sharpe | Avg Test Sharpe | "
+            "Avg Test Return | Avg Test MDD | Total Test Trades |"
+        ),
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for strategy, folds in sorted(folds_by_strategy.items()):
+        aggregate = aggregate_fold_results(folds)
+        lines.append(
+            f"| {strategy} | {int(aggregate['fold_count'])} | "
+            f"{float(aggregate['avg_train_sharpe']):.2f} | "
+            f"{float(aggregate['avg_test_sharpe']):.2f} | "
+            f"{float(aggregate['avg_test_return_pct']):+.2f}% | "
+            f"{float(aggregate['avg_test_mdd_pct']):.2f}% | "
+            f"{int(aggregate['total_test_trades'])} |"
+        )
+
+    if selection is not None:
+        strategy, latest_fold, aggregate = selection
+        lines.extend(
+            [
+                "",
+                "## Selected Strategy",
+                "",
+                f"- Strategy: `{strategy}`",
+                (
+                    "- Selection basis: highest aggregate out-of-sample Sharpe "
+                    f"(`{float(aggregate['avg_test_sharpe']):.2f}`)"
+                ),
+                f"- Latest deployment fold: `#{latest_fold.fold_index}`",
+                f"- Latest fold test return: `{latest_fold.test_return_pct:+.2f}%`",
+                f"- Latest fold tuned params: `{latest_fold.tuned_params}`",
+                f"- Latest fold tuned risk: `{latest_fold.tuned_risk_params}`",
+            ]
+        )
+
+    lines.append("")
+    lines.append("## Fold Detail")
+    for strategy, folds in sorted(folds_by_strategy.items()):
+        lines.append("")
+        lines.append(f"### {strategy}")
+        if not folds:
+            lines.append("- No valid folds")
+            continue
+        for fold in folds:
+            lines.append(
+                f"- Fold #{fold.fold_index}: train_sharpe={fold.train_sharpe:.2f}, "
+                f"test_sharpe={fold.test_sharpe:.2f}, "
+                f"test_return={fold.test_return_pct:+.2f}%, "
+                f"test_mdd={fold.test_mdd_pct:.2f}%, "
+                f"trades={fold.test_total_trades}"
+            )
+
+    Path(output_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"Walk-forward report written to: {output_path}")
+
+
+def write_validated_config(
+    output_path: str,
+    selection: tuple[str, FoldResult, dict[str, float | int]] | None,
+    base_toml: str,
+) -> None:
+    if selection is None:
+        return
+
+    strategy, latest_fold, aggregate = selection
+    result = TuneResult(
+        strategy=strategy,
+        params=latest_fold.tuned_params,
+        risk_params=latest_fold.tuned_risk_params,
+        avg_return_pct=float(aggregate["avg_test_return_pct"]),
+        avg_sharpe=float(aggregate["avg_test_sharpe"]),
+        avg_mdd_pct=float(aggregate["avg_test_mdd_pct"]),
+        avg_win_rate=0.0,
+        avg_profit_factor=float(aggregate["avg_test_profit_factor"]),
+        total_trades=int(aggregate["total_test_trades"]),
+        best_score=float(aggregate["avg_test_sharpe"]),
+        candidate_rank=latest_fold.candidate_rank,
+        top_candidates=[],
+        per_symbol={},
+    )
+    write_optimized_toml([result], output_path, base_toml=base_toml)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run walk-forward validation on tuned strategies.")
     parser.add_argument("total_days", nargs="?", type=int, default=120)
@@ -176,6 +304,13 @@ def main() -> None:
     parser.add_argument("--test-days", dest="test_days", type=int, default=15)
     parser.add_argument("--top-n", dest="top_n", type=int, default=3)
     parser.add_argument("--json-out", dest="json_out", default="artifacts/walk-forward.json")
+    parser.add_argument("--report-out", dest="report_out", default="docs/walk-forward-results.md")
+    parser.add_argument(
+        "--validated-config-out",
+        dest="validated_config_out",
+        default="config/validated.toml",
+    )
+    parser.add_argument("--base-toml", dest="base_toml", default="config/optimized.toml")
     parser.add_argument("--cache-dir", dest="cache_dir")
     parser.add_argument(
         "--strategies",
@@ -264,6 +399,13 @@ def main() -> None:
             f"{int(aggregate['total_test_trades']):>8}"
         )
 
+    selection = select_validated_strategy(folds_by_strategy)
+    if selection is not None:
+        print(
+            f"\nSelected strategy for validated config: {selection[0]} "
+            f"(avg_test_sharpe={float(selection[2]['avg_test_sharpe']):.2f})"
+        )
+
     write_walk_forward_json(
         args.json_out,
         folds_by_strategy,
@@ -271,6 +413,19 @@ def main() -> None:
         total_days,
         args.train_days,
         args.test_days,
+    )
+    write_walk_forward_markdown(
+        args.report_out,
+        folds_by_strategy,
+        total_days,
+        args.train_days,
+        args.test_days,
+        selection,
+    )
+    write_validated_config(
+        args.validated_config_out,
+        selection,
+        args.base_toml,
     )
 
 
