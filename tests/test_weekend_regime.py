@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle
@@ -58,7 +58,7 @@ class TestIsWeekendKST(unittest.TestCase):
 
     def test_utc_conversion_saturday(self) -> None:
         # Saturday 00:30 KST = Friday 15:30 UTC
-        utc_time = datetime(2026, 3, 27, 15, 30, tzinfo=timezone.utc)
+        utc_time = datetime(2026, 3, 27, 15, 30, tzinfo=UTC)
         self.assertTrue(is_weekend_kst(utc_time))
 
 

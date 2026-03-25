@@ -230,7 +230,6 @@ class TestRegimeAwareBacktest(unittest.TestCase):
 
     def test_regime_aware_differs_from_default(self) -> None:
         """Regime-aware backtest should produce different results than default."""
-        import math
         # Trend up then down — will hit different regimes
         closes = ([100_000.0 + i * 1000 for i in range(150)]
                   + [250_000.0 - i * 1000 for i in range(150)])

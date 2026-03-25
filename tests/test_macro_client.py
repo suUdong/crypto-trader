@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import importlib
 import unittest
 from unittest.mock import patch
 
 from crypto_trader.macro.client import MacroClient, MacroSnapshot
+
+_has_macro_intel = importlib.util.find_spec("macro_intelligence") is not None
+_skip_no_macro = unittest.skipIf(not _has_macro_intel, "macro_intelligence not installed")
 
 
 class TestMacroClient(unittest.TestCase):
@@ -17,6 +21,7 @@ class TestMacroClient(unittest.TestCase):
             result = _import_error_snapshot(client)
         self.assertIsNone(result)
 
+    @_skip_no_macro
     def test_get_snapshot_returns_none_on_exception(self) -> None:
         client = MacroClient()
         with patch(
@@ -26,6 +31,7 @@ class TestMacroClient(unittest.TestCase):
             result = client.get_snapshot()
         self.assertIsNone(result)
 
+    @_skip_no_macro
     def test_get_snapshot_returns_none_when_no_regime(self) -> None:
         client = MacroClient()
         mock_data = {"date": "2026-03-25", "us": None, "kr": None, "crypto": None, "regime": None}
@@ -33,6 +39,7 @@ class TestMacroClient(unittest.TestCase):
             result = client.get_snapshot()
         self.assertIsNone(result)
 
+    @_skip_no_macro
     def test_get_snapshot_parses_full_data(self) -> None:
         client = MacroClient()
         mock_data = {

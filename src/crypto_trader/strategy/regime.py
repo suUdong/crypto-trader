@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from enum import StrEnum
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
@@ -29,7 +29,7 @@ class RegimeAnalysis:
 
 def is_weekend_kst(dt: datetime) -> bool:
     """Check if datetime falls in weekend low-liquidity window (Sat 00:00 - Mon 09:00 KST)."""
-    kst_time = dt.astimezone(KST) if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc).astimezone(KST)
+    kst_time = dt.astimezone(KST) if dt.tzinfo is not None else dt.replace(tzinfo=UTC).astimezone(KST)
     weekday = kst_time.weekday()  # 0=Mon, 5=Sat, 6=Sun
     if weekday == 5 or weekday == 6:
         return True

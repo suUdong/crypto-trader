@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
 
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
 
@@ -112,8 +110,9 @@ class TestRiskGridOptimization(unittest.TestCase):
     """Test that risk parameter combinations are valid."""
 
     def test_take_profit_must_exceed_stop_loss(self) -> None:
-        from scripts.auto_tune import RISK_GRID
         import itertools
+
+        from scripts.auto_tune import RISK_GRID
         risk_combos = list(itertools.product(*RISK_GRID.values()))
         valid_count = 0
         for combo in risk_combos:
