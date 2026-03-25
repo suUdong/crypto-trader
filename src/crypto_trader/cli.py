@@ -14,11 +14,11 @@ from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
+from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.operator.services import generate_operator_artifacts
-from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -26,6 +26,14 @@ from crypto_trader.risk.manager import RiskManager
 from crypto_trader.runtime import TradingRuntime
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.wallet import build_wallets, create_strategy
+
+
+def _build_risk_manager(config) -> RiskManager:
+    return RiskManager(
+        config.risk,
+        trailing_stop_pct=config.risk.trailing_stop_pct,
+        atr_stop_multiplier=config.risk.atr_stop_multiplier,
+    )
 
 
 def main() -> None:
@@ -59,7 +67,7 @@ def main() -> None:
     config = load_config(args.config)
     setup_logging(config.runtime.log_level)
     strategy = CompositeStrategy(config.strategy, config.regime)
-    risk_manager = RiskManager(config.risk)
+    risk_manager = _build_risk_manager(config)
     market_data = PyUpbitMarketDataClient()
 
     if args.command == "backtest":
@@ -146,7 +154,9 @@ def main() -> None:
         calibration = DriftCalibrationToolkit().generate(
             symbol=config.trading.symbol,
             backtest_baseline=artifacts.backtest_baseline,
-            recent_runs=StrategyRunJournal(config.runtime.strategy_run_journal_path).load_recent(200),
+            recent_runs=StrategyRunJournal(config.runtime.strategy_run_journal_path).load_recent(
+                200
+            ),
         )
         DriftCalibrationToolkit().save(calibration, config.runtime.drift_calibration_path)
         operator_report = OperatorReportBuilder().build(

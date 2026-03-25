@@ -2,6 +2,7 @@
 
 Uses synthetic candle data — no Upbit API calls required.
 """
+
 from __future__ import annotations
 
 import unittest
@@ -54,7 +55,9 @@ def _trending_up(n: int = 200, start_price: float = 100_000.0, step: float = 200
 
 
 def _trending_up_with_pullbacks(
-    n: int = 200, start_price: float = 100_000.0, step: float = 1500.0,
+    n: int = 200,
+    start_price: float = 100_000.0,
+    step: float = 1500.0,
 ) -> list[float]:
     """Uptrend with periodic pullbacks so RSI stays in tradeable range (not pegged at 100)."""
     closes = []
@@ -68,17 +71,24 @@ def _trending_up_with_pullbacks(
     return closes
 
 
-def _trending_down(n: int = 200, start_price: float = 500_000.0, step: float = 2000.0) -> list[float]:
+def _trending_down(
+    n: int = 200, start_price: float = 500_000.0, step: float = 2000.0
+) -> list[float]:
     return [start_price - i * step for i in range(n)]
 
 
-def _sideways(n: int = 200, base: float = 100_000.0, amplitude: float = 5000.0, freq: float = 0.15) -> list[float]:
+def _sideways(
+    n: int = 200, base: float = 100_000.0, amplitude: float = 5000.0, freq: float = 0.15
+) -> list[float]:
     """Oscillating prices with large amplitude to cross Bollinger bands."""
     import math
+
     return [base + amplitude * math.sin(i * freq) for i in range(n)]
 
 
-def _run_backtest(strategy_type: str, candles: list[Candle], symbol: str = "KRW-BTC", **kwargs) -> dict:
+def _run_backtest(
+    strategy_type: str, candles: list[Candle], symbol: str = "KRW-BTC", **kwargs
+) -> dict:
     """Run a single backtest and return results dict."""
     config_fields = set(StrategyConfig.__dataclass_fields__)
     config_kwargs = {k: v for k, v in kwargs.items() if k in config_fields}
@@ -114,6 +124,7 @@ def _run_backtest(strategy_type: str, candles: list[Candle], symbol: str = "KRW-
 
 
 # ─── Sharpe approximation (same as grid_search.py) ───
+
 
 def _approx_sharpe(equity_curve: list[float]) -> float:
     if len(equity_curve) < 3:
@@ -197,6 +208,25 @@ class TestGridScoring(unittest.TestCase):
         # a=2: avg = (2.4 + 0.45) / 2 = 1.425
         self.assertEqual(best["a"], 1)
 
+    def test_top_param_sets_returns_sorted_candidates(self) -> None:
+        from scripts.grid_search import GridResult, top_param_sets
+
+        results = [
+            GridResult("mean_reversion", {"a": 1}, "KRW-BTC", 5.0, 50.0, 1.2, 10.0, 3, 2.0),
+            GridResult("mean_reversion", {"a": 1}, "KRW-ETH", 4.0, 45.0, 1.1, 10.0, 2, 1.8),
+            GridResult("mean_reversion", {"a": 2}, "KRW-BTC", 3.0, 40.0, 1.0, 5.0, 1, 1.0),
+            GridResult("mean_reversion", {"a": 2}, "KRW-ETH", 2.0, 35.0, 0.9, 5.0, 1, 0.9),
+            GridResult("mean_reversion", {"a": 3}, "KRW-BTC", 1.0, 30.0, 0.8, 20.0, 1, 0.5),
+            GridResult("mean_reversion", {"a": 3}, "KRW-ETH", 1.0, 30.0, 0.8, 20.0, 1, 0.4),
+        ]
+
+        top_sets = top_param_sets(results, top_n=2)
+
+        self.assertEqual(len(top_sets), 2)
+        self.assertEqual(top_sets[0].params, {"a": 1})
+        self.assertGreater(top_sets[0].score, top_sets[1].score)
+        self.assertEqual(top_sets[0].total_trades, 5)
+
 
 class TestMeanReversionBacktest(unittest.TestCase):
     def test_sideways_market_generates_trades(self) -> None:
@@ -209,7 +239,9 @@ class TestMeanReversionBacktest(unittest.TestCase):
         r1 = _run_backtest("mean_reversion", candles, bollinger_window=15, bollinger_stddev=1.5)
         r2 = _run_backtest("mean_reversion", candles, bollinger_window=25, bollinger_stddev=2.2)
         # Different params should produce different trade counts or returns
-        different = (r1["trade_count"] != r2["trade_count"]) or (r1["return_pct"] != r2["return_pct"])
+        different = (r1["trade_count"] != r2["trade_count"]) or (
+            r1["return_pct"] != r2["return_pct"]
+        )
         self.assertTrue(different)
 
 
@@ -220,8 +252,10 @@ class TestMomentumBacktest(unittest.TestCase):
         candles = _build_candles(closes)
         # Widen RSI ceiling so momentum entries can trigger
         result = _run_backtest(
-            "momentum", candles,
-            momentum_lookback=10, momentum_entry_threshold=0.003,
+            "momentum",
+            candles,
+            momentum_lookback=10,
+            momentum_entry_threshold=0.003,
             rsi_recovery_ceiling=75.0,
         )
         self.assertGreater(result["trade_count"], 0)
@@ -230,14 +264,22 @@ class TestMomentumBacktest(unittest.TestCase):
         closes = _trending_up_with_pullbacks(300)
         candles = _build_candles(closes)
         r1 = _run_backtest(
-            "momentum", candles,
-            momentum_lookback=5, momentum_entry_threshold=0.001, rsi_recovery_ceiling=75.0,
+            "momentum",
+            candles,
+            momentum_lookback=5,
+            momentum_entry_threshold=0.001,
+            rsi_recovery_ceiling=75.0,
         )
         r2 = _run_backtest(
-            "momentum", candles,
-            momentum_lookback=25, momentum_entry_threshold=0.05, rsi_recovery_ceiling=75.0,
+            "momentum",
+            candles,
+            momentum_lookback=25,
+            momentum_entry_threshold=0.05,
+            rsi_recovery_ceiling=75.0,
         )
-        different = (r1["trade_count"] != r2["trade_count"]) or (r1["return_pct"] != r2["return_pct"])
+        different = (r1["trade_count"] != r2["trade_count"]) or (
+            r1["return_pct"] != r2["return_pct"]
+        )
         self.assertTrue(different)
 
 
@@ -261,32 +303,49 @@ class TestVolatilityBreakoutBacktest(unittest.TestCase):
     def test_trending_market_generates_trades(self) -> None:
         candles = _build_candles(_trending_up(300))
         result = _run_backtest(
-            "volatility_breakout", candles,
-            k_base=0.1, noise_lookback=5, ma_filter_period=5,
+            "volatility_breakout",
+            candles,
+            k_base=0.1,
+            noise_lookback=5,
+            ma_filter_period=5,
         )
         self.assertGreater(result["trade_count"], 0)
 
     def test_different_k_base_changes_results(self) -> None:
         candles = _build_candles(_trending_up(300))
-        r1 = _run_backtest("volatility_breakout", candles, k_base=0.1, noise_lookback=5, ma_filter_period=5)
-        r2 = _run_backtest("volatility_breakout", candles, k_base=0.9, noise_lookback=5, ma_filter_period=5)
-        different = (r1["trade_count"] != r2["trade_count"]) or (r1["return_pct"] != r2["return_pct"])
+        r1 = _run_backtest(
+            "volatility_breakout", candles, k_base=0.1, noise_lookback=5, ma_filter_period=5
+        )
+        r2 = _run_backtest(
+            "volatility_breakout", candles, k_base=0.9, noise_lookback=5, ma_filter_period=5
+        )
+        different = (r1["trade_count"] != r2["trade_count"]) or (
+            r1["return_pct"] != r2["return_pct"]
+        )
         self.assertTrue(different)
 
     def test_sideways_market_fewer_trades(self) -> None:
         trending = _build_candles(_trending_up(300))
         sideways = _build_candles(_sideways(300))
-        r_trend = _run_backtest("volatility_breakout", trending, k_base=0.1, noise_lookback=5, ma_filter_period=5)
-        r_side = _run_backtest("volatility_breakout", sideways, k_base=0.1, noise_lookback=5, ma_filter_period=5)
+        r_trend = _run_backtest(
+            "volatility_breakout", trending, k_base=0.1, noise_lookback=5, ma_filter_period=5
+        )
+        r_side = _run_backtest(
+            "volatility_breakout", sideways, k_base=0.1, noise_lookback=5, ma_filter_period=5
+        )
         # Breakout strategy should find more signals in trending markets
         self.assertGreaterEqual(r_trend["trade_count"], r_side["trade_count"])
 
 
 class TestKimchiPremiumBacktest(unittest.TestCase):
     def _make_backtest_kimchi(
-        self, candles: list[Candle], premium: float,
-        rsi_period: int = 14, max_holding_bars: int = 48,
-        min_trade_interval_bars: int = 0, min_confidence: float = 0.0,
+        self,
+        candles: list[Candle],
+        premium: float,
+        rsi_period: int = 14,
+        max_holding_bars: int = 48,
+        min_trade_interval_bars: int = 0,
+        min_confidence: float = 0.0,
     ) -> dict:
         config = StrategyConfig(rsi_period=rsi_period, max_holding_bars=max_holding_bars)
         mock_binance = MagicMock()
@@ -306,7 +365,9 @@ class TestKimchiPremiumBacktest(unittest.TestCase):
         engine = BacktestEngine(
             strategy=strategy,
             risk_manager=risk_manager,
-            config=BacktestConfig(initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005),
+            config=BacktestConfig(
+                initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005
+            ),
             symbol="KRW-BTC",
         )
         result = engine.run(candles)
@@ -329,8 +390,10 @@ class TestKimchiPremiumBacktest(unittest.TestCase):
     def test_safe_zone_premium_with_wide_rsi(self) -> None:
         candles = _build_candles(_sideways(200))
         result = self._make_backtest_kimchi(
-            candles, premium=0.02,
-            rsi_period=14, max_holding_bars=24,
+            candles,
+            premium=0.02,
+            rsi_period=14,
+            max_holding_bars=24,
         )
         self.assertGreaterEqual(result["trade_count"], 0)
 
@@ -348,6 +411,7 @@ class TestBacktestKellyIntegration(unittest.TestCase):
     def test_backtest_records_trade_history(self) -> None:
         """After backtest with trades, risk manager should have trade history."""
         from crypto_trader.backtest.engine import BacktestEngine
+
         candles = _build_candles(_sideways(300))
         config = StrategyConfig(bollinger_window=20, bollinger_stddev=1.5)
         regime = RegimeConfig()
@@ -356,7 +420,9 @@ class TestBacktestKellyIntegration(unittest.TestCase):
         engine = BacktestEngine(
             strategy=strategy,
             risk_manager=risk_manager,
-            config=BacktestConfig(initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005),
+            config=BacktestConfig(
+                initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005
+            ),
             symbol="KRW-BTC",
         )
         result = engine.run(candles)
@@ -373,7 +439,9 @@ class TestBacktestKellyIntegration(unittest.TestCase):
         engine = BacktestEngine(
             strategy=strategy,
             risk_manager=risk_manager,
-            config=BacktestConfig(initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005),
+            config=BacktestConfig(
+                initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005
+            ),
             symbol="KRW-BTC",
         )
         result = engine.run(candles)
@@ -396,7 +464,9 @@ class TestAllStrategiesCreateSuccessfully(unittest.TestCase):
 
     def test_create_volatility_breakout(self) -> None:
         config = StrategyConfig()
-        strategy = VolatilityBreakoutStrategy(config, k_base=0.5, noise_lookback=20, ma_filter_period=20)
+        strategy = VolatilityBreakoutStrategy(
+            config, k_base=0.5, noise_lookback=20, ma_filter_period=20
+        )
         self.assertTrue(hasattr(strategy, "evaluate"))
 
     def test_create_kimchi_premium(self) -> None:
@@ -412,36 +482,42 @@ class TestGridParamCoverage(unittest.TestCase):
 
     def test_mean_reversion_grid_params_valid(self) -> None:
         from scripts.grid_search import MEAN_REVERSION_GRID
+
         config_fields = set(StrategyConfig.__dataclass_fields__)
         for k in MEAN_REVERSION_GRID:
             self.assertIn(k, config_fields)
 
     def test_momentum_grid_params_valid(self) -> None:
         from scripts.grid_search import MOMENTUM_GRID
+
         config_fields = set(StrategyConfig.__dataclass_fields__)
         for k in MOMENTUM_GRID:
             self.assertIn(k, config_fields)
 
     def test_vpin_grid_params_valid(self) -> None:
         from scripts.grid_search import VPIN_GRID
+
         config_fields = set(StrategyConfig.__dataclass_fields__)
         for k in VPIN_GRID:
             self.assertIn(k, config_fields)
 
     def test_obi_grid_params_valid(self) -> None:
         from scripts.grid_search import OBI_GRID
+
         config_fields = set(StrategyConfig.__dataclass_fields__)
         for k in OBI_GRID:
             self.assertIn(k, config_fields)
 
     def test_volatility_breakout_grid_params_valid(self) -> None:
         from scripts.grid_search import VOLATILITY_BREAKOUT_GRID
+
         valid_params = {"k_base", "noise_lookback", "ma_filter_period", "max_holding_bars"}
         for k in VOLATILITY_BREAKOUT_GRID:
             self.assertIn(k, valid_params | set(StrategyConfig.__dataclass_fields__))
 
     def test_kimchi_premium_grid_params_valid(self) -> None:
         from scripts.grid_search import KIMCHI_PREMIUM_GRID
+
         valid_params = {"min_trade_interval_bars", "min_confidence", "cooldown_hours"}
         config_fields = set(StrategyConfig.__dataclass_fields__)
         for k in KIMCHI_PREMIUM_GRID:
@@ -449,18 +525,30 @@ class TestGridParamCoverage(unittest.TestCase):
 
     def test_all_seven_strategies_have_grids(self) -> None:
         from scripts.grid_search import STRATEGY_GRIDS
-        expected = {"mean_reversion", "momentum", "composite", "vpin", "obi", "volatility_breakout", "kimchi_premium"}
+
+        expected = {
+            "mean_reversion",
+            "momentum",
+            "composite",
+            "vpin",
+            "obi",
+            "volatility_breakout",
+            "kimchi_premium",
+        }
         self.assertEqual(set(STRATEGY_GRIDS.keys()), expected)
 
     def test_composite_grid_params_valid(self) -> None:
         from scripts.grid_search import COMPOSITE_GRID
+
         config_fields = set(StrategyConfig.__dataclass_fields__)
         for k in COMPOSITE_GRID:
             self.assertIn(k, config_fields)
 
     def test_each_grid_has_multiple_combos(self) -> None:
         import itertools
+
         from scripts.grid_search import STRATEGY_GRIDS
+
         for name, grid in STRATEGY_GRIDS.items():
             combos = list(itertools.product(*grid.values()))
             self.assertGreater(len(combos), 1, f"{name} grid has only {len(combos)} combo")

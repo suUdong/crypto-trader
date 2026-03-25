@@ -2,14 +2,15 @@
 """Run backtests for all strategy x symbol combinations on real Upbit data."""
 from __future__ import annotations
 
+import argparse
+import json
+import os
 import sys
-import time
-from datetime import datetime, timedelta
+from pathlib import Path
 
 sys.path.insert(0, "src")
 
-import pyupbit  # noqa: E402
-
+from crypto_trader.backtest.candle_cache import fetch_upbit_candles  # noqa: E402
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
 from crypto_trader.config import (  # noqa: E402
     BacktestConfig,
@@ -27,45 +28,13 @@ INTERVAL = "minute60"
 
 
 def fetch_candles(symbol: str, days: int) -> list[Candle]:
-    """Fetch hourly candles by paginating pyupbit (max 200 per call)."""
-    total_needed = days * 24
-    all_candles: list[Candle] = []
-    to_dt: datetime | None = None
-
-    while len(all_candles) < total_needed:
-        remaining = total_needed - len(all_candles)
-        batch_size = min(200, remaining)
-        df = pyupbit.get_ohlcv(
-            symbol, interval=INTERVAL, count=batch_size, to=to_dt
-        )
-        if df is None or df.empty:
-            break
-
-        batch: list[Candle] = []
-        for idx, row in df.iterrows():
-            ts = idx if isinstance(idx, datetime) else datetime.fromisoformat(str(idx))
-            batch.append(
-                Candle(
-                    timestamp=ts,
-                    open=float(row["open"]),
-                    high=float(row["high"]),
-                    low=float(row["low"]),
-                    close=float(row["close"]),
-                    volume=float(row["volume"]),
-                )
-            )
-
-        if not batch:
-            break
-
-        to_dt = batch[0].timestamp - timedelta(seconds=1)
-        all_candles = batch + all_candles
-
-        if len(batch) < batch_size:
-            break
-        time.sleep(0.15)  # rate limit
-
-    return all_candles
+    """Fetch hourly candles, using local cache when configured."""
+    return fetch_upbit_candles(
+        symbol,
+        days,
+        interval=INTERVAL,
+        cache_dir=os.environ.get("CT_CANDLE_CACHE_DIR"),
+    )
 
 
 def run_backtest(
@@ -106,9 +75,17 @@ def run_backtest(
 
 
 def main() -> None:
-    days = 90
-    if len(sys.argv) > 1:
-        days = int(sys.argv[1])
+    parser = argparse.ArgumentParser(
+        description="Run backtests for all strategies and symbols.",
+    )
+    parser.add_argument("days", nargs="?", type=int, default=90)
+    parser.add_argument("--json-out", dest="json_out")
+    parser.add_argument("--cache-dir", dest="cache_dir")
+    args = parser.parse_args()
+
+    days = args.days
+    if args.cache_dir:
+        os.environ["CT_CANDLE_CACHE_DIR"] = args.cache_dir
 
     print(f"\n{'='*80}")
     print(f"  BACKTEST ALL STRATEGIES - {days}-day hourly candles from Upbit")
@@ -169,6 +146,28 @@ def main() -> None:
     else:
         count = len(strategies_with_trades)
         print(f"\n  SUCCESS: {total_trades} trades across {count} strategies")
+
+    if args.json_out:
+        Path(args.json_out).write_text(
+            json.dumps(
+                {
+                    "days": days,
+                    "interval": INTERVAL,
+                    "symbols": SYMBOLS,
+                    "strategies": STRATEGIES,
+                    "results": all_results,
+                    "summary": {
+                        "total_trades": total_trades,
+                        "strategies_with_trades": sorted(strategies_with_trades),
+                        "symbols_with_trades": sorted(symbols_with_trades),
+                    },
+                },
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        print(f"\n  JSON results written to: {args.json_out}")
 
 
 if __name__ == "__main__":

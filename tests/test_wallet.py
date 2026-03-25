@@ -151,6 +151,30 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
         self.assertEqual(result.signal.action, SignalAction.HOLD)
         self.assertIsNone(result.order)
 
+    def test_wallet_run_once_updates_atr_history(self) -> None:
+        class AtrRecordingRiskManager(RiskManager):
+            def __init__(self, config: RiskConfig) -> None:
+                super().__init__(config, atr_stop_multiplier=2.0)
+                self.atr_updates = 0
+
+            def update_atr_from_candles(self, candles: list[Candle], period: int = 14) -> None:
+                self.atr_updates += 1
+                super().update_atr_from_candles(candles, period)
+
+        strategy = create_strategy("momentum", _make_strategy_config(), _make_regime_config())
+        broker = PaperBroker(starting_cash=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005)
+        risk_manager = AtrRecordingRiskManager(RiskConfig())
+        wallet = StrategyWallet(
+            WalletConfig(name="test_wallet", strategy="momentum", initial_capital=1_000_000.0),
+            strategy,
+            broker,
+            risk_manager,
+        )
+
+        wallet.run_once("KRW-BTC", _make_candles([100.0 + i for i in range(20)]))
+
+        self.assertEqual(risk_manager.atr_updates, 1)
+
 
 class TestBuildWallets(unittest.TestCase):
     def test_build_wallets_count(self) -> None:

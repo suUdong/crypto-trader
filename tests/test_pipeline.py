@@ -54,6 +54,16 @@ class RecordingRiskManager(RiskManager):
         return super().can_open(active_positions, realized_pnl, starting_equity)
 
 
+class AtrRecordingRiskManager(RiskManager):
+    def __init__(self, config: RiskConfig) -> None:
+        super().__init__(config, atr_stop_multiplier=2.0)
+        self.atr_updates = 0
+
+    def update_atr_from_candles(self, candles: list[Candle], period: int = 14) -> None:
+        self.atr_updates += 1
+        super().update_atr_from_candles(candles, period)
+
+
 def build_candles(closes: list[float]) -> list[Candle]:
     start = datetime(2025, 1, 1, 0, 0, 0)
     return [
@@ -166,3 +176,31 @@ class TradingPipelineTests(unittest.TestCase):
         broker.realized_pnl = -40.0
         pipeline.run_once()
         self.assertEqual(risk_manager.starting_equities, [1_000.0])
+
+    def test_pipeline_updates_atr_from_live_candles(self) -> None:
+        candles = build_candles([100.0 + i for i in range(20)])
+        config = AppConfig(
+            trading=TradingConfig(symbol="KRW-BTC", candle_count=len(candles)),
+            strategy=StrategyConfig(),
+            regime=RegimeConfig(),
+            drift=DriftConfig(),
+            risk=RiskConfig(),
+            backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        risk_manager = AtrRecordingRiskManager(config.risk)
+        pipeline = TradingPipeline(
+            config=config,
+            market_data=FakeMarketData(candles),
+            strategy=CompositeStrategy(config.strategy, config.regime),
+            risk_manager=risk_manager,
+            broker=PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            notifier=RecorderNotifier(),
+        )
+
+        pipeline.run_once()
+
+        self.assertEqual(risk_manager.atr_updates, 1)
+        self.assertGreaterEqual(risk_manager._current_atr, 0.0)

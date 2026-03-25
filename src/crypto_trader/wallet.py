@@ -45,7 +45,13 @@ def create_strategy(
     if strategy_type == "vpin":
         return VPINStrategy(strategy_config)
     if strategy_type == "volatility_breakout":
-        return VolatilityBreakoutStrategy(strategy_config)
+        return VolatilityBreakoutStrategy(
+            strategy_config,
+            k_base=strategy_config.k_base,
+            noise_lookback=strategy_config.noise_lookback,
+            ma_filter_period=strategy_config.ma_filter_period,
+            max_holding_bars=strategy_config.max_holding_bars,
+        )
     return CompositeStrategy(strategy_config, regime_config)
 
 
@@ -71,6 +77,7 @@ class StrategyWallet:
 
     def run_once(self, symbol: str, candles: list[Candle]) -> PipelineResult:
         try:
+            self.risk_manager.update_atr_from_candles(candles)
             position = self.broker.positions.get(symbol)
             signal = self.strategy.evaluate(candles, position)
             latest_price = candles[-1].close
@@ -112,10 +119,16 @@ class StrategyWallet:
                         ),
                         latest_price,
                     )
-                    if order is not None and order.status == "filled" and order.side is OrderSide.SELL:
+                    if (
+                        order is not None
+                        and order.status == "filled"
+                        and order.side is OrderSide.SELL
+                    ):
                         entry_value = position.entry_price * position.quantity
                         if entry_value > 0:
-                            pnl_pct = (order.fill_price - position.entry_price) / position.entry_price
+                            pnl_pct = (
+                                order.fill_price - position.entry_price
+                            ) / position.entry_price
                             self.risk_manager.record_trade(pnl_pct)
 
             message = (
@@ -156,6 +169,10 @@ def build_wallets(config: AppConfig) -> list[StrategyWallet]:
             fee_rate=config.backtest.fee_rate,
             slippage_pct=config.backtest.slippage_pct,
         )
-        risk_manager = RiskManager(config.risk)
+        risk_manager = RiskManager(
+            config.risk,
+            trailing_stop_pct=config.risk.trailing_stop_pct,
+            atr_stop_multiplier=config.risk.atr_stop_multiplier,
+        )
         wallets.append(StrategyWallet(wc, strategy, broker, risk_manager))
     return wallets

@@ -35,6 +35,9 @@ class StrategyConfig:
     rsi_oversold_floor: float = 20.0
     rsi_recovery_ceiling: float = 60.0
     rsi_overbought: float = 70.0
+    k_base: float = 0.5
+    noise_lookback: int = 20
+    ma_filter_period: int = 20
     max_holding_bars: int = 48
 
 
@@ -61,6 +64,8 @@ class RiskConfig:
     risk_per_trade_pct: float = 0.01
     stop_loss_pct: float = 0.03
     take_profit_pct: float = 0.06
+    trailing_stop_pct: float = 0.0
+    atr_stop_multiplier: float = 0.0
     max_daily_loss_pct: float = 0.05
     max_concurrent_positions: int = 1
 
@@ -196,6 +201,13 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         rsi_overbought=float(
             _read_value(raw, env, "strategy", "rsi_overbought", "CT_RSI_OVERBOUGHT", 70.0)
         ),
+        k_base=float(_read_value(raw, env, "strategy", "k_base", "CT_K_BASE", 0.5)),
+        noise_lookback=int(
+            _read_value(raw, env, "strategy", "noise_lookback", "CT_NOISE_LOOKBACK", 20)
+        ),
+        ma_filter_period=int(
+            _read_value(raw, env, "strategy", "ma_filter_period", "CT_MA_FILTER_PERIOD", 20)
+        ),
         max_holding_bars=int(
             _read_value(raw, env, "strategy", "max_holding_bars", "CT_MAX_HOLDING_BARS", 48)
         ),
@@ -285,6 +297,19 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         ),
         take_profit_pct=float(
             _read_value(raw, env, "risk", "take_profit_pct", "CT_TAKE_PROFIT_PCT", 0.06)
+        ),
+        trailing_stop_pct=float(
+            _read_value(raw, env, "risk", "trailing_stop_pct", "CT_TRAILING_STOP_PCT", 0.0)
+        ),
+        atr_stop_multiplier=float(
+            _read_value(
+                raw,
+                env,
+                "risk",
+                "atr_stop_multiplier",
+                "CT_ATR_STOP_MULTIPLIER",
+                0.0,
+            )
         ),
         max_daily_loss_pct=float(
             _read_value(raw, env, "risk", "max_daily_loss_pct", "CT_MAX_DAILY_LOSS_PCT", 0.05)
@@ -668,7 +693,15 @@ def _validate_config(config: AppConfig) -> None:
         if not sym.startswith("KRW-"):
             errors.append(f"trading.symbols: '{sym}' must start with 'KRW-'")
 
-    valid_strategies = {"momentum", "mean_reversion", "composite", "kimchi_premium", "obi", "vpin", "volatility_breakout"}
+    valid_strategies = {
+        "momentum",
+        "mean_reversion",
+        "composite",
+        "kimchi_premium",
+        "obi",
+        "vpin",
+        "volatility_breakout",
+    }
     for wc in config.wallets:
         if not wc.name.strip():
             errors.append("wallet name must not be empty")

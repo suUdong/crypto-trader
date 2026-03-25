@@ -54,6 +54,7 @@ class TradingPipeline:
                 interval=self._config.trading.interval,
                 count=self._config.trading.candle_count,
             )
+            self._risk_manager.update_atr_from_candles(candles)
             now = candles[-1].timestamp if candles else datetime.utcnow()
             position = self._broker.positions.get(symbol)
             signal = self._strategy.evaluate(candles, position)

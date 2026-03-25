@@ -90,3 +90,20 @@ class ConfigTests(unittest.TestCase):
                     "CT_FEE_RATE": "1.2",
                 },
             )
+
+    def test_loads_extended_strategy_and_risk_fields(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {
+                "CT_K_BASE": "0.7",
+                "CT_NOISE_LOOKBACK": "15",
+                "CT_MA_FILTER_PERIOD": "15",
+                "CT_TRAILING_STOP_PCT": "0.04",
+                "CT_ATR_STOP_MULTIPLIER": "3.0",
+            },
+        )
+        self.assertEqual(config.strategy.k_base, 0.7)
+        self.assertEqual(config.strategy.noise_lookback, 15)
+        self.assertEqual(config.strategy.ma_filter_period, 15)
+        self.assertEqual(config.risk.trailing_stop_pct, 0.04)
+        self.assertEqual(config.risk.atr_stop_multiplier, 3.0)

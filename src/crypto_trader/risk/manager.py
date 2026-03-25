@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from crypto_trader.config import RiskConfig
-from crypto_trader.models import Position
+from crypto_trader.models import Candle, Position
+from crypto_trader.strategy.indicators import average_true_range
 
 
 class RiskManager:
@@ -20,6 +21,18 @@ class RiskManager:
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
         self._current_atr = atr
+
+    def update_atr_from_candles(self, candles: list[Candle], period: int = 14) -> None:
+        """Refresh ATR from candle history when enough bars are available."""
+        if len(candles) < period + 1:
+            return
+        highs = [candle.high for candle in candles]
+        lows = [candle.low for candle in candles]
+        closes = [candle.close for candle in candles]
+        try:
+            self._current_atr = average_true_range(highs, lows, closes, period)
+        except ValueError:
+            return
 
     def record_trade(self, pnl_pct: float) -> None:
         """Record a completed trade's return percentage for Kelly calculation."""

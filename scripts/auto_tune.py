@@ -9,10 +9,13 @@ the best parameters to a TOML config file ready for production use.
 """
 from __future__ import annotations
 
+import argparse
 import itertools
+import json
+import os
 import sys
 import tomllib
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 sys.path.insert(0, "src")
@@ -41,6 +44,20 @@ class TuneResult:
     avg_win_rate: float
     avg_profit_factor: float
     total_trades: int
+    best_score: float
+    candidate_rank: int
+    top_candidates: list[dict[str, object]]
+    per_symbol: dict[str, dict[str, float]]
+
+
+DEFAULT_STRATEGIES = [
+    "momentum",
+    "mean_reversion",
+    "composite",
+    "obi",
+    "vpin",
+    "volatility_breakout",
+]
 
 
 # Risk parameter grid
@@ -140,7 +157,7 @@ def optimize_risk_for_strategy(
     best_risk: dict[str, float] = {}
 
     for combo in risk_combos:
-        risk_params = dict(zip(risk_param_names, combo))
+        risk_params = dict(zip(risk_param_names, combo, strict=True))
         # Skip invalid: take_profit must exceed stop_loss
         if risk_params["take_profit_pct"] <= risk_params["stop_loss_pct"]:
             continue
@@ -159,6 +176,25 @@ def optimize_risk_for_strategy(
     return best_risk, best_score
 
 
+def write_results_json(
+    baseline_results: list[dict[str, object]],
+    tune_results: list[TuneResult],
+    output_path: str,
+    days: int,
+) -> None:
+    """Write baseline and optimization results as JSON for reporting."""
+    payload = {
+        "days": days,
+        "baseline_results": baseline_results,
+        "optimized_results": [asdict(result) for result in tune_results],
+    }
+    Path(output_path).write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(f"  Detailed results written to: {output_path}")
+
+
 def write_optimized_toml(
     results: list[TuneResult],
     output_path: str,
@@ -175,8 +211,11 @@ def write_optimized_toml(
 
     lines = [
         "# Auto-tuned configuration",
-        f"# Generated from grid search optimization",
-        f"# Best strategy: {best_overall.strategy if best_overall else 'none'}",
+        "# Generated from grid search optimization",
+        (
+            "# Best strategy in evaluated candidate sweep: "
+            f"{best_overall.strategy if best_overall else 'none'}"
+        ),
         f"# Avg Sharpe: {best_overall.avg_sharpe:.2f}" if best_overall else "",
         "",
     ]
@@ -210,23 +249,28 @@ def write_optimized_toml(
             lines.append(f"{k} = {v}")
     lines.append("")
 
-    # Wallets section with all optimized strategies
+    # Wallet section: config supports one global strategy/risk block, so keep
+    # the runnable TOML aligned to the best overall strategy only.
     lines.append("# Optimized wallet allocation")
-    for i, r in enumerate(sorted(results, key=lambda x: -x.avg_sharpe)):
-        lines.append(f"")
-        lines.append(f"[[wallets]]")
-        lines.append(f'name = "{r.strategy}_wallet"')
-        lines.append(f'strategy = "{r.strategy}"')
-        # Sharpe-proportional capital allocation (minimum 100K)
-        lines.append(f"initial_capital = 1_000_000.0")
+    if best_overall:
+        lines.append("")
+        lines.append("[[wallets]]")
+        lines.append(f'name = "{best_overall.strategy}_wallet"')
+        lines.append(f'strategy = "{best_overall.strategy}"')
+        lines.append("initial_capital = 1_000_000.0")
     lines.append("")
 
     # Per-strategy optimal params as comments for reference
     lines.append("# === Per-Strategy Optimization Results ===")
     for r in sorted(results, key=lambda x: -x.avg_sharpe):
-        lines.append(f"# {r.strategy}: Sharpe={r.avg_sharpe:.2f} Return={r.avg_return_pct:+.2f}% "
-                      f"MDD={r.avg_mdd_pct:.2f}% WR={r.avg_win_rate:.1f}% PF={r.avg_profit_factor:.2f} "
-                      f"Trades={r.total_trades}")
+        lines.append(
+            f"# {r.strategy}: Sharpe={r.avg_sharpe:.2f} "
+            f"Return={r.avg_return_pct:+.2f}% "
+            f"MDD={r.avg_mdd_pct:.2f}% "
+            f"WR={r.avg_win_rate:.1f}% "
+            f"PF={r.avg_profit_factor:.2f} "
+            f"Trades={r.total_trades}"
+        )
         lines.append(f"#   params: {r.params}")
         lines.append(f"#   risk: {r.risk_params}")
 
@@ -235,25 +279,46 @@ def write_optimized_toml(
 
 
 def main() -> None:
-    days = 30
-    if len(sys.argv) > 1:
-        days = int(sys.argv[1])
-    output_toml = "config/optimized.toml"
-    if len(sys.argv) > 2:
-        output_toml = sys.argv[2]
+    parser = argparse.ArgumentParser(
+        description="Run strategy/risk auto-tuning and write optimized config.",
+    )
+    parser.add_argument("days", nargs="?", type=int, default=30)
+    parser.add_argument("output_toml", nargs="?", default="config/optimized.toml")
+    parser.add_argument("--json-out", dest="json_out")
+    parser.add_argument("--top-n", dest="top_n", type=int, default=3)
+    parser.add_argument("--cache-dir", dest="cache_dir")
+    parser.add_argument(
+        "--strategies",
+        nargs="+",
+        default=DEFAULT_STRATEGIES,
+        help="Strategies to optimize.",
+    )
+    args = parser.parse_args()
+
+    days = args.days
+    output_toml = args.output_toml
+    if args.cache_dir:
+        os.environ["CT_CANDLE_CACHE_DIR"] = args.cache_dir
 
     print(f"\n{'='*80}")
     print(f"  AUTO-TUNE: Grid Search + Risk Optimization ({days}d)")
     print(f"{'='*80}")
 
     # Import grid search components
-    from scripts.grid_search import (
-        STRATEGY_GRIDS,
-        SYMBOLS,
-        fetch_candles,
-        find_best_params,
-        run_grid_for_strategy,
-    )
+    try:
+        from scripts.grid_search import (
+            SYMBOLS,
+            fetch_candles,
+            run_grid_for_strategy,
+            top_param_sets,
+        )
+    except ModuleNotFoundError:
+        from grid_search import (  # type: ignore[no-redef]
+            SYMBOLS,
+            fetch_candles,
+            run_grid_for_strategy,
+            top_param_sets,
+        )
 
     # Fetch data
     candles_by_symbol: dict[str, list[Candle]] = {}
@@ -264,9 +329,23 @@ def main() -> None:
         if len(candles) >= 50:
             candles_by_symbol[symbol] = candles
 
+    baseline_results: list[dict[str, object]] = []
+    risk_combo_count = len(list(itertools.product(*RISK_GRID.values())))
+
+    for strategy_type in args.strategies:
+        for symbol, candles in candles_by_symbol.items():
+            baseline = _run_single_backtest(strategy_type, {}, {}, candles, symbol)
+            baseline_results.append(
+                {
+                    "strategy": strategy_type,
+                    "symbol": symbol,
+                    **baseline,
+                }
+            )
+
     tune_results: list[TuneResult] = []
 
-    for strategy_type in STRATEGY_GRIDS:
+    for strategy_type in args.strategies:
         print(f"\n{'─'*60}")
         print(f"  Optimizing: {strategy_type}")
         print(f"{'─'*60}")
@@ -277,44 +356,105 @@ def main() -> None:
             print(f"  SKIP: no grid results for {strategy_type}")
             continue
 
-        best_strategy_params = find_best_params(grid_results)
-        print(f"  Best strategy params: {best_strategy_params}")
+        top_candidates = top_param_sets(grid_results, top_n=args.top_n)
+        if not top_candidates:
+            print(f"  SKIP: no candidate summaries for {strategy_type}")
+            continue
 
-        # Phase 2: Optimize risk params for this strategy
-        print(f"  Optimizing risk params ({len(list(itertools.product(*RISK_GRID.values())))} combos)...")
-        best_risk, best_score = optimize_risk_for_strategy(
-            strategy_type, best_strategy_params, candles_by_symbol,
+        candidate_results: list[dict[str, object]] = []
+        for idx, candidate in enumerate(top_candidates, start=1):
+            print(f"  Candidate #{idx} params: {candidate.params}")
+            print(f"  Optimizing risk params ({risk_combo_count} combos)...")
+            best_risk, best_score = optimize_risk_for_strategy(
+                strategy_type, candidate.params, candles_by_symbol,
+            )
+
+            totals = {
+                "return_pct": 0.0,
+                "sharpe": 0.0,
+                "mdd_pct": 0.0,
+                "win_rate": 0.0,
+                "profit_factor": 0.0,
+                "trade_count": 0,
+            }
+            per_symbol: dict[str, dict[str, float]] = {}
+            count = 0
+            for symbol, candles in candles_by_symbol.items():
+                result = _run_single_backtest(
+                    strategy_type,
+                    candidate.params,
+                    best_risk,
+                    candles,
+                    symbol,
+                )
+                for key in totals:
+                    totals[key] += result[key]
+                per_symbol[symbol] = result
+                count += 1
+
+            if count == 0:
+                continue
+
+            candidate_results.append(
+                {
+                    "rank": idx,
+                    "params": candidate.params,
+                    "base_score": candidate.score,
+                    "risk_params": best_risk,
+                    "optimized_score": best_score,
+                    "avg_return_pct": totals["return_pct"] / count,
+                    "avg_sharpe": totals["sharpe"] / count,
+                    "avg_mdd_pct": totals["mdd_pct"] / count,
+                    "avg_win_rate": totals["win_rate"] / count,
+                    "avg_profit_factor": totals["profit_factor"] / count,
+                    "total_trades": int(totals["trade_count"]),
+                    "per_symbol": per_symbol,
+                }
+            )
+
+        if not candidate_results:
+            continue
+
+        best_candidate = max(
+            candidate_results,
+            key=lambda item: (
+                float(item["optimized_score"]),
+                float(item["avg_sharpe"]),
+                float(item["avg_return_pct"]),
+            ),
         )
-        print(f"  Best risk params: {best_risk} (score={best_score:.4f})")
+        print(
+            f"  Best candidate: #{best_candidate['rank']} "
+            f"score={float(best_candidate['optimized_score']):.4f} "
+            f"sharpe={float(best_candidate['avg_sharpe']):.2f}"
+        )
 
-        # Phase 3: Collect final results with best params
-        totals = {"return_pct": 0.0, "sharpe": 0.0, "mdd_pct": 0.0,
-                  "win_rate": 0.0, "profit_factor": 0.0, "trade_count": 0}
-        count = 0
-        for symbol, candles in candles_by_symbol.items():
-            r = _run_single_backtest(strategy_type, best_strategy_params, best_risk, candles, symbol)
-            for k in totals:
-                totals[k] += r[k]
-            count += 1
-
-        if count > 0:
-            tune_results.append(TuneResult(
+        tune_results.append(
+            TuneResult(
                 strategy=strategy_type,
-                params=best_strategy_params,
-                risk_params=best_risk,
-                avg_return_pct=totals["return_pct"] / count,
-                avg_sharpe=totals["sharpe"] / count,
-                avg_mdd_pct=totals["mdd_pct"] / count,
-                avg_win_rate=totals["win_rate"] / count,
-                avg_profit_factor=totals["profit_factor"] / count,
-                total_trades=int(totals["trade_count"]),
-            ))
+                params=dict(best_candidate["params"]),
+                risk_params=dict(best_candidate["risk_params"]),
+                avg_return_pct=float(best_candidate["avg_return_pct"]),
+                avg_sharpe=float(best_candidate["avg_sharpe"]),
+                avg_mdd_pct=float(best_candidate["avg_mdd_pct"]),
+                avg_win_rate=float(best_candidate["avg_win_rate"]),
+                avg_profit_factor=float(best_candidate["avg_profit_factor"]),
+                total_trades=int(best_candidate["total_trades"]),
+                best_score=float(best_candidate["optimized_score"]),
+                candidate_rank=int(best_candidate["rank"]),
+                top_candidates=candidate_results,
+                per_symbol=dict(best_candidate["per_symbol"]),
+            )
+        )
 
     # Summary
     print(f"\n{'='*80}")
-    print(f"  AUTO-TUNE RESULTS")
+    print("  AUTO-TUNE RESULTS")
     print(f"{'='*80}")
-    print(f"\n  {'Strategy':<20} {'Sharpe':>8} {'Return%':>9} {'MDD%':>7} {'WR%':>7} {'PF':>7} {'Trades':>7}")
+    print(
+        f"\n  {'Strategy':<20} {'Sharpe':>8} {'Return%':>9} "
+        f"{'MDD%':>7} {'WR%':>7} {'PF':>7} {'Trades':>7}"
+    )
     print(f"  {'─'*66}")
     for r in sorted(tune_results, key=lambda x: -x.avg_sharpe):
         pf = f"{r.avg_profit_factor:.2f}" if r.avg_profit_factor < 1000 else "inf"
@@ -323,6 +463,8 @@ def main() -> None:
 
     # Write optimized TOML
     write_optimized_toml(tune_results, output_toml)
+    if args.json_out:
+        write_results_json(baseline_results, tune_results, args.json_out, days)
     print(f"\n{'='*80}")
     print(f"  Auto-tune complete. Apply with: --config {output_toml}")
     print(f"{'='*80}\n")

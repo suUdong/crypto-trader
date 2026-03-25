@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import itertools
+import json
+import os
 import sys
-import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 
 sys.path.insert(0, "src")
 
-import pyupbit  # noqa: E402
-
 from unittest.mock import MagicMock  # noqa: E402
 
+from crypto_trader.backtest.candle_cache import fetch_upbit_candles  # noqa: E402
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
 from crypto_trader.config import (  # noqa: E402
     BacktestConfig,
@@ -44,44 +43,29 @@ class GridResult:
     sharpe_approx: float
 
 
+@dataclass
+class ParamSetSummary:
+    strategy: str
+    params: dict[str, float | int]
+    avg_return_pct: float
+    avg_win_rate: float
+    avg_profit_factor: float
+    avg_max_drawdown: float
+    avg_sharpe: float
+    total_trades: int
+    score: float
+    symbol_count: int
+    per_symbol: dict[str, dict[str, float | int]]
+
+
 def fetch_candles(symbol: str, days: int) -> list[Candle]:
-    """Fetch hourly candles by paginating pyupbit (max 200 per call)."""
-    total_needed = days * 24
-    all_candles: list[Candle] = []
-    to_dt: datetime | None = None
-
-    while len(all_candles) < total_needed:
-        remaining = total_needed - len(all_candles)
-        batch_size = min(200, remaining)
-        df = pyupbit.get_ohlcv(
-            symbol, interval=INTERVAL, count=batch_size, to=to_dt
-        )
-        if df is None or df.empty:
-            break
-
-        batch: list[Candle] = []
-        for idx, row in df.iterrows():
-            ts = idx if isinstance(idx, datetime) else datetime.fromisoformat(str(idx))
-            batch.append(
-                Candle(
-                    timestamp=ts,
-                    open=float(row["open"]),
-                    high=float(row["high"]),
-                    low=float(row["low"]),
-                    close=float(row["close"]),
-                    volume=float(row["volume"]),
-                )
-            )
-
-        if not batch:
-            break
-        to_dt = batch[0].timestamp - timedelta(seconds=1)
-        all_candles = batch + all_candles
-        if len(batch) < batch_size:
-            break
-        time.sleep(0.15)
-
-    return all_candles
+    """Fetch hourly candles, using local cache when configured."""
+    return fetch_upbit_candles(
+        symbol,
+        days,
+        interval=INTERVAL,
+        cache_dir=os.environ.get("CT_CANDLE_CACHE_DIR"),
+    )
 
 
 # Parameter grids per strategy
@@ -148,6 +132,10 @@ STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
     "volatility_breakout": VOLATILITY_BREAKOUT_GRID,
     "kimchi_premium": KIMCHI_PREMIUM_GRID,
 }
+
+
+def _param_key(params: dict[str, float | int]) -> str:
+    return json.dumps(sorted(params.items()), separators=(",", ":"))
 
 
 def _approx_sharpe(equity_curve: list[float]) -> float:
@@ -243,7 +231,7 @@ def run_grid_for_strategy(
     strategy_config_fields = {f for f in StrategyConfig.__dataclass_fields__}
 
     for combo in combos:
-        params = dict(zip(param_names, combo))
+        params = dict(zip(param_names, combo, strict=True))
         config_kwargs = {k: v for k, v in params.items() if k in strategy_config_fields}
 
         strategy_config = StrategyConfig(**config_kwargs)
@@ -290,25 +278,68 @@ def run_grid_for_strategy(
     return results
 
 
+def summarize_param_sets(results: list[GridResult]) -> list[ParamSetSummary]:
+    """Aggregate grid results into averaged param-set summaries across symbols."""
+    grouped: dict[str, list[GridResult]] = {}
+    for result in results:
+        grouped.setdefault(_param_key(result.params), []).append(result)
+
+    summaries: list[ParamSetSummary] = []
+    for group in grouped.values():
+        first = group[0]
+        count = len(group)
+        score = sum(
+            r.sharpe_approx * (1.0 - r.max_drawdown / 100.0)
+            for r in group
+        ) / max(1, count)
+        summaries.append(
+            ParamSetSummary(
+                strategy=first.strategy,
+                params=first.params,
+                avg_return_pct=sum(r.return_pct for r in group) / max(1, count),
+                avg_win_rate=sum(r.win_rate for r in group) / max(1, count),
+                avg_profit_factor=sum(r.profit_factor for r in group) / max(1, count),
+                avg_max_drawdown=sum(r.max_drawdown for r in group) / max(1, count),
+                avg_sharpe=sum(r.sharpe_approx for r in group) / max(1, count),
+                total_trades=sum(r.trade_count for r in group),
+                score=score,
+                symbol_count=count,
+                per_symbol={
+                    r.symbol: {
+                        "return_pct": r.return_pct,
+                        "win_rate": r.win_rate,
+                        "profit_factor": r.profit_factor,
+                        "max_drawdown": r.max_drawdown,
+                        "trade_count": r.trade_count,
+                        "sharpe_approx": r.sharpe_approx,
+                    }
+                    for r in group
+                },
+            )
+        )
+
+    return sorted(
+        summaries,
+        key=lambda summary: (
+            summary.score,
+            summary.avg_sharpe,
+            summary.avg_return_pct,
+        ),
+        reverse=True,
+    )
+
+
+def top_param_sets(results: list[GridResult], top_n: int = 3) -> list[ParamSetSummary]:
+    """Return the highest-scoring aggregated parameter sets."""
+    if top_n <= 0:
+        return []
+    return summarize_param_sets(results)[:top_n]
+
+
 def find_best_params(results: list[GridResult]) -> dict[str, float | int]:
     """Find params that maximize average Sharpe across all symbols."""
-    if not results:
-        return {}
-
-    # Group by param combo
-    param_scores: dict[str, list[float]] = {}
-    param_map: dict[str, dict[str, float | int]] = {}
-    for r in results:
-        key = str(sorted(r.params.items()))
-        if key not in param_scores:
-            param_scores[key] = []
-            param_map[key] = r.params
-        # Score = Sharpe * (1 - MDD/100) to penalize high drawdown
-        score = r.sharpe_approx * (1.0 - r.max_drawdown / 100.0)
-        param_scores[key].append(score)
-
-    best_key = max(param_scores, key=lambda k: sum(param_scores[k]) / len(param_scores[k]))
-    return param_map[best_key]
+    top_sets = top_param_sets(results, top_n=1)
+    return top_sets[0].params if top_sets else {}
 
 
 def main() -> None:
@@ -340,19 +371,32 @@ def main() -> None:
         if not results:
             continue
 
-        best_params = find_best_params(results)
+        top_candidates = top_param_sets(results, top_n=3)
+        best_params = top_candidates[0].params if top_candidates else {}
 
         print(f"\n  Best params for {strategy_type}:")
         for k, v in sorted(best_params.items()):
             print(f"    {k}: {v}")
 
+        print("\n  Top candidate sets:")
+        for idx, candidate in enumerate(top_candidates, start=1):
+            print(
+                f"    #{idx} score={candidate.score:.4f} sharpe={candidate.avg_sharpe:.2f} "
+                f"return={candidate.avg_return_pct:+.2f}% mdd={candidate.avg_max_drawdown:.2f}% "
+                f"trades={candidate.total_trades}"
+            )
+            print(f"      params={candidate.params}")
+
         # Show best results per symbol
         best_per_symbol = {}
         for r in results:
-            if str(sorted(r.params.items())) == str(sorted(best_params.items())):
+            if _param_key(r.params) == _param_key(best_params):
                 best_per_symbol[r.symbol] = r
 
-        print(f"\n  {'Symbol':<12} {'Return%':>9} {'WinRate%':>9} {'PF':>7} {'MDD%':>7} {'Sharpe':>8} {'Trades':>7}")
+        print(
+            f"\n  {'Symbol':<12} {'Return%':>9} {'WinRate%':>9} "
+            f"{'PF':>7} {'MDD%':>7} {'Sharpe':>8} {'Trades':>7}"
+        )
         print(f"  {'-'*63}")
         for symbol in SYMBOLS:
             if symbol in best_per_symbol:
@@ -363,8 +407,12 @@ def main() -> None:
                     f"{pf:>7} {r.max_drawdown:>6.2f}% {r.sharpe_approx:>7.2f} {r.trade_count:>7}"
                 )
 
-        avg_return = sum(r.return_pct for r in best_per_symbol.values()) / max(1, len(best_per_symbol))
-        avg_sharpe = sum(r.sharpe_approx for r in best_per_symbol.values()) / max(1, len(best_per_symbol))
+        avg_return = sum(r.return_pct for r in best_per_symbol.values()) / max(
+            1, len(best_per_symbol)
+        )
+        avg_sharpe = sum(r.sharpe_approx for r in best_per_symbol.values()) / max(
+            1, len(best_per_symbol)
+        )
         print(f"\n  Avg Return: {avg_return:+.2f}%  Avg Sharpe: {avg_sharpe:.2f}")
 
     print(f"\n{'='*80}")
