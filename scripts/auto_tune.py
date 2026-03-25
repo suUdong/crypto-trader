@@ -48,6 +48,8 @@ RISK_GRID = {
     "stop_loss_pct": [0.02, 0.03, 0.04],
     "take_profit_pct": [0.04, 0.06, 0.08, 0.10],
     "risk_per_trade_pct": [0.005, 0.01, 0.015],
+    "trailing_stop_pct": [0.0, 0.02, 0.04],
+    "atr_stop_multiplier": [0.0, 2.0, 3.0],
 }
 
 
@@ -102,7 +104,11 @@ def _run_single_backtest(
         stop_loss_pct=sl,
         take_profit_pct=tp,
     )
-    risk_manager = RiskManager(risk_config)
+    risk_manager = RiskManager(
+        risk_config,
+        trailing_stop_pct=float(risk_params.get("trailing_stop_pct", 0.0)),
+        atr_stop_multiplier=float(risk_params.get("atr_stop_multiplier", 0.0)),
+    )
     engine = BacktestEngine(
         strategy=strategy,
         risk_manager=risk_manager,

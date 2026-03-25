@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from crypto_trader.config import BacktestConfig
+from crypto_trader.config import BacktestConfig, RegimeConfig
 from crypto_trader.models import BacktestResult, Candle, Position, Signal, SignalAction, TradeRecord
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.indicators import average_true_range
+from crypto_trader.strategy.regime import MarketRegime, RegimeDetector
 
 
 class _StrategyProtocol(Protocol):
@@ -13,17 +14,26 @@ class _StrategyProtocol(Protocol):
 
 
 class BacktestEngine:
+    REGIME_SIZE_MULT = {
+        MarketRegime.BULL: 1.2,
+        MarketRegime.SIDEWAYS: 1.0,
+        MarketRegime.BEAR: 0.6,
+    }
+
     def __init__(
         self,
         strategy: _StrategyProtocol,
         risk_manager: RiskManager,
         config: BacktestConfig,
         symbol: str,
+        regime_aware: bool = False,
     ) -> None:
         self._strategy = strategy
         self._risk_manager = risk_manager
         self._config = config
         self._symbol = symbol
+        self._regime_aware = regime_aware
+        self._regime_detector = RegimeDetector(RegimeConfig()) if regime_aware else None
 
     def run(self, candles: list[Candle]) -> BacktestResult:
         cash = self._config.initial_capital
@@ -98,7 +108,11 @@ class BacktestEngine:
                 )
                 if can_open and signal.action is SignalAction.BUY:
                     fill_price = market_price * (1.0 + self._config.slippage_pct)
-                    quantity = self._risk_manager.size_position(cash, fill_price)
+                    regime_mult = 1.0
+                    if self._regime_aware and self._regime_detector is not None and index >= 31:
+                        regime = self._regime_detector.detect(window)
+                        regime_mult = self.REGIME_SIZE_MULT.get(regime, 1.0)
+                    quantity = self._risk_manager.size_position(cash, fill_price, regime_mult)
                     if quantity > 0:
                         gross = quantity * fill_price
                         fee = gross * self._config.fee_rate
