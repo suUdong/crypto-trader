@@ -8,10 +8,12 @@
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | momentum | 2 | 1.53 | 1.89 | +0.99% | 2.44% | 103 |
 
-## Selected Strategy
+## Validation Decision
 
-- Strategy: `momentum`
+- Top candidate strategy: `momentum`
 - Selection basis: highest aggregate out-of-sample Sharpe (`1.89`)
+- Gate status: `PASS`
+- Gate thresholds: `avg_test_sharpe > 0.00`, `avg_test_return_pct > +0.00%`, `total_test_trades >= 20`
 - Latest deployment fold: `#2`
 - Latest fold test return: `+0.65%`
 - Latest fold tuned params: `{'momentum_lookback': 15, 'momentum_entry_threshold': 0.008, 'rsi_period': 18, 'rsi_overbought': 65.0, 'max_holding_bars': 36}`

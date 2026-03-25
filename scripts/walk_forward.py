@@ -198,6 +198,30 @@ def select_validated_strategy(
     )
 
 
+def validation_gate_status(
+    aggregate: dict[str, float | int],
+    min_test_sharpe: float,
+    min_test_return_pct: float,
+    min_total_trades: int,
+) -> tuple[bool, list[str]]:
+    """Check whether a walk-forward aggregate is strong enough to deploy."""
+    reasons: list[str] = []
+    if float(aggregate["avg_test_sharpe"]) <= min_test_sharpe:
+        reasons.append(
+            f"avg_test_sharpe {float(aggregate['avg_test_sharpe']):.2f} <= {min_test_sharpe:.2f}"
+        )
+    if float(aggregate["avg_test_return_pct"]) <= min_test_return_pct:
+        reasons.append(
+            f"avg_test_return_pct {float(aggregate['avg_test_return_pct']):+.2f}% <= "
+            f"{min_test_return_pct:+.2f}%"
+        )
+    if int(aggregate["total_test_trades"]) < min_total_trades:
+        reasons.append(
+            f"total_test_trades {int(aggregate['total_test_trades'])} < {min_total_trades}"
+        )
+    return len(reasons) == 0, reasons
+
+
 def write_walk_forward_markdown(
     output_path: str,
     folds_by_strategy: dict[str, list[FoldResult]],
@@ -205,6 +229,8 @@ def write_walk_forward_markdown(
     train_days: int,
     test_days: int,
     selection: tuple[str, FoldResult, dict[str, float | int]] | None,
+    gate_result: tuple[bool, list[str]] | None,
+    gate_thresholds: tuple[float, float, int],
 ) -> None:
     lines = [
         "# Walk-Forward Validation Results",
@@ -232,22 +258,39 @@ def write_walk_forward_markdown(
 
     if selection is not None:
         strategy, latest_fold, aggregate = selection
+        gate_passed = gate_result[0] if gate_result is not None else False
         lines.extend(
             [
                 "",
-                "## Selected Strategy",
+                "## Validation Decision",
                 "",
-                f"- Strategy: `{strategy}`",
+                f"- Top candidate strategy: `{strategy}`",
                 (
                     "- Selection basis: highest aggregate out-of-sample Sharpe "
                     f"(`{float(aggregate['avg_test_sharpe']):.2f}`)"
                 ),
-                f"- Latest deployment fold: `#{latest_fold.fold_index}`",
-                f"- Latest fold test return: `{latest_fold.test_return_pct:+.2f}%`",
-                f"- Latest fold tuned params: `{latest_fold.tuned_params}`",
-                f"- Latest fold tuned risk: `{latest_fold.tuned_risk_params}`",
+                f"- Gate status: `{'PASS' if gate_passed else 'FAIL'}`",
+                (
+                    "- Gate thresholds: "
+                    f"`avg_test_sharpe > {gate_thresholds[0]:.2f}`, "
+                    f"`avg_test_return_pct > {gate_thresholds[1]:+.2f}%`, "
+                    f"`total_test_trades >= {gate_thresholds[2]}`"
+                ),
             ]
         )
+        if gate_result is not None and gate_result[1]:
+            lines.append(f"- Gate reasons: `{'; '.join(gate_result[1])}`")
+        if gate_passed:
+            lines.extend(
+                [
+                    f"- Latest deployment fold: `#{latest_fold.fold_index}`",
+                    f"- Latest fold test return: `{latest_fold.test_return_pct:+.2f}%`",
+                    f"- Latest fold tuned params: `{latest_fold.tuned_params}`",
+                    f"- Latest fold tuned risk: `{latest_fold.tuned_risk_params}`",
+                ]
+            )
+        else:
+            lines.append("- Validated config output: `skipped`")
 
     lines.append("")
     lines.append("## Fold Detail")
@@ -274,8 +317,12 @@ def write_validated_config(
     output_path: str,
     selection: tuple[str, FoldResult, dict[str, float | int]] | None,
     base_toml: str,
+    gate_passed: bool,
 ) -> None:
     if selection is None:
+        return
+    if not gate_passed:
+        print("Validated config not written because the validation gate failed.")
         return
 
     strategy, latest_fold, aggregate = selection
@@ -311,6 +358,14 @@ def main() -> None:
         default="config/validated.toml",
     )
     parser.add_argument("--base-toml", dest="base_toml", default="config/optimized.toml")
+    parser.add_argument("--min-test-sharpe", dest="min_test_sharpe", type=float, default=0.0)
+    parser.add_argument(
+        "--min-test-return-pct",
+        dest="min_test_return_pct",
+        type=float,
+        default=0.0,
+    )
+    parser.add_argument("--min-total-trades", dest="min_total_trades", type=int, default=20)
     parser.add_argument("--cache-dir", dest="cache_dir")
     parser.add_argument(
         "--strategies",
@@ -400,11 +455,21 @@ def main() -> None:
         )
 
     selection = select_validated_strategy(folds_by_strategy)
+    gate_result: tuple[bool, list[str]] | None = None
     if selection is not None:
+        gate_result = validation_gate_status(
+            selection[2],
+            args.min_test_sharpe,
+            args.min_test_return_pct,
+            args.min_total_trades,
+        )
         print(
-            f"\nSelected strategy for validated config: {selection[0]} "
+            f"\nTop candidate strategy: {selection[0]} "
             f"(avg_test_sharpe={float(selection[2]['avg_test_sharpe']):.2f})"
         )
+        print(f"Validation gate: {'PASS' if gate_result[0] else 'FAIL'}")
+        if gate_result[1]:
+            print(f"Gate reasons: {'; '.join(gate_result[1])}")
 
     write_walk_forward_json(
         args.json_out,
@@ -421,11 +486,14 @@ def main() -> None:
         args.train_days,
         args.test_days,
         selection,
+        gate_result,
+        (args.min_test_sharpe, args.min_test_return_pct, args.min_total_trades),
     )
     write_validated_config(
         args.validated_config_out,
         selection,
         args.base_toml,
+        gate_result[0] if gate_result is not None else False,
     )
 
 

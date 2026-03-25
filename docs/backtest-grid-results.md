@@ -183,6 +183,8 @@ PYTHONPATH=src .venv/bin/python scripts/walk_forward.py 120 --train-days 60 --te
 Smoke result on the current 90-day cache for `momentum` only:
 
 - Command: `PYTHONPATH=src .venv/bin/python scripts/walk_forward.py 90 --train-days 60 --test-days 15 --top-n 2 --strategies momentum --cache-dir artifacts/candle-cache --json-out artifacts/walk-forward-smoke.json --report-out docs/walk-forward-results.md --validated-config-out config/validated.toml --base-toml config/optimized.toml`
+- Validation gate defaults: `avg_test_sharpe > 0`, `avg_test_return_pct > 0`, `total_test_trades >= 20`
+- Gate status: `PASS`
 - Folds: `2`
 - Avg train Sharpe: `1.53`
 - Avg test Sharpe: `1.89`

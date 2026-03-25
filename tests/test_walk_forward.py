@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from crypto_trader.models import Candle
 from scripts.walk_forward import (
@@ -9,6 +11,9 @@ from scripts.walk_forward import (
     aggregate_fold_results,
     build_walk_forward_windows,
     select_validated_strategy,
+    validation_gate_status,
+    write_validated_config,
+    write_walk_forward_markdown,
 )
 
 
@@ -154,6 +159,112 @@ class WalkForwardTests(unittest.TestCase):
         assert selection is not None
         self.assertEqual(selection[0], "momentum")
         self.assertEqual(selection[1].tuned_params, {"x": 1})
+
+    def test_validation_gate_status_returns_fail_reasons(self) -> None:
+        passed, reasons = validation_gate_status(
+            {
+                "avg_test_sharpe": -0.1,
+                "avg_test_return_pct": -0.5,
+                "total_test_trades": 5,
+            },
+            min_test_sharpe=0.0,
+            min_test_return_pct=0.0,
+            min_total_trades=20,
+        )
+
+        self.assertFalse(passed)
+        self.assertEqual(len(reasons), 3)
+
+    def test_write_validated_config_skips_output_on_gate_fail(self) -> None:
+        fold = FoldResult(
+            fold_index=1,
+            strategy="momentum",
+            train_start="a",
+            train_end="b",
+            test_start="c",
+            test_end="d",
+            tuned_params={"x": 1},
+            tuned_risk_params={"y": 1.0},
+            train_sharpe=1.0,
+            train_return_pct=1.0,
+            train_mdd_pct=1.0,
+            test_sharpe=0.1,
+            test_return_pct=0.1,
+            test_mdd_pct=1.0,
+            test_win_rate=50.0,
+            test_profit_factor=1.2,
+            test_total_trades=10,
+            candidate_rank=1,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "validated.toml"
+            base_path = Path(tmpdir) / "base.toml"
+            base_path.write_text("[trading]\nexchange = \"upbit\"\n", encoding="utf-8")
+            write_validated_config(
+                str(output_path),
+                (
+                    "momentum",
+                    fold,
+                    {
+                        "avg_test_sharpe": 0.1,
+                        "avg_test_return_pct": 0.1,
+                        "total_test_trades": 10,
+                    },
+                ),
+                str(base_path),
+                gate_passed=False,
+            )
+            self.assertFalse(output_path.exists())
+
+    def test_write_walk_forward_markdown_reports_fail_state(self) -> None:
+        fold = FoldResult(
+            fold_index=1,
+            strategy="momentum",
+            train_start="a",
+            train_end="b",
+            test_start="c",
+            test_end="d",
+            tuned_params={"x": 1},
+            tuned_risk_params={"y": 1.0},
+            train_sharpe=1.0,
+            train_return_pct=1.0,
+            train_mdd_pct=1.0,
+            test_sharpe=-0.1,
+            test_return_pct=-0.2,
+            test_mdd_pct=1.0,
+            test_win_rate=50.0,
+            test_profit_factor=1.2,
+            test_total_trades=10,
+            candidate_rank=1,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            write_walk_forward_markdown(
+                str(report_path),
+                {"momentum": [fold]},
+                90,
+                60,
+                15,
+                (
+                    "momentum",
+                    fold,
+                    {
+                        "avg_test_sharpe": -0.1,
+                        "avg_test_return_pct": -0.2,
+                        "total_test_trades": 10,
+                    },
+                ),
+                (False, ["avg_test_sharpe -0.10 <= 0.00"]),
+                (0.0, 0.0, 20),
+            )
+            text = report_path.read_text(encoding="utf-8")
+
+        self.assertIn("## Validation Decision", text)
+        self.assertIn("Gate status: `FAIL`", text)
+        self.assertIn("Validated config output: `skipped`", text)
+        self.assertIn("Gate thresholds:", text)
 
 
 if __name__ == "__main__":
