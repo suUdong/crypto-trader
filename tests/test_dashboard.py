@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,7 +10,7 @@ from unittest.mock import patch
 
 try:
     from dashboard import data as data_mod
-    from dashboard.auth import DEFAULT_TOKEN, check_auth
+    from dashboard.auth import check_auth
     _HAS_STREAMLIT = True
 except ImportError:
     _HAS_STREAMLIT = False
@@ -112,7 +111,10 @@ class TestDataLoaders(unittest.TestCase):
 
     def test_load_daemon_heartbeat(self) -> None:
         path = Path(self.tmpdir) / "daemon-heartbeat.json"
-        hb = {"last_heartbeat": "2026-03-25T12:00:00+00:00", "pid": 1234, "iteration": 5, "uptime_seconds": 300.0}
+        hb = {
+            "last_heartbeat": "2026-03-25T12:00:00+00:00",
+            "pid": 1234, "iteration": 5, "uptime_seconds": 300.0,
+        }
         path.write_text(json.dumps(hb))
         result = data_mod.load_daemon_heartbeat()
         self.assertEqual(result["pid"], 1234)

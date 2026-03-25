@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from crypto_trader.execution.paper import PaperBroker
@@ -33,7 +33,7 @@ class HealthMonitor:
             self._consecutive_failures += 1
 
         snapshot = HealthSnapshot(
-            updated_at=datetime.now(timezone.utc).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
             success=result.error is None,
             consecutive_failures=self._consecutive_failures,
             last_error=result.error,

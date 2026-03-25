@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from crypto_trader.models import (
@@ -65,7 +65,7 @@ Reasons:
 {memo}
 """
         return OperatorReport(
-            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_at=datetime.now(UTC).isoformat(),
             symbol=baseline.symbol,
             market_regime=regime_report.market_regime,
             drift_status=drift_report.status.value,

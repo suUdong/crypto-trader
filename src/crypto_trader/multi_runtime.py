@@ -5,7 +5,7 @@ import logging
 import os
 import signal
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -116,7 +116,7 @@ class MultiSymbolRuntime:
             }
 
         checkpoint = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "iteration": self._iteration + 1,
             "symbols": self._config.trading.symbols,
             "wallet_states": wallet_states,
@@ -126,7 +126,7 @@ class MultiSymbolRuntime:
 
     def _save_heartbeat(self, artifacts_dir: Path) -> None:
         heartbeat = {
-            "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+            "last_heartbeat": datetime.now(UTC).isoformat(),
             "pid": os.getpid(),
             "iteration": self._iteration + 1,
             "uptime_seconds": round(time.monotonic() - self._start_time, 1),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from crypto_trader.models import (
@@ -47,7 +47,7 @@ class DriftCalibrationToolkit:
             )
 
         return DriftCalibrationReport(
-            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_at=datetime.now(UTC).isoformat(),
             symbol=symbol,
             entries=entries,
         )

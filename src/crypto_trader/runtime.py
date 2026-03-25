@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from crypto_trader.models import RuntimeCheckpoint, StrategyRunRecord
 from crypto_trader.monitoring import HealthMonitor
@@ -75,7 +75,7 @@ class TradingRuntime:
             self._paper_trading_operations.sync(self._pipeline.broker, latest_prices)
             self._checkpoint_store.save(
                 RuntimeCheckpoint(
-                    generated_at=datetime.now(timezone.utc).isoformat(),
+                    generated_at=datetime.now(UTC).isoformat(),
                     iteration=iteration + 1,
                     symbol=result.symbol,
                     latest_price=result.latest_price,
