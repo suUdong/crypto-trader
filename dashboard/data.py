@@ -86,3 +86,7 @@ def load_daily_memo() -> str | None:
 
 def load_operator_report() -> str | None:
     return _load_md("operator-report.md")
+
+
+def load_daemon_heartbeat() -> dict[str, Any] | None:
+    return _load_json("daemon-heartbeat.json")

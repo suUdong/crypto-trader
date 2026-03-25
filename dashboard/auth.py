@@ -1,4 +1,9 @@
-"""URL token authentication for the dashboard."""
+"""Password-based login authentication for dashboards.
+
+Reusable across multiple dashboards (crypto-trader, y2i, etc.).
+Uses st.session_state to persist login across reruns.
+Token is checked against the DASHBOARD_TOKEN env var (default: "demo").
+"""
 
 from __future__ import annotations
 
@@ -8,38 +13,71 @@ import streamlit as st
 
 DEFAULT_TOKEN = "demo"
 
+# Session state key used to track authentication.
+_AUTH_KEY = "dashboard_authenticated"
 
-def check_auth() -> bool:
-    """Check ?token= query param against DASHBOARD_TOKEN env var.
 
-    Returns True if authenticated, False otherwise.
+def check_auth(
+    *,
+    env_var: str = "DASHBOARD_TOKEN",
+    default_token: str = DEFAULT_TOKEN,
+    session_key: str = _AUTH_KEY,
+) -> bool:
+    """Return True if the user is authenticated via session state.
+
+    On first visit, this always returns False so the login form is shown.
+    After successful login, the session flag is set and persists across reruns.
+
+    Args:
+        env_var: Environment variable holding the expected token.
+        default_token: Fallback token when env var is not set.
+        session_key: Key in st.session_state to store auth flag.
     """
-    expected = os.environ.get("DASHBOARD_TOKEN", DEFAULT_TOKEN)
-    params = st.query_params
-    provided = params.get("token", "")
-    return provided == expected
+    return bool(st.session_state.get(session_key, False))
 
 
-def render_denied() -> None:
-    """Render access denied page in Korean."""
+def render_login(
+    *,
+    env_var: str = "DASHBOARD_TOKEN",
+    default_token: str = DEFAULT_TOKEN,
+    session_key: str = _AUTH_KEY,
+) -> None:
+    """Render a password login form. Sets session_state on success.
+
+    Args:
+        env_var: Environment variable holding the expected token.
+        default_token: Fallback token when env var is not set.
+        session_key: Key in st.session_state to store auth flag.
+    """
     st.set_page_config(
-        page_title="Access Denied",
+        page_title="Login",
         page_icon="🔒",
         layout="centered",
     )
     st.markdown(
-        """
-        <div style="text-align:center; padding:4rem 1rem;">
-            <h1 style="font-size:3rem;">🔒</h1>
-            <h2>접근이 거부되었습니다</h2>
-            <p style="color:#888; font-size:1rem;">
-                URL에 유효한 토큰을 포함해 주세요.<br>
-                예: <code>?token=your_token</code>
-            </p>
-            <p style="color:#666; font-size:0.875rem; margin-top:2rem;">
-                토큰은 <code>DASHBOARD_TOKEN</code> 환경변수로 설정할 수 있습니다.
-            </p>
-        </div>
-        """,
+        '<div style="text-align:center; padding:2rem 1rem;">'
+        '<h1 style="font-size:3rem;">🔒</h1>'
+        "<h2>로그인</h2>"
+        "</div>",
         unsafe_allow_html=True,
     )
+
+    with st.form("login_form"):
+        password = st.text_input(
+            "비밀번호",
+            type="password",
+            placeholder="비밀번호를 입력하세요",
+        )
+        submitted = st.form_submit_button("로그인", use_container_width=True)
+
+    if submitted:
+        expected = os.environ.get(env_var, default_token)
+        if password == expected:
+            st.session_state[session_key] = True
+            st.rerun()
+        else:
+            st.error("비밀번호가 올바르지 않습니다.")
+
+
+# Keep render_denied as an alias for backward compatibility during transition.
+render_denied = render_login

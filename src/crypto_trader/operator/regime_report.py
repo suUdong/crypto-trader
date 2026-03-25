@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
@@ -29,7 +29,7 @@ class RegimeReportGenerator:
             analysis.long_return_pct,
         )
         return RegimeReport(
-            generated_at=datetime.now(UTC).isoformat(),
+            generated_at=datetime.now(timezone.utc).isoformat(),
             symbol=symbol,
             market_regime=analysis.regime.value,
             short_return_pct=analysis.short_return_pct,

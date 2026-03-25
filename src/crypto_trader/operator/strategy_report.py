@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from crypto_trader.wallet import StrategyWallet
@@ -13,7 +13,7 @@ class StrategyComparisonReport:
         symbols: list[str],
         latest_prices: dict[str, float],
     ) -> str:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         lines: list[str] = []
         lines.append("# Strategy Comparison Report")
         lines.append(f"\nGenerated: {now}\n")

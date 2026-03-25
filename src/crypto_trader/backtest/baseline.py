@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 
@@ -35,7 +35,7 @@ def build_baseline(
         sum(trade.pnl_pct for trade in result.trade_log) / trade_count if trade_count else 0.0
     )
     return BacktestBaseline(
-        generated_at=datetime.now(UTC).isoformat(),
+        generated_at=datetime.now(timezone.utc).isoformat(),
         symbol=config.trading.symbol,
         interval=config.trading.interval,
         candle_count=config.trading.candle_count,

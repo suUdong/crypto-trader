@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from crypto_trader.config import DriftConfig
@@ -22,7 +22,7 @@ class DriftReportGenerator:
     ) -> DriftReport:
         if not recent_runs:
             return DriftReport(
-                generated_at=datetime.now(UTC).isoformat(),
+                generated_at=datetime.now(timezone.utc).isoformat(),
                 symbol=symbol,
                 status=DriftStatus.INSUFFICIENT_DATA,
                 reasons=["no paper runs recorded yet"],
@@ -78,7 +78,7 @@ class DriftReportGenerator:
             status = DriftStatus.CAUTION
 
         return DriftReport(
-            generated_at=datetime.now(UTC).isoformat(),
+            generated_at=datetime.now(timezone.utc).isoformat(),
             symbol=symbol,
             status=status,
             reasons=reasons,

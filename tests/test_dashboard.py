@@ -110,6 +110,14 @@ class TestDataLoaders(unittest.TestCase):
         result = data_mod.load_strategy_runs()
         self.assertEqual(len(result), 1)
 
+    def test_load_daemon_heartbeat(self) -> None:
+        path = Path(self.tmpdir) / "daemon-heartbeat.json"
+        hb = {"last_heartbeat": "2026-03-25T12:00:00+00:00", "pid": 1234, "iteration": 5, "uptime_seconds": 300.0}
+        path.write_text(json.dumps(hb))
+        result = data_mod.load_daemon_heartbeat()
+        self.assertEqual(result["pid"], 1234)
+        self.assertEqual(result["iteration"], 5)
+
     def test_all_loaders_return_none_when_empty(self) -> None:
         """All JSON loaders return None for missing files."""
         self.assertIsNone(data_mod.load_checkpoint())
@@ -122,48 +130,38 @@ class TestDataLoaders(unittest.TestCase):
         self.assertIsNone(data_mod.load_daily_performance())
         self.assertIsNone(data_mod.load_daily_memo())
         self.assertIsNone(data_mod.load_operator_report())
+        self.assertIsNone(data_mod.load_daemon_heartbeat())
         self.assertEqual(data_mod.load_strategy_runs(), [])
 
 
 @_skip
 class TestAuth(unittest.TestCase):
-    """Test URL token authentication."""
+    """Test session-based password authentication."""
 
     @patch("dashboard.auth.st")
-    def test_auth_default_token(self, mock_st: object) -> None:
-        mock_st.query_params = {"token": DEFAULT_TOKEN}
-        os.environ.pop("DASHBOARD_TOKEN", None)
+    def test_auth_not_authenticated_by_default(self, mock_st: object) -> None:
+        mock_st.session_state = {}
+        self.assertFalse(check_auth())
+
+    @patch("dashboard.auth.st")
+    def test_auth_authenticated_when_session_flag_set(self, mock_st: object) -> None:
+        mock_st.session_state = {"dashboard_authenticated": True}
         self.assertTrue(check_auth())
 
     @patch("dashboard.auth.st")
-    def test_auth_missing_token(self, mock_st: object) -> None:
-        mock_st.query_params = {}
-        os.environ.pop("DASHBOARD_TOKEN", None)
+    def test_auth_false_when_session_flag_false(self, mock_st: object) -> None:
+        mock_st.session_state = {"dashboard_authenticated": False}
         self.assertFalse(check_auth())
 
     @patch("dashboard.auth.st")
-    def test_auth_wrong_token(self, mock_st: object) -> None:
-        mock_st.query_params = {"token": "wrong"}
-        os.environ.pop("DASHBOARD_TOKEN", None)
-        self.assertFalse(check_auth())
+    def test_auth_custom_session_key(self, mock_st: object) -> None:
+        mock_st.session_state = {"y2i_auth": True}
+        self.assertTrue(check_auth(session_key="y2i_auth"))
 
     @patch("dashboard.auth.st")
-    def test_auth_custom_env_token(self, mock_st: object) -> None:
-        mock_st.query_params = {"token": "my_secret"}
-        os.environ["DASHBOARD_TOKEN"] = "my_secret"
-        try:
-            self.assertTrue(check_auth())
-        finally:
-            del os.environ["DASHBOARD_TOKEN"]
-
-    @patch("dashboard.auth.st")
-    def test_auth_custom_env_wrong(self, mock_st: object) -> None:
-        mock_st.query_params = {"token": "demo"}
-        os.environ["DASHBOARD_TOKEN"] = "my_secret"
-        try:
-            self.assertFalse(check_auth())
-        finally:
-            del os.environ["DASHBOARD_TOKEN"]
+    def test_auth_custom_session_key_missing(self, mock_st: object) -> None:
+        mock_st.session_state = {}
+        self.assertFalse(check_auth(session_key="y2i_auth"))
 
 
 if __name__ == "__main__":

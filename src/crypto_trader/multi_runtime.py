@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import signal
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,7 @@ class MultiSymbolRuntime:
         self._logger = logging.getLogger(__name__)
         self._shutdown_requested = False
         self._iteration = 0
+        self._start_time = time.monotonic()
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -114,9 +116,21 @@ class MultiSymbolRuntime:
             }
 
         checkpoint = {
-            "generated_at": datetime.now(UTC).isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "iteration": self._iteration + 1,
             "symbols": self._config.trading.symbols,
             "wallet_states": wallet_states,
         }
         checkpoint_path.write_text(json.dumps(checkpoint, indent=2), encoding="utf-8")
+        self._save_heartbeat(checkpoint_path.parent)
+
+    def _save_heartbeat(self, artifacts_dir: Path) -> None:
+        heartbeat = {
+            "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+            "pid": os.getpid(),
+            "iteration": self._iteration + 1,
+            "uptime_seconds": round(time.monotonic() - self._start_time, 1),
+            "poll_interval_seconds": self._config.runtime.poll_interval_seconds,
+        }
+        heartbeat_path = artifacts_dir / "daemon-heartbeat.json"
+        heartbeat_path.write_text(json.dumps(heartbeat, indent=2), encoding="utf-8")

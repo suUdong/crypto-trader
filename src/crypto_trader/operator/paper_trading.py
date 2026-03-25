@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from crypto_trader.execution.paper import PaperBroker
@@ -104,7 +104,7 @@ def build_position_snapshot(
             )
         )
     return PositionSnapshot(
-        generated_at=datetime.now(UTC).isoformat(),
+        generated_at=datetime.now(timezone.utc).isoformat(),
         positions=positions,
         open_position_count=len(positions),
         mark_to_market_equity=broker.equity(latest_prices),
@@ -124,7 +124,7 @@ def build_daily_performance_report(
     starting_equity = broker.cash - broker.realized_pnl
     realized_return_pct = broker.realized_pnl / max(1.0, starting_equity)
     return DailyPerformanceReport(
-        generated_at=datetime.now(UTC).isoformat(),
+        generated_at=datetime.now(timezone.utc).isoformat(),
         trade_count=trade_count,
         winning_trade_count=winning_trade_count,
         losing_trade_count=losing_trade_count,

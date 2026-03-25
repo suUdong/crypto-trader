@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
-import plotly.graph_objects as go
-import streamlit as st
+# Ensure the repo root is on sys.path so that 'dashboard' resolves as a package
+# when Streamlit Cloud runs this file directly (streamlit run dashboard/app.py).
+_repo_root = str(Path(__file__).resolve().parent.parent)
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
 
-from dashboard.auth import check_auth, render_denied
-from dashboard.data import (
+import plotly.graph_objects as go  # noqa: E402
+import streamlit as st  # noqa: E402
+
+from dashboard.auth import check_auth, render_login  # noqa: E402
+from dashboard.data import (  # noqa: E402
     load_backtest_baseline,
     load_checkpoint,
+    load_daemon_heartbeat,
     load_daily_memo,
     load_daily_performance,
     load_drift_report,
@@ -20,11 +29,11 @@ from dashboard.data import (
     load_regime_report,
     load_strategy_runs,
 )
-from dashboard.styles import inject_css
+from dashboard.styles import inject_css  # noqa: E402
 
 # ── Auth Gate ──────────────────────────────────────────────
 if not check_auth():
-    render_denied()
+    render_login()
     st.stop()
 
 # ── Page Config ────────────────────────────────────────────
@@ -48,6 +57,42 @@ tab_trading, tab_wallets, tab_signals, tab_regime, tab_operator, tab_perf = st.t
 # Tab 1: Paper Trading Overview
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_trading:
+    # Daemon heartbeat status
+    heartbeat = load_daemon_heartbeat()
+    if heartbeat is None:
+        st.markdown(
+            '<span class="status-badge status-fail">DAEMON OFF</span> '
+            "하트비트 데이터 없음",
+            unsafe_allow_html=True,
+        )
+    else:
+        hb_time_str = heartbeat.get("last_heartbeat", "")
+        poll_interval = heartbeat.get("poll_interval_seconds", 60)
+        stale_threshold = poll_interval * 2
+        try:
+            hb_time = datetime.fromisoformat(hb_time_str)
+            age_seconds = (datetime.now(timezone.utc) - hb_time).total_seconds()
+        except (ValueError, TypeError):
+            age_seconds = float("inf")
+
+        if age_seconds <= stale_threshold:
+            badge_cls, badge_text = "status-ok", "DAEMON ALIVE"
+        else:
+            badge_cls, badge_text = "status-fail", "DAEMON STALE"
+
+        uptime = heartbeat.get("uptime_seconds", 0)
+        uptime_min = int(uptime // 60)
+        pid = heartbeat.get("pid", "?")
+        iteration = heartbeat.get("iteration", 0)
+        st.markdown(
+            f'<span class="status-badge {badge_cls}">{badge_text}</span> '
+            f"PID {pid} · 반복 #{iteration} · 가동 {uptime_min}분 · "
+            f"마지막 {int(age_seconds)}초 전",
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
+
     checkpoint = load_checkpoint()
     health = load_health()
     positions = load_positions()
@@ -386,5 +431,5 @@ with tab_perf:
 
 # ── Footer ─────────────────────────────────────────────────
 st.divider()
-now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 st.caption(f"마지막 새로고침: {now}")
