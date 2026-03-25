@@ -5,6 +5,7 @@ from typing import Protocol
 from crypto_trader.config import BacktestConfig
 from crypto_trader.models import BacktestResult, Candle, Position, Signal, SignalAction, TradeRecord
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.strategy.indicators import average_true_range
 
 
 class _StrategyProtocol(Protocol):
@@ -35,6 +36,17 @@ class BacktestEngine:
             window = candles[: index + 1]
             current = window[-1]
             market_price = current.close
+
+            # Update ATR for dynamic stops (need at least 15 bars)
+            if index >= 15:
+                highs = [c.high for c in candles[:index + 1]]
+                lows = [c.low for c in candles[:index + 1]]
+                closes_for_atr = [c.close for c in candles[:index + 1]]
+                try:
+                    atr = average_true_range(highs, lows, closes_for_atr, 14)
+                    self._risk_manager.set_atr(atr)
+                except ValueError:
+                    pass
 
             if open_position is not None:
                 exit_reason = self._risk_manager.exit_reason(open_position, market_price)

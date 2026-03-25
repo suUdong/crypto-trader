@@ -42,7 +42,9 @@ class MultiSymbolRuntime:
         self._kill_switch_path = Path(
             getattr(config.runtime, "kill_switch_path", "artifacts/kill-switch.json")
         )
-        self._kill_switch.load(self._kill_switch_path)
+        if kill_switch is None and not config.trading.paper_trading:
+            # Only auto-load kill switch state for live trading
+            self._kill_switch.load(self._kill_switch_path)
         self._total_starting_equity = sum(w.session_starting_equity for w in wallets)
         self._prev_trade_count: dict[str, int] = {w.name: len(w.broker.closed_trades) for w in wallets}
         self._regime_detector = RegimeDetector(RegimeConfig(

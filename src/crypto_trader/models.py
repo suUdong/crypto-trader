@@ -63,6 +63,15 @@ class Position:
     entry_time: datetime
     entry_index: int | None = None
     entry_fee_paid: float = 0.0
+    high_watermark: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.high_watermark <= 0:
+            self.high_watermark = self.entry_price
+
+    def update_watermark(self, price: float) -> None:
+        if price > self.high_watermark:
+            self.high_watermark = price
 
 
 @dataclass(slots=True)
