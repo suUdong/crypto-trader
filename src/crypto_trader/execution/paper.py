@@ -41,6 +41,7 @@ class PaperBroker:
                 quantity=request.quantity,
                 entry_price=fill_price,
                 entry_time=request.requested_at,
+                entry_index=self._sequence,
                 entry_fee_paid=fee,
             )
             return OrderResult(

@@ -21,6 +21,7 @@ from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.obi import OBIStrategy
+from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.strategy.vpin import VPINStrategy
 
 
@@ -43,6 +44,8 @@ def create_strategy(
         return OBIStrategy(strategy_config)
     if strategy_type == "vpin":
         return VPINStrategy(strategy_config)
+    if strategy_type == "volatility_breakout":
+        return VolatilityBreakoutStrategy(strategy_config)
     return CompositeStrategy(strategy_config, regime_config)
 
 
@@ -109,6 +112,11 @@ class StrategyWallet:
                         ),
                         latest_price,
                     )
+                    if order is not None and order.status == "filled" and order.side is OrderSide.SELL:
+                        entry_value = position.entry_price * position.quantity
+                        if entry_value > 0:
+                            pnl_pct = (order.fill_price - position.entry_price) / position.entry_price
+                            self.risk_manager.record_trade(pnl_pct)
 
             message = (
                 f"[{self.name}] {symbol} price={latest_price:.2f} "

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from crypto_trader.config import StrategyConfig
 from crypto_trader.data.binance_client import BinancePriceClient
 from crypto_trader.data.fx_client import FXRateClient
@@ -24,6 +26,7 @@ class KimchiPremiumStrategy:
         fx_client: FXRateClient | None = None,
         min_trade_interval_bars: int = 12,
         min_confidence: float = 0.6,
+        cooldown_hours: float = 24.0,
     ) -> None:
         self._config = config
         self._binance = binance_client or BinancePriceClient()
@@ -34,7 +37,9 @@ class KimchiPremiumStrategy:
         self._cached_premium: float | None = None
         self._min_trade_interval_bars = min_trade_interval_bars
         self._min_confidence = min_confidence
+        self._cooldown_hours = cooldown_hours
         self._last_trade_bar: int | None = None
+        self._last_trade_time: datetime | None = None
 
     def evaluate(
         self, candles: list[Candle], position: Position | None = None
@@ -61,6 +66,7 @@ class KimchiPremiumStrategy:
             context["premium_pct"] = f"{premium:.4f}"
 
         current_bar = len(candles) - 1
+        current_time = candles[-1].timestamp
 
         if position is not None:
             signal = self._evaluate_exit(
@@ -68,18 +74,17 @@ class KimchiPremiumStrategy:
             )
             if signal.action is SignalAction.SELL:
                 self._last_trade_bar = current_bar
+                self._last_trade_time = current_time
             return signal
 
-        if self._last_trade_bar is not None:
-            bars_since = current_bar - self._last_trade_bar
-            if bars_since < self._min_trade_interval_bars:
-                return Signal(
-                    action=SignalAction.HOLD,
-                    reason="cooldown_active",
-                    confidence=0.0,
-                    indicators=indicators,
-                    context=context,
-                )
+        if self._is_cooldown_active(current_bar, current_time):
+            return Signal(
+                action=SignalAction.HOLD,
+                reason="cooldown_active",
+                confidence=0.0,
+                indicators=indicators,
+                context=context,
+            )
 
         signal = self._evaluate_entry(premium, rsi_value, indicators, context)
         if signal.action is SignalAction.BUY:
@@ -92,7 +97,21 @@ class KimchiPremiumStrategy:
                     context=context,
                 )
             self._last_trade_bar = current_bar
+            self._last_trade_time = current_time
         return signal
+
+    def _is_cooldown_active(self, current_bar: int, current_time: datetime) -> bool:
+        """Check cooldown using both bar-based and time-based logic."""
+        if self._last_trade_time is not None:
+            elapsed = (current_time - self._last_trade_time).total_seconds() / 3600.0
+            if elapsed < self._cooldown_hours:
+                return True
+            return False
+        if self._last_trade_bar is not None:
+            bars_since = current_bar - self._last_trade_bar
+            if bars_since < self._min_trade_interval_bars:
+                return True
+        return False
 
     def _evaluate_entry(
         self,
@@ -158,11 +177,12 @@ class KimchiPremiumStrategy:
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
-        holding_bars = (
-            0
-            if position.entry_index is None
-            else len(candles) - position.entry_index - 1
-        )
+        current_time = candles[-1].timestamp
+        if position.entry_index is not None:
+            holding_bars = len(candles) - position.entry_index - 1
+        else:
+            elapsed_hours = (current_time - position.entry_time).total_seconds() / 3600.0
+            holding_bars = int(elapsed_hours)
         if holding_bars >= self._config.max_holding_bars:
             return Signal(
                 action=SignalAction.SELL,

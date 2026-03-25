@@ -14,7 +14,7 @@ from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
 from crypto_trader.models import PipelineResult
-from crypto_trader.strategy.regime import RegimeDetector
+from crypto_trader.strategy.regime import RegimeDetector, WEEKEND_POSITION_MULTIPLIER, is_weekend_kst
 from crypto_trader.wallet import StrategyWallet
 
 
@@ -35,6 +35,7 @@ class MultiSymbolRuntime:
         self._macro_client: MacroClient | None = None
         self._macro_adapter = MacroRegimeAdapter()
         self._current_market_regime: str = "sideways"
+        self._is_weekend: bool = False
         self._regime_detector = RegimeDetector(RegimeConfig(
             short_lookback=config.regime.short_lookback,
             long_lookback=config.regime.long_lookback,
@@ -95,8 +96,9 @@ class MultiSymbolRuntime:
                 count=self._config.trading.candle_count,
             )
             if candle_cache[first]:
-                detected = self._regime_detector.detect(candle_cache[first])
-                self._current_market_regime = detected.value
+                analysis = self._regime_detector.analyze(candle_cache[first])
+                self._current_market_regime = analysis.regime.value
+                self._is_weekend = analysis.is_weekend
         except Exception as exc:
             self._logger.error("Failed to fetch candles for %s: %s", first, exc)
 
@@ -130,8 +132,8 @@ class MultiSymbolRuntime:
         return results
 
     def _refresh_macro(self) -> None:
+        weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
         if self._macro_client is None:
-            # Still apply regime-aware strategy weights without macro data
             self._apply_regime_weights()
             return
         snapshot = self._macro_client.get_snapshot()
@@ -140,24 +142,26 @@ class MultiSymbolRuntime:
             regime_weight = self._macro_adapter.strategy_weight(
                 wallet.strategy_type, self._current_market_regime,
             )
-            combined = adjustment.position_size_multiplier * regime_weight
+            combined = adjustment.position_size_multiplier * regime_weight * weekend_mult
             wallet.set_macro_multiplier(combined)
         if snapshot is not None:
             self._logger.info(
-                "Macro regime=%s confidence=%.0f%% multiplier=%.2f market_regime=%s",
+                "Macro regime=%s confidence=%.0f%% multiplier=%.2f market_regime=%s weekend=%s",
                 snapshot.overall_regime,
                 snapshot.overall_confidence * 100,
                 adjustment.position_size_multiplier,
                 self._current_market_regime,
+                self._is_weekend,
             )
 
     def _apply_regime_weights(self) -> None:
         """Apply regime-aware strategy weights without macro data."""
+        weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
         for wallet in self._wallets:
             regime_weight = self._macro_adapter.strategy_weight(
                 wallet.strategy_type, self._current_market_regime,
             )
-            wallet.set_macro_multiplier(regime_weight)
+            wallet.set_macro_multiplier(regime_weight * weekend_mult)
 
     def _save_checkpoint(self, results: list[PipelineResult]) -> None:
         checkpoint_path = Path(self._config.runtime.runtime_checkpoint_path)

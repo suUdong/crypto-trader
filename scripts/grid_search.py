@@ -12,6 +12,8 @@ sys.path.insert(0, "src")
 
 import pyupbit  # noqa: E402
 
+from unittest.mock import MagicMock  # noqa: E402
+
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
 from crypto_trader.config import (  # noqa: E402
     BacktestConfig,
@@ -21,6 +23,8 @@ from crypto_trader.config import (  # noqa: E402
 )
 from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
+from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy  # noqa: E402
+from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy  # noqa: E402
 from crypto_trader.wallet import create_strategy  # noqa: E402
 
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
@@ -109,11 +113,29 @@ OBI_GRID = {
     "max_holding_bars": [36, 48],
 }
 
+VOLATILITY_BREAKOUT_GRID = {
+    "k_base": [0.3, 0.5, 0.7],
+    "noise_lookback": [10, 15, 20],
+    "ma_filter_period": [10, 15, 20],
+    "max_holding_bars": [24, 36, 48],
+}
+
+KIMCHI_PREMIUM_GRID = {
+    "rsi_period": [10, 14, 18],
+    "rsi_recovery_ceiling": [50.0, 60.0, 70.0],
+    "rsi_overbought": [65.0, 70.0, 75.0],
+    "max_holding_bars": [24, 36, 48],
+    "min_trade_interval_bars": [6, 12, 18],
+    "min_confidence": [0.4, 0.6, 0.8],
+}
+
 STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
     "mean_reversion": MEAN_REVERSION_GRID,
     "momentum": MOMENTUM_GRID,
     "vpin": VPIN_GRID,
     "obi": OBI_GRID,
+    "volatility_breakout": VOLATILITY_BREAKOUT_GRID,
+    "kimchi_premium": KIMCHI_PREMIUM_GRID,
 }
 
 
@@ -136,6 +158,61 @@ def _approx_sharpe(equity_curve: list[float]) -> float:
     return (mean_r / std_r) * (8760**0.5)
 
 
+def _create_strategy_for_grid(
+    strategy_type: str,
+    params: dict[str, float | int],
+    strategy_config: StrategyConfig,
+    regime_config: RegimeConfig,
+):
+    """Create strategy instance handling strategy-specific constructor params."""
+    if strategy_type == "volatility_breakout":
+        return VolatilityBreakoutStrategy(
+            strategy_config,
+            k_base=float(params.get("k_base", 0.5)),
+            noise_lookback=int(params.get("noise_lookback", 20)),
+            ma_filter_period=int(params.get("ma_filter_period", 20)),
+            max_holding_bars=int(params.get("max_holding_bars", strategy_config.max_holding_bars)),
+        )
+    if strategy_type == "kimchi_premium":
+        # Simulate premium using MA deviation as proxy for backtest
+        mock_binance = MagicMock()
+        mock_fx = MagicMock()
+        # Set up premium simulation: we'll update per-symbol before each run
+        mock_binance.get_btc_usdt_price.return_value = None
+        mock_fx.get_usd_krw_rate.return_value = None
+        return KimchiPremiumStrategy(
+            strategy_config,
+            binance_client=mock_binance,
+            fx_client=mock_fx,
+            min_trade_interval_bars=int(params.get("min_trade_interval_bars", 12)),
+            min_confidence=float(params.get("min_confidence", 0.6)),
+            cooldown_hours=float(params.get("cooldown_hours", 24.0)),
+        )
+    return create_strategy(strategy_type, strategy_config, regime_config)
+
+
+def _setup_kimchi_premium_mock(strategy: KimchiPremiumStrategy, candles: list[Candle]) -> None:
+    """Configure mock premium using MA-deviation as proxy.
+
+    Simulates premium as deviation of current price from 50-period MA,
+    scaled to typical kimchi premium range (-3% to +10%).
+    """
+    if len(candles) < 50:
+        return
+    closes = [c.close for c in candles]
+    ma50 = sum(closes[-50:]) / 50.0
+    if ma50 <= 0:
+        return
+    # Scale: price 5% above MA → ~5% premium, price 3% below MA → ~-3% premium
+    deviation = (closes[-1] - ma50) / ma50
+    simulated_premium = deviation * 1.0  # 1:1 mapping
+    # Inject simulated premium via cached value
+    strategy._cached_premium = simulated_premium
+    # Make external calls return None so _calculate_premium uses cached
+    strategy._binance.get_btc_usdt_price.return_value = None
+    strategy._fx.get_usd_krw_rate.return_value = None
+
+
 def run_grid_for_strategy(
     strategy_type: str,
     candles_by_symbol: dict[str, list[Candle]],
@@ -151,11 +228,12 @@ def run_grid_for_strategy(
 
     print(f"\n  {strategy_type}: {len(combos)} param combos x {len(candles_by_symbol)} symbols")
 
+    # Separate strategy-specific constructor params from StrategyConfig params
+    strategy_config_fields = {f for f in StrategyConfig.__dataclass_fields__}
+
     for combo in combos:
         params = dict(zip(param_names, combo))
-        config_kwargs = {}
-        for k, v in params.items():
-            config_kwargs[k] = v
+        config_kwargs = {k: v for k, v in params.items() if k in strategy_config_fields}
 
         strategy_config = StrategyConfig(**config_kwargs)
         regime_config = RegimeConfig()
@@ -167,7 +245,13 @@ def run_grid_for_strategy(
         )
 
         for symbol, candles in candles_by_symbol.items():
-            strategy = create_strategy(strategy_type, strategy_config, regime_config)
+            strategy = _create_strategy_for_grid(
+                strategy_type, params, strategy_config, regime_config,
+            )
+            # For kimchi_premium, simulate premium from price data
+            if strategy_type == "kimchi_premium":
+                _setup_kimchi_premium_mock(strategy, candles)
+
             risk_manager = RiskManager(risk_config)
             engine = BacktestEngine(
                 strategy=strategy,

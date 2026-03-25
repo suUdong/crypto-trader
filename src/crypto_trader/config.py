@@ -668,7 +668,7 @@ def _validate_config(config: AppConfig) -> None:
         if not sym.startswith("KRW-"):
             errors.append(f"trading.symbols: '{sym}' must start with 'KRW-'")
 
-    valid_strategies = {"momentum", "mean_reversion", "composite", "kimchi_premium", "obi", "vpin"}
+    valid_strategies = {"momentum", "mean_reversion", "composite", "kimchi_premium", "obi", "vpin", "volatility_breakout"}
     for wc in config.wallets:
         if not wc.name.strip():
             errors.append("wallet name must not be empty")

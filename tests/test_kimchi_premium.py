@@ -29,6 +29,7 @@ def _make_strategy(
     fx_rate: float | None = 1300.0,
     min_trade_interval_bars: int = 0,
     min_confidence: float = 0.0,
+    cooldown_hours: float = 0.0,
     **config_overrides: object,
 ) -> KimchiPremiumStrategy:
     """Build a KimchiPremiumStrategy with mocked external clients."""
@@ -47,6 +48,7 @@ def _make_strategy(
         fx_client=mock_fx,
         min_trade_interval_bars=min_trade_interval_bars,
         min_confidence=min_confidence,
+        cooldown_hours=cooldown_hours,
     )
 
 
@@ -213,47 +215,71 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
 
 
     # ------------------------------------------------------------------
-    # 9. Cooldown blocks re-entry within min_trade_interval_bars
+    # 9. Cooldown blocks re-entry within cooldown_hours
     # ------------------------------------------------------------------
     def test_cooldown_blocks_reentry(self) -> None:
-        """After a BUY, next evaluate within cooldown window → HOLD cooldown_active."""
+        """After a BUY, next evaluate within cooldown_hours → HOLD cooldown_active."""
         strategy = _make_strategy(
             binance_price=78.0,
             fx_rate=1300.0,
             min_trade_interval_bars=4,
             min_confidence=0.0,
+            cooldown_hours=24.0,
         )
         # First call: contrarian buy (premium ~ -1.38%)
         candles = build_candles(_flat_closes(100_000.0, count=30))
         signal1 = strategy.evaluate(candles)
         self.assertEqual(signal1.action, SignalAction.BUY)
 
-        # Second call with 1 more candle (1 bar later) → cooldown
+        # Second call 1 hour later → cooldown (within 24h)
         candles2 = build_candles(_flat_closes(100_000.0, count=31))
         signal2 = strategy.evaluate(candles2)
         self.assertEqual(signal2.action, SignalAction.HOLD)
         self.assertEqual(signal2.reason, "cooldown_active")
 
     # ------------------------------------------------------------------
-    # 10. Cooldown resets after interval passes
+    # 10. Cooldown resets after cooldown_hours pass
     # ------------------------------------------------------------------
     def test_cooldown_resets_after_interval(self) -> None:
-        """After min_trade_interval_bars pass, entry is allowed again."""
+        """After cooldown_hours pass, entry is allowed again."""
         strategy = _make_strategy(
             binance_price=78.0,
             fx_rate=1300.0,
             min_trade_interval_bars=4,
             min_confidence=0.0,
+            cooldown_hours=2.0,  # 2 hour cooldown
         )
-        # Trigger BUY at bar 29 (30 candles)
+        # Trigger BUY at bar 29 (30 candles, each 1 hour apart)
         candles = build_candles(_flat_closes(100_000.0, count=30))
         signal1 = strategy.evaluate(candles)
         self.assertEqual(signal1.action, SignalAction.BUY)
 
-        # 4 bars later (34 candles, bar 33): cooldown expired
-        candles2 = build_candles(_flat_closes(100_000.0, count=34))
+        # 3 hours later (33 candles): cooldown expired (3h > 2h)
+        candles2 = build_candles(_flat_closes(100_000.0, count=33))
         signal2 = strategy.evaluate(candles2)
         self.assertEqual(signal2.action, SignalAction.BUY)
+
+    # ------------------------------------------------------------------
+    # 10b. Timestamp cooldown works with fixed-size candle window
+    # ------------------------------------------------------------------
+    def test_cooldown_works_with_fixed_window(self) -> None:
+        """Cooldown must work when candle count doesn't change (live trading scenario)."""
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            min_trade_interval_bars=4,
+            min_confidence=0.0,
+            cooldown_hours=12.0,
+        )
+        # First call: BUY with 200 candles
+        candles = build_candles(_flat_closes(100_000.0, count=200))
+        signal1 = strategy.evaluate(candles)
+        self.assertEqual(signal1.action, SignalAction.BUY)
+
+        # Same 200 candles (simulating live fixed window) → should block
+        signal2 = strategy.evaluate(candles)
+        self.assertEqual(signal2.action, SignalAction.HOLD)
+        self.assertEqual(signal2.reason, "cooldown_active")
 
     # ------------------------------------------------------------------
     # 11. Confidence filter blocks low-confidence entries
