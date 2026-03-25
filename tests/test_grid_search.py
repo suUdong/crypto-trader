@@ -72,10 +72,10 @@ def _trending_down(n: int = 200, start_price: float = 500_000.0, step: float = 2
     return [start_price - i * step for i in range(n)]
 
 
-def _sideways(n: int = 200, base: float = 100_000.0, amplitude: float = 5000.0) -> list[float]:
+def _sideways(n: int = 200, base: float = 100_000.0, amplitude: float = 5000.0, freq: float = 0.15) -> list[float]:
     """Oscillating prices with large amplitude to cross Bollinger bands."""
     import math
-    return [base + amplitude * math.sin(i * 0.15) for i in range(n)]
+    return [base + amplitude * math.sin(i * freq) for i in range(n)]
 
 
 def _run_backtest(strategy_type: str, candles: list[Candle], symbol: str = "KRW-BTC", **kwargs) -> dict:
@@ -342,6 +342,47 @@ class TestKimchiPremiumBacktest(unittest.TestCase):
         self.assertGreater(r1["trade_count"] + r2["trade_count"], 0)
 
 
+class TestBacktestKellyIntegration(unittest.TestCase):
+    """Verify backtest engine records trades for Kelly sizing."""
+
+    def test_backtest_records_trade_history(self) -> None:
+        """After backtest with trades, risk manager should have trade history."""
+        from crypto_trader.backtest.engine import BacktestEngine
+        candles = _build_candles(_sideways(300))
+        config = StrategyConfig(bollinger_window=20, bollinger_stddev=1.5)
+        regime = RegimeConfig()
+        strategy = create_strategy("mean_reversion", config, regime)
+        risk_manager = RiskManager(RiskConfig())
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk_manager,
+            config=BacktestConfig(initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005),
+            symbol="KRW-BTC",
+        )
+        result = engine.run(candles)
+        if len(result.trade_log) > 0:
+            self.assertEqual(len(risk_manager._trade_history), len(result.trade_log))
+
+    def test_kelly_available_after_enough_trades(self) -> None:
+        """After 10+ trades, Kelly fraction should be computable."""
+        candles = _build_candles(_sideways(500, base=100_000.0, amplitude=8000.0))
+        config = StrategyConfig(bollinger_window=15, bollinger_stddev=1.5, max_holding_bars=24)
+        regime = RegimeConfig()
+        strategy = create_strategy("mean_reversion", config, regime)
+        risk_manager = RiskManager(RiskConfig())
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk_manager,
+            config=BacktestConfig(initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005),
+            symbol="KRW-BTC",
+        )
+        result = engine.run(candles)
+        if len(result.trade_log) >= 10:
+            kelly = risk_manager.kelly_fraction()
+            # Should return a number (possibly 0.0 but not None)
+            self.assertIsNotNone(kelly)
+
+
 class TestAllStrategiesCreateSuccessfully(unittest.TestCase):
     """Verify all 6 strategy types + composite can be instantiated for backtest."""
 
@@ -406,10 +447,16 @@ class TestGridParamCoverage(unittest.TestCase):
         for k in KIMCHI_PREMIUM_GRID:
             self.assertIn(k, valid_params | config_fields)
 
-    def test_all_six_strategies_have_grids(self) -> None:
+    def test_all_seven_strategies_have_grids(self) -> None:
         from scripts.grid_search import STRATEGY_GRIDS
-        expected = {"mean_reversion", "momentum", "vpin", "obi", "volatility_breakout", "kimchi_premium"}
+        expected = {"mean_reversion", "momentum", "composite", "vpin", "obi", "volatility_breakout", "kimchi_premium"}
         self.assertEqual(set(STRATEGY_GRIDS.keys()), expected)
+
+    def test_composite_grid_params_valid(self) -> None:
+        from scripts.grid_search import COMPOSITE_GRID
+        config_fields = set(StrategyConfig.__dataclass_fields__)
+        for k in COMPOSITE_GRID:
+            self.assertIn(k, config_fields)
 
     def test_each_grid_has_multiple_combos(self) -> None:
         import itertools

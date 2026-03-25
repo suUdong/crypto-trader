@@ -53,6 +53,14 @@ class BacktestEngine:
                         - open_position.entry_fee_paid
                     )
                     realized_pnl += pnl
+                    pnl_pct = (
+                        pnl
+                        / max(
+                            1.0,
+                            (open_position.entry_price * open_position.quantity)
+                            + open_position.entry_fee_paid,
+                        )
+                    )
                     trades.append(
                         TradeRecord(
                             symbol=self._symbol,
@@ -62,17 +70,11 @@ class BacktestEngine:
                             exit_price=exit_price,
                             quantity=open_position.quantity,
                             pnl=pnl,
-                            pnl_pct=(
-                                pnl
-                                / max(
-                                    1.0,
-                                    (open_position.entry_price * open_position.quantity)
-                                    + open_position.entry_fee_paid,
-                                )
-                            ),
+                            pnl_pct=pnl_pct,
                             exit_reason=exit_reason,
                         )
                     )
+                    self._risk_manager.record_trade(pnl_pct)
                     open_position = None
 
             if open_position is None:

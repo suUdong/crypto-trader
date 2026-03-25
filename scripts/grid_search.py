@@ -129,9 +129,20 @@ KIMCHI_PREMIUM_GRID = {
     "min_confidence": [0.4, 0.6, 0.8],
 }
 
+COMPOSITE_GRID = {
+    "bollinger_window": [15, 20, 25],
+    "bollinger_stddev": [1.5, 1.8, 2.0],
+    "momentum_lookback": [15, 20, 25],
+    "momentum_entry_threshold": [0.003, 0.005, 0.008],
+    "rsi_period": [10, 14],
+    "rsi_recovery_ceiling": [55.0, 60.0, 65.0],
+    "max_holding_bars": [36, 48],
+}
+
 STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
     "mean_reversion": MEAN_REVERSION_GRID,
     "momentum": MOMENTUM_GRID,
+    "composite": COMPOSITE_GRID,
     "vpin": VPIN_GRID,
     "obi": OBI_GRID,
     "volatility_breakout": VOLATILITY_BREAKOUT_GRID,
