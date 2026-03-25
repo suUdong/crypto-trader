@@ -13,7 +13,8 @@ from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
-from crypto_trader.models import PipelineResult
+from crypto_trader.models import OrderSide, PipelineResult
+from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
 from crypto_trader.strategy.regime import RegimeDetector, WEEKEND_POSITION_MULTIPLIER, is_weekend_kst
 from crypto_trader.wallet import StrategyWallet
 
@@ -24,6 +25,7 @@ class MultiSymbolRuntime:
         wallets: list[StrategyWallet],
         market_data: MarketDataClient,
         config: AppConfig,
+        kill_switch: KillSwitch | None = None,
     ) -> None:
         self._wallets = wallets
         self._market_data = market_data
@@ -36,6 +38,13 @@ class MultiSymbolRuntime:
         self._macro_adapter = MacroRegimeAdapter()
         self._current_market_regime: str = "sideways"
         self._is_weekend: bool = False
+        self._kill_switch = kill_switch or KillSwitch()
+        self._kill_switch_path = Path(
+            getattr(config.runtime, "kill_switch_path", "artifacts/kill-switch.json")
+        )
+        self._kill_switch.load(self._kill_switch_path)
+        self._total_starting_equity = sum(w.session_starting_equity for w in wallets)
+        self._prev_trade_count: dict[str, int] = {w.name: len(w.broker.closed_trades) for w in wallets}
         self._regime_detector = RegimeDetector(RegimeConfig(
             short_lookback=config.regime.short_lookback,
             long_lookback=config.regime.long_lookback,
@@ -70,7 +79,16 @@ class MultiSymbolRuntime:
         )
 
         while not self._shutdown_requested:
+            if self._kill_switch.is_triggered:
+                self._logger.critical(
+                    "Kill switch active: %s — all trading halted",
+                    self._kill_switch.state.trigger_reason,
+                )
+                self._kill_switch.save(self._kill_switch_path)
+                break
+
             tick_results = self._run_tick(symbols)
+            self._check_kill_switch_after_tick(tick_results)
             self._save_checkpoint(tick_results)
             self._iteration += 1
 
@@ -130,6 +148,40 @@ class MultiSymbolRuntime:
                     self._logger.info(result.message)
 
         return results
+
+    def _check_kill_switch_after_tick(self, results: list[PipelineResult]) -> None:
+        """Check kill switch conditions after each tick using portfolio equity."""
+        latest_prices: dict[str, float] = {}
+        for r in results:
+            if r.latest_price is not None:
+                latest_prices[r.symbol] = r.latest_price
+
+        total_equity = sum(w.broker.equity(latest_prices) for w in self._wallets)
+        total_realized = sum(w.broker.realized_pnl for w in self._wallets)
+
+        # Detect new trade completions and whether they won
+        trade_won: bool | None = None
+        for wallet in self._wallets:
+            current_count = len(wallet.broker.closed_trades)
+            prev_count = self._prev_trade_count.get(wallet.name, 0)
+            if current_count > prev_count:
+                last_trade = wallet.broker.closed_trades[-1]
+                trade_won = last_trade.pnl > 0
+                self._prev_trade_count[wallet.name] = current_count
+
+        state = self._kill_switch.check(
+            current_equity=total_equity,
+            starting_equity=self._total_starting_equity,
+            realized_pnl=total_realized,
+            trade_won=trade_won,
+        )
+        self._kill_switch.save(self._kill_switch_path)
+
+        if state.triggered:
+            self._logger.critical(
+                "KILL SWITCH TRIGGERED: %s — stopping after this tick",
+                state.trigger_reason,
+            )
 
     def _refresh_macro(self) -> None:
         weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
