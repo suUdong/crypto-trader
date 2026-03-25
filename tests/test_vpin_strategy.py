@@ -75,12 +75,16 @@ class TestVPINStrategy(unittest.TestCase):
     def test_low_vpin_buy_entry(self) -> None:
         """Low-volatility candles with gentle uptrend → VPIN low → BUY."""
         config = _default_config(
-            momentum_entry_threshold=-0.5,
-            rsi_recovery_ceiling=100,
             momentum_lookback=5,
             rsi_period=5,
         )
-        strategy = VPINStrategy(config, vpin_low_threshold=0.3, bucket_count=10)
+        strategy = VPINStrategy(
+            config,
+            vpin_low_threshold=0.3,
+            bucket_count=10,
+            vpin_momentum_threshold=-0.5,
+            vpin_rsi_ceiling=100,
+        )
 
         # Gentle uptrend: close always slightly above open → low buy/sell imbalance
         # but consistent, keeping VPIN low. Use very small volatility.
@@ -118,10 +122,7 @@ class TestVPINStrategy(unittest.TestCase):
         high=close and low=open, giving z=1). We set vpin_high_threshold=0.6 so
         the test reliably triggers the high-toxicity branch.
         """
-        config = _default_config(
-            momentum_entry_threshold=-0.5,
-            rsi_recovery_ceiling=100,
-        )
+        config = _default_config()
         # Threshold set below the achievable VPIN maximum (~0.683)
         strategy = VPINStrategy(config, vpin_high_threshold=0.6, bucket_count=10)
 
@@ -229,6 +230,123 @@ class TestVPINStrategy(unittest.TestCase):
         signal = strategy.evaluate(candles, position)
         self.assertEqual(signal.action, SignalAction.SELL)
         self.assertEqual(signal.reason, "max_holding_period")
+
+
+    # ------------------------------------------------------------------
+    # 7. Relaxed params: entry with vpin=0.45, momentum=0.001, rsi=65
+    # ------------------------------------------------------------------
+    def test_relaxed_entry_triggers(self) -> None:
+        """With new defaults (vpin_low=0.5, mom>=0.0, rsi<=70), moderate
+        conditions that were previously blocked now trigger BUY."""
+        config = _default_config(momentum_lookback=5, rsi_period=5)
+        strategy = VPINStrategy(config, bucket_count=10)
+        # defaults: vpin_low=0.5, vpin_momentum_threshold=0.0, vpin_rsi_ceiling=70
+
+        # Build candles: up, up, down, down, up pattern → net positive momentum, RSI ~55
+        start = datetime(2025, 1, 1)
+        candles: list[Candle] = []
+        price = 100.0
+        pattern = [0.06, 0.06, -0.04, -0.04, 0.06]
+        for i in range(30):
+            o = price
+            c = price + pattern[i % len(pattern)]
+            h = max(o, c) + 0.5
+            lo = min(o, c) - 0.5
+            candles.append(
+                Candle(
+                    timestamp=start + timedelta(hours=i),
+                    open=o,
+                    high=h,
+                    low=lo,
+                    close=c,
+                    volume=1000.0,
+                )
+            )
+            price = c
+
+        signal = strategy.evaluate(candles)
+        # With relaxed thresholds, this should BUY (vpin < 0.5, momentum > 0, rsi < 70)
+        self.assertEqual(signal.action, SignalAction.BUY)
+        self.assertEqual(signal.reason, "vpin_safe_momentum_entry")
+
+    # ------------------------------------------------------------------
+    # 8. Entry still blocked when vpin > 0.5 (new threshold)
+    # ------------------------------------------------------------------
+    def test_entry_blocked_above_new_vpin_threshold(self) -> None:
+        """VPIN above 0.5 but below 0.7 → neither BUY nor high_toxicity → HOLD."""
+        config = _default_config()
+        # Use default vpin_low=0.5, vpin_high=0.7
+        strategy = VPINStrategy(config, bucket_count=10)
+
+        # Build candles that produce VPIN ~0.55-0.68 (moderate alternation)
+        start = datetime(2025, 1, 1)
+        candles: list[Candle] = []
+        price = 100.0
+        for i in range(30):
+            if i % 2 == 0:
+                o = price
+                c = price + 2.0
+                h = c + 0.5
+                lo = o - 0.5
+            else:
+                o = price
+                c = price - 2.0
+                h = o + 0.5
+                lo = c - 0.5
+            candles.append(
+                Candle(
+                    timestamp=start + timedelta(hours=i),
+                    open=o,
+                    high=h,
+                    low=lo,
+                    close=c,
+                    volume=1000.0,
+                )
+            )
+            price = c
+
+        signal = strategy.evaluate(candles)
+        # VPIN should be in the 0.5-0.7 dead zone → HOLD
+        self.assertIn(signal.reason, ("entry_conditions_not_met", "vpin_high_toxicity"))
+
+    # ------------------------------------------------------------------
+    # 9. Entry blocked when momentum truly negative
+    # ------------------------------------------------------------------
+    def test_entry_blocked_negative_momentum(self) -> None:
+        """Even with low VPIN, negative momentum blocks entry."""
+        config = _default_config(momentum_lookback=5, rsi_period=5)
+        strategy = VPINStrategy(
+            config,
+            vpin_low_threshold=0.5,
+            bucket_count=10,
+            vpin_momentum_threshold=0.0,
+            vpin_rsi_ceiling=100.0,
+        )
+
+        # Downtrend: negative momentum
+        start = datetime(2025, 1, 1)
+        candles: list[Candle] = []
+        price = 200.0
+        for i in range(30):
+            o = price
+            c = price - 0.05  # consistent downward → negative momentum
+            h = o + 1.0
+            lo = c - 1.0
+            candles.append(
+                Candle(
+                    timestamp=start + timedelta(hours=i),
+                    open=o,
+                    high=h,
+                    low=lo,
+                    close=c,
+                    volume=1000.0,
+                )
+            )
+            price = c
+
+        signal = strategy.evaluate(candles)
+        self.assertEqual(signal.action, SignalAction.HOLD)
+        self.assertEqual(signal.reason, "entry_conditions_not_met")
 
 
 if __name__ == "__main__":

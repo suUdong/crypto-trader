@@ -22,13 +22,17 @@ class VPINStrategy:
         self,
         config: StrategyConfig,
         vpin_high_threshold: float = 0.7,
-        vpin_low_threshold: float = 0.3,
+        vpin_low_threshold: float = 0.5,
         bucket_count: int = 20,
+        vpin_momentum_threshold: float = 0.0,
+        vpin_rsi_ceiling: float = 70.0,
     ) -> None:
         self._config = config
         self._vpin_high = vpin_high_threshold
         self._vpin_low = vpin_low_threshold
         self._bucket_count = bucket_count
+        self._vpin_momentum_threshold = vpin_momentum_threshold
+        self._vpin_rsi_ceiling = vpin_rsi_ceiling
 
     def evaluate(
         self, candles: list[Candle], position: Position | None = None
@@ -84,8 +88,8 @@ class VPINStrategy:
 
         if vpin_value <= self._vpin_low:
             if (
-                momentum_value >= self._config.momentum_entry_threshold
-                and rsi_value <= self._config.rsi_recovery_ceiling
+                momentum_value >= self._vpin_momentum_threshold
+                and rsi_value <= self._vpin_rsi_ceiling
             ):
                 return Signal(
                     action=SignalAction.BUY,
