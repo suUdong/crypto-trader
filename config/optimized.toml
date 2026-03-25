@@ -1,51 +1,102 @@
-# Auto-tuned configuration
-# Generated from grid search optimization
-# Best strategy in evaluated candidate sweep: momentum
-# Avg Sharpe: 1.60
+# Auto-tuned configuration (90-day real Upbit data)
+# Generated: 2026-03-26
+# Best strategy: momentum (Sharpe=1.60)
 
 [trading]
 exchange = "upbit"
 interval = "minute60"
 paper_trading = true
-symbols = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP', 'KRW-SOL']
+symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 
 [strategy]
-max_holding_bars = 60
-momentum_entry_threshold = 0.005
+# Momentum-optimized params (best overall Sharpe=1.60)
 momentum_lookback = 20
-rsi_overbought = 75.0
+momentum_entry_threshold = 0.005
 rsi_period = 14
+rsi_overbought = 75.0
+rsi_oversold_floor = 20.0
+rsi_recovery_ceiling = 55.0
+bollinger_window = 15
+bollinger_stddev = 1.5
+max_holding_bars = 60
+
+[regime]
+short_lookback = 10
+long_lookback = 30
+bull_threshold_pct = 0.03
+bear_threshold_pct = -0.03
+
+[drift]
+bull_return_tolerance_pct = 0.15
+sideways_return_tolerance_pct = 0.08
+bear_return_tolerance_pct = 0.05
+bull_error_rate_threshold = 0.25
+sideways_error_rate_threshold = 0.20
+bear_error_rate_threshold = 0.10
 
 [risk]
-atr_stop_multiplier = 0.0
+# Momentum-optimized risk params
 risk_per_trade_pct = 0.015
 stop_loss_pct = 0.03
 take_profit_pct = 0.1
+max_daily_loss_pct = 0.05
+max_concurrent_positions = 4
 trailing_stop_pct = 0.0
+atr_stop_multiplier = 0.0
 
-# Optimized wallet allocation
+[backtest]
+initial_capital = 1000000.0
+fee_rate = 0.0005
+slippage_pct = 0.0005
+
+[telegram]
+bot_token = ""
+chat_id = ""
+
+[runtime]
+log_level = "INFO"
+poll_interval_seconds = 60
+max_iterations = 0
+daemon_mode = true
+healthcheck_path = "artifacts/health.json"
+runtime_checkpoint_path = "artifacts/runtime-checkpoint.json"
+backtest_baseline_path = "artifacts/backtest-baseline.json"
+regime_report_path = "artifacts/regime-report.json"
+drift_calibration_path = "artifacts/drift-calibration.json"
+operator_report_path = "artifacts/operator-report.md"
+strategy_run_journal_path = "artifacts/strategy-runs.jsonl"
+paper_trade_journal_path = "artifacts/paper-trades.jsonl"
+position_snapshot_path = "artifacts/positions.json"
+daily_performance_path = "artifacts/daily-performance.json"
+drift_report_path = "artifacts/drift-report.json"
+promotion_gate_path = "artifacts/promotion-gate.json"
+daily_memo_path = "artifacts/daily-memo.md"
+strategy_report_path = "artifacts/strategy-report.md"
+
+# Only deploy profitable strategies (positive Sharpe on 90d backtest)
 
 [[wallets]]
 name = "momentum_wallet"
 strategy = "momentum"
-initial_capital = 1_000_000.0
+initial_capital = 1000000.0
 
-# === Per-Strategy Optimization Results ===
+[[wallets]]
+name = "composite_wallet"
+strategy = "composite"
+initial_capital = 1000000.0
+
+[credentials]
+upbit_access_key = ""
+upbit_secret_key = ""
+
+# === 90-Day Grid Search Optimization Results (2026-03-26) ===
 # momentum: Sharpe=1.60 Return=+4.59% MDD=7.29% WR=38.4% PF=1.53 Trades=207
-#   params: {'momentum_lookback': 20, 'momentum_entry_threshold': 0.005, 'rsi_period': 14, 'rsi_overbought': 75.0, 'max_holding_bars': 60}
-#   risk: {'stop_loss_pct': 0.03, 'take_profit_pct': 0.1, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 0.0}
+#   params: {momentum_lookback=20, momentum_entry_threshold=0.005, rsi_period=14, rsi_overbought=75.0, max_holding_bars=60}
+#   risk: {stop_loss_pct=0.03, take_profit_pct=0.1, risk_per_trade_pct=0.015, trailing_stop_pct=0.0, atr_stop_multiplier=0.0}
 # composite: Sharpe=0.83 Return=+2.11% MDD=4.80% WR=49.2% PF=1.41 Trades=63
-#   params: {'bollinger_window': 15, 'bollinger_stddev': 1.5, 'momentum_lookback': 20, 'momentum_entry_threshold': 0.005, 'rsi_period': 14, 'rsi_recovery_ceiling': 55.0, 'max_holding_bars': 36}
-#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 3.0}
-# mean_reversion: Sharpe=-1.94 Return=-5.55% MDD=8.94% WR=40.2% PF=0.49 Trades=94
-#   params: {'bollinger_window': 15, 'bollinger_stddev': 1.5, 'rsi_period': 18, 'rsi_recovery_ceiling': 65.0, 'max_holding_bars': 36}
-#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.04, 'atr_stop_multiplier': 0.0}
-# vpin: Sharpe=-2.01 Return=-6.30% MDD=8.76% WR=44.7% PF=0.55 Trades=218
-#   params: {'rsi_period': 14, 'momentum_lookback': 15, 'max_holding_bars': 36}
-#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.04, 'atr_stop_multiplier': 3.0}
-# volatility_breakout: Sharpe=-2.24 Return=-5.35% MDD=7.24% WR=31.6% PF=0.56 Trades=187
-#   params: {'k_base': 0.7, 'noise_lookback': 20, 'ma_filter_period': 20, 'max_holding_bars': 24}
-#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 0.0}
-# obi: Sharpe=-2.26 Return=-5.27% MDD=7.54% WR=38.8% PF=0.52 Trades=138
-#   params: {'rsi_period': 14, 'momentum_lookback': 15, 'max_holding_bars': 36}
-#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 3.0}
+#   params: {bollinger_window=15, bollinger_stddev=1.5, momentum_lookback=20, momentum_entry_threshold=0.005, rsi_period=14, rsi_recovery_ceiling=55.0, max_holding_bars=36}
+#   risk: {stop_loss_pct=0.02, take_profit_pct=0.04, risk_per_trade_pct=0.015, trailing_stop_pct=0.0, atr_stop_multiplier=3.0}
+# mean_reversion: Sharpe=-1.94 (EXCLUDED - negative Sharpe)
+# vpin: Sharpe=-2.01 (EXCLUDED - negative Sharpe)
+# volatility_breakout: Sharpe=-2.24 (EXCLUDED - negative Sharpe)
+# obi: Sharpe=-2.26 (EXCLUDED - negative Sharpe)
