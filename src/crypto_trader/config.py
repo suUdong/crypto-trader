@@ -677,8 +677,11 @@ def _validate_config(config: AppConfig) -> None:
         if wc.initial_capital <= 0:
             errors.append(f"wallet '{wc.name}': initial_capital must be positive")
 
-    if not config.trading.paper_trading:
-        errors.append("Live trading is not implemented yet. Keep CT_PAPER_TRADING=true.")
+    if not config.trading.paper_trading and not config.credentials.has_upbit_credentials:
+        errors.append(
+            "Live trading requires Upbit API credentials. "
+            "Set CT_UPBIT_ACCESS_KEY and CT_UPBIT_SECRET_KEY."
+        )
 
     if errors:
         raise ValueError("Invalid configuration:\n- " + "\n- ".join(errors))

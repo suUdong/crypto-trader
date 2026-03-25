@@ -27,16 +27,28 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.trading.symbol, "KRW-ETH")
         self.assertTrue(config.telegram.enabled)
 
-    def test_live_trading_mode_is_rejected_until_implemented(self) -> None:
-        with self.assertRaisesRegex(ValueError, "not implemented"):
+    def test_live_trading_requires_credentials(self) -> None:
+        with self.assertRaisesRegex(ValueError, "credentials"):
             load_config(
                 ROOT / "config" / "example.toml",
                 {
                     "CT_PAPER_TRADING": "false",
-                    "CT_UPBIT_ACCESS_KEY": "access",
-                    "CT_UPBIT_SECRET_KEY": "secret",
+                    "CT_UPBIT_ACCESS_KEY": "",
+                    "CT_UPBIT_SECRET_KEY": "",
                 },
             )
+
+    def test_live_trading_accepted_with_credentials(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {
+                "CT_PAPER_TRADING": "false",
+                "CT_UPBIT_ACCESS_KEY": "access",
+                "CT_UPBIT_SECRET_KEY": "secret",
+            },
+        )
+        self.assertFalse(config.trading.paper_trading)
+        self.assertTrue(config.credentials.has_upbit_credentials)
 
     def test_invalid_percentage_and_path_values_raise_clear_errors(self) -> None:
         with self.assertRaisesRegex(

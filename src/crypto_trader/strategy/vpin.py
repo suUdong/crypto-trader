@@ -22,10 +22,10 @@ class VPINStrategy:
         self,
         config: StrategyConfig,
         vpin_high_threshold: float = 0.7,
-        vpin_low_threshold: float = 0.5,
+        vpin_low_threshold: float = 0.65,
         bucket_count: int = 20,
-        vpin_momentum_threshold: float = 0.0,
-        vpin_rsi_ceiling: float = 70.0,
+        vpin_momentum_threshold: float = -0.005,
+        vpin_rsi_ceiling: float = 75.0,
     ) -> None:
         self._config = config
         self._vpin_high = vpin_high_threshold

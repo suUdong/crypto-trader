@@ -22,8 +22,8 @@ class KimchiPremiumStrategy:
         config: StrategyConfig,
         binance_client: BinancePriceClient | None = None,
         fx_client: FXRateClient | None = None,
-        min_trade_interval_bars: int = 4,
-        min_confidence: float = 0.5,
+        min_trade_interval_bars: int = 12,
+        min_confidence: float = 0.6,
     ) -> None:
         self._config = config
         self._binance = binance_client or BinancePriceClient()

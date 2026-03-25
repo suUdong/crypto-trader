@@ -47,6 +47,40 @@ class MacroRegimeAdapter:
     MIN_MULTIPLIER = 0.25
     MAX_MULTIPLIER = 2.0
 
+    # Per-strategy regime weight multipliers
+    # Market regime (from RegimeDetector) -> strategy type -> extra multiplier
+    STRATEGY_REGIME_WEIGHTS: dict[str, dict[str, float]] = {
+        "bull": {
+            "momentum": 1.4,
+            "mean_reversion": 0.7,
+            "obi": 1.0,
+            "vpin": 1.0,
+            "composite": 1.2,
+            "kimchi_premium": 0.8,
+        },
+        "sideways": {
+            "momentum": 0.6,
+            "mean_reversion": 1.5,
+            "obi": 1.3,
+            "vpin": 1.2,
+            "composite": 0.8,
+            "kimchi_premium": 0.7,
+        },
+        "bear": {
+            "momentum": 0.4,
+            "mean_reversion": 1.0,
+            "obi": 0.8,
+            "vpin": 1.1,
+            "composite": 0.6,
+            "kimchi_premium": 0.5,
+        },
+    }
+
+    def strategy_weight(self, strategy_type: str, market_regime: str) -> float:
+        """Get regime-aware weight multiplier for a specific strategy type."""
+        regime_weights = self.STRATEGY_REGIME_WEIGHTS.get(market_regime, {})
+        return regime_weights.get(strategy_type, 1.0)
+
     def compute(self, snapshot: MacroSnapshot | None) -> MacroAdjustment:
         """Compute position sizing adjustment from macro snapshot."""
         if snapshot is None:

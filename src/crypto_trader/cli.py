@@ -18,6 +18,7 @@ from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.operator.services import generate_operator_artifacts
+from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
@@ -43,6 +44,7 @@ def main() -> None:
             "promotion-gate",
             "daily-memo",
             "strategy-report",
+            "pnl-report",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -198,6 +200,18 @@ def main() -> None:
             send_daily_memo=True,
         )
         print(config.runtime.daily_memo_path)
+        return
+
+    if args.command == "pnl-report":
+        generator = PnLReportGenerator()
+        report = generator.generate_from_checkpoint(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            trade_journal_path=config.runtime.paper_trade_journal_path,
+            period="daily",
+        )
+        output_path = "artifacts/pnl-report.md"
+        generator.save(report, output_path)
+        print(generator.to_markdown(report))
         return
 
     if args.command == "run-multi":

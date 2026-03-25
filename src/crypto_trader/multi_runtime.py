@@ -9,11 +9,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from crypto_trader.config import AppConfig
+from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
 from crypto_trader.models import PipelineResult
+from crypto_trader.strategy.regime import RegimeDetector
 from crypto_trader.wallet import StrategyWallet
 
 
@@ -33,6 +34,13 @@ class MultiSymbolRuntime:
         self._start_time = time.monotonic()
         self._macro_client: MacroClient | None = None
         self._macro_adapter = MacroRegimeAdapter()
+        self._current_market_regime: str = "sideways"
+        self._regime_detector = RegimeDetector(RegimeConfig(
+            short_lookback=config.regime.short_lookback,
+            long_lookback=config.regime.long_lookback,
+            bull_threshold_pct=config.regime.bull_threshold_pct,
+            bear_threshold_pct=config.regime.bear_threshold_pct,
+        ))
         if config.macro.enabled:
             db_path = config.macro.db_path if config.macro.has_db else None
             self._macro_client = MacroClient(db_path)
@@ -78,7 +86,21 @@ class MultiSymbolRuntime:
         results: list[PipelineResult] = []
         candle_cache: dict[str, Any] = {}
 
-        # Refresh macro regime and update wallet multipliers
+        # Pre-fetch first symbol to detect regime before processing
+        first = symbols[0]
+        try:
+            candle_cache[first] = self._market_data.get_ohlcv(
+                symbol=first,
+                interval=self._config.trading.interval,
+                count=self._config.trading.candle_count,
+            )
+            if candle_cache[first]:
+                detected = self._regime_detector.detect(candle_cache[first])
+                self._current_market_regime = detected.value
+        except Exception as exc:
+            self._logger.error("Failed to fetch candles for %s: %s", first, exc)
+
+        # Refresh macro/regime-aware multipliers after regime detection
         self._refresh_macro()
 
         for symbol in symbols:
@@ -109,18 +131,33 @@ class MultiSymbolRuntime:
 
     def _refresh_macro(self) -> None:
         if self._macro_client is None:
+            # Still apply regime-aware strategy weights without macro data
+            self._apply_regime_weights()
             return
         snapshot = self._macro_client.get_snapshot()
         adjustment = self._macro_adapter.compute(snapshot)
         for wallet in self._wallets:
-            wallet.set_macro_multiplier(adjustment.position_size_multiplier)
+            regime_weight = self._macro_adapter.strategy_weight(
+                wallet.strategy_type, self._current_market_regime,
+            )
+            combined = adjustment.position_size_multiplier * regime_weight
+            wallet.set_macro_multiplier(combined)
         if snapshot is not None:
             self._logger.info(
-                "Macro regime=%s confidence=%.0f%% multiplier=%.2f",
+                "Macro regime=%s confidence=%.0f%% multiplier=%.2f market_regime=%s",
                 snapshot.overall_regime,
                 snapshot.overall_confidence * 100,
                 adjustment.position_size_multiplier,
+                self._current_market_regime,
             )
+
+    def _apply_regime_weights(self) -> None:
+        """Apply regime-aware strategy weights without macro data."""
+        for wallet in self._wallets:
+            regime_weight = self._macro_adapter.strategy_weight(
+                wallet.strategy_type, self._current_market_regime,
+            )
+            wallet.set_macro_multiplier(regime_weight)
 
     def _save_checkpoint(self, results: list[PipelineResult]) -> None:
         checkpoint_path = Path(self._config.runtime.runtime_checkpoint_path)

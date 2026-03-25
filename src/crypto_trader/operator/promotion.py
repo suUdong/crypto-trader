@@ -15,6 +15,58 @@ from crypto_trader.models import (
 )
 
 
+class MicroLiveCriteria:
+    """Criteria for paper-to-micro-live transition."""
+
+    MINIMUM_PAPER_DAYS: int = 7
+    MINIMUM_TRADES: int = 10
+    MINIMUM_WIN_RATE: float = 0.45
+    MAXIMUM_DRAWDOWN: float = 0.10
+    MINIMUM_PROFIT_FACTOR: float = 1.2
+    MINIMUM_POSITIVE_STRATEGIES: int = 2
+
+    @classmethod
+    def evaluate(
+        cls,
+        paper_days: int,
+        total_trades: int,
+        win_rate: float,
+        max_drawdown: float,
+        profit_factor: float,
+        positive_strategies: int,
+    ) -> tuple[bool, list[str]]:
+        """Return (ready, reasons) for micro-live transition."""
+        reasons: list[str] = []
+        ready = True
+
+        if paper_days < cls.MINIMUM_PAPER_DAYS:
+            reasons.append(f"Need {cls.MINIMUM_PAPER_DAYS}d paper trading (have {paper_days}d)")
+            ready = False
+        if total_trades < cls.MINIMUM_TRADES:
+            reasons.append(f"Need {cls.MINIMUM_TRADES}+ trades (have {total_trades})")
+            ready = False
+        if win_rate < cls.MINIMUM_WIN_RATE:
+            reasons.append(f"Win rate {win_rate:.0%} below {cls.MINIMUM_WIN_RATE:.0%} minimum")
+            ready = False
+        if max_drawdown > cls.MAXIMUM_DRAWDOWN:
+            reasons.append(f"MDD {max_drawdown:.1%} exceeds {cls.MAXIMUM_DRAWDOWN:.0%} limit")
+            ready = False
+        if profit_factor < cls.MINIMUM_PROFIT_FACTOR:
+            reasons.append(f"Profit factor {profit_factor:.2f} below {cls.MINIMUM_PROFIT_FACTOR:.1f}")
+            ready = False
+        if positive_strategies < cls.MINIMUM_POSITIVE_STRATEGIES:
+            reasons.append(
+                f"Need {cls.MINIMUM_POSITIVE_STRATEGIES}+ profitable strategies "
+                f"(have {positive_strategies})"
+            )
+            ready = False
+
+        if ready:
+            reasons.append("All micro-live criteria met. Ready for transition.")
+
+        return ready, reasons
+
+
 class PromotionGate:
     def __init__(self, minimum_paper_runs_required: int = 5) -> None:
         self._minimum_paper_runs_required = minimum_paper_runs_required
