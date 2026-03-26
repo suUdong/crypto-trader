@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from crypto_trader.backtest.baseline import BacktestBaselineStore, build_baseline
@@ -101,6 +102,7 @@ def main() -> None:
     )
     parser.add_argument("--wallet", default=None, help="Target wallet name for apply-params")
     parser.add_argument("--regime", choices=["bull", "bear", "sideways"], default=None, help="Filter candles by market regime for grid-wf")
+    parser.add_argument("--output-dir", default=None, dest="output_dir", help="Output directory for snapshot artifacts")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -309,26 +311,42 @@ def main() -> None:
         return
 
     if args.command == "snapshot":
+        import sys
         from crypto_trader.operator.pnl_report import PnLSnapshotStore
         generator = PnLReportGenerator()
         period = f"{args.hours}h" if args.hours > 0 else "daily"
-        report = generator.generate_from_checkpoint(
-            checkpoint_path=config.runtime.runtime_checkpoint_path,
-            trade_journal_path=config.runtime.paper_trade_journal_path,
-            period=period,
-            hours=args.hours,
-        )
-        # Save markdown report
-        output_path = "artifacts/pnl-report.md"
-        generator.save(report, output_path)
-        # Append to snapshot history
-        snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
-        store = PnLSnapshotStore(snapshot_path)
-        store.append(report)
-        # Print summary
-        print(f"Equity: {report.total_equity:,.0f} | Return: {report.portfolio_return_pct:+.3f}% | Trades: {report.total_trades}")
-        print(f"Snapshot saved to {snapshot_path}")
-        print(f"Report saved to {output_path}")
+        output_dir = Path(getattr(args, "output_dir", None) or "artifacts")
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            report = generator.generate_from_checkpoint(
+                checkpoint_path=config.runtime.runtime_checkpoint_path,
+                trade_journal_path=config.runtime.paper_trade_journal_path,
+                period=period,
+                hours=args.hours,
+            )
+            # Save markdown report to output_dir
+            output_path = output_dir / "pnl-report.md"
+            generator.save(report, output_path)
+            # Append to snapshot history
+            snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
+            store = PnLSnapshotStore(snapshot_path)
+            store.append(report)
+            # JSON summary on stdout for cron consumption
+            summary = {
+                "status": "ok",
+                "equity": report.total_equity,
+                "return_pct": round(report.portfolio_return_pct, 4),
+                "sharpe": round(report.portfolio_sharpe, 2),
+                "trades": report.total_trades,
+                "win_rate": round(report.portfolio_win_rate, 4),
+                "realized_pnl": round(report.total_realized_pnl, 0),
+                "report_path": str(output_path),
+                "snapshot_path": str(snapshot_path),
+            }
+            print(json.dumps(summary))
+        except Exception as exc:
+            print(json.dumps({"status": "error", "error": str(exc)}))
+            sys.exit(1)
         return
 
     if args.command == "performance-report":

@@ -19,6 +19,7 @@ from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
+from crypto_trader.risk.wallet_health import WalletHealthMonitor
 from crypto_trader.strategy.regime import (
     WEEKEND_POSITION_MULTIPLIER,
     RegimeDetector,
@@ -79,6 +80,10 @@ class MultiSymbolRuntime:
         self._last_pnl_notify: float = 0.0
         self._trade_journal = PaperTradeJournal(config.runtime.paper_trade_journal_path)
         self._journal_trade_counts: dict[str, int] = {w.name: 0 for w in wallets}
+        snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
+        self._wallet_health = WalletHealthMonitor(snapshot_path)
+        self._last_health_check: float = 0.0
+        self._health_check_interval = 86400  # 24h
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -111,6 +116,7 @@ class MultiSymbolRuntime:
                 self._kill_switch.save(self._kill_switch_path)
                 break
 
+            self._maybe_check_wallet_health()
             tick_results = self._run_tick(symbols)
             self._check_kill_switch_after_tick(tick_results)
             self._save_checkpoint(tick_results)
@@ -166,6 +172,8 @@ class MultiSymbolRuntime:
 
             for wallet in self._wallets:
                 if wallet.allowed_symbols and symbol not in wallet.allowed_symbols:
+                    continue
+                if self._wallet_health.is_disabled(wallet.name):
                     continue
                 result = wallet.run_once(symbol, candles)
                 results.append(result)
@@ -300,6 +308,28 @@ class MultiSymbolRuntime:
                 self._trade_journal.append_many(new_trades, wallet_name=wallet.name)
                 self._journal_trade_counts[wallet.name] = current_count
 
+    def _maybe_check_wallet_health(self) -> None:
+        """Periodically evaluate wallet health and auto-disable losers."""
+        if time.time() - self._last_health_check < self._health_check_interval:
+            return
+        try:
+            wallet_names = [w.name for w in self._wallets]
+            self._wallet_health.evaluate(wallet_names)
+            newly_disabled = self._wallet_health.get_disabled_wallets()
+            if newly_disabled:
+                msg = (
+                    "[Crypto Trader] Wallet Auto-Disable\n"
+                    + "\n".join(
+                        f"  {name}: DISABLED ({self._wallet_health.get_status(name).disabled_reason})"
+                        for name in newly_disabled
+                    )
+                )
+                self._notifier.send_message(msg)
+                self._logger.warning("Auto-disabled wallets: %s", newly_disabled)
+            self._last_health_check = time.time()
+        except Exception as exc:
+            self._logger.error("Wallet health check failed: %s", exc)
+
     def _maybe_send_pnl_notify(self) -> None:
         if time.time() - self._last_pnl_notify < self.PNL_NOTIFY_INTERVAL:
             return
@@ -308,13 +338,32 @@ class MultiSymbolRuntime:
                 self._config.runtime.runtime_checkpoint_path,
                 self._config.runtime.paper_trade_journal_path,
             )
+            disabled = self._wallet_health.get_disabled_wallets()
+            paused = [
+                w.name for w in self._wallets
+                if w.risk_manager.is_auto_paused
+            ]
             lines = [
-                "[Crypto Trader] Daily PnL",
-                f"Portfolio: {report.portfolio_return_pct:+.2f}% | Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
+                "[Crypto Trader] Daily PnL Report",
+                f"Equity: {report.total_equity:,.0f} KRW | Return: {report.portfolio_return_pct:+.2f}%",
+                f"Sharpe: {report.portfolio_sharpe:.2f} | Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
                 "---",
             ]
-            for s in report.strategies:
-                lines.append(f"{s.strategy}: {s.total_return_pct:+.2f}% ({s.trade_count} trades)")
+            for s in sorted(report.strategies, key=lambda x: x.total_return_pct, reverse=True):
+                status = ""
+                if s.wallet in disabled:
+                    status = " [DISABLED]"
+                elif s.wallet in paused:
+                    status = " [PAUSED]"
+                pf = f"{s.profit_factor:.1f}" if s.profit_factor < 1000 else "inf"
+                lines.append(
+                    f"{s.wallet}: {s.total_return_pct:+.2f}% | "
+                    f"{s.trade_count}t W:{s.win_rate:.0%} PF:{pf}{status}"
+                )
+            if disabled:
+                lines.append(f"---\nDisabled: {', '.join(disabled)}")
+            if paused:
+                lines.append(f"Paused: {', '.join(paused)}")
             self._notifier.send_message("\n".join(lines))
             self._last_pnl_notify = time.time()
         except Exception as exc:

@@ -1,29 +1,33 @@
 # Session Handoff
 
-Date: 2026-03-26 (FIRE Session #8)
+Date: 2026-03-26 (FIRE Session #9)
 Branch: `master`
 
-## What Landed This Session (#8) — 7 Commits, 27 New Tests
+## What Landed This Session (#9) — 3 Features, 13 New Tests
 
-### Wave 1: Critical Bug Fix + Config Activation
-- **Config loading bug** (Critical): `load_config()` silently ignored `adx_period`, `adx_threshold`, `volume_filter_mult`, `partial_tp_pct`, `cooldown_bars` from TOML — all Session #7 features were using defaults
-- **Capital rebalancing**: Winners get 60%+ of capital (momentum 2M, kimchi 1.5M, consensus 1.5M), losers reduced (obi 200K, vpin 300K)
-- **Consensus wallet added**: `sub_strategies=["momentum", "kimchi_premium"]`, `min_confidence_sum=1.2`
-- **All S7 features enabled**: ADX, volume filter, cooldown, partial TP per wallet
+### Auto-Disable Losing Wallets
+- **WalletHealthMonitor** (`risk/wallet_health.py`): Reads PnL snapshot history, checks per-wallet return over configurable window (default 7 days)
+- Wallets with negative return for 7+ consecutive days are auto-disabled
+- MultiSymbolRuntime skips disabled wallets during tick processing
+- Telegram notification when a wallet is auto-disabled
+- Re-enables automatically when wallet returns to positive
+- State persisted to `artifacts/wallet-health.json` across daemon restarts
 
-### Wave 2: Risk Protection Stack
-- **Regime weights** for volatility_breakout (0.3x bear) and consensus (0.5x bear)
-- **Circuit breaker**: Force-closes all positions when wallet daily loss limit hit
-- **Winner concurrency**: momentum/kimchi/consensus get `max_concurrent_positions=2`
-- **Configurable kill switch**: 15% portfolio DD, 5% daily loss, 5 consecutive losses — now in TOML
-- **Telegram alert** on kill switch trigger
+### Enhanced Daily PnL Telegram Alerts
+- Per-wallet breakdown: return%, trade count, win rate, profit factor
+- Portfolio-level Sharpe ratio and total equity in header
+- `[DISABLED]` and `[PAUSED]` status indicators per wallet
+- Wallets sorted by return% descending (winners first)
 
-### Wave 3: Adaptive Strategy Management
-- **Auto-pause**: Wallets with rolling PF < 0.7 over last 20 trades skip entries until PF > 0.8 (hysteresis)
-- **Rolling correlation indicator**: Pearson correlation over sliding window (for future diversification)
+### Snapshot Automation (Cron-Friendly CLI)
+- `--output-dir` flag for custom artifact path
+- JSON summary on stdout for cron/scripting consumption
+- Proper exit codes: 0 on success, 1 on failure
+- Error JSON output on failure for monitoring integration
 
 ## Previous Session Deliverables (Still Active)
 
+### Session #8: Risk Protection + Adaptive Management (7 commits, 27 tests)
 ### Session #7: Signal Quality + Risk Management (12 stories, 4 waves)
 ### Session #6: Risk & Backtest Tooling (13 stories)
 ### Session #5: Grid-WF + Consensus + Daemon Expansion
@@ -35,56 +39,46 @@ Branch: `master`
 
 ```
 src/crypto_trader/
-  config.py             # FIXED: loads all S7 fields from TOML
-                        # + KillSwitchCfg dataclass, loaded from [kill_switch] section
-                        # + min_confidence_sum in consensus extra override fields
-  macro/
-    adapter.py          # + volatility_breakout and consensus in STRATEGY_REGIME_WEIGHTS
+  cli.py                # + --output-dir flag, JSON stdout, exit codes for snapshot
+                        # + json import
+  multi_runtime.py      # + WalletHealthMonitor integration
+                        # + _maybe_check_wallet_health() method
+                        # + Enhanced _maybe_send_pnl_notify() with per-wallet breakdown
+                        # + Disabled wallet skip in _run_tick()
   risk/
-    manager.py          # + should_force_exit() circuit breaker
-                        # + is_auto_paused property (rolling PF check)
-  wallet.py             # + circuit breaker force-exit in run_once
-                        # + auto-pause gate on entry
-  multi_runtime.py      # + KillSwitchConfig from AppConfig
-                        # + Telegram notification on kill switch trigger
-  strategy/
-    indicators.py       # + rolling_correlation()
+    wallet_health.py    # NEW: WalletHealthMonitor, WalletHealthConfig, WalletHealthStatus
+                        # Reads pnl-snapshots.jsonl, auto-disables persistent losers
+                        # State persistence to wallet-health.json
 
-config/
-  optimized.toml        # 8 wallets, capital rebalanced, S7 features enabled
-                        # + [kill_switch] section
-                        # + max_concurrent_positions=2 for winners
-
-tests/ (+27 new tests)
-  test_config.py              # +6 tests: S7 fields, kill switch config, optimized.toml
-  test_regime_weights.py      # +4 tests: vbreak/consensus regime weights
-  test_circuit_breaker.py     # +5 tests: daily loss force-exit
-  test_rolling_correlation.py # +6 tests: Pearson correlation indicator
-  test_auto_pause.py          # +6 tests: rolling PF auto-pause
+tests/ (+13 new tests)
+  test_wallet_health.py         # +8 tests: disable, recover, persistence, skip
+  test_enhanced_pnl_notify.py   # +5 tests: format, disabled/paused status, sorting
+  test_snapshot_cli.py          # +5 tests: output dir, JSON format, history append (replaced)
+  test_telegram_pnl.py          # Updated: assertions match new notification format
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` -> **616 passed, 3 skipped, 0 failures**
-- +27 new tests this session across 7 commits
-- 7 commits pushed to master
+- `pytest tests/ -q` -> **629 passed, 3 skipped, 0 failures**
+- +13 new tests this session
+- All Session #8 tests still passing
 
 ## Current Gaps / Risks
 
-1. **Daemon restart needed** — new config not live until restart
+1. **Daemon restart needed** — new wallet health monitor not live until restart
 2. **No closed trades yet** — strategies waiting for entry signals
 3. Kimchi premium uses simulated premium — live may diverge
 4. Telegram not live-verified
-5. **Auto-pause needs live validation** — ensure hysteresis works in practice
+5. **Wallet health needs snapshot history** — auto-disable only works after 7+ days of snapshots
 6. **Consensus wallet untested in production** — paper trade first
 
 ## Recommended Next Moves
 
-1. **Restart daemon** with updated config (all 8 wallets + new features)
-2. **Run `backtest-all`** to compare all strategies with new config
-3. **Run regime-aware grid-wf** for momentum and volatility_breakout with new params
-4. **Monitor auto-pause** behavior in paper trading logs
-5. **Automate snapshots** — cron `crypto-trader snapshot` every 6h
-6. **Telegram bot setup** for daily PnL alerts
-7. **Paper trading 7 days** -> micro-live gate by Apr 2
-8. **Auto-disable** — remove obi/vpin wallets if still negative after 7 days
+1. **Restart daemon** with updated config
+2. **Set up cron** for `crypto-trader snapshot --output-dir artifacts/` every 6h
+3. **Run `backtest-all`** to compare all strategies with new config
+4. **Run regime-aware grid-wf** for momentum and volatility_breakout
+5. **Monitor auto-disable** — check wallet-health.json after 7 days
+6. **Paper trading 7 days** -> micro-live gate by Apr 2
+7. **Telegram bot setup** — configure bot_token and chat_id in TOML
+8. **Strategy optimization** — grid-wf for underperforming wallets

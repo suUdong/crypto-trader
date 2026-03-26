@@ -115,8 +115,8 @@ class TestPnLMessageFormat(unittest.TestCase):
 
             self.assertEqual(len(sent_messages), 1)
             msg = sent_messages[0]
-            self.assertIn("[Crypto Trader] Daily PnL", msg)
-            self.assertIn("Portfolio:", msg)
+            self.assertIn("[Crypto Trader] Daily PnL Report", msg)
+            self.assertIn("Equity:", msg)
             self.assertIn("Trades:", msg)
             self.assertIn("Win:", msg)
             self.assertIn("---", msg)
@@ -187,8 +187,8 @@ class TestPnLMessageContent(unittest.TestCase):
             self.assertIn("%", msg)
             # Strategy breakdown line
             self.assertIn("momentum", msg)
-            # Trade count from fixture is 3
-            self.assertIn("3 trades", msg)
+            # Trade count from fixture is 3 (new format: "3t")
+            self.assertIn("3t", msg)
 
     def test_pnl_timestamp_updated_after_send(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
