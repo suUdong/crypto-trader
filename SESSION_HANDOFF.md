@@ -1,28 +1,60 @@
 # Session Handoff
 
-Date: 2026-03-26 (FIRE Session #3)
+Date: 2026-03-26 (FIRE Session #4)
 Branch: `master`
 
 ## What Landed This Session
 
-### Per-Strategy Realized PnL Tracking
-- `TradeRecord` now has `wallet` field — every closed trade tracks which wallet generated it
-- `PaperTradeJournal.append_many()` accepts `wallet_name` parameter
-- `MultiSymbolRuntime._persist_journal()` passes wallet name to journal
-- Fake test data purged from `paper-trades.jsonl` (archived to `paper-trades-fake-data-archived.jsonl`)
+### Walk-Forward CLI Command (US-001, US-002)
+- `walk-forward` CLI command with `--strategy` and `--days` flags
+- Supports all 7 strategy types including `kimchi_premium` with simulated premium (MA deviation proxy)
+- Per-symbol PASS/FAIL output with efficiency ratio, OOS win rate
+- 3 integration tests covering momentum, kimchi_premium mock, and all strategy types
 
-### Enhanced PnL Report
-- **Per-wallet breakdown** replaces flat strategy list — each wallet row shows strategy, return%, equity, PnL, trades, win%, PF, Sharpe
-- **Time-range filtering** via `--hours` CLI flag — e.g. `pnl-report --hours 72` for 3-day report
-- **Flexible Sharpe calculation** — handles hour-based periods (`72h`, `24h`) for proper annualization
-- JSON output includes `wallet` field per strategy entry
+### Historical PnL Snapshot Store (US-003)
+- `PnLSnapshotStore` class — append-only JSONL accumulator for PnL reports
+- Auto-appends on every `PnLReportGenerator.save()` call
+- Each snapshot: timestamp, equity, return%, Sharpe, realized PnL, per-wallet details
+- `load_history()` for reading back full snapshot timeline
+- 5 unit tests with roundtrip, auto-append, and format validation
+
+### PnL History CLI Command (US-004)
+- `pnl-history` CLI command showing trending equity table
+- Columns: date, equity, return%, realized PnL, delta from previous, trades
+- Reads from `artifacts/pnl-snapshots.jsonl`
+
+## Previous Session Deliverables (Still Active)
+
+### Per-Strategy Realized PnL Tracking (Session #3)
+- `TradeRecord.wallet` field, `PaperTradeJournal.append_many(wallet_name=)`
+- Per-wallet PnL breakdown, `--hours` time-range filtering, Sharpe calculation
 
 ### Per-Symbol Momentum Wallets (Session #2)
-- Split momentum into `momentum_btc_wallet` (Sharpe 2.51) and `momentum_eth_wallet` (Sharpe 4.86)
-- BTC: lookback=20, threshold=0.005, SL=4%, TP=8%, risk=0.5%
-- ETH: lookback=15, threshold=0.005, SL=2%, TP=4%, risk=1.5%, ATR=3.0
-- Kimchi premium wallet with grid-search overrides (Sharpe 1.22)
-- 5 negative-Sharpe strategies excluded
+- BTC (Sharpe 2.51) + ETH (Sharpe 4.86) momentum wallets
+- Kimchi premium wallet (Sharpe 1.22)
+
+## Architecture Updates
+
+```
+src/crypto_trader/
+  cli.py                # + walk-forward command (--strategy, --days)
+                        # + pnl-history command
+  operator/
+    pnl_report.py       # + PnLSnapshotStore class (JSONL append/load)
+                        # + auto-append in save()
+  backtest/
+    walk_forward.py     # (existing) WalkForwardValidator used by new CLI
+
+tests/
+  test_walk_forward_cli.py    # 3 tests: momentum WF, kimchi WF, all strategies
+  test_pnl_snapshot_store.py  # 5 tests: roundtrip, wallet details, auto-append
+```
+
+## Validation State
+
+- `pytest tests/ -q` → 466 passed, 3 skipped
+- All new CLI commands wired and tested
+- Git push to master complete
 
 ## Daemon 72-Hour Performance (2026-03-26)
 
@@ -32,32 +64,6 @@ Branch: `master`
 | momentum_eth_wallet | momentum | 1,000,000 | 0 | 0 | 0 | Waiting for signal |
 | kimchi_premium_wallet | kimchi_premium | 999,590 | 0 | -410 | 0 closed | BTC position open |
 | **Total** | | **2,999,590** | **0** | **-410** | **0** | |
-
-- Daemon restarted at 14:29 KST with optimized 3-wallet config
-- Kimchi bought BTC at ~105,721 KRW (safe_zone_rsi_entry), position open waiting
-- Momentum wallets holding — sideways market, entry conditions not met (expected)
-- No kill switch triggers, healthcheck green
-
-## Architecture Updates
-
-```
-src/crypto_trader/
-  models.py             # + TradeRecord.wallet field (default="")
-  operator/
-    paper_trading.py    # + PaperTradeJournal.append_many(wallet_name=) param
-    pnl_report.py       # + StrategyPnLMetrics.wallet field
-                        # + hours param for time-range filtering
-                        # + Per-wallet markdown output
-                        # + Hour-based Sharpe calculation
-  multi_runtime.py      # + wallet name passed to journal on persist
-  cli.py                # + --hours flag for pnl-report command
-```
-
-## Validation State
-
-- `pytest tests/ -q` → 458 passed, 3 skipped
-- PnL report generates correctly with `--hours 72`
-- Daemon running with 3-wallet config, logs clean
 
 ## Current Gaps / Risks
 
@@ -70,8 +76,9 @@ src/crypto_trader/
 ## Recommended Next Moves
 
 1. **Monitor paper trading** for 7 days → micro-live gate by Apr 2
-2. **Add walk-forward for kimchi_premium** (currently grid-search only)
-3. **Per-symbol momentum tuning** — BTC and ETH may benefit from different params
+2. **Run walk-forward on live data** — `crypto-trader walk-forward --strategy kimchi_premium --days 30`
+3. **Grid search + walk-forward combo** — validate top params from grid search with WF
 4. **Add composite strategy** with higher-confidence filter (Sharpe 1.16 but only 2 trades)
 5. **Telegram bot setup** for daily PnL alerts
-6. **Historical PnL aggregation** — accumulate daily snapshots for multi-day trending
+6. **PnL history accumulation** — run pnl-report periodically to build snapshot timeline
+7. **Capital rebalance** once first closed trades come in
