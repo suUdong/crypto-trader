@@ -17,6 +17,7 @@ from crypto_trader.models import (
 from crypto_trader.notifications.telegram import Notifier
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
+from crypto_trader.strategy.evaluator import evaluate_strategy
 
 
 class TradingPipeline:
@@ -57,7 +58,7 @@ class TradingPipeline:
             self._risk_manager.update_atr_from_candles(candles)
             now = candles[-1].timestamp if candles else datetime.utcnow()
             position = self._broker.positions.get(symbol)
-            signal = self._strategy.evaluate(candles, position, symbol=symbol)
+            signal = evaluate_strategy(self._strategy, candles, position, symbol=symbol)
             latest_price = candles[-1].close
             order: OrderResult | None = None
 

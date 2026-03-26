@@ -1,11 +1,14 @@
 """Strategy signal correlation — detect redundant wallets."""
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from crypto_trader.models import Candle, SignalAction
+from crypto_trader.strategy.evaluator import evaluate_strategy
 
 
 def signal_correlation(
-    strategies: list[object],
+    strategies: Sequence[object],
     candles: list[Candle],
     strategy_names: list[str] | None = None,
 ) -> dict[tuple[str, str], float]:
@@ -23,7 +26,7 @@ def signal_correlation(
         for i in range(30, len(candles)):  # need warmup
             window = candles[: i + 1]
             try:
-                sig = strategy.evaluate(window, None, symbol="")
+                sig = evaluate_strategy(strategy, window, None, symbol="")
                 signals.append(1 if sig.action is SignalAction.BUY else 0)
             except Exception:
                 signals.append(0)
@@ -50,7 +53,7 @@ def _binary_correlation(a: list[int], b: list[int]) -> float:
     n01 = sum(1 for i in range(n) if a[i] == 0 and b[i] == 1)
     n00 = sum(1 for i in range(n) if a[i] == 0 and b[i] == 0)
 
-    denom = ((n11+n10)*(n11+n01)*(n00+n10)*(n00+n01)) ** 0.5
+    denom = ((n11 + n10) * (n11 + n01) * (n00 + n10) * (n00 + n01)) ** 0.5
     if denom == 0:
         return 0.0
-    return (n11*n00 - n10*n01) / denom
+    return float((n11 * n00 - n10 * n01) / denom)

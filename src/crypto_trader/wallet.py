@@ -27,6 +27,7 @@ from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.consensus import ConsensusStrategy
 from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
+from crypto_trader.strategy.evaluator import evaluate_strategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
@@ -130,7 +131,7 @@ class StrategyWallet:
             self.risk_manager.update_atr_from_candles(candles)
             self.risk_manager.tick_cooldown()
             position = self.broker.positions.get(symbol)
-            signal = self.strategy.evaluate(candles, position, symbol=symbol)
+            signal = evaluate_strategy(self.strategy, candles, position, symbol=symbol)
             latest_price = candles[-1].close
             order: OrderResult | None = None
 

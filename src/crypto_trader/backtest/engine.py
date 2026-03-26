@@ -5,6 +5,7 @@ from typing import Protocol
 from crypto_trader.config import BacktestConfig, RegimeConfig
 from crypto_trader.models import BacktestResult, Candle, Position, Signal, SignalAction, TradeRecord
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.strategy.evaluator import evaluate_strategy
 from crypto_trader.strategy.regime import MarketRegime, RegimeDetector
 
 
@@ -69,7 +70,12 @@ class BacktestEngine:
                 exit_reason = self._risk_manager.exit_reason(
                     open_position, market_price, holding_bars=holding_bars,
                 )
-                signal = self._strategy.evaluate(window, open_position, symbol=self._symbol)
+                signal = evaluate_strategy(
+                    self._strategy,
+                    window,
+                    open_position,
+                    symbol=self._symbol,
+                )
                 if exit_reason is None and signal.action is SignalAction.SELL:
                     exit_reason = signal.reason
 
@@ -150,7 +156,7 @@ class BacktestEngine:
                         open_position = None
 
             if open_position is None:
-                signal = self._strategy.evaluate(window, None, symbol=self._symbol)
+                signal = evaluate_strategy(self._strategy, window, None, symbol=self._symbol)
                 can_open = self._risk_manager.can_open(
                     active_positions=0,
                     realized_pnl=realized_pnl,
