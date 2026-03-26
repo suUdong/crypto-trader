@@ -1,31 +1,34 @@
 # Session Handoff
 
-Date: 2026-03-26 (FIRE Session #7)
+Date: 2026-03-26 (FIRE Session #8)
 Branch: `master`
 
-## What Landed This Session (#7) — 12 User Stories in 4 Waves
+## What Landed This Session (#8) — 3 Fixes, 8 Tests
 
-### Wave 1: Signal Quality (US-023 to US-026)
-- **US-023**: Adaptive RSI ceiling — strong momentum widens RSI ceiling from 60 toward 80
-- **US-024**: Partial take-profit (scale-out) — sells 50% at half TP target, lets rest ride
-- **US-025**: Widened mean reversion Bollinger (1.8→1.5 stddev) + RSI confirmation filter
-- **US-026**: ADX trend strength filter — blocks entries when ADX < 20 (choppy market)
+### Fix 1: Config Loading Bug (Critical)
+- `load_config()` silently ignored `adx_period`, `adx_threshold`, `volume_filter_mult` (StrategyConfig) and `partial_tp_pct`, `cooldown_bars` (RiskConfig) from TOML
+- All Session #7 features were using dataclass defaults instead of user config values
+- Also added `min_confidence_sum` to consensus strategy's allowed override fields
 
-### Wave 2: Risk & Exit Management (US-028 to US-030)
-- **US-028**: Volume-weighted entry filter (opt-in via volume_filter_mult) for momentum & vbreak
-- **US-029**: Default ATR-based stops (atr_stop_multiplier 0→2.0) for dynamic stop distances
-- **US-030**: Time-decay exit — closes underwater positions held > 75% of max_holding_bars
+### Fix 2: Capital Rebalancing & Feature Activation
+- Updated `optimized.toml` to enable all Session #7 features per wallet
+- Capital rebalanced by Sharpe ratio:
+  - **Winners**: momentum 2M (26.7%), kimchi 1.5M (20%), consensus 1.5M (20%), composite 1M (13.3%)
+  - **Losers**: mean_reversion 500K (6.7%), vbreak 500K (6.7%), vpin 300K (4%), obi 200K (2.7%)
+- Added consensus wallet with `sub_strategies=["momentum", "kimchi_premium"]`, `min_confidence_sum=1.2`
+- Enabled volume_filter_mult=1.2 on momentum and volatility_breakout
+- Enabled ADX filter on all trend-following strategies
+- Cooldown increased to 5 bars on losing strategies
 
-### Wave 3: Profit Locking & Comparison (US-032 to US-033)
-- **US-032**: Trailing stop auto-activates at 2% after partial take-profit
-- **US-033**: `backtest-all` CLI — runs all strategies, outputs comparison table + JSON
-
-### Wave 4: Discipline & Consensus (US-035 to US-036)
-- **US-035**: Post-loss cooldown — skips entries for 3 bars after a losing trade
-- **US-036**: Weighted consensus voting — min_confidence_sum gate for higher-quality entries
+### Fix 3: Regime Weights for New Strategies
+- `volatility_breakout` and `consensus` were missing from `STRATEGY_REGIME_WEIGHTS`
+- Both defaulted to 1.0x in all regimes — no bear market protection
+- Now: vbreak 0.3x in bear (false breakout risk), consensus 0.5x in bear
+- Bull: vbreak 1.3x, consensus 1.2x
 
 ## Previous Session Deliverables (Still Active)
 
+### Session #7: Signal Quality + Risk Management (12 stories, 4 waves)
 ### Session #6: Risk & Backtest Tooling (13 stories)
 ### Session #5: Grid-WF + Consensus + Daemon Expansion
 ### Session #4: Walk-Forward CLI + PnL History
@@ -36,62 +39,42 @@ Branch: `master`
 
 ```
 src/crypto_trader/
-  config.py             # + adx_period, adx_threshold, volume_filter_mult in StrategyConfig
-                        # + partial_tp_pct, cooldown_bars in RiskConfig
-                        # bollinger_stddev 1.8→1.5, atr_stop_multiplier 0→2.0
-  cli.py                # + backtest-all command
-  models.py             # + partial_tp_taken on Position
-  strategy/
-    momentum.py         # + adaptive RSI ceiling, ADX filter, volume filter
-    volatility_breakout.py  # + ADX filter, volume filter
-    mean_reversion.py   # + RSI confirmation filter (oversold_floor+10)
-    consensus.py        # + min_confidence_sum weighted voting
-    indicators.py       # + average_directional_index(), volume_sma()
-  risk/
-    manager.py          # + partial_take_profit, time_decay_exit, auto-trailing after partial TP
-                        # + post-loss cooldown (tick_cooldown, in_cooldown)
-  wallet.py             # + partial TP sell, holding_bars, cooldown check, consensus params
-  backtest/
-    grid_wf.py          # + ATR stop in backtest runner
+  config.py             # FIXED: now loads adx_period, adx_threshold, volume_filter_mult,
+                        #        partial_tp_pct, cooldown_bars from TOML
+                        # + min_confidence_sum in consensus extra override fields
+  macro/
+    adapter.py          # + volatility_breakout and consensus in STRATEGY_REGIME_WEIGHTS
 
-tests/ (50 new tests)
-  test_adaptive_rsi_ceiling.py      # 4 tests
-  test_partial_take_profit.py       # 5 tests
-  test_adx_indicator.py             # 8 tests
-  test_mean_reversion_rsi_filter.py # 4 tests
-  test_volume_filter.py             # 7 tests
-  test_time_decay_exit.py           # 5 tests
-  test_trailing_after_partial_tp.py # 4 tests
-  test_backtest_all_cli.py          # 2 tests
-  test_cooldown.py                  # 6 tests
-  test_weighted_consensus.py        # 5 tests
+config/
+  optimized.toml        # Session #8: 8 wallets, capital rebalanced, all S7 features enabled
+
+tests/ (+8 new tests)
+  test_config.py              # +4 tests: S7 field loading, optimized.toml integration
+  test_regime_weights.py      # +4 tests: vbreak/consensus regime weights
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` → **589 passed, 3 skipped, 0 failures**
-- +50 new tests this session across 4 commits
-- 4 commits pushed to master
+- `pytest tests/ -q` -> **597 passed, 3 skipped, 0 failures**
+- +8 new tests this session across 3 commits
+- 3 commits pushed to master
 
 ## Current Gaps / Risks
 
-1. **3 new wallets not deployed** — daemon restart needed
+1. **Daemon restart needed** — new config not live until restart
 2. **No closed trades yet** — strategies waiting for entry signals
-3. ~~Momentum RSI conflict~~ **FIXED**
-4. Kimchi premium uses simulated premium — live may diverge
-5. Telegram not live-verified
-6. **Volume filter disabled by default** — enable via `volume_filter_mult: 1.2`
-7. **ATR stops now default** — may change exit behavior vs. fixed % stops
-8. **Cooldown may reduce trade frequency** — tune cooldown_bars if too restrictive
+3. Kimchi premium uses simulated premium — live may diverge
+4. Telegram not live-verified
+5. **Consensus wallet untested in production** — paper trade first
+6. **Losing strategies still active** — consider disabling if no improvement after 7-day paper run
 
 ## Recommended Next Moves
 
-1. **Restart daemon** with updated config (all 9 wallets + new features)
-2. **Run `backtest-all`** to compare all strategies on current market data
-3. **Run regime-aware grid-wf** for momentum and volatility_breakout
-4. **Enable volume filter** in production: `volume_filter_mult: 1.2`
-5. **Set consensus `min_confidence_sum: 1.2`** for higher-quality consensus entries
-6. **Monitor partial TP + trailing** in paper trading
-7. **Automate snapshots** — cron `crypto-trader snapshot` every 6h
-8. **Telegram bot setup** for daily PnL alerts
-9. **Paper trading 7 days** → micro-live gate by Apr 2
+1. **Restart daemon** with updated config (all 8 wallets + new features)
+2. **Run `backtest-all`** to compare all strategies with new config
+3. **Run regime-aware grid-wf** for momentum and volatility_breakout with new params
+4. **Monitor partial TP + trailing** in paper trading
+5. **Automate snapshots** — cron `crypto-trader snapshot` every 6h
+6. **Telegram bot setup** for daily PnL alerts
+7. **Paper trading 7 days** -> micro-live gate by Apr 2
+8. **Kill underperformers** — if vpin/obi still negative after 7 days, remove wallets
