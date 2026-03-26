@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import bollinger_bands, macd, noise_ratio, rsi, rsi_divergence
+from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, macd, noise_ratio, obv_slope, rsi, rsi_divergence, volume_sma
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -80,10 +80,47 @@ class MeanReversionStrategy:
         except ValueError:
             pass
 
+        # OBV trend
+        obv_trend: float | None = None
+        try:
+            volumes = [c.volume for c in candles]
+            obv_trend = obv_slope(closes, volumes, lookback=10)
+            indicators["obv_slope"] = obv_trend
+        except ValueError:
+            pass
+
+        # ADX trend strength (high ADX = strong trend = bad for mean reversion)
+        adx_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            adx_value = average_directional_index(highs, lows, closes, effective.adx_period)
+            indicators["adx"] = adx_value
+        except ValueError:
+            pass
+
+        # EMA(50) macro trend
+        ema50_value: float | None = None
+        if len(closes) >= 50:
+            try:
+                ema50_value = _ema(closes, 50)[-1]
+                indicators["ema50"] = ema50_value
+            except (ValueError, IndexError):
+                pass
+
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
         if position is None:
+            # ADX filter: skip entry in strongly trending markets (ADX > 40 = bad for MR)
+            if adx_value is not None and adx_value > 40.0:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="market_too_trendy_adx",
+                    confidence=0.2,
+                    indicators=indicators,
+                    context=context,
+                )
             # Noise ratio filter: skip entry in strongly trending markets (bad for MR)
             if nr_value is not None and nr_value < 0.5:
                 return Signal(
@@ -93,6 +130,22 @@ class MeanReversionStrategy:
                     indicators=indicators,
                     context=context,
                 )
+            # Volume filter: require above-average volume for reversal confirmation
+            if effective.volume_filter_mult > 0:
+                volumes = [c.volume for c in candles]
+                try:
+                    vol_avg = volume_sma(volumes, min(20, len(volumes)))
+                    indicators["volume_ratio"] = volumes[-1] / vol_avg if vol_avg > 0 else 0.0
+                    if volumes[-1] < vol_avg * effective.volume_filter_mult:
+                        return Signal(
+                            action=SignalAction.HOLD,
+                            reason="volume_too_low",
+                            confidence=0.2,
+                            indicators=indicators,
+                            context=context,
+                        )
+                except ValueError:
+                    pass
             # RSI confirmation: require RSI below oversold_floor + 10 to avoid false bottoms
             rsi_entry_limit = effective.rsi_oversold_floor + 10.0
             if near_lower_band and rsi_value <= rsi_entry_limit:
@@ -104,6 +157,12 @@ class MeanReversionStrategy:
                 # Deeper dip below lower band = higher confidence
                 if band_distance > 0:
                     base_conf = min(1.0, base_conf + band_distance * 0.3)
+                # OBV divergence boost: price at lower band but OBV rising = accumulation
+                if obv_trend is not None and obv_trend > 0.3:
+                    base_conf = min(1.0, base_conf + 0.1)
+                # EMA(50) macro: price below EMA(50) confirms extended dip (good for MR)
+                if ema50_value is not None and latest_close < ema50_value:
+                    base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,
                     reason="bollinger_mean_reversion",

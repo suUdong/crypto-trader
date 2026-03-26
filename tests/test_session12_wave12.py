@@ -313,9 +313,9 @@ class TestMeanReversionNoiseRatio(unittest.TestCase):
             noise_lookback=20,
         ))
         signal = strategy.evaluate(candles)
-        # In a strong trend, noise ratio < 0.5, should get "market_too_trendy"
-        if signal.indicators.get("noise_ratio", 1.0) < 0.5:
-            self.assertEqual(signal.reason, "market_too_trendy")
+        # In a strong trend, should be blocked by ADX or noise ratio filter
+        if signal.indicators.get("noise_ratio", 1.0) < 0.5 or signal.indicators.get("adx", 0) > 40:
+            self.assertIn(signal.reason, ["market_too_trendy", "market_too_trendy_adx"])
             self.assertEqual(signal.action, SignalAction.HOLD)
 
     def test_ranging_market_allows_entry(self) -> None:

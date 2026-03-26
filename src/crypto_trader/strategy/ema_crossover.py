@@ -7,6 +7,8 @@ from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
     macd,
+    noise_ratio,
+    obv_slope,
     rsi,
     stochastic_rsi,
     volume_sma,
@@ -91,6 +93,29 @@ class EMACrossoverStrategy:
         except ValueError:
             pass
 
+        # OBV trend confirmation
+        obv_trend: float | None = None
+        try:
+            volumes = [c.volume for c in candles]
+            obv_trend = obv_slope(closes, volumes, lookback=10)
+        except ValueError:
+            pass
+
+        # Noise ratio: detect choppy markets where crossovers whipsaw
+        nr_value: float | None = None
+        try:
+            nr_value = noise_ratio(closes, effective.noise_lookback)
+        except ValueError:
+            pass
+
+        # EMA(50) macro trend
+        ema50_value: float | None = None
+        if len(closes) >= 50:
+            try:
+                ema50_value = _ema(closes, 50)[-1]
+            except (ValueError, IndexError):
+                pass
+
         indicators = {
             "ema_fast": fast_now,
             "ema_slow": slow_now,
@@ -101,6 +126,12 @@ class EMACrossoverStrategy:
         }
         if adx_value is not None:
             indicators["adx"] = adx_value
+        if obv_trend is not None:
+            indicators["obv_slope"] = obv_trend
+        if nr_value is not None:
+            indicators["noise_ratio"] = nr_value
+        if ema50_value is not None:
+            indicators["ema50"] = ema50_value
         context = {"strategy": "ema_crossover", "market_regime": regime.value}
 
         if position is not None:
@@ -119,6 +150,9 @@ class EMACrossoverStrategy:
             indicators,
             context,
             effective=effective,
+            obv_trend=obv_trend,
+            nr_value=nr_value,
+            ema50_value=ema50_value,
         )
 
     def _evaluate_entry(
@@ -133,8 +167,20 @@ class EMACrossoverStrategy:
         indicators: dict[str, float],
         context: dict[str, str],
         effective: StrategyConfig | None = None,
+        obv_trend: float | None = None,
+        nr_value: float | None = None,
+        ema50_value: float | None = None,
     ) -> Signal:
         cfg = effective or self._config
+        # Noise ratio filter: skip entries in choppy markets (high whipsaw risk)
+        if nr_value is not None and nr_value > 0.7:
+            return Signal(
+                action=SignalAction.HOLD,
+                reason="noise_too_high",
+                confidence=0.2,
+                indicators=indicators,
+                context=context,
+            )
         # Entry: EMA crossover + RSI not overbought + StochRSI not extreme
         if (
             cross_up
@@ -169,6 +215,12 @@ class EMACrossoverStrategy:
             base_conf = min(1.0, 0.5 + abs(spread) * 50)
             if macd_bullish:
                 base_conf = min(1.0, base_conf + 0.1)
+            # OBV accumulation boosts confidence
+            if obv_trend is not None and obv_trend > 0.3:
+                base_conf = min(1.0, base_conf + 0.05)
+            # EMA(50) macro alignment boosts confidence
+            if ema50_value is not None and indicators.get("ema_fast", 0) > ema50_value:
+                base_conf = min(1.0, base_conf + 0.05)
             return Signal(
                 action=SignalAction.BUY,
                 reason="ema_crossover_buy",
@@ -192,9 +244,28 @@ class EMACrossoverStrategy:
                     indicators=indicators,
                     context=context,
                 )
+            # Volume filter for trend continuation
+            if cfg.volume_filter_mult > 0:
+                volumes = [c.volume for c in candles]
+                try:
+                    vol_avg = volume_sma(volumes, min(20, len(volumes)))
+                    indicators["volume_ratio"] = volumes[-1] / vol_avg if vol_avg > 0 else 0.0
+                    if volumes[-1] < vol_avg * cfg.volume_filter_mult:
+                        return Signal(
+                            action=SignalAction.HOLD,
+                            reason="volume_too_low",
+                            confidence=0.2,
+                            indicators=indicators,
+                            context=context,
+                        )
+                except ValueError:
+                    pass
             base_conf = min(1.0, 0.4 + spread * 30)
             if macd_bullish:
                 base_conf = min(1.0, base_conf + 0.1)
+            # EMA(50) macro alignment for trend continuation
+            if ema50_value is not None and indicators.get("ema_fast", 0) > ema50_value:
+                base_conf = min(1.0, base_conf + 0.05)
             return Signal(
                 action=SignalAction.BUY,
                 reason="ema_trend_continuation",
