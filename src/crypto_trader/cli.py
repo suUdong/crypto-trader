@@ -20,7 +20,7 @@ from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.performance_report import generate_performance_report
 from crypto_trader.operator.pnl_report import PnLReportGenerator
-from crypto_trader.operator.promotion import MicroLiveCriteria
+from crypto_trader.operator.promotion import MicroLiveCriteria, PortfolioPromotionGate
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
@@ -71,6 +71,8 @@ def main() -> None:
             "backtest-all",
             "grid-wf-all",
             "strategy-dashboard",
+            "refresh-artifacts",
+            "portfolio-gate",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -1197,6 +1199,71 @@ def main() -> None:
         report_path = config.runtime.strategy_report_path
         StrategyComparisonReport().save(report_text, report_path)
         print(report_text)
+        return
+
+    if args.command == "refresh-artifacts":
+        print("=== Refreshing Artifacts ===")
+        # 1. Drift report + promotion gate (single-symbol)
+        artifacts = generate_operator_artifacts(
+            config=config,
+            market_data=market_data,
+            strategy=strategy,
+            risk_manager=risk_manager,
+        )
+        print(f"  drift-report     : {artifacts.drift_report.status.value}")
+        print(f"  promotion-gate   : {artifacts.promotion_decision.status.value}")
+        print(f"  daily-memo       : saved")
+        # 2. Portfolio promotion gate (multi-wallet)
+        portfolio_gate = PortfolioPromotionGate()
+        portfolio_decision = portfolio_gate.evaluate_from_checkpoint(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            journal_path=config.runtime.strategy_run_journal_path,
+        )
+        portfolio_path = Path(config.runtime.promotion_gate_path).parent / "portfolio-gate.json"
+        portfolio_gate.save(portfolio_decision, portfolio_path)
+        print(f"  portfolio-gate   : {portfolio_decision.status.value} ({portfolio_decision.profitable_wallets}/{portfolio_decision.wallet_count} profitable)")
+        # 3. Position snapshot
+        import json as _json
+        cp_path = Path(config.runtime.runtime_checkpoint_path)
+        if cp_path.exists():
+            cp = _json.loads(cp_path.read_text(encoding="utf-8"))
+            ws = cp.get("wallet_states", {})
+            open_count = sum(v.get("open_positions", 0) for v in ws.values())
+            print(f"  positions        : {open_count} open across {len(ws)} wallets")
+        print("\nAll artifacts refreshed.")
+        return
+
+    if args.command == "portfolio-gate":
+        portfolio_gate = PortfolioPromotionGate()
+        decision = portfolio_gate.evaluate_from_checkpoint(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            journal_path=config.runtime.strategy_run_journal_path,
+        )
+        portfolio_path = Path(config.runtime.promotion_gate_path).parent / "portfolio-gate.json"
+        portfolio_gate.save(decision, portfolio_path)
+        print("=== Portfolio Promotion Gate ===")
+        print(f"Status            : {decision.status.value}")
+        print(f"Wallets           : {decision.wallet_count}")
+        print(f"Total equity      : {decision.total_equity:,.0f} KRW")
+        print(f"Portfolio return   : {decision.portfolio_return_pct:+.4%}")
+        print(f"Realized PnL      : {decision.total_realized_pnl:,.0f} KRW")
+        print(f"Profitable wallets: {decision.profitable_wallets}/{decision.wallet_count}")
+        print(f"Total trades      : {decision.total_trades}")
+        print(f"Paper days        : {decision.paper_days}")
+        print()
+        for reason in decision.reasons:
+            is_pass = decision.status.value == "candidate_for_promotion"
+            tag = "PASS" if is_pass else "FAIL"
+            print(f"  [{tag}] {reason}")
+        if decision.per_wallet:
+            print("\n--- Per-Wallet ---")
+            for name, info in sorted(decision.per_wallet.items()):
+                print(
+                    f"  {name}: equity={info['equity']:,.0f} "
+                    f"pnl={info['realized_pnl']:+,.0f} "
+                    f"trades={info['trades']} "
+                    f"return={info['return_pct']:+.4%}"
+                )
         return
 
     broker = PaperBroker(
