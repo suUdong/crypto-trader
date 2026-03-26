@@ -72,7 +72,10 @@ class GridWFSummary:
             "best_validated": None if not self.best_validated else {
                 "params": self.best_validated.candidate.params,
                 "avg_sharpe": self.best_validated.candidate.avg_sharpe,
+                "avg_sortino": self.best_validated.candidate.avg_sortino,
                 "avg_profit_factor": self.best_validated.candidate.avg_profit_factor,
+                "avg_return_pct": self.best_validated.candidate.avg_return_pct,
+                "total_trades": self.best_validated.candidate.total_trades,
             },
         }
 
