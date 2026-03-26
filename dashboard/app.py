@@ -1,4 +1,4 @@
-"""Crypto Trader Dashboard — mobile-first Streamlit app."""
+"""크립토 트레이더 대시보드 — 모바일 최적화 Streamlit 앱."""
 
 from __future__ import annotations
 
@@ -6,13 +6,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Ensure the repo root is on sys.path so that 'dashboard' resolves as a package
-# when Streamlit Cloud runs this file directly (streamlit run dashboard/app.py).
 _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
-import plotly.graph_objects as go  # type: ignore[import-untyped]  # noqa: E402
+import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from dashboard.auth import check_auth, render_login  # noqa: E402
@@ -28,73 +26,81 @@ from dashboard.data import (  # noqa: E402
     load_promotion_gate,
     load_regime_report,
     load_strategy_runs,
+    regime_kr,
+    strategy_kr,
+    symbol_kr,
 )
 from dashboard.styles import inject_css  # noqa: E402
 
 _UTC = timezone.utc  # noqa: UP017
 
-# ── Page Config ────────────────────────────────────────────
+# ── 페이지 설정 ───────────────────────────────────────────
 st.set_page_config(
-    page_title="Crypto Trader",
+    page_title="크립토 트레이더",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 inject_css()
 
-# ── Auth Gate ──────────────────────────────────────────────
+# ── 인증 ──────────────────────────────────────────────────
 if not check_auth():
     render_login()
     st.stop()
 
-# ── Header ─────────────────────────────────────────────────
-st.markdown("## 📊 Crypto Trader Dashboard")
+# ── 헤더 ──────────────────────────────────────────────────
+st.markdown("## 📊 크립토 트레이더 대시보드")
 
-# ── Tab Navigation ─────────────────────────────────────────
+# ── 데몬 상태 (전체 공통) ─────────────────────────────────
+heartbeat = load_daemon_heartbeat()
+if heartbeat is None:
+    st.markdown(
+        '<span class="status-badge status-fail">데몬 중지</span> '
+        "하트비트 데이터 없음",
+        unsafe_allow_html=True,
+    )
+else:
+    hb_time_str = heartbeat.get("last_heartbeat", "")
+    poll_interval = heartbeat.get("poll_interval_seconds", 60)
+    stale_threshold = poll_interval * 2
+    try:
+        hb_time = datetime.fromisoformat(hb_time_str)
+        age_seconds = (datetime.now(_UTC) - hb_time).total_seconds()
+    except (ValueError, TypeError):
+        age_seconds = float("inf")
+
+    if age_seconds <= stale_threshold:
+        badge_cls, badge_text = "status-ok", "데몬 정상"
+    else:
+        badge_cls, badge_text = "status-warn", "데몬 지연"
+
+    uptime = heartbeat.get("uptime_seconds", 0)
+    if uptime >= 3600:
+        uptime_str = f"{int(uptime // 3600)}시간 {int((uptime % 3600) // 60)}분"
+    else:
+        uptime_str = f"{int(uptime // 60)}분"
+    pid = heartbeat.get("pid", "?")
+    iteration = heartbeat.get("iteration", 0)
+    symbols_list = heartbeat.get("symbols", [])
+    symbols_text = ", ".join(symbol_kr(s) for s in symbols_list) if symbols_list else ""
+
+    st.markdown(
+        f'<span class="status-badge {badge_cls}">{badge_text}</span> '
+        f"PID {pid} · 반복 #{iteration} · 가동 {uptime_str} · "
+        f"마지막 {int(age_seconds)}초 전"
+        + (f"<br>종목: {symbols_text}" if symbols_text else ""),
+        unsafe_allow_html=True,
+    )
+
+# ── 탭 내비게이션 ─────────────────────────────────────────
 tab_trading, tab_wallets, tab_signals, tab_regime, tab_operator, tab_perf = st.tabs(
-    ["현황", "전략비교", "시그널", "Regime", "리포트", "성과"]
+    ["현황", "전략비교", "시그널", "시장국면", "운영리포트", "성과"]
 )
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Tab 1: Paper Trading Overview
+# 탭 1: 현황 — 페이퍼 트레이딩 개요
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_trading:
-    # Daemon heartbeat status
-    heartbeat = load_daemon_heartbeat()
-    if heartbeat is None:
-        st.markdown(
-            '<span class="status-badge status-fail">DAEMON OFF</span> '
-            "하트비트 데이터 없음",
-            unsafe_allow_html=True,
-        )
-    else:
-        hb_time_str = heartbeat.get("last_heartbeat", "")
-        poll_interval = heartbeat.get("poll_interval_seconds", 60)
-        stale_threshold = poll_interval * 2
-        try:
-            hb_time = datetime.fromisoformat(hb_time_str)
-            age_seconds = (datetime.now(_UTC) - hb_time).total_seconds()
-        except (ValueError, TypeError):
-            age_seconds = float("inf")
-
-        if age_seconds <= stale_threshold:
-            badge_cls, badge_text = "status-ok", "DAEMON ALIVE"
-        else:
-            badge_cls, badge_text = "status-fail", "DAEMON STALE"
-
-        uptime = heartbeat.get("uptime_seconds", 0)
-        uptime_min = int(uptime // 60)
-        pid = heartbeat.get("pid", "?")
-        iteration = heartbeat.get("iteration", 0)
-        st.markdown(
-            f'<span class="status-badge {badge_cls}">{badge_text}</span> '
-            f"PID {pid} · 반복 #{iteration} · 가동 {uptime_min}분 · "
-            f"마지막 {int(age_seconds)}초 전",
-            unsafe_allow_html=True,
-        )
-
-    st.divider()
-
     checkpoint = load_checkpoint()
     health = load_health()
     positions = load_positions()
@@ -102,7 +108,7 @@ with tab_trading:
     if checkpoint is None:
         st.info("런타임 체크포인트 데이터가 없습니다.")
     else:
-        # Health indicator
+        # 헬스 표시기
         if health:
             is_healthy = health.get("success", False)
             last_signal = health.get("last_signal", "N/A")
@@ -114,45 +120,69 @@ with tab_trading:
                 unsafe_allow_html=True,
             )
 
-        # Checkpoint time
+        # 체크포인트 시간
         gen_at = checkpoint.get("generated_at", "")
         if gen_at:
             st.caption(f"업데이트: {gen_at[:19]}")
 
-        # Iteration & symbols
+        # 반복 & 종목
         iteration = checkpoint.get("iteration", 0)
         symbols = checkpoint.get("symbols", [])
-        st.markdown(f"**반복 #{iteration}** · {', '.join(symbols)}")
+        symbols_display = ", ".join(symbol_kr(s) for s in symbols)
+        st.markdown(f"**반복 #{iteration}** · {symbols_display}")
 
-        # Wallet summary cards
+        # 전략별 지갑 요약 카드
         wallet_states = checkpoint.get("wallet_states", {})
         if wallet_states:
-            cols = st.columns(len(wallet_states))
-            for col, (name, state) in zip(cols, wallet_states.items(), strict=False):
-                with col:
-                    display_name = name.replace("_wallet", "").replace("_", " ").title()
+            cols = st.columns(min(len(wallet_states), 3))
+            for i, (name, state) in enumerate(wallet_states.items()):
+                with cols[i % len(cols)]:
+                    display_name = strategy_kr(name)
                     equity = state.get("equity", 0)
                     pnl = state.get("realized_pnl", 0)
                     trades = state.get("trade_count", 0)
-                    st.metric(display_name, f"₩{equity:,.0f}", f"PnL: ₩{pnl:,.0f}")
+                    initial = state.get("initial_capital", equity)
+                    return_pct = ((equity - initial) / initial * 100) if initial > 0 else 0
+
+                    st.metric(
+                        display_name,
+                        f"₩{equity:,.0f}",
+                        f"{return_pct:+.2f}% (PnL ₩{pnl:,.0f})",
+                    )
                     st.caption(f"거래 {trades}건 · 포지션 {state.get('open_positions', 0)}개")
 
-        # Open positions
+        # 보유 포지션 — 진입가 vs 현재가
         if positions:
             pos_list = positions.get("positions", [])
             if pos_list:
                 st.markdown("#### 보유 포지션")
                 for p in pos_list:
+                    sym = p.get("symbol", "?")
+                    entry_price = p.get("entry_price", 0)
+                    market_price = p.get("market_price", entry_price)
+                    quantity = p.get("quantity", 0)
+                    unrealized_pnl = p.get("unrealized_pnl", 0)
+                    unrealized_pct = p.get("unrealized_pnl_pct", 0)
+
+                    pnl_color = "#4ade80" if unrealized_pnl >= 0 else "#f87171"
+                    pnl_sign = "+" if unrealized_pnl >= 0 else ""
+
                     st.markdown(
-                        f"- **{p.get('symbol', '?')}** "
-                        f"수량: {p.get('quantity', 0):.8f} "
-                        f"진입가: ₩{p.get('entry_price', 0):,.0f}"
+                        f"**{symbol_kr(sym)}**<br>"
+                        f"수량: {quantity:.8f} · "
+                        f"진입가: ₩{entry_price:,.0f} → "
+                        f"현재가: ₩{market_price:,.0f}<br>"
+                        f'<span style="color:{pnl_color};font-weight:600">'
+                        f"평가손익: {pnl_sign}₩{unrealized_pnl:,.0f} "
+                        f"({pnl_sign}{unrealized_pct:.2%})</span>",
+                        unsafe_allow_html=True,
                     )
+                    st.divider()
             else:
                 st.caption("보유 포지션 없음")
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Tab 2: Strategy Wallet Comparison
+# 탭 2: 전략비교 — 전략별 지갑 비교
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_wallets:
     checkpoint = load_checkpoint()
@@ -167,57 +197,85 @@ with tab_wallets:
             equities = []
             pnls = []
             trade_counts = []
+            return_pcts = []
             for name, state in wallet_states.items():
-                display = name.replace("_wallet", "").replace("_", " ").title()
+                display = strategy_kr(name)
                 names.append(display)
-                equities.append(state.get("equity", 0))
+                eq = state.get("equity", 0)
+                equities.append(eq)
                 pnls.append(state.get("realized_pnl", 0))
                 trade_counts.append(state.get("trade_count", 0))
+                initial = state.get("initial_capital", eq)
+                ret = ((eq - initial) / initial * 100) if initial > 0 else 0
+                return_pcts.append(ret)
 
-            # Comparison table
-            st.markdown("#### 전략별 지갑 비교")
+            # 전략별 비교 테이블
+            st.markdown("#### 전략별 성과 비교")
             for i, n in enumerate(names):
                 c1, c2, c3 = st.columns(3)
-                c1.metric(n, f"₩{equities[i]:,.0f}")
-                c2.metric("실현 PnL", f"₩{pnls[i]:,.0f}")
+                c1.metric(n, f"₩{equities[i]:,.0f}", f"{return_pcts[i]:+.2f}%")
+                c2.metric("실현 손익", f"₩{pnls[i]:,.0f}")
                 c3.metric("거래 수", f"{trade_counts[i]}")
 
-            # Bar chart
+            # 수익률 비교 차트
+            pnl_colors = ["#4ade80" if p >= 0 else "#f87171" for p in return_pcts]
+            fig_ret = go.Figure()
+            fig_ret.add_trace(go.Bar(
+                name="수익률(%)",
+                x=names,
+                y=return_pcts,
+                marker_color=pnl_colors,
+                text=[f"{r:+.2f}%" for r in return_pcts],
+                textposition="outside",
+            ))
+            fig_ret.update_layout(
+                title="전략별 수익률",
+                template="plotly_dark",
+                margin=dict(l=0, r=0, t=40, b=0),
+                height=300,
+                font=dict(size=14),
+                yaxis_title="수익률 (%)",
+            )
+            st.plotly_chart(fig_ret, use_container_width=True)
+
+            # 자본금 vs PnL 비교 차트
             fig = go.Figure()
             fig.add_trace(go.Bar(name="자본금", x=names, y=equities, marker_color="#60a5fa"))
-            fig.add_trace(go.Bar(name="실현 PnL", x=names, y=pnls, marker_color="#4ade80"))
+            fig.add_trace(go.Bar(name="실현 손익", x=names, y=pnls, marker_color="#4ade80"))
             fig.update_layout(
+                title="전략별 자본금 / 손익",
                 barmode="group",
                 template="plotly_dark",
-                margin=dict(l=0, r=0, t=30, b=0),
+                margin=dict(l=0, r=0, t=40, b=0),
                 height=350,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 font=dict(size=14),
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # Trade count bar
+            # 거래 수 차트
             fig2 = go.Figure()
             fig2.add_trace(go.Bar(name="거래 수", x=names, y=trade_counts, marker_color="#fbbf24"))
             fig2.update_layout(
+                title="전략별 거래 수",
                 template="plotly_dark",
-                margin=dict(l=0, r=0, t=30, b=0),
+                margin=dict(l=0, r=0, t=40, b=0),
                 height=250,
                 font=dict(size=14),
             )
             st.plotly_chart(fig2, use_container_width=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Tab 3: Signal History Timeline
+# 탭 3: 시그널 — 시그널 히스토리 타임라인
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_signals:
     runs = load_strategy_runs()
     if not runs:
         st.info("시그널 히스토리가 없습니다.")
     else:
+        ACTION_KR = {"buy": "매수", "sell": "매도", "hold": "관망"}
         st.markdown(f"#### 시그널 히스토리 ({len(runs)}건)")
-        # Show most recent first
-        for run in reversed(runs):
+        for run in reversed(runs[-50:]):
             ts = run.get("recorded_at", "")[:19]
             action = run.get("signal_action", "hold")
             symbol = run.get("symbol", "?")
@@ -226,6 +284,7 @@ with tab_signals:
             reason = run.get("signal_reason", "")
             confidence = run.get("signal_confidence", 0)
 
+            action_kr = ACTION_KR.get(action, action)
             if action == "buy":
                 css_cls = "signal-buy"
                 icon = "🟢"
@@ -237,32 +296,33 @@ with tab_signals:
                 icon = "⚪"
 
             st.markdown(
-                f'{icon} <span class="{css_cls}">{action.upper()}</span> '
-                f"**{symbol}** ₩{price:,.0f} · {reason} · conf {confidence:.0%}"
+                f'{icon} <span class="{css_cls}">{action_kr}</span> '
+                f"**{symbol_kr(symbol)}** ₩{price:,.0f} · {reason} · 신뢰도 {confidence:.0%}"
                 f'<br><span style="color:#666;font-size:0.8125rem">'
-                f"{ts} · {regime}</span>",
+                f"{ts} · {regime_kr(regime)}</span>",
                 unsafe_allow_html=True,
             )
             st.divider()
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Tab 4: Regime Status
+# 탭 4: 시장국면 — Regime 상태
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_regime:
     regime = load_regime_report()
     if regime is None:
-        st.info("Regime 데이터가 없습니다.")
+        st.info("시장국면 데이터가 없습니다.")
     else:
         market_regime = regime.get("market_regime", "unknown")
         badge_map = {
-            "bull": ("regime-bull", "BULL 🐂"),
-            "sideways": ("regime-sideways", "SIDEWAYS ➡️"),
-            "bear": ("regime-bear", "BEAR 🐻"),
+            "bull": ("regime-bull", "상승장 🐂"),
+            "sideways": ("regime-sideways", "횡보장 ➡️"),
+            "bear": ("regime-bear", "하락장 🐻"),
         }
         cls, label = badge_map.get(market_regime, ("regime-sideways", market_regime.upper()))
         st.markdown(f'<span class="regime-badge {cls}">{label}</span>', unsafe_allow_html=True)
 
-        st.caption(f"종목: {regime.get('symbol', '?')} · {regime.get('generated_at', '')[:19]}")
+        sym = regime.get("symbol", "?")
+        st.caption(f"종목: {symbol_kr(sym)} · {regime.get('generated_at', '')[:19]}")
 
         c1, c2 = st.columns(2)
         short_ret = regime.get("short_return_pct", 0) * 100
@@ -270,14 +330,14 @@ with tab_regime:
         c1.metric("단기 수익률", f"{short_ret:+.2f}%")
         c2.metric("장기 수익률", f"{long_ret:+.2f}%")
 
-        # Reasons
+        # 분석 근거
         reasons = regime.get("reasons", [])
         if reasons:
             st.markdown("**분석 근거:**")
             for r in reasons:
                 st.markdown(f"- {r}")
 
-        # Parameter comparison
+        # 파라미터 비교
         base = regime.get("base_parameters", {})
         adjusted = regime.get("adjusted_parameters", {})
         if base and adjusted:
@@ -290,58 +350,64 @@ with tab_regime:
                 st.caption("파라미터 변경 없음 (기본값 유지)")
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Tab 5: Operator Report
+# 탭 5: 운영리포트 — Drift / Promotion / 메모
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_operator:
     drift = load_drift_report()
     promo = load_promotion_gate()
     memo = load_daily_memo()
 
-    # Drift status
-    st.markdown("#### Drift 상태")
+    DRIFT_KR = {
+        "on_track": ("status-ok", "정상 추적"),
+        "caution": ("status-warn", "주의"),
+        "drifting": ("status-warn", "편차 발생"),
+        "out_of_sync": ("status-fail", "동기화 이탈"),
+        "insufficient_data": ("status-warn", "데이터 부족"),
+    }
+
+    # 드리프트 상태
+    st.markdown("#### 드리프트 상태")
     if drift is None:
-        st.info("Drift 데이터가 없습니다.")
+        st.info("드리프트 데이터가 없습니다.")
     else:
         drift_status = drift.get("status", "unknown")
-        if drift_status == "on_track":
-            st.markdown(
-                '<span class="status-badge status-ok">ON TRACK</span>',
-                unsafe_allow_html=True,
-            )
-        elif drift_status == "drifting":
-            st.markdown(
-                '<span class="status-badge status-warn">DRIFTING</span>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f'<span class="status-badge status-fail">{drift_status.upper()}</span>',
-                unsafe_allow_html=True,
-            )
+        cls, label = DRIFT_KR.get(drift_status, ("status-fail", drift_status.upper()))
+        st.markdown(
+            f'<span class="status-badge {cls}">{label}</span>',
+            unsafe_allow_html=True,
+        )
         c1, c2 = st.columns(2)
-        c1.metric("Paper 실행 수", drift.get("paper_run_count", 0))
-        c2.metric("Paper PnL", f"{drift.get('paper_realized_pnl_pct', 0):.2%}")
+        c1.metric("페이퍼 실행 수", drift.get("paper_run_count", 0))
+        c2.metric("페이퍼 손익률", f"{drift.get('paper_realized_pnl_pct', 0):.2%}")
+
+        # 추가 지표
+        c3, c4 = st.columns(2)
+        c3.metric("매수 비율", f"{drift.get('paper_buy_rate', 0):.0%}")
+        c4.metric("매도 비율", f"{drift.get('paper_sell_rate', 0):.0%}")
+
         for r in drift.get("reasons", []):
             st.caption(f"· {r}")
 
     st.divider()
 
-    # Promotion gate
-    st.markdown("#### Promotion Gate")
+    # 승격 게이트
+    PROMO_KR = {
+        "promote": ("status-ok", "승격 가능"),
+        "candidate_for_promotion": ("status-ok", "승격 후보"),
+        "stay_in_paper": ("status-warn", "페이퍼 유지"),
+        "do_not_promote": ("status-fail", "승격 불가"),
+    }
+
+    st.markdown("#### 라이브 승격 판정")
     if promo is None:
-        st.info("Promotion 데이터가 없습니다.")
+        st.info("승격 판정 데이터가 없습니다.")
     else:
         promo_status = promo.get("status", "unknown")
-        if promo_status == "promote":
-            st.markdown(
-                '<span class="status-badge status-ok">PROMOTE</span>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                '<span class="status-badge status-warn">DO NOT PROMOTE</span>',
-                unsafe_allow_html=True,
-            )
+        cls, label = PROMO_KR.get(promo_status, ("status-warn", promo_status.upper()))
+        st.markdown(
+            f'<span class="status-badge {cls}">{label}</span>',
+            unsafe_allow_html=True,
+        )
         c1, c2 = st.columns(2)
         c1.metric("관찰된 실행", promo.get("observed_paper_runs", 0))
         c2.metric("필요 최소 실행", promo.get("minimum_paper_runs_required", 0))
@@ -350,22 +416,22 @@ with tab_operator:
 
     st.divider()
 
-    # Daily memo
-    st.markdown("#### Daily Memo")
+    # 일일 메모
+    st.markdown("#### 일일 운영 메모")
     if memo is None:
-        st.info("Daily Memo가 없습니다.")
+        st.info("일일 메모가 없습니다.")
     else:
         st.markdown(memo)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Tab 6: Performance Charts
+# 탭 6: 성과 — 백테스트 기준선 + 일간 성과 + 가격 차트
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_perf:
     runs = load_strategy_runs()
     baseline = load_backtest_baseline()
     daily_perf = load_daily_performance()
 
-    # Baseline summary
+    # 백테스트 기준선
     if baseline:
         st.markdown("#### 백테스트 기준선")
         c1, c2, c3 = st.columns(3)
@@ -374,9 +440,9 @@ with tab_perf:
         c3.metric("거래 수", baseline.get("trade_count", 0))
         c4, c5 = st.columns(2)
         c4.metric("최대 낙폭", f"{baseline.get('max_drawdown', 0):.2%}")
-        c5.metric("Profit Factor", f"{baseline.get('profit_factor', 0):.2f}")
+        c5.metric("수익 팩터", f"{baseline.get('profit_factor', 0):.2f}")
 
-    # Daily performance
+    # 일간 성과
     if daily_perf:
         st.markdown("#### 일간 성과")
         c1, c2, c3 = st.columns(3)
@@ -384,9 +450,9 @@ with tab_perf:
         c2.metric("승률", f"{daily_perf.get('win_rate', 0):.0%}")
         c3.metric("시가평가 자산", f"₩{daily_perf.get('mark_to_market_equity', 0):,.0f}")
 
-    # Price chart from signal history
+    # 판단 시점 + 현재가 비교 가격 차트
     if runs:
-        st.markdown("#### 가격 추이")
+        st.markdown("#### 가격 추이 및 시그널")
         timestamps = []
         prices = []
         actions = []
@@ -402,36 +468,72 @@ with tab_perf:
                 actions.append(run.get("signal_action", "hold"))
 
         if timestamps:
+            # 시그널별 색상 + 크기
+            marker_colors = []
+            marker_sizes = []
+            hover_texts = []
+            ACTION_KR_CHART = {"buy": "매수", "sell": "매도", "hold": "관망"}
+            for i, a in enumerate(actions):
+                if a == "buy":
+                    marker_colors.append("#4ade80")
+                    marker_sizes.append(12)
+                elif a == "sell":
+                    marker_colors.append("#f87171")
+                    marker_sizes.append(12)
+                else:
+                    marker_colors.append("#6b7280")
+                    marker_sizes.append(6)
+                hover_texts.append(
+                    f"{ACTION_KR_CHART.get(a, a)} · ₩{prices[i]:,.0f}<br>"
+                    f"{timestamps[i].strftime('%m/%d %H:%M')}"
+                )
+
             fig = go.Figure()
             fig.add_trace(
                 go.Scatter(
                     x=timestamps,
                     y=prices,
                     mode="lines+markers",
-                    name="Price",
+                    name="가격",
                     line=dict(color="#60a5fa", width=2),
-                    marker=dict(
-                        size=8,
-                        color=[
-                            "#4ade80" if a == "buy" else "#f87171" if a == "sell" else "#6b7280"
-                            for a in actions
-                        ],
-                    ),
+                    marker=dict(size=marker_sizes, color=marker_colors),
+                    hovertext=hover_texts,
+                    hoverinfo="text",
                 )
             )
+
+            # 매수/매도 포인트 강조
+            buy_ts = [t for t, a in zip(timestamps, actions) if a == "buy"]
+            buy_pr = [p for p, a in zip(prices, actions) if a == "buy"]
+            sell_ts = [t for t, a in zip(timestamps, actions) if a == "sell"]
+            sell_pr = [p for p, a in zip(prices, actions) if a == "sell"]
+
+            if buy_ts:
+                fig.add_trace(go.Scatter(
+                    x=buy_ts, y=buy_pr, mode="markers",
+                    name="매수", marker=dict(size=14, color="#4ade80", symbol="triangle-up"),
+                ))
+            if sell_ts:
+                fig.add_trace(go.Scatter(
+                    x=sell_ts, y=sell_pr, mode="markers",
+                    name="매도", marker=dict(size=14, color="#f87171", symbol="triangle-down"),
+                ))
+
             fig.update_layout(
                 template="plotly_dark",
                 margin=dict(l=0, r=0, t=10, b=0),
                 height=400,
-                yaxis_title="Price (KRW)",
+                yaxis_title="가격 (KRW)",
                 xaxis_title="",
                 font=dict(size=14),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                hovermode="x unified",
             )
             st.plotly_chart(fig, use_container_width=True)
     elif not baseline and not daily_perf:
         st.info("성과 데이터가 없습니다.")
 
-# ── Footer ─────────────────────────────────────────────────
+# ── 푸터 ──────────────────────────────────────────────────
 st.divider()
-now = datetime.now(_UTC).strftime("%Y-%m-%d %H:%M UTC")
-st.caption(f"마지막 새로고침: {now}")
+now_str = datetime.now(_UTC).strftime("%Y-%m-%d %H:%M UTC")
+st.caption(f"마지막 새로고침: {now_str}")
