@@ -236,11 +236,16 @@ class TestVPINStrategy(unittest.TestCase):
     # 7. Relaxed params: entry with vpin=0.45, momentum=0.001, rsi=65
     # ------------------------------------------------------------------
     def test_relaxed_entry_triggers(self) -> None:
-        """With new defaults (vpin_low=0.5, mom>=0.0, rsi<=70), moderate
-        conditions that were previously blocked now trigger BUY."""
+        """With explicit relaxed thresholds, moderate conditions trigger BUY."""
         config = _default_config(momentum_lookback=5, rsi_period=5)
-        strategy = VPINStrategy(config, bucket_count=10)
-        # defaults: vpin_low=0.5, vpin_momentum_threshold=0.0, vpin_rsi_ceiling=70
+        strategy = VPINStrategy(
+            config,
+            bucket_count=10,
+            vpin_low_threshold=0.5,
+            vpin_momentum_threshold=0.0,
+            vpin_rsi_ceiling=70.0,
+            vpin_rsi_floor=20.0,
+        )
 
         # Build candles: up, up, down, down, up pattern → net positive momentum, RSI ~55
         start = datetime(2025, 1, 1)

@@ -10,7 +10,7 @@ from crypto_trader.models import (
     Signal,
     SignalAction,
 )
-from crypto_trader.strategy.indicators import rsi
+from crypto_trader.strategy.indicators import momentum, rsi
 
 
 class OrderbookProvider(Protocol):
@@ -31,7 +31,7 @@ class OBIStrategy:
         self,
         config: StrategyConfig,
         orderbook_provider: OrderbookProvider | None = None,
-        obi_buy_threshold: float = 0.3,
+        obi_buy_threshold: float = 0.45,
         obi_sell_threshold: float = -0.3,
     ) -> None:
         self._config = config
@@ -42,7 +42,7 @@ class OBIStrategy:
     def evaluate(
         self, candles: list[Candle], position: Position | None = None
     ) -> Signal:
-        minimum = self._config.rsi_period + 1
+        minimum = max(self._config.rsi_period + 1, self._config.momentum_lookback + 1)
         if len(candles) < minimum:
             return Signal(
                 action=SignalAction.HOLD,
@@ -53,8 +53,9 @@ class OBIStrategy:
 
         closes = [c.close for c in candles]
         rsi_value = rsi(closes, self._config.rsi_period)
+        momentum_value = momentum(closes, self._config.momentum_lookback)
         obi_value = self._calculate_obi(candles)
-        indicators: dict[str, float] = {"rsi": rsi_value}
+        indicators: dict[str, float] = {"rsi": rsi_value, "momentum": momentum_value}
         if obi_value is not None:
             indicators["obi"] = obi_value
 
@@ -84,7 +85,12 @@ class OBIStrategy:
                 context=context,
             )
 
-        if obi_value > self._obi_buy_threshold and rsi_value < self._config.rsi_overbought:
+        momentum_value = indicators.get("momentum", 0.0)
+        if (
+            obi_value > self._obi_buy_threshold
+            and rsi_value < self._config.rsi_overbought
+            and momentum_value >= 0.0
+        ):
             return Signal(
                 action=SignalAction.BUY,
                 reason="obi_strong_bid_imbalance",
