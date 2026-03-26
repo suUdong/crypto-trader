@@ -1,7 +1,7 @@
 # No validated deployment config
 # Date: 2026-03-26
-# Source: artifacts/walk-forward-90d/fixed-params-summary.json
-# Result: all 7 optimized candidates failed fixed-parameter walk-forward validation
+# Source: artifacts/walk-forward-90d/grid-wf-summary.json
+# Result: all 7 strategies failed grid-search + walk-forward validation
 
 [validation]
 status = "failed"
@@ -9,8 +9,15 @@ deployable = false
 dataset_days = 90
 strategy_count = 7
 symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
-method = "fixed-parameter walk-forward over optimized 90d candidates"
+method = "grid search + walk-forward over top-5 candidates per strategy"
 gate = "avg_test_return_pct > 0, oos_win_rate >= 0.5, avg_efficiency_ratio > 0.3, majority-pass across symbols"
-top_in_sample_candidate = "momentum"
-top_in_sample_avg_sharpe = 1.34
+top_research_candidate = "momentum"
+top_research_avg_sharpe = 0.2888677825211989
+top_research_avg_return_pct = 0.7105721447923263
 artifact = "docs/walk-forward-results.md"
+
+[validation.research_params]
+momentum_lookback = 20
+momentum_entry_threshold = 0.005
+rsi_period = 18
+max_holding_bars = 36
