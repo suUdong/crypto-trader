@@ -9,6 +9,7 @@ from crypto_trader.strategy.indicators import (
     macd,
     noise_ratio,
     obv_slope,
+    rolling_vwap,
     simple_moving_average,
     volume_sma,
 )
@@ -129,6 +130,16 @@ class VolatilityBreakoutStrategy:
         except ValueError:
             pass
 
+        # VWAP: price above VWAP = bullish breakout confirmation
+        vwap_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            vwap_value = rolling_vwap(highs, lows, closes, volumes, window=20)
+            indicators["vwap"] = vwap_value
+        except ValueError:
+            pass
+
         # EMA(50) macro trend alignment
         ema50_value: float | None = None
         if len(closes) >= 50:
@@ -141,7 +152,7 @@ class VolatilityBreakoutStrategy:
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, obv_trend, ema50_value, effective.adx_threshold, indicators, context)
+        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, obv_trend, ema50_value, vwap_value, effective.adx_threshold, indicators, context)
 
     def _evaluate_entry(
         self,
@@ -154,6 +165,7 @@ class VolatilityBreakoutStrategy:
         squeeze: bool,
         obv_trend: float | None,
         ema50_value: float | None,
+        vwap_value: float | None,
         adx_threshold: float,
         indicators: dict[str, float],
         context: dict[str, str],
@@ -209,6 +221,9 @@ class VolatilityBreakoutStrategy:
                 confidence = min(1.0, confidence + 0.05)
             # EMA(50) macro alignment: breakout in direction of macro trend
             if ema50_value is not None and current_price > ema50_value:
+                confidence = min(1.0, confidence + 0.05)
+            # VWAP alignment: breakout above VWAP confirms buying pressure
+            if vwap_value is not None and current_price > vwap_value:
                 confidence = min(1.0, confidence + 0.05)
             return Signal(
                 action=SignalAction.BUY,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, macd, noise_ratio, obv_slope, rsi, rsi_divergence, volume_sma
+from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -108,6 +108,17 @@ class MeanReversionStrategy:
             except (ValueError, IndexError):
                 pass
 
+        # VWAP: price below VWAP confirms bearish bias (good for MR entry)
+        vwap_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            vols = [c.volume for c in candles]
+            vwap_value = rolling_vwap(highs, lows, closes, vols, window=20)
+            indicators["vwap"] = vwap_value
+        except ValueError:
+            pass
+
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
@@ -162,6 +173,9 @@ class MeanReversionStrategy:
                     base_conf = min(1.0, base_conf + 0.1)
                 # EMA(50) macro: price below EMA(50) confirms extended dip (good for MR)
                 if ema50_value is not None and latest_close < ema50_value:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # VWAP: price below VWAP confirms bearish pressure (good entry for MR)
+                if vwap_value is not None and latest_close < vwap_value:
                     base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,

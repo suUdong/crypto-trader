@@ -9,6 +9,7 @@ from crypto_trader.strategy.indicators import (
     macd,
     noise_ratio,
     obv_slope,
+    rolling_vwap,
     rsi,
     stochastic_rsi,
     volume_sma,
@@ -108,6 +109,16 @@ class EMACrossoverStrategy:
         except ValueError:
             pass
 
+        # VWAP: price above VWAP = bullish bias for trend-following
+        vwap_value: float | None = None
+        try:
+            vols = [c.volume for c in candles]
+            highs_list = [c.high for c in candles]
+            lows_list = [c.low for c in candles]
+            vwap_value = rolling_vwap(highs_list, lows_list, closes, vols, window=20)
+        except ValueError:
+            pass
+
         # EMA(50) macro trend
         ema50_value: float | None = None
         if len(closes) >= 50:
@@ -132,6 +143,8 @@ class EMACrossoverStrategy:
             indicators["noise_ratio"] = nr_value
         if ema50_value is not None:
             indicators["ema50"] = ema50_value
+        if vwap_value is not None:
+            indicators["vwap"] = vwap_value
         context = {"strategy": "ema_crossover", "market_regime": regime.value}
 
         if position is not None:
@@ -153,6 +166,7 @@ class EMACrossoverStrategy:
             obv_trend=obv_trend,
             nr_value=nr_value,
             ema50_value=ema50_value,
+            vwap_value=vwap_value,
         )
 
     def _evaluate_entry(
@@ -170,6 +184,7 @@ class EMACrossoverStrategy:
         obv_trend: float | None = None,
         nr_value: float | None = None,
         ema50_value: float | None = None,
+        vwap_value: float | None = None,
     ) -> Signal:
         cfg = effective or self._config
         # Noise ratio filter: skip entries in choppy markets (high whipsaw risk)
@@ -221,6 +236,9 @@ class EMACrossoverStrategy:
             # EMA(50) macro alignment boosts confidence
             if ema50_value is not None and indicators.get("ema_fast", 0) > ema50_value:
                 base_conf = min(1.0, base_conf + 0.05)
+            # VWAP alignment: price above VWAP confirms bullish bias
+            if vwap_value is not None and indicators.get("ema_fast", 0) > vwap_value:
+                base_conf = min(1.0, base_conf + 0.05)
             return Signal(
                 action=SignalAction.BUY,
                 reason="ema_crossover_buy",
@@ -265,6 +283,9 @@ class EMACrossoverStrategy:
                 base_conf = min(1.0, base_conf + 0.1)
             # EMA(50) macro alignment for trend continuation
             if ema50_value is not None and indicators.get("ema_fast", 0) > ema50_value:
+                base_conf = min(1.0, base_conf + 0.05)
+            # VWAP alignment for trend continuation
+            if vwap_value is not None and indicators.get("ema_fast", 0) > vwap_value:
                 base_conf = min(1.0, base_conf + 0.05)
             return Signal(
                 action=SignalAction.BUY,
