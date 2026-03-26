@@ -57,6 +57,8 @@ class MacroRegimeAdapter:
             "vpin": 1.0,
             "composite": 1.2,
             "kimchi_premium": 0.8,
+            "volatility_breakout": 1.3,
+            "consensus": 1.2,
         },
         "sideways": {
             "momentum": 0.6,
@@ -65,6 +67,8 @@ class MacroRegimeAdapter:
             "vpin": 1.2,
             "composite": 0.8,
             "kimchi_premium": 0.7,
+            "volatility_breakout": 0.5,
+            "consensus": 0.8,
         },
         "bear": {
             "momentum": 0.4,
@@ -73,6 +77,8 @@ class MacroRegimeAdapter:
             "vpin": 1.1,
             "composite": 0.6,
             "kimchi_premium": 0.5,
+            "volatility_breakout": 0.3,
+            "consensus": 0.5,
         },
     }
 

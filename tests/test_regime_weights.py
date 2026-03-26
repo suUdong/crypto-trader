@@ -39,9 +39,28 @@ class RegimeWeightTests(unittest.TestCase):
         self.assertEqual(w, 1.0)
 
     def test_all_regimes_have_all_strategies(self) -> None:
-        strategies = ["momentum", "mean_reversion", "obi", "vpin", "composite", "kimchi_premium"]
+        strategies = [
+            "momentum", "mean_reversion", "obi", "vpin",
+            "composite", "kimchi_premium", "volatility_breakout", "consensus",
+        ]
         for regime in ["bull", "sideways", "bear"]:
             for strategy in strategies:
                 w = self.adapter.strategy_weight(strategy, regime)
                 self.assertGreater(w, 0.0, f"{strategy}/{regime} should be > 0")
                 self.assertLessEqual(w, 2.0, f"{strategy}/{regime} should be <= 2.0")
+
+    def test_bear_reduces_volatility_breakout(self) -> None:
+        w = self.adapter.strategy_weight("volatility_breakout", "bear")
+        self.assertLess(w, 0.5)
+
+    def test_bull_boosts_volatility_breakout(self) -> None:
+        w = self.adapter.strategy_weight("volatility_breakout", "bull")
+        self.assertGreater(w, 1.0)
+
+    def test_bear_reduces_consensus(self) -> None:
+        w = self.adapter.strategy_weight("consensus", "bear")
+        self.assertLess(w, 1.0)
+
+    def test_bull_boosts_consensus(self) -> None:
+        w = self.adapter.strategy_weight("consensus", "bull")
+        self.assertGreater(w, 1.0)
