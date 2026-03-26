@@ -1,32 +1,33 @@
-# 90-Day Backtest Grid Search Summary
+# 90-Day Parameter Optimization Summary
 
 Date: 2026-03-26
-Scope: 7 strategies x 4 symbols (`KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`) on 90 days of `minute60` candles from Upbit
-
-This file is the short summary. The detailed source-of-truth report lives in
-`docs/backtest-grid-90d.md`.
+Scope: 7 strategies x 4 symbols (`KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`) on cached `minute60` candles
 
 ## Runbook
 
 ```bash
-PYTHONPATH=src .venv/bin/python scripts/backtest_all.py 90 --cache-dir artifacts/candle-cache --json-out artifacts/backtest-grid-90d/baseline.json
-PYTHONPATH=src .venv/bin/python scripts/auto_tune.py 90 config/optimized.toml --cache-dir artifacts/candle-cache --json-out artifacts/backtest-grid-90d/combined.json
+PYTHONPATH=src .venv/bin/python scripts/backtest_all.py 90 \
+  --cache-dir artifacts/candle-cache \
+  --json-out artifacts/backtest-grid-90d/baseline.json
+
+PYTHONPATH=src .venv/bin/python scripts/auto_tune.py 90 config/optimized.toml \
+  --cache-dir artifacts/candle-cache \
+  --json-out artifacts/backtest-grid-90d/combined.json
 ```
 
-Detailed execution notes and the generated config structure live in
-`docs/parameter-optimization.md`.
+The tuned candidates were then validated out of sample with the fixed-parameter
+walk-forward pass summarized in [walk-forward-results.md](/home/wdsr88/workspace/crypto-trader/docs/walk-forward-results.md).
 
-## Headline outcome
+## Headline Outcome
 
-- Baseline coverage: `28` runs, `1251` total trades, all `7` strategies produced trades
-- Best tuned strategy by ranking metric: `momentum`
-- Best tuned return: `kimchi_premium` at `+5.29%`
-- `config/optimized.toml` now emits one tuned wallet per strategy using
-  `wallets.strategy_overrides` and `wallets.risk_overrides`
+- Baseline coverage: `28` runs, `1687` total trades, all `7` strategies generated trades
+- Best tuned strategy by average Sharpe: `momentum` at `1.34`
+- Best tuned strategy by average return: `kimchi_premium` at `+5.29%`
+- `config/optimized.toml` now contains runnable wallet blocks for all 7 tuned strategies
 
-## Tuned ranking
+## Tuned Ranking
 
-| Strategy | Avg Sharpe | Avg Return | Avg MDD | Avg WR | Avg PF | Trades | Winner Rank |
+| Strategy | Avg Sharpe | Avg Return | Avg MDD | Avg WR | Avg PF | Trades | Candidate Rank |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | momentum | 1.34 | +4.80% | 7.53% | 37.9% | 1.23 | 306 | #1 |
 | kimchi_premium | 1.22 | +5.29% | 6.13% | 51.0% | 1.49 | 160 | #1 |
@@ -36,53 +37,28 @@ Detailed execution notes and the generated config structure live in
 | volatility_breakout | -2.25 | -5.95% | 8.97% | 29.2% | 0.60 | 231 | #1 |
 | obi | -2.33 | -5.23% | 7.07% | 36.3% | 0.52 | 160 | #1 |
 
-## Best-overall params
+## Baseline Averages
 
-```toml
-[strategy]
-momentum_lookback = 15
-momentum_entry_threshold = 0.003
-rsi_period = 14
-rsi_overbought = 75.0
-max_holding_bars = 48
+| Strategy | Avg Return | Avg MDD | Avg WR | Avg PF | Trades |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| momentum | +1.58% | 3.83% | 45.7% | 1.15 | 488 |
+| vpin | -0.53% | 4.58% | 51.3% | 0.94 | 235 |
+| composite | +0.10% | 0.17% | 25.0% | 0.77 | 6 |
+| obi | -2.30% | 4.60% | 42.6% | 0.75 | 290 |
+| kimchi_premium | -3.43% | 6.55% | 50.7% | 0.68 | 166 |
+| volatility_breakout | -4.73% | 6.07% | 25.9% | 0.58 | 420 |
+| mean_reversion | -5.21% | 6.05% | 44.4% | 0.33 | 82 |
 
-[risk]
-stop_loss_pct = 0.03
-take_profit_pct = 0.04
-risk_per_trade_pct = 0.015
-trailing_stop_pct = 0.0
-atr_stop_multiplier = 0.0
-```
+## Deployment Note
 
-## Generated wallet format
-
-The optimized config is no longer limited to a single runnable strategy. Each tuned
-wallet now persists its own overrides, including constructor-only fields that were
-previously dropped from the generated TOML.
-
-```toml
-[[wallets]]
-name = "kimchi_premium_wallet"
-strategy = "kimchi_premium"
-initial_capital = 1_000_000.0
-
-[wallets.strategy_overrides]
-rsi_period = 14
-rsi_recovery_ceiling = 50.0
-rsi_overbought = 75.0
-max_holding_bars = 24
-min_trade_interval_bars = 6
-min_confidence = 0.4
-
-[wallets.risk_overrides]
-stop_loss_pct = 0.02
-take_profit_pct = 0.04
-atr_stop_multiplier = 3.0
-```
+- In-sample tuning improved `momentum` and `kimchi_premium`, but fixed-parameter walk-forward validation rejected all 7 optimized candidates.
+- `config/optimized.toml` is useful for controlled paper experiments, not for automatic promotion to validated deployment.
+- `config/validated.toml` now explicitly records a failed validation state instead of carrying forward stale parameters.
 
 ## Artifacts
 
 - Baseline JSON: `artifacts/backtest-grid-90d/baseline.json`
 - Combined tune JSON: `artifacts/backtest-grid-90d/combined.json`
-- Runnable config: `config/optimized.toml`
-- Detailed report: `docs/backtest-grid-90d.md`
+- Optimized config: `config/optimized.toml`
+- Walk-forward JSON: `artifacts/walk-forward-90d/fixed-params-summary.json`
+- Walk-forward report: [walk-forward-results.md](/home/wdsr88/workspace/crypto-trader/docs/walk-forward-results.md)

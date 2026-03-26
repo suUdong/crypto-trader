@@ -1,31 +1,43 @@
 # Walk-Forward Validation Results
 
-- Total days: `90`
-- Train window: `60` days
-- Test window: `15` days
+Date: 2026-03-26
+Validation mode: fixed-parameter walk-forward over the 7 optimized 90-day candidates
 
-| Strategy | Folds | Avg Train Sharpe | Avg Test Sharpe | Avg Test Return | Avg Test MDD | Total Test Trades |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| kimchi_premium | 2 | 0.00 | 0.00 | +0.00% | 0.00% | 0 |
-| momentum | 2 | 0.36 | 4.22 | +4.23% | 2.28% | 111 |
+- Dataset: `90` days of cached `minute60` candles
+- Symbols: `KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`
+- Folds per symbol: `3`
+- Total out-of-sample folds per strategy: `12`
+- Gate: `avg_test_return_pct > 0`, `oos_win_rate >= 0.5`, `avg_efficiency_ratio > 0.3`, majority-pass across symbols
 
-## Validation Decision
+## Summary
 
-- Top candidate strategy: `momentum`
-- Selection basis: highest aggregate out-of-sample Sharpe (`4.22`)
-- Gate status: `PASS`
-- Gate thresholds: `avg_test_sharpe > 0.00`, `avg_test_return_pct > +0.00%`, `total_test_trades >= 20`
-- Latest deployment fold: `#2`
-- Latest fold test return: `+0.27%`
-- Latest fold tuned params: `{'momentum_lookback': 15, 'momentum_entry_threshold': 0.008, 'rsi_period': 18, 'rsi_overbought': 65.0, 'max_holding_bars': 36}`
-- Latest fold tuned risk: `{'stop_loss_pct': 0.03, 'take_profit_pct': 0.08, 'risk_per_trade_pct': 0.01, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 0.0}`
+| Strategy | Optimized Sharpe | WF Test Sharpe | WF Test Return | WF Test MDD | Test Trades | Efficiency | OOS Win Rate | Validated |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| momentum | 1.34 | -7.87 | -1.48% | 1.70% | 73 | 0.464 | 0.000 | FAIL |
+| kimchi_premium | 1.22 | -7.55 | -1.77% | 2.37% | 78 | -6.084 | 0.000 | FAIL |
+| composite | 1.16 | 0.00 | +0.00% | 0.00% | 0 | 0.000 | 0.000 | FAIL |
+| mean_reversion | -1.51 | -4.12 | -1.00% | 1.84% | 58 | -0.428 | 0.167 | FAIL |
+| vpin | -1.86 | -6.42 | -1.30% | 1.81% | 69 | 0.247 | 0.167 | FAIL |
+| volatility_breakout | -2.25 | -7.35 | -1.39% | 1.59% | 79 | -0.714 | 0.000 | FAIL |
+| obi | -2.33 | -6.87 | -1.15% | 1.66% | 89 | 5.195 | 0.083 | FAIL |
 
-## Fold Detail
+## Decision
 
-### kimchi_premium
-- Fold #1: train_sharpe=0.00, test_sharpe=0.00, test_return=+0.00%, test_mdd=0.00%, trades=0
-- Fold #2: train_sharpe=0.00, test_sharpe=0.00, test_return=+0.00%, test_mdd=0.00%, trades=0
+- Result: `NO PROMOTION`
+- Validated strategies: `0 / 7`
+- Best in-sample candidate remained `momentum`, but its out-of-sample average return was `-1.48%`
+- `composite` stayed flat out of sample, but with `0` test trades it is not a deployable result
+- `config/validated.toml` is intentionally marked as failed so stale momentum-only parameters are not reused by accident
 
-### momentum
-- Fold #1: train_sharpe=0.23, test_sharpe=7.52, test_return=+8.19%, test_mdd=2.96%, trades=61
-- Fold #2: train_sharpe=0.50, test_sharpe=0.93, test_return=+0.27%, test_mdd=1.60%, trades=50
+## Interpretation
+
+- The 90-day exhaustive tune found profitable in-sample parameter sets, especially for `momentum` and `kimchi_premium`.
+- Those same fixed parameter sets did not survive walk-forward validation on rolling out-of-sample windows.
+- The gap is large enough that the tuned configs should be treated as research artifacts, not validated deployment inputs.
+
+## Artifacts
+
+- Optimization source: `artifacts/backtest-grid-90d/combined.json`
+- Walk-forward source: `artifacts/walk-forward-90d/fixed-params-summary.json`
+- Optimized config: `config/optimized.toml`
+- Validation status file: `config/validated.toml`
