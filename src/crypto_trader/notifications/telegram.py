@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from urllib import request
 
-from crypto_trader.config import TelegramConfig
+from crypto_trader.config import SlackConfig, TelegramConfig
 
 
 class Notifier:
@@ -36,3 +36,22 @@ class TelegramNotifier(Notifier):
         with request.urlopen(req, timeout=10) as response:
             if response.status >= 400:
                 raise RuntimeError(f"Telegram notification failed with status {response.status}")
+
+
+class SlackNotifier(Notifier):
+    def __init__(self, config: SlackConfig) -> None:
+        self._config = config
+
+    def send_message(self, message: str) -> None:
+        if not self._config.enabled:
+            return
+        payload = json.dumps({"text": message}).encode("utf-8")
+        req = request.Request(
+            self._config.webhook_url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with request.urlopen(req, timeout=10) as response:
+            if response.status >= 400:
+                raise RuntimeError(f"Slack notification failed with status {response.status}")

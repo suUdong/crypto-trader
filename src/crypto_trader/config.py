@@ -107,6 +107,15 @@ class TelegramConfig:
 
 
 @dataclass(slots=True)
+class SlackConfig:
+    webhook_url: str = ""
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.webhook_url)
+
+
+@dataclass(slots=True)
 class RuntimeConfig:
     log_level: str = "INFO"
     poll_interval_seconds: int = 60
@@ -160,6 +169,7 @@ class AppConfig:
     telegram: TelegramConfig
     runtime: RuntimeConfig
     credentials: CredentialsConfig
+    slack: SlackConfig = field(default_factory=SlackConfig)
     macro: MacroConfig = field(default_factory=MacroConfig)
     kill_switch: KillSwitchCfg = field(default_factory=KillSwitchCfg)
     wallets: list[WalletConfig] = field(default_factory=lambda: [
@@ -402,6 +412,9 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
     telegram = TelegramConfig(
         bot_token=str(_read_value(raw, env, "telegram", "bot_token", "CT_TELEGRAM_BOT_TOKEN", "")),
         chat_id=str(_read_value(raw, env, "telegram", "chat_id", "CT_TELEGRAM_CHAT_ID", "")),
+    )
+    slack = SlackConfig(
+        webhook_url=str(_read_value(raw, env, "slack", "webhook_url", "CT_SLACK_WEBHOOK_URL", "")),
     )
     runtime = RuntimeConfig(
         log_level=str(_read_value(raw, env, "runtime", "log_level", "CT_LOG_LEVEL", "INFO")),
@@ -648,6 +661,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         backtest=backtest,
         telegram=telegram,
         runtime=runtime,
+        slack=slack,
         credentials=credentials,
         macro=macro,
         kill_switch=kill_switch,

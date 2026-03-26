@@ -24,10 +24,10 @@ class ConsensusStrategy:
         self._min_agree = max(1, min(min_agree, len(strategies)))
         self._min_confidence_sum = min_confidence_sum
 
-    def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal:
+    def evaluate(self, candles: list[Candle], position: Position | None = None, *, symbol: str = "") -> Signal:
         signals: list[Signal] = []
         for strategy in self._strategies:
-            sig = strategy.evaluate(candles, position)
+            sig = strategy.evaluate(candles, position, symbol=symbol)
             signals.append(sig)
 
         context = {

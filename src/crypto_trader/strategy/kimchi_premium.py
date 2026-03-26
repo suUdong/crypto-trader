@@ -56,7 +56,7 @@ class KimchiPremiumStrategy:
         closes = [c.close for c in candles]
         upbit_price = closes[-1]
         rsi_value = rsi(closes, self._config.rsi_period)
-        premium = self._calculate_premium(upbit_price)
+        premium = self._calculate_premium(upbit_price, symbol=symbol)
         indicators = {"rsi": rsi_value}
         if premium is not None:
             indicators["kimchi_premium"] = premium
@@ -222,8 +222,8 @@ class KimchiPremiumStrategy:
             context=context,
         )
 
-    def _calculate_premium(self, upbit_krw_price: float) -> float | None:
-        binance_usd = self._binance.get_btc_usdt_price()
+    def _calculate_premium(self, upbit_krw_price: float, *, symbol: str = "") -> float | None:
+        binance_usd = self._binance.get_usdt_price(symbol or "KRW-BTC")
         if binance_usd is None:
             return self._cached_premium
 

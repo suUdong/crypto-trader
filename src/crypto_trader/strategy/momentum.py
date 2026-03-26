@@ -24,7 +24,7 @@ class MomentumStrategy:
         self._config = config
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
 
-    def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal:
+    def evaluate(self, candles: list[Candle], position: Position | None = None, *, symbol: str = "") -> Signal:
         regime = self._regime_detector.detect(candles)
         effective = self._regime_detector.adjust(self._config, regime)
         minimum = max(effective.momentum_lookback + 1, effective.rsi_period + 1)

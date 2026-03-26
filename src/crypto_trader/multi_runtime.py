@@ -14,10 +14,12 @@ from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
 from crypto_trader.models import PipelineResult, Position, RuntimeCheckpoint, StrategyRunRecord
+from crypto_trader.monitoring.structured_logger import StructuredLogger
+from crypto_trader.notifications.alert_manager import TradeAlertManager
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradeJournal
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
-from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
+from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier, SlackNotifier
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.risk.correlation_guard import CorrelationGuard
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
@@ -81,6 +83,11 @@ class MultiSymbolRuntime:
             self._macro_client = MacroClient(db_path)
             self._logger.info("Macro layer enabled (db=%s)", db_path or "default")
         self._notifier = TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
+        notifiers = [self._notifier]
+        if config.slack.enabled:
+            notifiers.append(SlackNotifier(config.slack))
+        self._alert_manager = TradeAlertManager(notifiers)
+        self._structured_logger = StructuredLogger()
         self._pnl_generator = PnLReportGenerator()
         self._last_pnl_notify: float = 0.0
         self._trade_journal = PaperTradeJournal(config.runtime.paper_trade_journal_path)
@@ -206,8 +213,63 @@ class MultiSymbolRuntime:
                 results.append(result)
                 if result.error:
                     self._logger.error(result.message)
+                    self._structured_logger.log_error(
+                        wallet.name, wallet.strategy_type, symbol, result.error,
+                    )
+                    self._alert_manager.alert_error(wallet.name, symbol, result.error)
                 else:
                     self._logger.info(result.message)
+                    # Log signal
+                    self._structured_logger.log_signal(
+                        wallet_name=wallet.name,
+                        strategy_type=wallet.strategy_type,
+                        symbol=symbol,
+                        action=result.signal.action.value,
+                        reason=result.signal.reason,
+                        confidence=result.signal.confidence,
+                        indicators=result.signal.indicators,
+                        market_regime=self._current_market_regime,
+                    )
+                    # Log trade or rejection
+                    if result.order is not None and result.order.status == "filled":
+                        self._structured_logger.log_trade(
+                            wallet_name=wallet.name,
+                            strategy_type=wallet.strategy_type,
+                            symbol=symbol,
+                            side=result.order.side.value,
+                            quantity=result.order.quantity,
+                            fill_price=result.order.fill_price,
+                            fee_paid=result.order.fee_paid,
+                            order_status=result.order.status,
+                            reason=result.order.reason,
+                        )
+                        self._alert_manager.alert_trade(
+                            wallet_name=wallet.name,
+                            symbol=symbol,
+                            side=result.order.side.value,
+                            quantity=result.order.quantity,
+                            fill_price=result.order.fill_price,
+                            fee_paid=result.order.fee_paid,
+                            reason=result.order.reason,
+                        )
+                    elif (
+                        result.signal.action.value in ("buy", "sell")
+                        and result.order is None
+                    ):
+                        self._structured_logger.log_rejection(
+                            wallet_name=wallet.name,
+                            strategy_type=wallet.strategy_type,
+                            symbol=symbol,
+                            side=result.signal.action.value,
+                            reason=result.signal.reason,
+                            requested_quantity=0.0,
+                        )
+                        self._alert_manager.alert_rejection(
+                            wallet_name=wallet.name,
+                            symbol=symbol,
+                            side=result.signal.action.value,
+                            reason=result.signal.reason,
+                        )
                 record = StrategyRunRecord(
                     recorded_at=datetime.now(UTC).isoformat(),
                     symbol=symbol,
@@ -280,13 +342,22 @@ class MultiSymbolRuntime:
                 "KILL SWITCH TRIGGERED: %s — stopping after this tick",
                 state.trigger_reason,
             )
-            self._notifier.send_message(
-                f"KILL SWITCH TRIGGERED\n"
-                f"Reason: {state.trigger_reason}\n"
-                f"Portfolio DD: {state.portfolio_drawdown_pct:.2%}\n"
-                f"Daily loss: {state.daily_loss_pct:.2%}\n"
-                f"Consecutive losses: {state.consecutive_losses}\n"
-                f"All trading halted."
+            self._alert_manager.alert_kill_switch(
+                reason=state.trigger_reason,
+                portfolio_dd=state.portfolio_drawdown_pct,
+                daily_loss=state.daily_loss_pct,
+                consecutive_losses=state.consecutive_losses,
+            )
+            self._structured_logger.log_system(
+                wallet_name="portfolio",
+                strategy_type="kill_switch",
+                symbol="*",
+                message=f"Kill switch triggered: {state.trigger_reason}",
+                details={
+                    "portfolio_dd": state.portfolio_drawdown_pct,
+                    "daily_loss": state.daily_loss_pct,
+                    "consecutive_losses": state.consecutive_losses,
+                },
             )
 
     def _refresh_macro(self) -> None:
