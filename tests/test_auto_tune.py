@@ -77,6 +77,9 @@ class TestAutoTuneOutputs(unittest.TestCase):
         self.assertIn('rsi_period = 10', text)
         self.assertIn('stop_loss_pct = 0.02', text)
         self.assertIn('take_profit_pct = 0.08', text)
+        self.assertIn("[wallets.strategy_overrides]", text)
+        self.assertIn("[wallets.risk_overrides]", text)
+        self.assertIn('strategy = "mean_reversion"', text)
 
     def test_write_results_json_persists_baseline_and_optimized_results(self) -> None:
         tune_results = [
@@ -152,9 +155,58 @@ class TestAutoTuneOutputs(unittest.TestCase):
         self.assertEqual(config.strategy.ma_filter_period, 15)
         self.assertEqual(config.risk.trailing_stop_pct, 0.04)
         self.assertEqual(config.risk.atr_stop_multiplier, 3.0)
+        self.assertEqual(config.wallets[0].strategy_overrides["k_base"], 0.7)
+        self.assertEqual(config.wallets[0].risk_overrides["atr_stop_multiplier"], 3.0)
         self.assertEqual(wallet.strategy._k_base, 0.7)
         self.assertEqual(wallet.risk_manager._trailing_stop_pct, 0.04)
         self.assertEqual(wallet.risk_manager._atr_stop_multiplier, 3.0)
+
+    def test_write_optimized_toml_emits_all_wallets_with_overrides(self) -> None:
+        results = [
+            TuneResult(
+                strategy="momentum",
+                params={"momentum_lookback": 15, "momentum_entry_threshold": 0.003},
+                risk_params={"stop_loss_pct": 0.03, "take_profit_pct": 0.04},
+                avg_return_pct=5.0,
+                avg_sharpe=1.3,
+                avg_mdd_pct=7.0,
+                avg_win_rate=40.0,
+                avg_profit_factor=1.2,
+                total_trades=100,
+                best_score=1.0,
+                candidate_rank=1,
+                top_candidates=[],
+                per_symbol={},
+            ),
+            TuneResult(
+                strategy="kimchi_premium",
+                params={"rsi_period": 14, "min_trade_interval_bars": 6, "min_confidence": 0.4},
+                risk_params={"stop_loss_pct": 0.02, "take_profit_pct": 0.04},
+                avg_return_pct=5.2,
+                avg_sharpe=1.2,
+                avg_mdd_pct=6.0,
+                avg_win_rate=51.0,
+                avg_profit_factor=1.4,
+                total_trades=160,
+                best_score=1.1,
+                candidate_rank=1,
+                top_candidates=[],
+                per_symbol={},
+            ),
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "optimized.toml"
+            write_optimized_toml(results, str(path))
+            config = load_config(path, {})
+
+        self.assertEqual(
+            [wallet.strategy for wallet in config.wallets],
+            ["momentum", "kimchi_premium"],
+        )
+        kimchi_wallet = config.wallets[1]
+        self.assertEqual(kimchi_wallet.strategy_overrides["min_trade_interval_bars"], 6)
+        self.assertEqual(kimchi_wallet.strategy_overrides["min_confidence"], 0.4)
 
     def test_tune_strategy_selects_best_candidate_by_optimized_score(self) -> None:
         class Candidate:

@@ -157,6 +157,8 @@ class MultiSymbolRuntime:
                 continue
 
             for wallet in self._wallets:
+                if wallet.allowed_symbols and symbol not in wallet.allowed_symbols:
+                    continue
                 result = wallet.run_once(symbol, candles)
                 results.append(result)
                 if result.error:

@@ -393,37 +393,54 @@ def write_optimized_toml(
     lines.append(f'interval = "{trading.get("interval", "minute60")}"')
     lines.append("paper_trading = true")
     symbols = trading.get("symbols", ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"])
-    lines.append(f"symbols = {symbols}")
+    rendered_symbols = ", ".join(_toml_literal(symbol) for symbol in symbols)
+    lines.append(f"symbols = [{rendered_symbols}]")
     lines.append("")
 
     # Strategy section from best mean_reversion or momentum params
     lines.append("[strategy]")
     if best_overall:
-        config_fields = set(StrategyConfig.__dataclass_fields__)
-        for k, v in sorted(best_overall.params.items()):
-            if k in config_fields:
-                if isinstance(v, float):
-                    lines.append(f"{k} = {v}")
-                else:
-                    lines.append(f"{k} = {v}")
+        for key, value in sorted(_strategy_config_params(best_overall.params).items()):
+            lines.append(f"{key} = {_toml_literal(value)}")
     lines.append("")
 
     # Risk section from best risk params
     lines.append("[risk]")
     if best_overall:
-        for k, v in sorted(best_overall.risk_params.items()):
-            lines.append(f"{k} = {v}")
+        for key, value in sorted(best_overall.risk_params.items()):
+            lines.append(f"{key} = {_toml_literal(value)}")
     lines.append("")
 
-    # Wallet section: config supports one global strategy/risk block, so keep
-    # the runnable TOML aligned to the best overall strategy only.
+    # Wallet sections carry per-strategy overrides so multi-runtime can run
+    # the tuned parameter set for each strategy without losing constructor-only params.
     lines.append("# Optimized wallet allocation")
-    if best_overall:
+    wallet_capital = 1_000_000.0
+    for result in sorted(results, key=lambda item: (-item.avg_sharpe, item.strategy)):
         lines.append("")
+        lines.append(
+            f"# {result.strategy}: Sharpe={result.avg_sharpe:.2f} "
+            f"Return={result.avg_return_pct:+.2f}% "
+            f"MDD={result.avg_mdd_pct:.2f}% "
+            f"WR={result.avg_win_rate:.1f}% "
+            f"PF={result.avg_profit_factor:.2f} "
+            f"Trades={result.total_trades}"
+        )
         lines.append("[[wallets]]")
-        lines.append(f'name = "{best_overall.strategy}_wallet"')
-        lines.append(f'strategy = "{best_overall.strategy}"')
-        lines.append("initial_capital = 1_000_000.0")
+        lines.append(f'name = "{result.strategy}_wallet"')
+        lines.append(f'strategy = "{result.strategy}"')
+        lines.append(f"initial_capital = {_toml_literal(wallet_capital)}")
+
+        if result.params:
+            lines.append("")
+            lines.append("[wallets.strategy_overrides]")
+            for key, value in sorted(result.params.items()):
+                lines.append(f"{key} = {_toml_literal(value)}")
+
+        if result.risk_params:
+            lines.append("")
+            lines.append("[wallets.risk_overrides]")
+            for key, value in sorted(result.risk_params.items()):
+                lines.append(f"{key} = {_toml_literal(value)}")
     lines.append("")
 
     # Per-strategy optimal params as comments for reference
@@ -442,6 +459,24 @@ def write_optimized_toml(
 
     Path(output_path).write_text("\n".join(lines), encoding="utf-8")
     print(f"\n  Optimized config written to: {output_path}")
+
+
+def _strategy_config_params(params: dict[str, float | int]) -> dict[str, float | int]:
+    config_fields = set(StrategyConfig.__dataclass_fields__)
+    return {
+        key: value
+        for key, value in params.items()
+        if key in config_fields
+    }
+
+
+def _toml_literal(value: object) -> str:
+    if isinstance(value, str):
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
 
 
 def main() -> None:

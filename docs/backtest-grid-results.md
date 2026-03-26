@@ -13,12 +13,16 @@ PYTHONPATH=src .venv/bin/python scripts/backtest_all.py 90 --cache-dir artifacts
 PYTHONPATH=src .venv/bin/python scripts/auto_tune.py 90 config/optimized.toml --cache-dir artifacts/candle-cache --json-out artifacts/backtest-grid-90d/combined.json
 ```
 
+Detailed execution notes and the generated config structure live in
+`docs/parameter-optimization.md`.
+
 ## Headline outcome
 
 - Baseline coverage: `28` runs, `1251` total trades, all `7` strategies produced trades
 - Best tuned strategy by ranking metric: `momentum`
 - Best tuned return: `kimchi_premium` at `+5.29%`
-- Best runnable config remains single-strategy `momentum` because `config/optimized.toml` has one global `[strategy]` and one global `[risk]` block
+- `config/optimized.toml` now emits one tuned wallet per strategy using
+  `wallets.strategy_overrides` and `wallets.risk_overrides`
 
 ## Tuned ranking
 
@@ -32,7 +36,7 @@ PYTHONPATH=src .venv/bin/python scripts/auto_tune.py 90 config/optimized.toml --
 | volatility_breakout | -2.25 | -5.95% | 8.97% | 29.2% | 0.60 | 231 | #1 |
 | obi | -2.33 | -5.23% | 7.07% | 36.3% | 0.52 | 160 | #1 |
 
-## Selected params
+## Best-overall params
 
 ```toml
 [strategy]
@@ -48,6 +52,32 @@ take_profit_pct = 0.04
 risk_per_trade_pct = 0.015
 trailing_stop_pct = 0.0
 atr_stop_multiplier = 0.0
+```
+
+## Generated wallet format
+
+The optimized config is no longer limited to a single runnable strategy. Each tuned
+wallet now persists its own overrides, including constructor-only fields that were
+previously dropped from the generated TOML.
+
+```toml
+[[wallets]]
+name = "kimchi_premium_wallet"
+strategy = "kimchi_premium"
+initial_capital = 1_000_000.0
+
+[wallets.strategy_overrides]
+rsi_period = 14
+rsi_recovery_ceiling = 50.0
+rsi_overbought = 75.0
+max_holding_bars = 24
+min_trade_interval_bars = 6
+min_confidence = 0.4
+
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+atr_stop_multiplier = 3.0
 ```
 
 ## Artifacts

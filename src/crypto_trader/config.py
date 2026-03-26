@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, replace
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +12,9 @@ class WalletConfig:
     name: str = "default"
     strategy: str = "composite"
     initial_capital: float = 1_000_000.0
+    symbols: list[str] = field(default_factory=list)
+    strategy_overrides: dict[str, Any] = field(default_factory=dict)
+    risk_overrides: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -148,6 +151,13 @@ class AppConfig:
         WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
         WalletConfig("composite_wallet", "composite", 1_000_000.0),
     ])
+
+
+_STRATEGY_FIELD_NAMES = {field.name for field in fields(StrategyConfig)}
+_RISK_FIELD_NAMES = {field.name for field in fields(RiskConfig)}
+_STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
+    "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
+}
 
 
 def load_config(path: str | Path | None = None, environ: dict[str, str] | None = None) -> AppConfig:
@@ -552,6 +562,9 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 name=str(w.get("name", f"wallet_{i}")),
                 strategy=str(w.get("strategy", "composite")),
                 initial_capital=float(w.get("initial_capital", 1_000_000.0)),
+                symbols=list(w.get("symbols", [])),
+                strategy_overrides=_read_wallet_override_map(w, "strategy_overrides"),
+                risk_overrides=_read_wallet_override_map(w, "risk_overrides"),
             )
             for i, w in enumerate(raw_wallets)
         ]
@@ -609,22 +622,45 @@ def _read_bool(
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _read_wallet_override_map(raw_wallet: dict[str, Any], key: str) -> dict[str, Any]:
+    value = raw_wallet.get(key, {})
+    if isinstance(value, dict):
+        return {str(k): v for k, v in value.items()}
+    return {}
+
+
+def _strategy_override_names(strategy_name: str) -> set[str]:
+    return _STRATEGY_FIELD_NAMES | _STRATEGY_EXTRA_OVERRIDE_FIELDS.get(strategy_name, set())
+
+
+def _apply_strategy_overrides(
+    base: StrategyConfig,
+    overrides: dict[str, Any],
+) -> StrategyConfig:
+    config_kwargs = {
+        key: value
+        for key, value in overrides.items()
+        if key in _STRATEGY_FIELD_NAMES
+    }
+    return replace(base, **config_kwargs)
+
+
+def _apply_risk_overrides(base: RiskConfig, overrides: dict[str, Any]) -> RiskConfig:
+    config_kwargs = {
+        key: value
+        for key, value in overrides.items()
+        if key in _RISK_FIELD_NAMES
+    }
+    return replace(base, **config_kwargs)
+
+
 def _validate_config(config: AppConfig) -> None:
     errors: list[str] = []
 
     if config.trading.candle_count <= 1:
         errors.append("trading.candle_count must be greater than 1")
 
-    if config.strategy.momentum_lookback <= 0:
-        errors.append("strategy.momentum_lookback must be positive")
-    if config.strategy.bollinger_window <= 1:
-        errors.append("strategy.bollinger_window must be greater than 1")
-    if config.strategy.bollinger_stddev <= 0:
-        errors.append("strategy.bollinger_stddev must be positive")
-    if config.strategy.rsi_period <= 0:
-        errors.append("strategy.rsi_period must be positive")
-    if config.strategy.max_holding_bars <= 0:
-        errors.append("strategy.max_holding_bars must be positive")
+    _validate_strategy_config("strategy", config.strategy, errors)
 
     if config.regime.short_lookback <= 0:
         errors.append("regime.short_lookback must be positive")
@@ -642,41 +678,18 @@ def _validate_config(config: AppConfig) -> None:
     if config.drift.bear_return_tolerance_pct <= 0:
         errors.append("drift.bear_return_tolerance_pct must be positive")
 
-    for field_name, value in {
-        "drift.bull_error_rate_threshold": config.drift.bull_error_rate_threshold,
-        "drift.sideways_error_rate_threshold": config.drift.sideways_error_rate_threshold,
-        "drift.bear_error_rate_threshold": config.drift.bear_error_rate_threshold,
-        "backtest.fee_rate": config.backtest.fee_rate,
-        "backtest.slippage_pct": config.backtest.slippage_pct,
-        "risk.risk_per_trade_pct": config.risk.risk_per_trade_pct,
-        "risk.stop_loss_pct": config.risk.stop_loss_pct,
-        "risk.take_profit_pct": config.risk.take_profit_pct,
-        "risk.max_daily_loss_pct": config.risk.max_daily_loss_pct,
-    }.items():
+    for field_name, value in _positive_probability_fields(config).items():
         if value <= 0:
             errors.append(f"{field_name} must be positive")
 
-    for field_name, value in {
-        "drift.bull_error_rate_threshold": config.drift.bull_error_rate_threshold,
-        "drift.sideways_error_rate_threshold": config.drift.sideways_error_rate_threshold,
-        "drift.bear_error_rate_threshold": config.drift.bear_error_rate_threshold,
-        "backtest.fee_rate": config.backtest.fee_rate,
-        "backtest.slippage_pct": config.backtest.slippage_pct,
-        "risk.risk_per_trade_pct": config.risk.risk_per_trade_pct,
-        "risk.stop_loss_pct": config.risk.stop_loss_pct,
-        "risk.take_profit_pct": config.risk.take_profit_pct,
-        "risk.max_daily_loss_pct": config.risk.max_daily_loss_pct,
-    }.items():
+    for field_name, value in _positive_probability_fields(config).items():
         if value >= 1:
             errors.append(f"{field_name} must be less than 1")
 
     if config.backtest.initial_capital <= 0:
         errors.append("backtest.initial_capital must be positive")
 
-    if config.risk.take_profit_pct <= config.risk.stop_loss_pct:
-        errors.append("risk.take_profit_pct must be greater than risk.stop_loss_pct")
-    if config.risk.max_concurrent_positions <= 0:
-        errors.append("risk.max_concurrent_positions must be positive")
+    _validate_risk_config("risk", config.risk, errors)
 
     if config.runtime.poll_interval_seconds <= 0:
         errors.append("runtime.poll_interval_seconds must be positive")
@@ -731,6 +744,26 @@ def _validate_config(config: AppConfig) -> None:
             errors.append(f"wallet '{wc.name}': strategy must be one of {valid_strategies}")
         if wc.initial_capital <= 0:
             errors.append(f"wallet '{wc.name}': initial_capital must be positive")
+        invalid_strategy_overrides = (
+            set(wc.strategy_overrides) - _strategy_override_names(wc.strategy)
+        )
+        if invalid_strategy_overrides:
+            invalid = ", ".join(sorted(invalid_strategy_overrides))
+            errors.append(f"wallet '{wc.name}': invalid strategy_overrides keys: {invalid}")
+        invalid_risk_overrides = set(wc.risk_overrides) - _RISK_FIELD_NAMES
+        if invalid_risk_overrides:
+            invalid = ", ".join(sorted(invalid_risk_overrides))
+            errors.append(f"wallet '{wc.name}': invalid risk_overrides keys: {invalid}")
+        _validate_strategy_config(
+            f"wallet '{wc.name}'.strategy_overrides",
+            _apply_strategy_overrides(config.strategy, wc.strategy_overrides),
+            errors,
+        )
+        _validate_risk_config(
+            f"wallet '{wc.name}'.risk_overrides",
+            _apply_risk_overrides(config.risk, wc.risk_overrides),
+            errors,
+        )
 
     if not config.trading.paper_trading and not config.credentials.has_upbit_credentials:
         errors.append(
@@ -740,3 +773,37 @@ def _validate_config(config: AppConfig) -> None:
 
     if errors:
         raise ValueError("Invalid configuration:\n- " + "\n- ".join(errors))
+
+
+def _positive_probability_fields(config: AppConfig) -> dict[str, float]:
+    return {
+        "drift.bull_error_rate_threshold": config.drift.bull_error_rate_threshold,
+        "drift.sideways_error_rate_threshold": config.drift.sideways_error_rate_threshold,
+        "drift.bear_error_rate_threshold": config.drift.bear_error_rate_threshold,
+        "backtest.fee_rate": config.backtest.fee_rate,
+        "backtest.slippage_pct": config.backtest.slippage_pct,
+        "risk.risk_per_trade_pct": config.risk.risk_per_trade_pct,
+        "risk.stop_loss_pct": config.risk.stop_loss_pct,
+        "risk.take_profit_pct": config.risk.take_profit_pct,
+        "risk.max_daily_loss_pct": config.risk.max_daily_loss_pct,
+    }
+
+
+def _validate_strategy_config(prefix: str, strategy: StrategyConfig, errors: list[str]) -> None:
+    if strategy.momentum_lookback <= 0:
+        errors.append(f"{prefix}.momentum_lookback must be positive")
+    if strategy.bollinger_window <= 1:
+        errors.append(f"{prefix}.bollinger_window must be greater than 1")
+    if strategy.bollinger_stddev <= 0:
+        errors.append(f"{prefix}.bollinger_stddev must be positive")
+    if strategy.rsi_period <= 0:
+        errors.append(f"{prefix}.rsi_period must be positive")
+    if strategy.max_holding_bars <= 0:
+        errors.append(f"{prefix}.max_holding_bars must be positive")
+
+
+def _validate_risk_config(prefix: str, risk: RiskConfig, errors: list[str]) -> None:
+    if risk.take_profit_pct <= risk.stop_loss_pct:
+        errors.append(f"{prefix}.take_profit_pct must be greater than {prefix}.stop_loss_pct")
+    if risk.max_concurrent_positions <= 0:
+        errors.append(f"{prefix}.max_concurrent_positions must be positive")

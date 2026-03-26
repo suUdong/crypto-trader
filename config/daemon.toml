@@ -1,3 +1,8 @@
+# Production daemon config — walk-forward validated + grid-search optimized
+# Deployed: 2026-03-26
+# Strategies: momentum (Sharpe 1.91 WF) + kimchi_premium (Sharpe 1.22 GS)
+# Excluded: mean_reversion(-1.51), vpin(-1.86), volatility_breakout(-2.25), obi(-2.33)
+
 [trading]
 exchange = "upbit"
 symbol = "KRW-BTC"
@@ -6,17 +11,18 @@ interval = "minute60"
 candle_count = 200
 paper_trading = true
 
+# Global strategy params — tuned for momentum (walk-forward fold 2)
 [strategy]
-momentum_lookback = 20
-momentum_entry_threshold = 0.005
+momentum_lookback = 15
+momentum_entry_threshold = 0.008
 momentum_exit_threshold = -0.01
 bollinger_window = 20
 bollinger_stddev = 1.8
-rsi_period = 14
+rsi_period = 18
 rsi_oversold_floor = 20.0
 rsi_recovery_ceiling = 60.0
-rsi_overbought = 70.0
-max_holding_bars = 48
+rsi_overbought = 65.0
+max_holding_bars = 36
 
 [regime]
 short_lookback = 10
@@ -32,15 +38,16 @@ bull_error_rate_threshold = 0.25
 sideways_error_rate_threshold = 0.20
 bear_error_rate_threshold = 0.10
 
+# Risk — momentum walk-forward fold 2 optimal
 [risk]
 risk_per_trade_pct = 0.01
 stop_loss_pct = 0.03
-take_profit_pct = 0.06
+take_profit_pct = 0.10
 max_daily_loss_pct = 0.05
-max_concurrent_positions = 2
-trailing_stop_pct = 0.02
-atr_stop_multiplier = 2.0
-min_entry_confidence = 0.6
+max_concurrent_positions = 4
+trailing_stop_pct = 0.0
+atr_stop_multiplier = 0.0
+min_entry_confidence = 0.5
 
 [backtest]
 initial_capital = 1000000.0
@@ -71,40 +78,33 @@ promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
 strategy_report_path = "artifacts/strategy-report.md"
 
+# --- Wallets (positive Sharpe only) ---
+
 [[wallets]]
 name = "momentum_wallet"
 strategy = "momentum"
-initial_capital = 1000000.0
-
-[[wallets]]
-name = "mean_reversion_wallet"
-strategy = "mean_reversion"
-initial_capital = 1000000.0
-
-[[wallets]]
-name = "composite_wallet"
-strategy = "composite"
-initial_capital = 1000000.0
+initial_capital = 1_000_000.0
+symbols = ["KRW-BTC", "KRW-ETH"]
+# BTC +1.37% ETH +7.05% — XRP/SOL excluded (negative returns in 90d backtest)
 
 [[wallets]]
 name = "kimchi_premium_wallet"
 strategy = "kimchi_premium"
-initial_capital = 1000000.0
-
-[[wallets]]
-name = "obi_wallet"
-strategy = "obi"
-initial_capital = 1000000.0
-
-[[wallets]]
-name = "vpin_wallet"
-strategy = "vpin"
-initial_capital = 1000000.0
-
-[[wallets]]
-name = "volatility_breakout_wallet"
-strategy = "volatility_breakout"
-initial_capital = 1000000.0
+initial_capital = 1_000_000.0
+symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
+# Per-wallet overrides from 90-day grid search (Sharpe 1.22, WR 51%, PF 1.49)
+[wallets.strategy_overrides]
+rsi_period = 14
+rsi_recovery_ceiling = 50.0
+rsi_overbought = 75.0
+max_holding_bars = 24
+min_trade_interval_bars = 6
+min_confidence = 0.4
+cooldown_hours = 6.0
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+atr_stop_multiplier = 3.0
 
 [credentials]
 upbit_access_key = ""

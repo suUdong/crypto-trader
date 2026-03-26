@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -107,3 +109,44 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.strategy.ma_filter_period, 15)
         self.assertEqual(config.risk.trailing_stop_pct, 0.04)
         self.assertEqual(config.risk.atr_stop_multiplier, 3.0)
+
+    def test_loads_wallet_specific_overrides(self) -> None:
+        toml_content = """
+[trading]
+symbol = "KRW-BTC"
+symbols = ["KRW-BTC"]
+paper_trading = true
+
+[strategy]
+[regime]
+[drift]
+[risk]
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "momentum_wallet"
+strategy = "momentum"
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+momentum_lookback = 15
+momentum_entry_threshold = 0.003
+
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.04
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                config = load_config(f.name, {})
+            finally:
+                os.unlink(f.name)
+
+        momentum_wallet = config.wallets[0]
+        self.assertEqual(momentum_wallet.strategy_overrides["momentum_lookback"], 15)
+        self.assertEqual(momentum_wallet.risk_overrides["take_profit_pct"], 0.04)

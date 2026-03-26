@@ -52,6 +52,9 @@ write_results_json(baseline_payload["results"], all_results, "artifacts/backtest
 PY
 ```
 
+Generated config structure and runtime usage are summarized in
+`docs/parameter-optimization.md`.
+
 ## Cache note
 
 - `fetch_upbit_candles()` had a pagination boundary bug: feeding the earliest returned candle back into `pyupbit.get_ohlcv(..., to=...)` without a KST/UTC adjustment created a 9-hour overlap per batch.
@@ -209,5 +212,6 @@ atr_stop_multiplier = 0.0
 
 - `momentum` is still the best deployment candidate on the chosen ranking metric.
 - `kimchi_premium` is now a real contender after the mock-premium path was wired into both baseline and auto-tune flows.
+- `config/optimized.toml` now persists per-wallet `strategy_overrides` and `risk_overrides`, so tuned strategy-specific constructor params are no longer lost on export.
 - `composite` needs a minimum-trade guard before it should be allowed to win on Sharpe alone; `2` trades is not enough evidence.
 - The corrected candle pagination/cache path was required for any 90-day comparison to be valid across all 4 symbols.

@@ -20,6 +20,7 @@ from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.models import Candle, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
+from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.wallet import StrategyWallet, build_wallets, create_strategy
@@ -189,6 +190,42 @@ class TestBuildWallets(unittest.TestCase):
 
         self.assertEqual(len(wallets), 3)
         self.assertTrue(all(isinstance(w, StrategyWallet) for w in wallets))
+
+    def test_build_wallets_applies_wallet_specific_strategy_and_risk_overrides(self) -> None:
+        wallet_configs = [
+            WalletConfig(
+                name="kimchi_wallet",
+                strategy="kimchi_premium",
+                initial_capital=500_000.0,
+                strategy_overrides={
+                    "rsi_period": 10,
+                    "max_holding_bars": 24,
+                    "min_trade_interval_bars": 6,
+                    "min_confidence": 0.4,
+                },
+                risk_overrides={
+                    "stop_loss_pct": 0.02,
+                    "take_profit_pct": 0.04,
+                    "trailing_stop_pct": 0.03,
+                    "atr_stop_multiplier": 2.0,
+                },
+            ),
+        ]
+        config = _make_minimal_app_config(wallet_configs)
+
+        wallets = build_wallets(config)
+
+        self.assertEqual(len(wallets), 1)
+        wallet = wallets[0]
+        self.assertIsInstance(wallet.strategy, KimchiPremiumStrategy)
+        self.assertEqual(wallet.strategy._config.rsi_period, 10)
+        self.assertEqual(wallet.strategy._config.max_holding_bars, 24)
+        self.assertEqual(wallet.strategy._min_trade_interval_bars, 6)
+        self.assertEqual(wallet.strategy._min_confidence, 0.4)
+        self.assertEqual(wallet.risk_manager._config.stop_loss_pct, 0.02)
+        self.assertEqual(wallet.risk_manager._config.take_profit_pct, 0.04)
+        self.assertEqual(wallet.risk_manager._trailing_stop_pct, 0.03)
+        self.assertEqual(wallet.risk_manager._atr_stop_multiplier, 2.0)
 
 
 if __name__ == "__main__":

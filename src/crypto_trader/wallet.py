@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Protocol
+from collections.abc import Mapping
+from dataclasses import replace
+from typing import Any, Protocol
 
-from crypto_trader.config import AppConfig, RegimeConfig, StrategyConfig, WalletConfig
+from crypto_trader.config import (
+    AppConfig,
+    RegimeConfig,
+    RiskConfig,
+    StrategyConfig,
+    WalletConfig,
+)
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.models import (
     Candle,
@@ -33,13 +41,20 @@ def create_strategy(
     strategy_type: str,
     strategy_config: StrategyConfig,
     regime_config: RegimeConfig,
+    extra_params: Mapping[str, Any] | None = None,
 ) -> StrategyProtocol:
+    params = extra_params or {}
     if strategy_type == "momentum":
         return MomentumStrategy(strategy_config, regime_config)
     if strategy_type == "mean_reversion":
         return MeanReversionStrategy(strategy_config, regime_config)
     if strategy_type == "kimchi_premium":
-        return KimchiPremiumStrategy(strategy_config)
+        return KimchiPremiumStrategy(
+            strategy_config,
+            min_trade_interval_bars=int(params.get("min_trade_interval_bars", 12)),
+            min_confidence=float(params.get("min_confidence", 0.6)),
+            cooldown_hours=float(params.get("cooldown_hours", 24.0)),
+        )
     if strategy_type == "obi":
         return OBIStrategy(strategy_config)
     if strategy_type == "vpin":
@@ -68,6 +83,9 @@ class StrategyWallet:
         self.strategy = strategy
         self.broker = broker
         self.risk_manager = risk_manager
+        self.allowed_symbols: set[str] = (
+            set(wallet_config.symbols) if wallet_config.symbols else set()
+        )
         self.session_starting_equity = broker.cash
         self._logger = logging.getLogger(f"{__name__}.{self.name}")
         self._macro_multiplier: float = 1.0
@@ -83,7 +101,11 @@ class StrategyWallet:
             latest_price = candles[-1].close
             order: OrderResult | None = None
 
-            if position is None and signal.action is SignalAction.BUY and signal.confidence >= self.risk_manager.min_entry_confidence:
+            if (
+                position is None
+                and signal.action is SignalAction.BUY
+                and signal.confidence >= self.risk_manager.min_entry_confidence
+            ):
                 if self.risk_manager.can_open(
                     active_positions=len(self.broker.positions),
                     realized_pnl=self.broker.realized_pnl,
@@ -164,16 +186,46 @@ class StrategyWallet:
 def build_wallets(config: AppConfig) -> list[StrategyWallet]:
     wallets: list[StrategyWallet] = []
     for wc in config.wallets:
-        strategy = create_strategy(wc.strategy, config.strategy, config.regime)
+        strategy_config = _strategy_config_for_wallet(config.strategy, wc)
+        risk_config = _risk_config_for_wallet(config, wc)
+        strategy = create_strategy(
+            wc.strategy,
+            strategy_config,
+            config.regime,
+            wc.strategy_overrides,
+        )
         broker = PaperBroker(
             starting_cash=wc.initial_capital,
             fee_rate=config.backtest.fee_rate,
             slippage_pct=config.backtest.slippage_pct,
         )
         risk_manager = RiskManager(
-            config.risk,
-            trailing_stop_pct=config.risk.trailing_stop_pct,
-            atr_stop_multiplier=config.risk.atr_stop_multiplier,
+            risk_config,
+            trailing_stop_pct=risk_config.trailing_stop_pct,
+            atr_stop_multiplier=risk_config.atr_stop_multiplier,
         )
         wallets.append(StrategyWallet(wc, strategy, broker, risk_manager))
     return wallets
+
+
+def _strategy_config_for_wallet(
+    base: StrategyConfig,
+    wallet_config: WalletConfig,
+) -> StrategyConfig:
+    strategy_fields = set(StrategyConfig.__dataclass_fields__)
+    overrides = {
+        key: value
+        for key, value in wallet_config.strategy_overrides.items()
+        if key in strategy_fields
+    }
+    return replace(base, **overrides)
+
+
+def _risk_config_for_wallet(config: AppConfig, wallet_config: WalletConfig) -> RiskConfig:
+    risk_fields = set(type(config.risk).__dataclass_fields__)
+    overrides = {
+        key: value
+        for key, value in wallet_config.risk_overrides.items()
+        if key in risk_fields
+    }
+    return replace(config.risk, **overrides)
