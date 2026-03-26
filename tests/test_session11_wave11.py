@@ -79,26 +79,31 @@ class TestEMACrossoverStochRSI(unittest.TestCase):
     def test_entry_helper_uses_stoch_rsi_threshold(self) -> None:
         """Cross-up entries should be blocked when StochRSI is already extreme."""
         strategy = EMACrossoverStrategy(
-            StrategyConfig(rsi_period=5, rsi_overbought=90.0),
+            StrategyConfig(rsi_period=5, rsi_overbought=90.0, adx_threshold=0.0),
         )
+        dummy_candles = _candles([100.0] * 30)
 
         buy_signal = strategy._evaluate_entry(
+            dummy_candles,
             cross_up=True,
             spread=0.01,
             rsi_value=55.0,
             stoch_rsi_value=40.0,
             macd_bullish=False,
+            adx_value=None,
             indicators={},
             context={"strategy": "ema_crossover"},
         )
         self.assertEqual(buy_signal.action, SignalAction.BUY)
 
         hold_signal = strategy._evaluate_entry(
+            dummy_candles,
             cross_up=True,
             spread=0.01,
             rsi_value=55.0,
             stoch_rsi_value=95.0,
             macd_bullish=False,
+            adx_value=None,
             indicators={},
             context={"strategy": "ema_crossover"},
         )

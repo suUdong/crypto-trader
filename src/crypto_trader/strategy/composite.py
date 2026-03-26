@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import _ema, bollinger_bands, macd, momentum, rsi
+from crypto_trader.strategy.indicators import (
+    _ema,
+    average_directional_index,
+    bollinger_bands,
+    macd,
+    momentum,
+    rsi,
+    volume_sma,
+)
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -69,6 +77,16 @@ class CompositeStrategy:
             "macd_histogram": macd_hist_val,
         }
 
+        # ADX trend strength filter
+        adx_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            adx_value = average_directional_index(highs, lows, closes, effective.adx_period)
+            indicators["adx"] = adx_value
+        except ValueError:
+            pass
+
         # Multi-timeframe trend: EMA(50) as macro trend filter
         macro_trend_up = False
         if len(closes) >= 50:
@@ -89,6 +107,31 @@ class CompositeStrategy:
                 <= effective.rsi_recovery_ceiling
             )
             if entry_ready:
+                # ADX filter: skip entry in choppy/trendless markets
+                if adx_value is not None and adx_value < effective.adx_threshold:
+                    return Signal(
+                        action=SignalAction.HOLD,
+                        reason="adx_too_weak",
+                        confidence=0.2,
+                        indicators=indicators,
+                        context=context,
+                    )
+                # Volume filter: require above-average volume for entry
+                if effective.volume_filter_mult > 0:
+                    volumes = [c.volume for c in candles]
+                    try:
+                        vol_avg = volume_sma(volumes, min(20, len(volumes)))
+                        indicators["volume_ratio"] = volumes[-1] / vol_avg if vol_avg > 0 else 0.0
+                        if volumes[-1] < vol_avg * effective.volume_filter_mult:
+                            return Signal(
+                                action=SignalAction.HOLD,
+                                reason="volume_too_low",
+                                confidence=0.2,
+                                indicators=indicators,
+                                context=context,
+                            )
+                    except ValueError:
+                        pass
                 base_conf = min(1.0, 0.5 + abs(momentum_value))
                 # MACD confirmation boosts confidence by 0.1
                 if macd_bullish:

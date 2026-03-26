@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import bollinger_bands, macd, rsi, rsi_divergence
+from crypto_trader.strategy.indicators import bollinger_bands, macd, noise_ratio, rsi, rsi_divergence
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -72,10 +72,27 @@ class MeanReversionStrategy:
             band_distance = 0.0
             indicators["band_distance"] = 0.0
 
+        # Noise ratio: high noise = choppy/ranging (good for MR), low noise = trending (bad)
+        nr_value: float | None = None
+        try:
+            nr_value = noise_ratio(closes, effective.noise_lookback)
+            indicators["noise_ratio"] = nr_value
+        except ValueError:
+            pass
+
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
         if position is None:
+            # Noise ratio filter: skip entry in strongly trending markets (bad for MR)
+            if nr_value is not None and nr_value < 0.5:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="market_too_trendy",
+                    confidence=0.2,
+                    indicators=indicators,
+                    context=context,
+                )
             # RSI confirmation: require RSI below oversold_floor + 10 to avoid false bottoms
             rsi_entry_limit = effective.rsi_oversold_floor + 10.0
             if near_lower_band and rsi_value <= rsi_entry_limit:

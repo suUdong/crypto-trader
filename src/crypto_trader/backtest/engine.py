@@ -114,6 +114,7 @@ class BacktestEngine:
                     and not self._risk_manager.is_auto_paused
                     and bars_since_exit >= min_bars_between_trades
                     and signal.action is SignalAction.BUY
+                    and signal.confidence >= self._risk_manager.effective_min_confidence
                 ):
                     fill_price = market_price * (1.0 + self._config.slippage_pct)
                     regime_mult = 1.0
