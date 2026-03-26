@@ -5,72 +5,19 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from crypto_trader.operator.artifact_health import summarize_artifact_health
 from crypto_trader.operator.pnl_report import PnLReportGenerator, PortfolioPnLReport
 from crypto_trader.operator.promotion import MicroLiveCriteria
 
 
-def _parse_iso8601(timestamp: str) -> datetime | None:
-    if not timestamp:
-        return None
-    try:
-        return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-
-
-def _format_age(seconds: float | None) -> str:
-    if seconds is None:
-        return "n/a"
-    total_seconds = max(0, int(seconds))
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, secs = divmod(remainder, 60)
-    if hours > 0:
-        return f"{hours}h {minutes}m"
-    if minutes > 0:
-        return f"{minutes}m {secs}s"
-    return f"{secs}s"
-
-
-def _compute_artifact_age_seconds(report_generated_at: str, artifact_generated_at: str) -> float | None:
-    report_dt = _parse_iso8601(report_generated_at)
-    artifact_dt = _parse_iso8601(artifact_generated_at)
-    if report_dt is None or artifact_dt is None:
-        return None
-    return max(0.0, (report_dt - artifact_dt).total_seconds())
-
-
-def _derive_freshness_status(report: PortfolioPnLReport) -> tuple[str, str, str, str]:
-    heartbeat_age_seconds = _compute_artifact_age_seconds(report.generated_at, report.heartbeat_generated_at)
-    checkpoint_age_seconds = _compute_artifact_age_seconds(report.generated_at, report.source_generated_at)
-    heartbeat_threshold = max(300, report.heartbeat_poll_interval_seconds * 5) if report.heartbeat_poll_interval_seconds > 0 else 300
-    checkpoint_threshold = max(900, report.heartbeat_poll_interval_seconds * 15) if report.heartbeat_poll_interval_seconds > 0 else 900
-
-    heartbeat_status = "unknown" if heartbeat_age_seconds is None else ("stale" if heartbeat_age_seconds > heartbeat_threshold else "fresh")
-    checkpoint_status = "unknown" if checkpoint_age_seconds is None else ("stale" if checkpoint_age_seconds > checkpoint_threshold else "fresh")
-    if heartbeat_status == "stale" and checkpoint_status == "stale":
-        return checkpoint_status, heartbeat_status, "stale_artifacts", "checkpoint and heartbeat are older than freshness thresholds"
-    if heartbeat_status == "stale":
-        return checkpoint_status, heartbeat_status, "stale_heartbeat", "heartbeat is older than freshness threshold"
-    if checkpoint_status == "stale":
-        return checkpoint_status, heartbeat_status, "stale_checkpoint", "checkpoint is older than freshness threshold"
-    return checkpoint_status, heartbeat_status, "fresh", "checkpoint and heartbeat are within freshness thresholds"
-
-
 def build_artifact_health_section(report: PortfolioPnLReport) -> str:
     """Summarize whether performance artifacts describe the same runtime session."""
-    consistency_status = report.artifact_consistency_status or "unknown"
-    consistency_ok = consistency_status == "consistent"
-    checkpoint_freshness, heartbeat_freshness, freshness_status, freshness_reason = _derive_freshness_status(report)
-    is_healthy = consistency_ok and freshness_status == "fresh"
-    headline_status = consistency_status if not consistency_ok else freshness_status
+    health = summarize_artifact_health(report)
     headline = (
         "**Artifact status: HEALTHY**"
-        if is_healthy
-        else f"**Artifact status: WARNING ({headline_status})**"
+        if health["healthy"]
+        else f"**Artifact status: WARNING ({health['headline_status']})**"
     )
-    consistency_reason = report.artifact_consistency_reason or "n/a"
-    checkpoint_age_seconds = _compute_artifact_age_seconds(report.generated_at, report.source_generated_at)
-    heartbeat_age_seconds = _compute_artifact_age_seconds(report.generated_at, report.heartbeat_generated_at)
     lines = [
         "## Artifact Health",
         "",
@@ -79,18 +26,18 @@ def build_artifact_health_section(report: PortfolioPnLReport) -> str:
         "| Metric | Value |",
         "|--------|-------|",
         f"| Checkpoint generated | {report.source_generated_at or 'n/a'} |",
-        f"| Checkpoint age | {_format_age(checkpoint_age_seconds)} ({checkpoint_freshness}) |",
+        f"| Checkpoint age | {health['checkpoint_age_display']} ({health['checkpoint_freshness']}) |",
         f"| Checkpoint session | {report.source_session_id or 'n/a'} |",
         f"| Heartbeat generated | {report.heartbeat_generated_at or 'n/a'} |",
-        f"| Heartbeat age | {_format_age(heartbeat_age_seconds)} ({heartbeat_freshness}) |",
+        f"| Heartbeat age | {health['heartbeat_age_display']} ({health['heartbeat_freshness']}) |",
         f"| Heartbeat session | {report.heartbeat_session_id or 'n/a'} |",
         f"| Heartbeat poll interval | {report.heartbeat_poll_interval_seconds or 'n/a'} |",
-        f"| Consistency status | {consistency_status} |",
-        f"| Consistency reason | {consistency_reason} |",
-        f"| Freshness status | {freshness_status} |",
-        f"| Freshness reason | {freshness_reason} |",
+        f"| Consistency status | {health['consistency_status']} |",
+        f"| Consistency reason | {health['consistency_reason']} |",
+        f"| Freshness status | {health['freshness_status']} |",
+        f"| Freshness reason | {health['freshness_reason']} |",
     ]
-    if not is_healthy:
+    if not health["healthy"]:
         lines.extend([
             "",
             "This report should be treated as a point-in-time diagnostic summary, not a clean executive performance narrative.",

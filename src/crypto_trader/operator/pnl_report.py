@@ -318,9 +318,29 @@ class PnLReportGenerator:
                 "heartbeat_poll_interval_seconds": report.heartbeat_poll_interval_seconds,
                 "consistency_status": report.artifact_consistency_status,
                 "consistency_reason": report.artifact_consistency_reason,
+                "freshness_status": "unknown",
+                "freshness_reason": "not computed",
             },
             "strategies": [],
         }
+        try:
+            from crypto_trader.operator.artifact_health import summarize_artifact_health
+
+            health = summarize_artifact_health(report)
+            json_data["artifact_context"].update({
+                "healthy": health["healthy"],
+                "headline_status": health["headline_status"],
+                "checkpoint_age_seconds": health["checkpoint_age_seconds"],
+                "heartbeat_age_seconds": health["heartbeat_age_seconds"],
+                "checkpoint_age_display": health["checkpoint_age_display"],
+                "heartbeat_age_display": health["heartbeat_age_display"],
+                "checkpoint_freshness": health["checkpoint_freshness"],
+                "heartbeat_freshness": health["heartbeat_freshness"],
+                "freshness_status": health["freshness_status"],
+                "freshness_reason": health["freshness_reason"],
+            })
+        except Exception:
+            pass
         cumulative = 0.0
         for s in sorted(report.strategies, key=lambda x: x.realized_pnl, reverse=True):
             cumulative += s.realized_pnl
@@ -450,6 +470,7 @@ class PnLSnapshotStore:
             "portfolio_win_rate": round(report.portfolio_win_rate, 4),
             "source_session_id": report.source_session_id,
             "artifact_consistency_status": report.artifact_consistency_status,
+            "artifact_freshness_status": "unknown",
             "wallets": [
                 {
                     "wallet": s.wallet,
@@ -462,6 +483,13 @@ class PnLSnapshotStore:
                 for s in report.strategies
             ],
         }
+        try:
+            from crypto_trader.operator.artifact_health import summarize_artifact_health
+
+            health = summarize_artifact_health(report)
+            entry["artifact_freshness_status"] = health["freshness_status"]
+        except Exception:
+            pass
         with self._path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
 

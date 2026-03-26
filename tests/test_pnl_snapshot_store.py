@@ -60,6 +60,7 @@ class TestPnLSnapshotStore(unittest.TestCase):
             self.assertEqual(len(history), 2)
             self.assertEqual(history[0]["total_equity"], 3_000_000.0)
             self.assertEqual(history[1]["total_equity"], 3_010_000.0)
+            self.assertEqual(history[0]["artifact_freshness_status"], "fresh")
 
     def test_snapshot_contains_wallet_details(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -111,6 +112,7 @@ class TestPnLSnapshotStore(unittest.TestCase):
             self.assertEqual(len(history), 1)
             self.assertIn("total_equity", history[0])
             self.assertIn("wallets", history[0])
+            self.assertIn("artifact_freshness_status", history[0])
 
     def test_pnl_history_output_format(self) -> None:
         """Verify the snapshot data has all fields needed for trending display."""
@@ -120,7 +122,15 @@ class TestPnLSnapshotStore(unittest.TestCase):
             store.append(_make_report(equity=3_005_000.0))
 
             history = store.load_history()
-            required_keys = {"timestamp", "period", "portfolio_return_pct", "total_equity", "total_realized_pnl", "total_trades"}
+            required_keys = {
+                "timestamp",
+                "period",
+                "portfolio_return_pct",
+                "total_equity",
+                "total_realized_pnl",
+                "total_trades",
+                "artifact_freshness_status",
+            }
             for entry in history:
                 self.assertTrue(required_keys.issubset(entry.keys()), f"Missing keys: {required_keys - entry.keys()}")
 

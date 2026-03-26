@@ -15,6 +15,7 @@ from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
+from crypto_trader.operator.artifact_health import summarize_artifact_health
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.performance_report import generate_performance_report
@@ -344,6 +345,7 @@ def main() -> None:
                 "realized_pnl": round(report.total_realized_pnl, 0),
                 "source_session_id": report.source_session_id,
                 "artifact_consistency_status": report.artifact_consistency_status,
+                "artifact_freshness_status": summarize_artifact_health(report)["freshness_status"],
                 "report_path": str(output_path),
                 "snapshot_path": str(snapshot_path),
             }
