@@ -76,7 +76,8 @@ def create_strategy(
             for name in sub_strategy_names
             if name != "consensus"  # prevent recursion
         ]
-        return ConsensusStrategy(sub_strategies, min_agree=min_agree)
+        min_confidence_sum = float(params.get("min_confidence_sum", 0.0))
+        return ConsensusStrategy(sub_strategies, min_agree=min_agree, min_confidence_sum=min_confidence_sum)
     return CompositeStrategy(strategy_config, regime_config)
 
 
@@ -106,6 +107,7 @@ class StrategyWallet:
     def run_once(self, symbol: str, candles: list[Candle]) -> PipelineResult:
         try:
             self.risk_manager.update_atr_from_candles(candles)
+            self.risk_manager.tick_cooldown()
             position = self.broker.positions.get(symbol)
             signal = self.strategy.evaluate(candles, position)
             latest_price = candles[-1].close
@@ -115,6 +117,7 @@ class StrategyWallet:
                 position is None
                 and signal.action is SignalAction.BUY
                 and signal.confidence >= self.risk_manager.effective_min_confidence
+                and not self.risk_manager.in_cooldown
             ):
                 if self.risk_manager.can_open(
                     active_positions=len(self.broker.positions),

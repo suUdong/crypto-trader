@@ -77,6 +77,7 @@ class RiskConfig:
     min_entry_confidence: float = 0.6
     drawdown_reduction_pct: float = 0.5
     partial_tp_pct: float = 0.5
+    cooldown_bars: int = 3
 
 
 @dataclass(slots=True)

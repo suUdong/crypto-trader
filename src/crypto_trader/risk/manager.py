@@ -21,6 +21,7 @@ class RiskManager:
         self.min_entry_confidence: float = config.min_entry_confidence
         self._peak_equity: float = 0.0
         self._max_holding_bars: int = max_holding_bars
+        self._bars_since_last_loss: int | None = None  # None = no recent loss
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -41,6 +42,22 @@ class RiskManager:
     def record_trade(self, pnl_pct: float) -> None:
         """Record a completed trade's return percentage for Kelly calculation."""
         self._trade_history.append(pnl_pct)
+        if pnl_pct < 0:
+            self._bars_since_last_loss = 0
+        else:
+            self._bars_since_last_loss = None
+
+    def tick_cooldown(self) -> None:
+        """Advance the cooldown counter by one bar."""
+        if self._bars_since_last_loss is not None:
+            self._bars_since_last_loss += 1
+
+    @property
+    def in_cooldown(self) -> bool:
+        """True if within cooldown period after a losing trade."""
+        if self._bars_since_last_loss is None:
+            return False
+        return self._bars_since_last_loss < self._config.cooldown_bars
 
     @property
     def effective_min_confidence(self) -> float:

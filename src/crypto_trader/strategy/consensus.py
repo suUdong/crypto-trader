@@ -16,11 +16,13 @@ class ConsensusStrategy:
         self,
         strategies: list[object],
         min_agree: int = 2,
+        min_confidence_sum: float = 0.0,
     ) -> None:
         if not strategies:
             raise ValueError("ConsensusStrategy requires at least one sub-strategy")
         self._strategies = strategies
         self._min_agree = max(1, min(min_agree, len(strategies)))
+        self._min_confidence_sum = min_confidence_sum
 
     def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal:
         signals: list[Signal] = []
@@ -56,7 +58,14 @@ class ConsensusStrategy:
         # Entry: require min_agree strategies to signal BUY
         buy_signals = [s for s in signals if s.action is SignalAction.BUY]
 
-        if len(buy_signals) >= self._min_agree:
+        confidence_sum = sum(s.confidence for s in buy_signals)
+        meets_count = len(buy_signals) >= self._min_agree
+        meets_confidence = (
+            self._min_confidence_sum <= 0
+            or confidence_sum >= self._min_confidence_sum
+        )
+
+        if meets_count and meets_confidence:
             avg_confidence = sum(s.confidence for s in buy_signals) / len(buy_signals)
             # Merge indicators from all agreeing strategies (prefix to avoid collision)
             merged_indicators: dict[str, float] = {}
