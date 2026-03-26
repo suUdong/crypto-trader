@@ -3,6 +3,7 @@ from __future__ import annotations
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
+    _ema,
     average_directional_index,
     macd,
     momentum,
@@ -64,6 +65,13 @@ class MomentumStrategy:
         except ValueError:
             pass
 
+        # Multi-timeframe trend: EMA(50) as macro trend filter
+        macro_trend_up = False
+        if len(closes) >= 50:
+            ema50 = _ema(closes, 50)[-1]
+            indicators["ema50"] = ema50
+            macro_trend_up = closes[-1] > ema50
+
         if position is None:
             # Adaptive RSI ceiling: strong momentum widens the acceptable RSI range.
             # When base ceiling < 80 and momentum exceeds entry threshold, widen
@@ -106,6 +114,9 @@ class MomentumStrategy:
                 base_conf = min(1.0, 0.5 + abs(momentum_value))
                 if macd_bullish:
                     base_conf = min(1.0, base_conf + 0.1)
+                # Macro trend alignment boosts confidence
+                if macro_trend_up:
+                    base_conf = min(1.0, base_conf + 0.05)
                 # Volume confirmation: high volume (>2x avg) boosts confidence
                 volumes = [c.volume for c in candles]
                 try:
