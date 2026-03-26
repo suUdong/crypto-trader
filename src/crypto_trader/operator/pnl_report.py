@@ -272,6 +272,10 @@ class PnLReportGenerator:
             })
         json_path.write_text(json.dumps(json_data, indent=2), encoding="utf-8")
 
+        # Auto-append to snapshot history
+        snapshot_path = target.parent / "pnl-snapshots.jsonl"
+        PnLSnapshotStore(snapshot_path).append(report)
+
     def _empty_report(self, period: str) -> PortfolioPnLReport:
         return PortfolioPnLReport(
             generated_at=datetime.now(UTC).isoformat(),
@@ -305,3 +309,47 @@ class PnLReportGenerator:
         if annualized_vol == 0:
             return 0.0
         return annualized_return / annualized_vol
+
+
+class PnLSnapshotStore:
+    """Append-only JSONL store for historical PnL snapshots."""
+
+    def __init__(self, path: str | Path) -> None:
+        self._path = Path(path)
+
+    def append(self, report: PortfolioPnLReport) -> None:
+        """Append a single snapshot line from a PnL report."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "timestamp": report.generated_at,
+            "period": report.period,
+            "portfolio_return_pct": round(report.portfolio_return_pct, 4),
+            "portfolio_sharpe": round(report.portfolio_sharpe, 2),
+            "total_equity": round(report.total_equity, 0),
+            "total_realized_pnl": round(report.total_realized_pnl, 0),
+            "total_trades": report.total_trades,
+            "portfolio_win_rate": round(report.portfolio_win_rate, 4),
+            "wallets": [
+                {
+                    "wallet": s.wallet,
+                    "strategy": s.strategy,
+                    "return_pct": round(s.total_return_pct, 4),
+                    "equity": round(s.equity, 0),
+                    "realized_pnl": round(s.realized_pnl, 0),
+                    "sharpe": round(s.sharpe_ratio, 2),
+                }
+                for s in report.strategies
+            ],
+        }
+        with self._path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+
+    def load_history(self) -> list[dict]:
+        """Load all historical snapshots."""
+        if not self._path.exists():
+            return []
+        entries = []
+        for line in self._path.read_text(encoding="utf-8").strip().split("\n"):
+            if line.strip():
+                entries.append(json.loads(line))
+        return entries

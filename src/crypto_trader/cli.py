@@ -57,6 +57,7 @@ def main() -> None:
             "daily-memo",
             "strategy-report",
             "pnl-report",
+            "pnl-history",
             "performance-report",
             "micro-live-check",
             "rebalance-capital",
@@ -247,6 +248,34 @@ def main() -> None:
         output_path = "artifacts/pnl-report.md"
         generator.save(report, output_path)
         print(generator.to_markdown(report))
+        return
+
+    if args.command == "pnl-history":
+        from crypto_trader.operator.pnl_report import PnLSnapshotStore
+        snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
+        store = PnLSnapshotStore(snapshot_path)
+        history = store.load_history()
+        if not history:
+            print("No PnL snapshots found. Run pnl-report first to accumulate history.")
+            return
+        print(f"\n{'='*80}")
+        print("  PnL HISTORY — Trending Performance")
+        print(f"{'='*80}\n")
+        print(f"  {'Date':<22} {'Equity':>14} {'Return%':>9} {'Realized':>12} {'Delta':>10} {'Trades':>7}")
+        print(f"  {'-'*76}")
+        prev_equity = None
+        for entry in history:
+            ts = entry.get("timestamp", "?")[:19]
+            equity = entry.get("total_equity", 0)
+            ret = entry.get("portfolio_return_pct", 0)
+            realized = entry.get("total_realized_pnl", 0)
+            trades = entry.get("total_trades", 0)
+            delta = equity - prev_equity if prev_equity is not None else 0
+            delta_str = f"{delta:+,.0f}" if prev_equity is not None else "-"
+            print(f"  {ts:<22} {equity:>13,.0f} {ret:>+8.3f}% {realized:>+11,.0f} {delta_str:>10} {trades:>7}")
+            prev_equity = equity
+        print(f"\n  Snapshots: {len(history)}")
+        print(f"{'='*80}\n")
         return
 
     if args.command == "performance-report":
