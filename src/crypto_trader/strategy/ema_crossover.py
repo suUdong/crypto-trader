@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from crypto_trader.config import StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import _ema, macd, rsi
+from crypto_trader.strategy.indicators import _ema, macd, rsi, stochastic_rsi
 
 
 class EMACrossoverStrategy:
@@ -61,11 +61,20 @@ class EMACrossoverStrategy:
             except ValueError:
                 pass
 
+        # Stochastic RSI for overbought/oversold sensitivity
+        stoch_rsi_val = 50.0
+        if len(closes) >= 30:
+            try:
+                stoch_rsi_val = stochastic_rsi(closes, self._config.rsi_period, 14)
+            except ValueError:
+                pass
+
         indicators = {
             "ema_fast": fast_now,
             "ema_slow": slow_now,
             "ema_spread": spread,
             "rsi": rsi_value,
+            "stoch_rsi": stoch_rsi_val,
             "macd_histogram": macd_hist_val,
         }
         context = {"strategy": "ema_crossover"}
@@ -88,8 +97,8 @@ class EMACrossoverStrategy:
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
-        # Entry: EMA crossover + RSI not overbought
-        if cross_up and rsi_value < self._config.rsi_overbought:
+        # Entry: EMA crossover + RSI not overbought + StochRSI not extreme
+        if cross_up and rsi_value < self._config.rsi_overbought and stoch_rsi_val < 80:
             base_conf = min(1.0, 0.5 + abs(spread) * 50)
             if macd_bullish:
                 base_conf = min(1.0, base_conf + 0.1)

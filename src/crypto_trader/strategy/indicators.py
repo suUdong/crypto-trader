@@ -71,6 +71,32 @@ def rsi(values: list[float], period: int) -> float:
     return 100.0 - (100.0 / (1.0 + relative_strength))
 
 
+def stochastic_rsi(values: list[float], rsi_period: int = 14, stoch_period: int = 14) -> float:
+    """Stochastic RSI: normalizes RSI into 0-100 range over stoch_period.
+
+    StochRSI = (RSI - min(RSI, stoch_period)) / (max(RSI, stoch_period) - min(RSI, stoch_period)) * 100
+    More sensitive than RSI for detecting overbought/oversold.
+    """
+    min_len = rsi_period + stoch_period + 1
+    if len(values) < min_len:
+        raise ValueError(f"Need at least {min_len} values for Stochastic RSI, got {len(values)}")
+
+    rsi_values = []
+    for i in range(stoch_period + 1):
+        idx = len(values) - stoch_period + i
+        if idx > rsi_period:
+            rsi_values.append(rsi(values[:idx], rsi_period))
+        else:
+            rsi_values.append(50.0)
+
+    rsi_min = min(rsi_values)
+    rsi_max = max(rsi_values)
+    rsi_range = rsi_max - rsi_min
+    if rsi_range == 0:
+        return 50.0
+    return ((rsi_values[-1] - rsi_min) / rsi_range) * 100.0
+
+
 def true_range(high: float, low: float, prev_close: float) -> float:
     """True Range = max(high-low, |high-prev_close|, |low-prev_close|)."""
     return max(high - low, abs(high - prev_close), abs(low - prev_close))

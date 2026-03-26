@@ -42,6 +42,8 @@ class BacktestEngine:
         realized_pnl = 0.0
 
         entry_bar: int = 0
+        last_exit_bar: int = -10  # allow immediate first trade
+        min_bars_between_trades: int = 2
 
         for index in range(len(candles)):
             window = candles[: index + 1]
@@ -95,6 +97,7 @@ class BacktestEngine:
                         )
                     )
                     self._risk_manager.record_trade(pnl_pct)
+                    last_exit_bar = index
                     open_position = None
 
             if open_position is None:
@@ -104,10 +107,12 @@ class BacktestEngine:
                     realized_pnl=realized_pnl,
                     starting_equity=self._config.initial_capital,
                 )
+                bars_since_exit = index - last_exit_bar
                 if (
                     can_open
                     and not self._risk_manager.in_cooldown
                     and not self._risk_manager.is_auto_paused
+                    and bars_since_exit >= min_bars_between_trades
                     and signal.action is SignalAction.BUY
                 ):
                     fill_price = market_price * (1.0 + self._config.slippage_pct)
