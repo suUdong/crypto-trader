@@ -144,6 +144,22 @@ def volume_sma(volumes: list[float], window: int) -> float:
     return sum(volumes[-window:]) / window
 
 
+def rolling_correlation(series_a: list[float], series_b: list[float], window: int) -> float:
+    """Pearson correlation of two price series over the last `window` bars."""
+    if len(series_a) < window or len(series_b) < window:
+        raise ValueError("Not enough values for correlation")
+    a = series_a[-window:]
+    b = series_b[-window:]
+    mean_a = sum(a) / window
+    mean_b = sum(b) / window
+    cov = sum((a[i] - mean_a) * (b[i] - mean_b) for i in range(window)) / window
+    std_a = math.sqrt(sum((x - mean_a) ** 2 for x in a) / window)
+    std_b = math.sqrt(sum((x - mean_b) ** 2 for x in b) / window)
+    if std_a == 0 or std_b == 0:
+        return 0.0
+    return cov / (std_a * std_b)
+
+
 def noise_ratio(closes: list[float], lookback: int) -> float:
     """Noise ratio: 1 - |net_move| / sum(|bar_moves|). Lower = stronger trend."""
     if len(closes) <= lookback:

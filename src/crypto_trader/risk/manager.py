@@ -60,6 +60,30 @@ class RiskManager:
         return self._bars_since_last_loss < self._config.cooldown_bars
 
     @property
+    def is_auto_paused(self) -> bool:
+        """True if rolling profit factor is too low (strategy is persistently losing).
+
+        Requires at least 10 trades. Pauses when PF < 0.7 over the last 20 trades.
+        Resumes when PF recovers above 0.8 (hysteresis to avoid flapping).
+        """
+        min_trades = 10
+        window = 20
+        if len(self._trade_history) < min_trades:
+            return False
+        recent = self._trade_history[-window:]
+        gross_profit = sum(t for t in recent if t > 0)
+        gross_loss = abs(sum(t for t in recent if t <= 0))
+        if gross_loss == 0:
+            return False  # all winners, don't pause
+        pf = gross_profit / gross_loss
+        # Hysteresis: pause at 0.7, resume at 0.8
+        if hasattr(self, '_paused') and self._paused:
+            self._paused = pf < 0.8
+        else:
+            self._paused = pf < 0.7
+        return self._paused
+
+    @property
     def effective_min_confidence(self) -> float:
         """Adaptive confidence: lowers bar when winning, raises when losing."""
         base = self.min_entry_confidence

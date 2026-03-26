@@ -118,6 +118,7 @@ class StrategyWallet:
                 and signal.action is SignalAction.BUY
                 and signal.confidence >= self.risk_manager.effective_min_confidence
                 and not self.risk_manager.in_cooldown
+                and not self.risk_manager.is_auto_paused
             ):
                 if self.risk_manager.can_open(
                     active_positions=len(self.broker.positions),
