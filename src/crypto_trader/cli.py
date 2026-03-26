@@ -16,6 +16,7 @@ from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.artifact_health import summarize_artifact_health
+from crypto_trader.operator.gate_progress import generate_gate_progress_report
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.performance_report import generate_performance_report
@@ -73,6 +74,7 @@ def main() -> None:
             "strategy-dashboard",
             "refresh-artifacts",
             "portfolio-gate",
+            "gate-progress",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -371,6 +373,20 @@ def main() -> None:
         )
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_text(content, encoding="utf-8")
+        print(content)
+        return
+
+    if args.command == "gate-progress":
+        output_path = Path("docs/gate-progress.md")
+        content = generate_gate_progress_report(
+            runtime_checkpoint_path=Path(config.runtime.runtime_checkpoint_path),
+            backtest_baseline_path=Path(config.runtime.backtest_baseline_path),
+            drift_report_path=Path(config.runtime.drift_report_path),
+            promotion_gate_path=Path(config.runtime.promotion_gate_path),
+            strategy_run_journal_path=Path(config.runtime.strategy_run_journal_path),
+            walk_forward_summary_path=Path("artifacts/walk-forward-90d/grid-wf-summary.json"),
+            output_path=output_path,
+        )
         print(content)
         return
 
@@ -1230,6 +1246,17 @@ def main() -> None:
             ws = cp.get("wallet_states", {})
             open_count = sum(v.get("open_positions", 0) for v in ws.values())
             print(f"  positions        : {open_count} open across {len(ws)} wallets")
+        gate_progress_path = Path("docs/gate-progress.md")
+        generate_gate_progress_report(
+            runtime_checkpoint_path=Path(config.runtime.runtime_checkpoint_path),
+            backtest_baseline_path=Path(config.runtime.backtest_baseline_path),
+            drift_report_path=Path(config.runtime.drift_report_path),
+            promotion_gate_path=Path(config.runtime.promotion_gate_path),
+            strategy_run_journal_path=Path(config.runtime.strategy_run_journal_path),
+            walk_forward_summary_path=Path("artifacts/walk-forward-90d/grid-wf-summary.json"),
+            output_path=gate_progress_path,
+        )
+        print(f"  gate-progress    : {gate_progress_path}")
         print("\nAll artifacts refreshed.")
         return
 
