@@ -927,7 +927,7 @@ def main() -> None:
 
         grid_strategies = [
             "momentum", "mean_reversion", "vpin", "volatility_breakout",
-            "obi", "consensus",
+            "obi", "ema_crossover", "consensus",
         ]
         days = args.days
         top_n = args.top_n
