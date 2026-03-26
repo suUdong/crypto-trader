@@ -163,7 +163,7 @@ _STRATEGY_FIELD_NAMES = {field.name for field in fields(StrategyConfig)}
 _RISK_FIELD_NAMES = {field.name for field in fields(RiskConfig)}
 _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
     "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
-    "consensus": {"sub_strategies", "min_agree"},
+    "consensus": {"sub_strategies", "min_agree", "min_confidence_sum"},
 }
 
 
@@ -229,6 +229,17 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         ),
         max_holding_bars=int(
             _read_value(raw, env, "strategy", "max_holding_bars", "CT_MAX_HOLDING_BARS", 48)
+        ),
+        adx_period=int(
+            _read_value(raw, env, "strategy", "adx_period", "CT_ADX_PERIOD", 14)
+        ),
+        adx_threshold=float(
+            _read_value(raw, env, "strategy", "adx_threshold", "CT_ADX_THRESHOLD", 20.0)
+        ),
+        volume_filter_mult=float(
+            _read_value(
+                raw, env, "strategy", "volume_filter_mult", "CT_VOLUME_FILTER_MULT", 0.0
+            )
         ),
     )
     regime = RegimeConfig(
@@ -352,6 +363,12 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "CT_MIN_ENTRY_CONFIDENCE",
                 0.6,
             )
+        ),
+        partial_tp_pct=float(
+            _read_value(raw, env, "risk", "partial_tp_pct", "CT_PARTIAL_TP_PCT", 0.5)
+        ),
+        cooldown_bars=int(
+            _read_value(raw, env, "risk", "cooldown_bars", "CT_COOLDOWN_BARS", 3)
         ),
     )
     backtest = BacktestConfig(
