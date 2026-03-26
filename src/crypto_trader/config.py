@@ -175,6 +175,14 @@ _RISK_FIELD_NAMES = {field.name for field in fields(RiskConfig)}
 _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
     "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
     "consensus": {"sub_strategies", "min_agree", "min_confidence_sum"},
+    "vpin": {
+        "bucket_count",
+        "vpin_high_threshold",
+        "vpin_low_threshold",
+        "vpin_momentum_threshold",
+        "vpin_rsi_ceiling",
+        "vpin_rsi_floor",
+    },
 }
 
 
