@@ -255,6 +255,43 @@ stop_loss_pct = 0.03
 take_profit_pct = 0.08
 risk_per_trade_pct = 0.015
 
+# --- EMA Crossover wallet (trend-following with EMA 9/21 crossover) ---
+
+[[wallets]]
+name = "ema_cross_btc_wallet"
+strategy = "ema_crossover"
+initial_capital = 1_000_000.0
+symbols = ["KRW-BTC"]
+# BTC EMA crossover — trend following with RSI confirmation
+[wallets.strategy_overrides]
+rsi_period = 14
+rsi_overbought = 70.0
+max_holding_bars = 48
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.01
+
+# --- Mean Reversion wallet (Bollinger Band bounce) ---
+
+[[wallets]]
+name = "mean_rev_eth_wallet"
+strategy = "mean_reversion"
+initial_capital = 1_000_000.0
+symbols = ["KRW-ETH"]
+# ETH mean reversion — buy at lower BB, sell at upper BB
+[wallets.strategy_overrides]
+bollinger_window = 20
+bollinger_stddev = 2.0
+rsi_period = 14
+rsi_oversold_floor = 25.0
+rsi_recovery_ceiling = 55.0
+max_holding_bars = 36
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.01
+
 [credentials]
 upbit_access_key = ""
 upbit_secret_key = ""
