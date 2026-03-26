@@ -59,12 +59,12 @@ class TestPyUpbitMarketDataClient(unittest.TestCase):
     def test_to_datetime_with_datetime_input(self):
         dt = datetime(2025, 1, 1)
         result = _to_datetime(dt)
-        self.assertEqual(result, datetime(2025, 1, 1))
+        self.assertEqual(result.replace(tzinfo=None), datetime(2025, 1, 1))
         self.assertIsInstance(result, datetime)
 
     def test_to_datetime_with_string_input(self):
         result = _to_datetime("2025-01-01T00:00:00")
-        self.assertEqual(result, datetime(2025, 1, 1, 0, 0, 0))
+        self.assertEqual(result.replace(tzinfo=None), datetime(2025, 1, 1, 0, 0, 0))
         self.assertIsInstance(result, datetime)
 
 

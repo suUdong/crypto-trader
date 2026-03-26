@@ -118,11 +118,7 @@ with tab_trading:
             health = None
             st.warning("헬스 데이터를 불러올 수 없습니다.")
 
-        try:
-            positions = load_positions()
-        except Exception:
-            positions = None
-            st.warning("포지션 데이터를 불러오는 중 오류가 발생했습니다.")
+        positions = None  # positions now read from checkpoint directly
 
     if checkpoint is None:
         st.info("런타임 체크포인트 데이터가 없습니다.")
@@ -175,38 +171,27 @@ with tab_trading:
                     )
                     st.caption(f"거래 {trades}건 · 포지션 {state.get('open_positions', 0)}개")
 
-        # 보유 포지션 — 진입가 vs 현재가
-        if positions is None:
-            st.info("포지션 데이터를 불러올 수 없습니다.")
-        else:
-            pos_list = positions.get("positions", [])
-            if pos_list:
-                st.markdown("#### 보유 포지션")
-                for p in pos_list:
-                    sym = p.get("symbol", "?")
-                    entry_price = p.get("entry_price", 0)
-                    market_price = p.get("market_price", entry_price)
-                    quantity = p.get("quantity", 0)
-                    unrealized_pnl = p.get("unrealized_pnl", 0)
-                    unrealized_pct = p.get("unrealized_pnl_pct", 0)
-
-                    pnl_color = "#4ade80" if unrealized_pnl >= 0 else "#f87171"
-                    pnl_sign = "+" if unrealized_pnl >= 0 else ""
-
+        # 보유 포지션 — checkpoint에서 직접 추출
+        has_positions = False
+        for wname, wstate in wallet_states.items():
+            pos_data = wstate.get("positions", {})
+            if isinstance(pos_data, dict) and pos_data:
+                if not has_positions:
+                    st.markdown("#### 보유 포지션")
+                    has_positions = True
+                for sym, pos in pos_data.items():
+                    entry_price = pos.get("entry_price", 0)
+                    quantity = pos.get("quantity", 0)
                     st.markdown(
                         f'<div class="position-card">'
-                        f"<strong>{symbol_kr(sym)}</strong><br>"
+                        f"<strong>{symbol_kr(sym)}</strong> · {strategy_kr(wname)}<br>"
                         f"수량: {quantity:.8f} · "
-                        f"진입가: ₩{entry_price:,.0f} → "
-                        f"현재가: ₩{market_price:,.0f}<br>"
-                        f'<span style="color:{pnl_color};font-weight:600">'
-                        f"평가손익: {pnl_sign}₩{unrealized_pnl:,.0f} "
-                        f"({pnl_sign}{unrealized_pct:.2%})</span>"
+                        f"진입가: ₩{entry_price:,.0f}"
                         f"</div>",
                         unsafe_allow_html=True,
                     )
-            else:
-                st.info("보유 포지션이 없습니다.")
+        if not has_positions:
+            st.info("보유 포지션이 없습니다.")
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 탭 2: 전략비교 — 전략별 지갑 비교

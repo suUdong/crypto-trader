@@ -46,6 +46,9 @@ STRATEGY_KR: dict[str, str] = {
     "obi": "호가불균형(OBI)",
     "vpin": "거래량독성(VPIN)",
     "volatility_breakout": "변동성돌파",
+    "vbreak": "변동성돌파",
+    "ema_crossover": "EMA크로스",
+    "consensus": "합의전략",
 }
 
 REGIME_KR: dict[str, str] = {
@@ -63,9 +66,17 @@ def symbol_kr(code: str) -> str:
 
 
 def strategy_kr(name: str) -> str:
-    """momentum_wallet → '모멘텀'"""
+    """momentum_btc_wallet → '모멘텀 (BTC)', kimchi_premium_wallet → '김치프리미엄'"""
     key = name.replace("_wallet", "")
-    return STRATEGY_KR.get(key, key.replace("_", " ").title())
+    # Try direct match first (e.g. kimchi_premium_wallet → kimchi_premium)
+    if key in STRATEGY_KR:
+        return STRATEGY_KR[key]
+    # Try extracting strategy from per-symbol wallet (e.g. momentum_btc → momentum)
+    for strategy_name, kr_name in STRATEGY_KR.items():
+        if key.startswith(strategy_name + "_"):
+            suffix = key[len(strategy_name) + 1:].upper()
+            return f"{kr_name} ({suffix})"
+    return key.replace("_", " ").title()
 
 
 def regime_kr(regime: str) -> str:
