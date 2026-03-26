@@ -216,6 +216,11 @@ class BacktestResult:
     sortino_ratio: float = 0.0
     calmar_ratio: float = 0.0
     risk_adjusted_return: float = 0.0
+    avg_entry_confidence: float = 0.0
+    high_confidence_win_rate: float = 0.0
+    low_confidence_win_rate: float = 0.0
+    exit_reason_counts: dict[str, int] = field(default_factory=dict)
+    exit_reason_avg_pnl: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

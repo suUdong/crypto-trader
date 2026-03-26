@@ -289,6 +289,25 @@ class BacktestEngine:
             else (float("inf") if total_return_pct > 0 else 0.0)
         )
 
+        # Confidence-based trade analysis
+        confidences = [t.entry_confidence for t in trades if t.entry_confidence > 0]
+        avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+        high_conf = [t for t in trades if t.entry_confidence >= 0.7]
+        low_conf = [t for t in trades if 0 < t.entry_confidence < 0.7]
+        hc_wr = sum(1 for t in high_conf if t.pnl > 0) / len(high_conf) if high_conf else 0.0
+        lc_wr = sum(1 for t in low_conf if t.pnl > 0) / len(low_conf) if low_conf else 0.0
+
+        # Exit reason distribution
+        exit_counts: dict[str, int] = {}
+        exit_pnl_sums: dict[str, float] = {}
+        for t in trades:
+            exit_counts[t.exit_reason] = exit_counts.get(t.exit_reason, 0) + 1
+            exit_pnl_sums[t.exit_reason] = exit_pnl_sums.get(t.exit_reason, 0.0) + t.pnl
+        exit_avg_pnl = {
+            reason: exit_pnl_sums[reason] / count
+            for reason, count in exit_counts.items()
+        }
+
         return BacktestResult(
             initial_capital=self._config.initial_capital,
             final_equity=final_equity,
@@ -310,6 +329,11 @@ class BacktestEngine:
             sortino_ratio=sortino,
             calmar_ratio=calmar,
             risk_adjusted_return=rar,
+            avg_entry_confidence=avg_conf,
+            high_confidence_win_rate=hc_wr,
+            low_confidence_win_rate=lc_wr,
+            exit_reason_counts=exit_counts,
+            exit_reason_avg_pnl=exit_avg_pnl,
         )
 
 
