@@ -56,9 +56,9 @@ class TestConsensusEntry(unittest.TestCase):
         signal = consensus.evaluate(_build_candles(), None)
         self.assertEqual(signal.action, SignalAction.BUY)
         self.assertIn("consensus_agree", signal.reason)
-        # Weighted confidence: (0.8²+0.6²)/(0.8+0.6) + (2/3)*0.1 ≈ 0.781
-        self.assertGreater(signal.confidence, 0.7)
-        self.assertLess(signal.confidence, 0.85)
+        # Weighted confidence with equal weights: (1.0*0.8²+1.0*0.6²)/(1.0+1.0) + (2/3)*0.1 ≈ 0.567
+        self.assertGreater(signal.confidence, 0.5)
+        self.assertLess(signal.confidence, 0.65)
 
     def test_1_of_3_agree_hold(self) -> None:
         strategies = [

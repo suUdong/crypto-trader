@@ -33,6 +33,7 @@ from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.obi import OBIStrategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
+from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
 from crypto_trader.strategy.vpin import VPINStrategy
 
 
@@ -86,6 +87,14 @@ def create_strategy(
             ma_filter_period=strategy_config.ma_filter_period,
             max_holding_bars=strategy_config.max_holding_bars,
         )
+    if strategy_type == "volume_spike":
+        return VolumeSpikeStrategy(
+            strategy_config,
+            regime_config,
+            spike_mult=float(params.get("spike_mult", 2.5)),
+            volume_window=int(params.get("volume_window", 20)),
+            min_body_ratio=float(params.get("min_body_ratio", 0.4)),
+        )
     if strategy_type == "consensus":
         sub_strategy_names = params.get("sub_strategies", ["momentum", "vpin", "ema_crossover"])
         min_agree = int(params.get("min_agree", 2))
@@ -95,10 +104,17 @@ def create_strategy(
             if name != "consensus"  # prevent recursion
         ]
         min_confidence_sum = float(params.get("min_confidence_sum", 0.0))
+        weights_raw = params.get("weights")
+        weights = [float(w) for w in weights_raw] if weights_raw else None
+        quorum_threshold = float(params.get("quorum_threshold", 0.0))
+        exit_mode = str(params.get("exit_mode", "any"))
         return ConsensusStrategy(
             sub_strategies,
             min_agree=min_agree,
             min_confidence_sum=min_confidence_sum,
+            weights=weights,
+            quorum_threshold=quorum_threshold,
+            exit_mode=exit_mode,
         )
     return CompositeStrategy(strategy_config, regime_config)
 
