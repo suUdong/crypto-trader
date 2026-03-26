@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from crypto_trader.operator.performance_report import (
+    build_artifact_health_section,
     build_readiness_section,
     compute_paper_days,
     compute_profit_factor,
@@ -20,7 +21,10 @@ def _write_checkpoint(path: Path, *, generated_at: str | None = None) -> None:
     data = {
         "generated_at": ts,
         "iteration": 50,
+        "session_id": "session-123",
+        "config_path": "config/test.toml",
         "symbols": ["KRW-BTC", "KRW-ETH"],
+        "wallet_names": ["momentum_wallet", "mean_reversion_wallet", "obi_wallet"],
         "wallet_states": {
             "momentum_wallet": {
                 "strategy_type": "momentum",
@@ -64,14 +68,37 @@ def _write_journal(path: Path, *, first_ts: str | None = None) -> None:
     path.write_text("\n".join(json.dumps(t) for t in trades), encoding="utf-8")
 
 
+def _write_heartbeat(
+    path: Path,
+    *,
+    session_id: str = "session-123",
+    symbols: list[str] | None = None,
+    wallet_names: list[str] | None = None,
+) -> None:
+    payload = {
+        "last_heartbeat": datetime.now(UTC).isoformat(),
+        "pid": 1234,
+        "iteration": 50,
+        "uptime_seconds": 120.0,
+        "poll_interval_seconds": 60,
+        "session_id": session_id,
+        "config_path": "config/test.toml",
+        "symbols": symbols or ["KRW-BTC", "KRW-ETH"],
+        "wallet_names": wallet_names or ["momentum_wallet", "mean_reversion_wallet", "obi_wallet"],
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
 class TestGenerateReport(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         self.checkpoint = self.tmp / "runtime-checkpoint.json"
+        self.heartbeat = self.tmp / "daemon-heartbeat.json"
         self.journal = self.tmp / "paper-trades.jsonl"
         _write_checkpoint(self.checkpoint)
+        _write_heartbeat(self.heartbeat)
         _write_journal(self.journal)
 
     def tearDown(self) -> None:
@@ -98,6 +125,17 @@ class TestGenerateReport(unittest.TestCase):
         md = generate_performance_report(self.tmp / "nonexistent.json", self.journal)
         self.assertIn("## 72-Hour Performance Report", md)
         self.assertIn("## Micro-Live Readiness", md)
+
+    def test_report_has_artifact_health_section(self) -> None:
+        md = generate_performance_report(self.checkpoint, self.journal)
+        self.assertIn("## Artifact Health", md)
+        self.assertIn("CONSISTENT", md)
+
+    def test_report_warns_when_heartbeat_missing(self) -> None:
+        self.heartbeat.unlink()
+        md = generate_performance_report(self.checkpoint, self.journal)
+        self.assertIn("WARNING (missing_heartbeat)", md)
+        self.assertIn("point-in-time diagnostic summary", md)
 
 
 class TestComputePaperDays(unittest.TestCase):
@@ -253,6 +291,32 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
         report = self._make_report()
         section = build_readiness_section(report, self.checkpoint, self.journal)
         self.assertIn("### Details", section)
+
+
+class TestArtifactHealthSection(unittest.TestCase):
+    def test_health_section_warns_on_session_mismatch(self) -> None:
+        report = PortfolioPnLReport(
+            generated_at=datetime.now(UTC).isoformat(),
+            period="72h",
+            strategies=[],
+            portfolio_return_pct=0.0,
+            portfolio_sharpe=0.0,
+            portfolio_mdd=0.0,
+            portfolio_win_rate=0.0,
+            total_trades=0,
+            total_realized_pnl=0.0,
+            total_equity=0.0,
+            total_initial_capital=0.0,
+            source_generated_at="2026-03-26T00:00:00+00:00",
+            source_session_id="session-a",
+            heartbeat_generated_at="2026-03-26T00:00:05+00:00",
+            heartbeat_session_id="session-b",
+            artifact_consistency_status="session_mismatch",
+            artifact_consistency_reason="checkpoint and heartbeat session ids differ",
+        )
+        section = build_artifact_health_section(report)
+        self.assertIn("WARNING (session_mismatch)", section)
+        self.assertIn("checkpoint and heartbeat session ids differ", section)
 
 
 if __name__ == "__main__":

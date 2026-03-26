@@ -9,6 +9,38 @@ from crypto_trader.operator.pnl_report import PnLReportGenerator, PortfolioPnLRe
 from crypto_trader.operator.promotion import MicroLiveCriteria
 
 
+def build_artifact_health_section(report: PortfolioPnLReport) -> str:
+    """Summarize whether performance artifacts describe the same runtime session."""
+    status = report.artifact_consistency_status or "unknown"
+    is_consistent = status == "consistent"
+    headline = (
+        "**Artifact status: CONSISTENT**"
+        if is_consistent
+        else f"**Artifact status: WARNING ({status})**"
+    )
+    reason = report.artifact_consistency_reason or "n/a"
+    lines = [
+        "## Artifact Health",
+        "",
+        headline,
+        "",
+        "| Metric | Value |",
+        "|--------|-------|",
+        f"| Checkpoint generated | {report.source_generated_at or 'n/a'} |",
+        f"| Checkpoint session | {report.source_session_id or 'n/a'} |",
+        f"| Heartbeat generated | {report.heartbeat_generated_at or 'n/a'} |",
+        f"| Heartbeat session | {report.heartbeat_session_id or 'n/a'} |",
+        f"| Consistency status | {status} |",
+        f"| Reason | {reason} |",
+    ]
+    if not is_consistent:
+        lines.extend([
+            "",
+            "This report should be treated as a point-in-time diagnostic summary, not a clean executive performance narrative.",
+        ])
+    return "\n".join(lines)
+
+
 def compute_paper_days(checkpoint_path: Path, journal_path: Path) -> int:
     """Estimate paper trading days from first trade timestamp or checkpoint age."""
     if journal_path.exists():
@@ -148,6 +180,8 @@ def generate_performance_report(checkpoint_path: Path, journal_path: Path) -> st
         "## 72-Hour Performance Report",
         "",
         f"**Generated**: {now_str}",
+        "",
+        build_artifact_health_section(report),
         "",
         generator.to_markdown(report),
         "",
