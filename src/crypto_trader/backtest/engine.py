@@ -204,6 +204,21 @@ class BacktestEngine:
         # Expected value per trade: EV = (win_rate * avg_win) - ((1-win_rate) * avg_loss)
         ev_per_trade = (win_rate * avg_win) - ((1.0 - win_rate) * avg_loss) if trades else 0.0
 
+        # Recovery factor: net profit / max drawdown
+        net_profit = final_equity - self._config.initial_capital
+        recovery = net_profit / (max_drawdown * self._config.initial_capital) if max_drawdown > 0 else 0.0
+
+        # Tail ratio: 95th percentile gain / abs(5th percentile loss)
+        pnl_pcts = sorted([t.pnl_pct for t in trades])
+        if len(pnl_pcts) >= 10:
+            idx_5 = max(0, int(len(pnl_pcts) * 0.05))
+            idx_95 = min(len(pnl_pcts) - 1, int(len(pnl_pcts) * 0.95))
+            p5 = pnl_pcts[idx_5]
+            p95 = pnl_pcts[idx_95]
+            tail = p95 / abs(p5) if p5 < 0 else 0.0
+        else:
+            tail = 0.0
+
         return BacktestResult(
             initial_capital=self._config.initial_capital,
             final_equity=final_equity,
@@ -219,6 +234,8 @@ class BacktestEngine:
             max_trade_duration_bars=max_duration,
             payoff_ratio=payoff,
             expected_value_per_trade=ev_per_trade,
+            recovery_factor=recovery,
+            tail_ratio=tail,
         )
 
 

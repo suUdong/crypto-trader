@@ -206,6 +206,8 @@ class BacktestResult:
     max_trade_duration_bars: int = 0
     payoff_ratio: float = 0.0
     expected_value_per_trade: float = 0.0
+    recovery_factor: float = 0.0
+    tail_ratio: float = 0.0
 
 
 @dataclass(slots=True)
