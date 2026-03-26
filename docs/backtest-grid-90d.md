@@ -1,5 +1,8 @@
 # 90-Day Backtest Grid Search Results
 
+Canonical report for the current 7-strategy, 90-day grid-search run.
+This supersedes older summaries that predate `kimchi_premium`.
+
 Date: 2026-03-26
 Scope: 7 strategies x 4 symbols (`KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`) on 90 days of `minute60` candles from Upbit
 
