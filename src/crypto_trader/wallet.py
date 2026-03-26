@@ -72,7 +72,7 @@ def create_strategy(
             max_holding_bars=strategy_config.max_holding_bars,
         )
     if strategy_type == "consensus":
-        sub_strategy_names = params.get("sub_strategies", ["momentum", "vpin"])
+        sub_strategy_names = params.get("sub_strategies", ["momentum", "vpin", "ema_crossover"])
         min_agree = int(params.get("min_agree", 2))
         sub_strategies = [
             create_strategy(name, strategy_config, regime_config)

@@ -23,6 +23,7 @@ class RiskManager:
         self._max_holding_bars: int = max_holding_bars
         self._bars_since_last_loss: int | None = None  # None = no recent loss
         self._consecutive_losses: int = 0
+        self._consecutive_wins: int = 0
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -46,9 +47,11 @@ class RiskManager:
         if pnl_pct < 0:
             self._bars_since_last_loss = 0
             self._consecutive_losses += 1
+            self._consecutive_wins = 0
         else:
             self._bars_since_last_loss = None
             self._consecutive_losses = 0
+            self._consecutive_wins += 1
 
     def tick_cooldown(self) -> None:
         """Advance the cooldown counter by one bar."""
@@ -161,7 +164,11 @@ class RiskManager:
         max_daily_loss_pct = self._config.max_daily_loss_pct
         scale = 1.0 - (drawdown_pct / max_daily_loss_pct) * self._config.drawdown_reduction_pct if max_daily_loss_pct > 0 else 1.0
         scale = max(0.1, min(scale, 1.0))
-        return base_quantity * scale
+        # Win-streak boost: +15% after 3+ consecutive wins (max 1.3x)
+        streak_mult = 1.0
+        if self._consecutive_wins >= 3:
+            streak_mult = min(1.3, 1.0 + 0.05 * self._consecutive_wins)
+        return base_quantity * scale * streak_mult
 
     def can_open(self, active_positions: int, realized_pnl: float, starting_equity: float) -> bool:
         if active_positions >= self._config.max_concurrent_positions:
