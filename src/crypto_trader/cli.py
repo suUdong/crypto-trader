@@ -69,6 +69,7 @@ def main() -> None:
             "apply-params",
             "backtest-all",
             "grid-wf-all",
+            "strategy-dashboard",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -935,6 +936,105 @@ def main() -> None:
         export_path_gw = artifacts_dir / f"grid-wf-all-{date.today().isoformat()}.json"
         export_path_gw.write_text(json.dumps(export_gw, indent=2), encoding="utf-8")
         print(f"  Results saved to {export_path_gw}")
+
+        # Auto-generate optimized TOML from best validated params
+        toml_lines = ["# Auto-generated from grid-wf-all", f"# Date: {date.today().isoformat()}", ""]
+        total_kelly = 0.0
+        validated_strats: list[dict] = []
+        for s in all_summaries:
+            bv = s.get("best_validated")
+            if bv and bv.get("params"):
+                wr = 0.5  # default
+                pr = bv.get("avg_profit_factor", 1.0)
+                kf = kelly_fraction(wr, pr)
+                validated_strats.append({"strategy": s["strategy"], "params": bv["params"], "kelly": kf})
+                total_kelly += kf
+
+        if validated_strats:
+            base_capital = 1_000_000.0
+            for vs in validated_strats:
+                weight = vs["kelly"] / total_kelly if total_kelly > 0 else 1.0 / len(validated_strats)
+                capital = round(base_capital * weight, 0)
+                toml_lines.append("[[wallets]]")
+                toml_lines.append(f'name = "{vs["strategy"]}_optimized"')
+                toml_lines.append(f'strategy = "{vs["strategy"]}"')
+                toml_lines.append(f"initial_capital = {capital:.0f}")
+                toml_lines.append("")
+                toml_lines.append(f"[wallets.strategy_overrides]")
+                for pk, pv in vs["params"].items():
+                    if isinstance(pv, str):
+                        toml_lines.append(f'{pk} = "{pv}"')
+                    else:
+                        toml_lines.append(f"{pk} = {pv}")
+                toml_lines.append("")
+
+            toml_path = artifacts_dir / f"optimized-{date.today().isoformat()}.toml"
+            toml_path.write_text("\n".join(toml_lines), encoding="utf-8")
+            print(f"  Optimized TOML saved to {toml_path}")
+        return
+
+    if args.command == "strategy-dashboard":
+        import json
+        import glob as globmod
+
+        # Find latest backtest-all JSON
+        pattern = "artifacts/backtest-all-*.json"
+        files = sorted(globmod.glob(pattern))
+        if not files:
+            print("No backtest-all results found. Run backtest-all first.")
+            return
+
+        latest = files[-1]
+        data = json.loads(Path(latest).read_text(encoding="utf-8"))
+        results = data.get("results", [])
+
+        if not results:
+            print("No strategy results in latest backtest-all.")
+            return
+
+        print(f"\n{'='*100}")
+        print(f"  STRATEGY HEALTH DASHBOARD — {latest}")
+        print(f"{'='*100}")
+
+        # Sort by composite score
+        ranked = sorted(results, key=lambda r: r.get("composite_score", 0), reverse=True)
+
+        print(f"\n  {'#':<4} {'Strategy':<20} {'Score':>6} {'Kelly%':>7} {'EV/Trade':>10} {'Return%':>9} {'Sharpe':>7} {'Sortino':>8} {'Calmar':>8} {'RecF':>6} {'Tail':>5} {'Action':<18}")
+        print(f"  {'-'*110}")
+
+        for i, r in enumerate(ranked, 1):
+            score = r.get("composite_score", 0)
+            kf = r.get("kelly_fraction", 0) * 100
+            ev = r.get("expected_value_per_trade", 0)
+            rec = r.get("recovery_factor", 0)
+            tail = r.get("tail_ratio", 0)
+            ret = r.get("return_pct", 0)
+            sh = r.get("sharpe", 0)
+            so = r.get("sortino", 0)
+            ca = r.get("calmar", 0)
+
+            if score > 1.0 and ret > 0 and kf > 0:
+                action = "DEPLOY"
+            elif score > 0.5 and ret > 0:
+                action = "RESEARCH"
+            elif ret > 0:
+                action = "WATCHLIST"
+            else:
+                action = "DROP"
+
+            print(
+                f"  {i:<4} {r['strategy']:<20} {score:>5.2f} {kf:>6.1f}% "
+                f"{ev:>+9.0f} {ret:>+8.2f}% {sh:>6.2f} {so:>7.2f} {ca:>7.2f} "
+                f"{rec:>5.2f} {tail:>4.2f} {action}"
+            )
+
+        # Summary stats
+        deploy_count = sum(1 for r in ranked if r.get("composite_score", 0) > 1.0 and r.get("return_pct", 0) > 0 and r.get("kelly_fraction", 0) > 0)
+        total_ev = sum(r.get("expected_value_per_trade", 0) for r in ranked if r.get("return_pct", 0) > 0)
+        print(f"\n  Deploy candidates: {deploy_count}/{len(ranked)}")
+        print(f"  Total EV (positive strategies): {total_ev:+,.0f} KRW/trade")
+        print(f"  Source: {latest}")
+        print(f"{'='*100}\n")
         return
 
     if args.command == "run-multi":
