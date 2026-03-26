@@ -728,6 +728,8 @@ def main() -> None:
                 max_dur = 0
                 regime_wins: dict[str, int] = {"bull": 0, "sideways": 0, "bear": 0}
                 regime_totals: dict[str, int] = {"bull": 0, "sideways": 0, "bear": 0}
+                regime_profit: dict[str, float] = {"bull": 0.0, "sideways": 0.0, "bear": 0.0}
+                regime_loss: dict[str, float] = {"bull": 0.0, "sideways": 0.0, "bear": 0.0}
 
                 for sym, candles in candles_map.items():
                     bt_strategy = create_strategy(strat_name, config.strategy, config.regime)
@@ -777,6 +779,9 @@ def main() -> None:
                             regime_totals[rkey] = regime_totals.get(rkey, 0) + 1
                             if trade.pnl > 0:
                                 regime_wins[rkey] = regime_wins.get(rkey, 0) + 1
+                                regime_profit[rkey] = regime_profit.get(rkey, 0.0) + trade.pnl
+                            else:
+                                regime_loss[rkey] = regime_loss.get(rkey, 0.0) + abs(trade.pnl)
 
                 n = len(sym_returns)
                 if n == 0:
@@ -820,6 +825,9 @@ def main() -> None:
                     "regime_bull_n": regime_totals.get("bull", 0),
                     "regime_sideways_n": regime_totals.get("sideways", 0),
                     "regime_bear_n": regime_totals.get("bear", 0),
+                    "regime_bull_pf": round(regime_profit.get("bull", 0) / max(0.01, regime_loss.get("bull", 0.01)), 2),
+                    "regime_sideways_pf": round(regime_profit.get("sideways", 0) / max(0.01, regime_loss.get("sideways", 0.01)), 2),
+                    "regime_bear_pf": round(regime_profit.get("bear", 0) / max(0.01, regime_loss.get("bear", 0.01)), 2),
                     "return_ci_5": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[0] * 100, 3) if all_trade_returns else 0.0,
                     "return_ci_95": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[1] * 100, 3) if all_trade_returns else 0.0,
                     "kelly_fraction": round(kelly_fraction(sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0), 4),

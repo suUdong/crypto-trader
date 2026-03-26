@@ -110,6 +110,7 @@ class TradeRecord:
     pnl_pct: float
     exit_reason: str
     wallet: str = ""
+    entry_confidence: float = 0.0
 
 
 @dataclass(slots=True)

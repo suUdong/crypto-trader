@@ -42,6 +42,7 @@ class BacktestEngine:
         realized_pnl = 0.0
 
         entry_bar: int = 0
+        entry_confidence: float = 0.0
         last_exit_bar: int = -10  # allow immediate first trade
         min_bars_between_trades: int = 2
 
@@ -65,40 +66,74 @@ class BacktestEngine:
                     exit_reason = signal.reason
 
                 if exit_reason is not None:
-                    exit_price = market_price * (1.0 - self._config.slippage_pct)
-                    gross = open_position.quantity * exit_price
-                    exit_fee = gross * self._config.fee_rate
-                    cash += gross - exit_fee
-                    pnl = (
-                        (exit_price - open_position.entry_price) * open_position.quantity
-                        - exit_fee
-                        - open_position.entry_fee_paid
-                    )
-                    realized_pnl += pnl
-                    pnl_pct = (
-                        pnl
-                        / max(
-                            1.0,
-                            (open_position.entry_price * open_position.quantity)
-                            + open_position.entry_fee_paid,
+                    if exit_reason == "partial_take_profit" and not open_position.partial_tp_taken:
+                        # Partial TP: sell a fraction, keep the rest
+                        partial_frac = self._risk_manager._config.partial_tp_pct
+                        sell_qty = open_position.quantity * partial_frac
+                        keep_qty = open_position.quantity - sell_qty
+                        exit_price = market_price * (1.0 - self._config.slippage_pct)
+                        gross = sell_qty * exit_price
+                        exit_fee = gross * self._config.fee_rate
+                        cash += gross - exit_fee
+                        partial_entry_cost = open_position.entry_price * sell_qty
+                        partial_entry_fee = open_position.entry_fee_paid * partial_frac
+                        pnl = (exit_price - open_position.entry_price) * sell_qty - exit_fee - partial_entry_fee
+                        realized_pnl += pnl
+                        pnl_pct = pnl / max(1.0, partial_entry_cost + partial_entry_fee)
+                        trades.append(
+                            TradeRecord(
+                                symbol=self._symbol,
+                                entry_time=open_position.entry_time,
+                                exit_time=current.timestamp,
+                                entry_price=open_position.entry_price,
+                                exit_price=exit_price,
+                                quantity=sell_qty,
+                                pnl=pnl,
+                                pnl_pct=pnl_pct,
+                                exit_reason=exit_reason,
+                                entry_confidence=entry_confidence,
+                            )
                         )
-                    )
-                    trades.append(
-                        TradeRecord(
-                            symbol=self._symbol,
-                            entry_time=open_position.entry_time,
-                            exit_time=current.timestamp,
-                            entry_price=open_position.entry_price,
-                            exit_price=exit_price,
-                            quantity=open_position.quantity,
-                            pnl=pnl,
-                            pnl_pct=pnl_pct,
-                            exit_reason=exit_reason,
+                        self._risk_manager.record_trade(pnl_pct)
+                        open_position.quantity = keep_qty
+                        open_position.entry_fee_paid *= (1.0 - partial_frac)
+                        open_position.partial_tp_taken = True
+                    else:
+                        exit_price = market_price * (1.0 - self._config.slippage_pct)
+                        gross = open_position.quantity * exit_price
+                        exit_fee = gross * self._config.fee_rate
+                        cash += gross - exit_fee
+                        pnl = (
+                            (exit_price - open_position.entry_price) * open_position.quantity
+                            - exit_fee
+                            - open_position.entry_fee_paid
                         )
-                    )
-                    self._risk_manager.record_trade(pnl_pct)
-                    last_exit_bar = index
-                    open_position = None
+                        realized_pnl += pnl
+                        pnl_pct = (
+                            pnl
+                            / max(
+                                1.0,
+                                (open_position.entry_price * open_position.quantity)
+                                + open_position.entry_fee_paid,
+                            )
+                        )
+                        trades.append(
+                            TradeRecord(
+                                symbol=self._symbol,
+                                entry_time=open_position.entry_time,
+                                exit_time=current.timestamp,
+                                entry_price=open_position.entry_price,
+                                exit_price=exit_price,
+                                quantity=open_position.quantity,
+                                pnl=pnl,
+                                pnl_pct=pnl_pct,
+                                exit_reason=exit_reason,
+                                entry_confidence=entry_confidence,
+                            )
+                        )
+                        self._risk_manager.record_trade(pnl_pct)
+                        last_exit_bar = index
+                        open_position = None
 
             if open_position is None:
                 signal = self._strategy.evaluate(window, None)
@@ -129,6 +164,7 @@ class BacktestEngine:
                         if total_cost <= cash:
                             cash -= total_cost
                             entry_bar = index
+                            entry_confidence = signal.confidence
                             open_position = Position(
                                 symbol=self._symbol,
                                 quantity=quantity,
@@ -172,6 +208,7 @@ class BacktestEngine:
                         )
                     ),
                     exit_reason="forced_close_end_of_backtest",
+                    entry_confidence=entry_confidence,
                 )
             )
             equity_curve[-1] = cash
