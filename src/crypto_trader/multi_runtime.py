@@ -18,7 +18,7 @@ from crypto_trader.operator.paper_trading import PaperTradeJournal
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.pnl_report import PnLReportGenerator
-from crypto_trader.risk.kill_switch import KillSwitch
+from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
 from crypto_trader.strategy.regime import (
     WEEKEND_POSITION_MULTIPLIER,
     RegimeDetector,
@@ -47,7 +47,15 @@ class MultiSymbolRuntime:
         self._macro_adapter = MacroRegimeAdapter()
         self._current_market_regime: str = "sideways"
         self._is_weekend: bool = False
-        self._kill_switch = kill_switch or KillSwitch()
+        self._kill_switch = kill_switch or KillSwitch(
+            config=KillSwitchConfig(
+                max_portfolio_drawdown_pct=config.kill_switch.max_portfolio_drawdown_pct,
+                max_daily_loss_pct=config.kill_switch.max_daily_loss_pct,
+                max_consecutive_losses=config.kill_switch.max_consecutive_losses,
+                max_strategy_drawdown_pct=config.kill_switch.max_strategy_drawdown_pct,
+                cooldown_minutes=config.kill_switch.cooldown_minutes,
+            )
+        )
         self._kill_switch_path = Path(
             getattr(config.runtime, "kill_switch_path", "artifacts/kill-switch.json")
         )
@@ -211,6 +219,14 @@ class MultiSymbolRuntime:
             self._logger.critical(
                 "KILL SWITCH TRIGGERED: %s — stopping after this tick",
                 state.trigger_reason,
+            )
+            self._notifier.send_message(
+                f"KILL SWITCH TRIGGERED\n"
+                f"Reason: {state.trigger_reason}\n"
+                f"Portfolio DD: {state.portfolio_drawdown_pct:.2%}\n"
+                f"Daily loss: {state.daily_loss_pct:.2%}\n"
+                f"Consecutive losses: {state.consecutive_losses}\n"
+                f"All trading halted."
             )
 
     def _refresh_macro(self) -> None:

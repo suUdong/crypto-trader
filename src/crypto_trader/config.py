@@ -81,6 +81,15 @@ class RiskConfig:
 
 
 @dataclass(slots=True)
+class KillSwitchCfg:
+    max_portfolio_drawdown_pct: float = 0.15
+    max_daily_loss_pct: float = 0.05
+    max_consecutive_losses: int = 5
+    max_strategy_drawdown_pct: float = 0.10
+    cooldown_minutes: int = 60
+
+
+@dataclass(slots=True)
 class BacktestConfig:
     initial_capital: float = 1_000_000.0
     fee_rate: float = 0.0005
@@ -152,6 +161,7 @@ class AppConfig:
     runtime: RuntimeConfig
     credentials: CredentialsConfig
     macro: MacroConfig = field(default_factory=MacroConfig)
+    kill_switch: KillSwitchCfg = field(default_factory=KillSwitchCfg)
     wallets: list[WalletConfig] = field(default_factory=lambda: [
         WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
         WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
@@ -579,6 +589,28 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
             _read_value(raw, env, "macro", "db_path", "CT_MACRO_DB_PATH", "")
         ),
     )
+    kill_switch = KillSwitchCfg(
+        max_portfolio_drawdown_pct=float(
+            _read_value(raw, env, "kill_switch", "max_portfolio_drawdown_pct",
+                        "CT_KS_MAX_PORTFOLIO_DD", 0.15)
+        ),
+        max_daily_loss_pct=float(
+            _read_value(raw, env, "kill_switch", "max_daily_loss_pct",
+                        "CT_KS_MAX_DAILY_LOSS", 0.05)
+        ),
+        max_consecutive_losses=int(
+            _read_value(raw, env, "kill_switch", "max_consecutive_losses",
+                        "CT_KS_MAX_CONSEC_LOSSES", 5)
+        ),
+        max_strategy_drawdown_pct=float(
+            _read_value(raw, env, "kill_switch", "max_strategy_drawdown_pct",
+                        "CT_KS_MAX_STRATEGY_DD", 0.10)
+        ),
+        cooldown_minutes=int(
+            _read_value(raw, env, "kill_switch", "cooldown_minutes",
+                        "CT_KS_COOLDOWN_MIN", 60)
+        ),
+    )
     raw_wallets = raw.get("wallets", None)
     if raw_wallets and isinstance(raw_wallets, list):
         wallets = [
@@ -609,6 +641,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         runtime=runtime,
         credentials=credentials,
         macro=macro,
+        kill_switch=kill_switch,
         wallets=wallets,
     )
     _validate_config(app_config)

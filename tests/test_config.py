@@ -189,6 +189,22 @@ take_profit_pct = 0.04
         self.assertEqual(config.risk.cooldown_bars, 3)
         self.assertEqual(config.risk.atr_stop_multiplier, 2.0)
 
+    def test_optimized_toml_loads_kill_switch_config(self) -> None:
+        config = load_config(ROOT / "config" / "optimized.toml", {})
+        self.assertEqual(config.kill_switch.max_portfolio_drawdown_pct, 0.15)
+        self.assertEqual(config.kill_switch.max_daily_loss_pct, 0.05)
+        self.assertEqual(config.kill_switch.max_consecutive_losses, 5)
+        self.assertEqual(config.kill_switch.max_strategy_drawdown_pct, 0.10)
+        self.assertEqual(config.kill_switch.cooldown_minutes, 60)
+
+    def test_kill_switch_env_override(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {"CT_KS_MAX_PORTFOLIO_DD": "0.20", "CT_KS_MAX_CONSEC_LOSSES": "10"},
+        )
+        self.assertEqual(config.kill_switch.max_portfolio_drawdown_pct, 0.20)
+        self.assertEqual(config.kill_switch.max_consecutive_losses, 10)
+
     def test_optimized_toml_consensus_wallet_has_extra_params(self) -> None:
         config = load_config(ROOT / "config" / "optimized.toml", {})
         consensus = [w for w in config.wallets if w.strategy == "consensus"][0]
