@@ -6,6 +6,7 @@ from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
     bollinger_bands,
+    chaikin_money_flow,
     keltner_channels,
     macd,
     momentum,
@@ -131,6 +132,17 @@ class CompositeStrategy:
         except ValueError:
             pass
 
+        # Chaikin Money Flow: buying/selling pressure
+        cmf_value: float | None = None
+        try:
+            highs_cmf = [c.high for c in candles]
+            lows_cmf = [c.low for c in candles]
+            vols_cmf = [c.volume for c in candles]
+            cmf_value = chaikin_money_flow(highs_cmf, lows_cmf, closes, vols_cmf)
+            indicators["cmf"] = cmf_value
+        except ValueError:
+            pass
+
         # VWAP: price above VWAP = bullish bias
         vwap_value: float | None = None
         try:
@@ -190,6 +202,9 @@ class CompositeStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Keltner lower touch: deep below Keltner = strong reversal
                 if kc_lower is not None and latest_close <= kc_lower:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # CMF buying pressure confirmation
+                if cmf_value is not None and cmf_value > 0.05:
                     base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,

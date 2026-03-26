@@ -5,6 +5,7 @@ from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
+    chaikin_money_flow,
     keltner_channels,
     macd,
     momentum,
@@ -75,6 +76,14 @@ class MomentumStrategy:
             volumes_list = [c.volume for c in candles]
             obv_trend = obv_slope(closes, volumes_list, lookback=10)
             indicators["obv_slope"] = obv_trend
+        except ValueError:
+            pass
+
+        # Chaikin Money Flow
+        cmf_value: float | None = None
+        try:
+            cmf_value = chaikin_money_flow(highs, lows, closes, volumes_list)
+            indicators["cmf"] = cmf_value
         except ValueError:
             pass
 
@@ -156,6 +165,9 @@ class MomentumStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Keltner breakout: price above upper Keltner = strong momentum
                 if kc_upper is not None and closes[-1] > kc_upper:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # CMF buying pressure confirmation
+                if cmf_value is not None and cmf_value > 0.05:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Volume confirmation: high volume (>2x avg) boosts confidence
                 volumes = [c.volume for c in candles]
