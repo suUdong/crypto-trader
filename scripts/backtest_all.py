@@ -20,10 +20,28 @@ from crypto_trader.config import (  # noqa: E402
 )
 from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
-from crypto_trader.wallet import create_strategy  # noqa: E402
+
+try:
+    from scripts.grid_search import (  # noqa: E402
+        _create_strategy_for_grid,
+        _setup_kimchi_premium_mock,
+    )
+except ModuleNotFoundError:
+    from grid_search import (  # type: ignore[no-redef]  # noqa: E402
+        _create_strategy_for_grid,
+        _setup_kimchi_premium_mock,
+    )
 
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
-STRATEGIES = ["momentum", "mean_reversion", "composite", "kimchi_premium", "obi", "vpin", "volatility_breakout"]
+STRATEGIES = [
+    "momentum",
+    "mean_reversion",
+    "composite",
+    "kimchi_premium",
+    "obi",
+    "vpin",
+    "volatility_breakout",
+]
 INTERVAL = "minute60"
 
 
@@ -51,7 +69,14 @@ def run_backtest(
         slippage_pct=0.0005,
     )
 
-    strategy = create_strategy(strategy_type, strategy_config, regime_config)
+    strategy = _create_strategy_for_grid(
+        strategy_type,
+        {},
+        strategy_config,
+        regime_config,
+    )
+    if strategy_type == "kimchi_premium":
+        _setup_kimchi_premium_mock(strategy, candles)
     risk_manager = RiskManager(risk_config)
     engine = BacktestEngine(
         strategy=strategy,

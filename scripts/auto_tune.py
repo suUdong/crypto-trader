@@ -29,12 +29,12 @@ from crypto_trader.config import (  # noqa: E402
 )
 from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
-from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy  # noqa: E402
-from crypto_trader.wallet import create_strategy  # noqa: E402
 
 try:
     from scripts.grid_search import (  # noqa: E402
         SYMBOLS,
+        _create_strategy_for_grid,
+        _setup_kimchi_premium_mock,
         fetch_candles,
         run_grid_for_strategy,
         top_param_sets,
@@ -42,6 +42,8 @@ try:
 except ModuleNotFoundError:
     from grid_search import (  # type: ignore[no-redef]  # noqa: E402
         SYMBOLS,
+        _create_strategy_for_grid,
+        _setup_kimchi_premium_mock,
         fetch_candles,
         run_grid_for_strategy,
         top_param_sets,
@@ -69,6 +71,7 @@ DEFAULT_STRATEGIES = [
     "momentum",
     "mean_reversion",
     "composite",
+    "kimchi_premium",
     "obi",
     "vpin",
     "volatility_breakout",
@@ -114,16 +117,14 @@ def _run_single_backtest(
     config_kwargs = {k: v for k, v in strategy_params.items() if k in config_fields}
     strategy_config = StrategyConfig(**config_kwargs)
     regime_config = RegimeConfig()
-
-    if strategy_type == "volatility_breakout":
-        strategy = VolatilityBreakoutStrategy(
-            strategy_config,
-            k_base=float(strategy_params.get("k_base", 0.5)),
-            noise_lookback=int(strategy_params.get("noise_lookback", 20)),
-            ma_filter_period=int(strategy_params.get("ma_filter_period", 20)),
-        )
-    else:
-        strategy = create_strategy(strategy_type, strategy_config, regime_config)
+    strategy = _create_strategy_for_grid(
+        strategy_type,
+        strategy_params,
+        strategy_config,
+        regime_config,
+    )
+    if strategy_type == "kimchi_premium":
+        _setup_kimchi_premium_mock(strategy, candles)
 
     # Ensure take_profit > stop_loss
     sl = risk_params.get("stop_loss_pct", 0.03)

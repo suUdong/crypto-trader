@@ -8,10 +8,32 @@ from unittest.mock import patch
 
 from crypto_trader.config import load_config
 from crypto_trader.wallet import build_wallets
-from scripts.auto_tune import TuneResult, tune_strategy, write_optimized_toml, write_results_json
+from scripts.auto_tune import (
+    DEFAULT_STRATEGIES,
+    TuneResult,
+    _run_single_backtest,
+    tune_strategy,
+    write_optimized_toml,
+    write_results_json,
+)
+from tests.test_grid_search import _build_candles, _trending_down
 
 
 class TestAutoTuneOutputs(unittest.TestCase):
+    def test_default_strategies_cover_all_seven_supported_strategies(self) -> None:
+        self.assertEqual(
+            DEFAULT_STRATEGIES,
+            [
+                "momentum",
+                "mean_reversion",
+                "composite",
+                "kimchi_premium",
+                "obi",
+                "vpin",
+                "volatility_breakout",
+            ],
+        )
+
     def test_write_optimized_toml_uses_best_sharpe_result(self) -> None:
         results = [
             TuneResult(
@@ -185,6 +207,29 @@ class TestAutoTuneOutputs(unittest.TestCase):
         self.assertEqual(result.params, {"x": 2})
         self.assertEqual(result.risk_params, {"stop_loss_pct": 0.03})
         self.assertEqual(len(result.top_candidates), 2)
+
+    def test_run_single_backtest_supports_kimchi_specific_params(self) -> None:
+        candles = _build_candles(_trending_down(200))
+
+        result = _run_single_backtest(
+            "kimchi_premium",
+            {
+                "rsi_period": 14,
+                "max_holding_bars": 24,
+                "min_trade_interval_bars": 0,
+                "min_confidence": 0.0,
+            },
+            {
+                "stop_loss_pct": 0.03,
+                "take_profit_pct": 0.06,
+                "risk_per_trade_pct": 0.01,
+            },
+            candles,
+            "KRW-BTC",
+        )
+
+        self.assertIsInstance(result["return_pct"], float)
+        self.assertGreater(result["trade_count"], 0)
 
 
 if __name__ == "__main__":

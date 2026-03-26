@@ -75,7 +75,14 @@ class TestKillSwitchReset(unittest.TestCase):
 class TestKillSwitchSaveLoad(unittest.TestCase):
     def test_save_and_load_state(self) -> None:
         import tempfile
-        ks1 = KillSwitch(KillSwitchConfig(max_consecutive_losses=2, max_portfolio_drawdown_pct=1.0, max_daily_loss_pct=1.0))
+
+        ks1 = KillSwitch(
+            KillSwitchConfig(
+                max_consecutive_losses=2,
+                max_portfolio_drawdown_pct=1.0,
+                max_daily_loss_pct=1.0,
+            )
+        )
         ks1.check(1_000_000, 1_000_000, 0.0, trade_won=False)
         ks1.check(1_000_000, 1_000_000, 0.0, trade_won=False)
         self.assertTrue(ks1.is_triggered)
@@ -116,7 +123,7 @@ class TestRiskGridOptimization(unittest.TestCase):
         risk_combos = list(itertools.product(*RISK_GRID.values()))
         valid_count = 0
         for combo in risk_combos:
-            params = dict(zip(RISK_GRID.keys(), combo))
+            params = dict(zip(RISK_GRID.keys(), combo, strict=True))
             if params["take_profit_pct"] > params["stop_loss_pct"]:
                 valid_count += 1
         # At least some combos should be valid
