@@ -354,5 +354,33 @@ class TestVPINStrategy(unittest.TestCase):
         self.assertEqual(signal.reason, "entry_conditions_not_met")
 
 
+    # ------------------------------------------------------------------
+    # 10. VPIN params pass-through from create_strategy extra_params
+    # ------------------------------------------------------------------
+    def test_create_strategy_passes_vpin_params(self) -> None:
+        """create_strategy('vpin') must forward extra_params to VPINStrategy."""
+        from crypto_trader.config import RegimeConfig
+        from crypto_trader.wallet import create_strategy
+
+        config = _default_config()
+        regime = RegimeConfig()
+        extra = {
+            "vpin_low_threshold": 0.50,
+            "vpin_high_threshold": 0.80,
+            "bucket_count": 15,
+            "vpin_momentum_threshold": 0.005,
+            "vpin_rsi_ceiling": 75.0,
+            "vpin_rsi_floor": 25.0,
+        }
+        strategy = create_strategy("vpin", config, regime, extra)
+        self.assertIsInstance(strategy, VPINStrategy)
+        self.assertAlmostEqual(strategy._vpin_low, 0.50)
+        self.assertAlmostEqual(strategy._vpin_high, 0.80)
+        self.assertEqual(strategy._bucket_count, 15)
+        self.assertAlmostEqual(strategy._vpin_momentum_threshold, 0.005)
+        self.assertAlmostEqual(strategy._vpin_rsi_ceiling, 75.0)
+        self.assertAlmostEqual(strategy._vpin_rsi_floor, 25.0)
+
+
 if __name__ == "__main__":
     unittest.main()

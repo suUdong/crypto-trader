@@ -251,11 +251,17 @@ def main() -> None:
             strategy=strategy,
             risk_manager=risk_manager,
         )
-        print(
-            f"promotion_status={artifacts.promotion_decision.status.value} "
-            f"paper_runs={artifacts.promotion_decision.observed_paper_runs} "
-            f"drift_status={artifacts.promotion_decision.drift_status.value}"
-        )
+        d = artifacts.promotion_decision
+        print(f"=== Promotion Gate: {d.symbol} ===")
+        print(f"Status : {d.status.value}")
+        print(f"Drift  : {d.drift_status.value}")
+        print(f"Runs   : {d.observed_paper_runs}/{d.minimum_paper_runs_required} required")
+        print(f"Return : backtest={d.backtest_total_return_pct:.2%}  paper_pnl={d.paper_realized_pnl_pct:.2%}")
+        print()
+        for reason in d.reasons:
+            is_pass = d.status.value == "candidate_for_promotion"
+            tag = "PASS" if is_pass else "FAIL"
+            print(f"  [{tag}] {reason}")
         return
 
     if args.command == "daily-memo":
@@ -371,9 +377,47 @@ def main() -> None:
             checkpoint_path=config.runtime.runtime_checkpoint_path,
             journal_path=config.runtime.paper_trade_journal_path,
         )
-        for reason in reasons:
-            status = "PASS" if ready or reason.startswith("All micro-live") else "FAIL"
-            print(f"[{status}] {reason}")
+        print("=== Micro-Live Readiness Check ===")
+        if metrics:
+            criteria_checks = [
+                (
+                    "Paper days",
+                    metrics.get("paper_days", 0) >= MicroLiveCriteria.MINIMUM_PAPER_DAYS,
+                    f"{metrics.get('paper_days', 0)}d / {MicroLiveCriteria.MINIMUM_PAPER_DAYS}d required",
+                ),
+                (
+                    "Trade count",
+                    metrics.get("total_trades", 0) >= MicroLiveCriteria.MINIMUM_TRADES,
+                    f"{metrics.get('total_trades', 0)} / {MicroLiveCriteria.MINIMUM_TRADES} required",
+                ),
+                (
+                    "Win rate",
+                    metrics.get("win_rate", 0.0) >= MicroLiveCriteria.MINIMUM_WIN_RATE,
+                    f"{metrics.get('win_rate', 0.0):.1%} / {MicroLiveCriteria.MINIMUM_WIN_RATE:.0%} required",
+                ),
+                (
+                    "Max drawdown",
+                    metrics.get("max_drawdown", 1.0) <= MicroLiveCriteria.MAXIMUM_DRAWDOWN,
+                    f"{metrics.get('max_drawdown', 0.0):.1%} / {MicroLiveCriteria.MAXIMUM_DRAWDOWN:.0%} limit",
+                ),
+                (
+                    "Profit factor",
+                    metrics.get("profit_factor", 0.0) >= MicroLiveCriteria.MINIMUM_PROFIT_FACTOR,
+                    f"{metrics.get('profit_factor', 0.0):.2f} / {MicroLiveCriteria.MINIMUM_PROFIT_FACTOR:.1f} required",
+                ),
+                (
+                    "Positive strategies",
+                    metrics.get("positive_strategies", 0) >= MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES,
+                    f"{metrics.get('positive_strategies', 0)} / {MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES} required",
+                ),
+            ]
+            for label, passed, detail in criteria_checks:
+                tag = "PASS" if passed else "FAIL"
+                print(f"  [{tag}] {label}: {detail}")
+        else:
+            for reason in reasons:
+                print(f"  [FAIL] {reason}")
+        print()
         print("READY" if ready else "NOT READY")
         return
 

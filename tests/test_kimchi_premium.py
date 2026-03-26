@@ -71,19 +71,19 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         self.assertEqual(signal.reason, "insufficient_data")
 
     # ------------------------------------------------------------------
-    # 2. Contrarian BUY when premium < -1%
+    # 2. Contrarian BUY when premium < -2%
     # ------------------------------------------------------------------
     def test_contrarian_buy_on_negative_premium(self) -> None:
-        """upbit=100000, binance=78.0, fx=1300 → global=101400, premium≈-1.38% → BUY."""
-        # global_krw = 78.0 * 1300.0 = 101_400
-        # premium = (100_000 - 101_400) / 101_400 ≈ -0.0138 (< -0.01)
-        strategy = _make_strategy(binance_price=78.0, fx_rate=1300.0)
+        """upbit=100000, binance=78.5, fx=1300 → global=102050, premium≈-2.01% → BUY."""
+        # global_krw = 78.5 * 1300.0 = 102_050
+        # premium = (100_000 - 102_050) / 102_050 ≈ -0.0201 (< -0.02)
+        strategy = _make_strategy(binance_price=78.5, fx_rate=1300.0)
         candles = build_candles(_flat_closes(100_000.0))
         signal = strategy.evaluate(candles)
         self.assertEqual(signal.action, SignalAction.BUY)
         self.assertEqual(signal.reason, "kimchi_premium_contrarian_buy")
         self.assertIn("kimchi_premium", signal.indicators)
-        self.assertLess(signal.indicators["kimchi_premium"], -0.01)
+        self.assertLess(signal.indicators["kimchi_premium"], -0.02)
 
     # ------------------------------------------------------------------
     # 3. HOLD when premium > 5% (no entry allowed)
@@ -220,13 +220,13 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
     def test_cooldown_blocks_reentry(self) -> None:
         """After a BUY, next evaluate within cooldown_hours → HOLD cooldown_active."""
         strategy = _make_strategy(
-            binance_price=78.0,
+            binance_price=78.5,
             fx_rate=1300.0,
             min_trade_interval_bars=4,
             min_confidence=0.0,
             cooldown_hours=24.0,
         )
-        # First call: contrarian buy (premium ~ -1.38%)
+        # First call: contrarian buy (premium ~ -2.01%)
         candles = build_candles(_flat_closes(100_000.0, count=30))
         signal1 = strategy.evaluate(candles)
         self.assertEqual(signal1.action, SignalAction.BUY)
@@ -243,7 +243,7 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
     def test_cooldown_resets_after_interval(self) -> None:
         """After cooldown_hours pass, entry is allowed again."""
         strategy = _make_strategy(
-            binance_price=78.0,
+            binance_price=78.5,
             fx_rate=1300.0,
             min_trade_interval_bars=4,
             min_confidence=0.0,
@@ -265,7 +265,7 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
     def test_cooldown_works_with_fixed_window(self) -> None:
         """Cooldown must work when candle count doesn't change (live trading scenario)."""
         strategy = _make_strategy(
-            binance_price=78.0,
+            binance_price=78.5,
             fx_rate=1300.0,
             min_trade_interval_bars=4,
             min_confidence=0.0,
@@ -308,7 +308,7 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
     def test_exit_not_blocked_by_cooldown(self) -> None:
         """SELL signals must fire even during cooldown period."""
         strategy = _make_strategy(
-            binance_price=78.0,
+            binance_price=78.5,
             fx_rate=1300.0,
             min_trade_interval_bars=100,  # very long cooldown
             max_holding_bars=2,
@@ -329,6 +329,64 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         )
         signal2 = strategy.evaluate(candles2, position)
         self.assertEqual(signal2.action, SignalAction.SELL)
+
+
+    # ------------------------------------------------------------------
+    # 13. Verify hardcoded thresholds: -2% contrarian, 24h default cooldown
+    # ------------------------------------------------------------------
+    def test_contrarian_threshold_is_minus_two_percent(self) -> None:
+        """Contrarian buy threshold must be exactly -0.02 (-2%)."""
+        strategy = _make_strategy()
+        self.assertEqual(strategy._contrarian_buy_threshold, -0.02)
+
+    def test_default_cooldown_is_24_hours(self) -> None:
+        """Default cooldown_hours must be 24.0."""
+        config = StrategyConfig(rsi_period=14, max_holding_bars=48)
+        strategy = KimchiPremiumStrategy(config)
+        self.assertEqual(strategy._cooldown_hours, 24.0)
+
+    # ------------------------------------------------------------------
+    # 14. Boundary: premium exactly at -2% triggers contrarian buy
+    # ------------------------------------------------------------------
+    def test_contrarian_buy_at_exact_boundary(self) -> None:
+        """Premium exactly -2.0% must trigger contrarian buy."""
+        # global_krw = binance * fx; premium = (upbit - global) / global = -0.02
+        # upbit = global * 0.98 = binance * fx * 0.98
+        binance = 100.0
+        fx = 1000.0
+        global_krw = binance * fx  # 100_000
+        upbit = global_krw * 0.98  # 98_000 → premium = -0.02 exactly
+        strategy = _make_strategy(binance_price=binance, fx_rate=fx)
+        candles = build_candles(_flat_closes(upbit))
+        signal = strategy.evaluate(candles)
+        self.assertEqual(signal.action, SignalAction.BUY)
+        self.assertEqual(signal.reason, "kimchi_premium_contrarian_buy")
+
+    # ------------------------------------------------------------------
+    # 15. Cooldown 24h: entry blocked at 23h, allowed at 25h
+    # ------------------------------------------------------------------
+    def test_cooldown_24h_boundary(self) -> None:
+        """24h cooldown: blocked at 23h mark, allowed at 25h mark."""
+        strategy = _make_strategy(
+            binance_price=78.5,
+            fx_rate=1300.0,
+            cooldown_hours=24.0,
+        )
+        # First BUY at bar 29 (t=29h from start)
+        candles = build_candles(_flat_closes(100_000.0, count=30))
+        signal1 = strategy.evaluate(candles)
+        self.assertEqual(signal1.action, SignalAction.BUY)
+
+        # 23h later → still in cooldown (30+23=53 candles)
+        candles_23h = build_candles(_flat_closes(100_000.0, count=53))
+        signal2 = strategy.evaluate(candles_23h)
+        self.assertEqual(signal2.action, SignalAction.HOLD)
+        self.assertEqual(signal2.reason, "cooldown_active")
+
+        # 25h later → cooldown expired (30+25=55 candles)
+        candles_25h = build_candles(_flat_closes(100_000.0, count=55))
+        signal3 = strategy.evaluate(candles_25h)
+        self.assertEqual(signal3.action, SignalAction.BUY)
 
 
 if __name__ == "__main__":

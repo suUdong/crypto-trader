@@ -109,6 +109,64 @@ class MicroLiveCriteriaTests(unittest.TestCase):
         self.assertGreater(len(reasons), 3)
 
 
+    def test_exact_boundary_values_pass(self) -> None:
+        """Exact minimum thresholds (7d, 10 trades, 45%WR, 10%MDD, 1.2PF) must pass."""
+        ready, reasons = MicroLiveCriteria.evaluate(
+            paper_days=7,
+            total_trades=10,
+            win_rate=0.45,
+            max_drawdown=0.10,
+            profit_factor=1.2,
+            positive_strategies=2,
+        )
+        self.assertTrue(ready)
+
+    def test_just_below_boundary_fails(self) -> None:
+        """One tick below each threshold must fail."""
+        # paper_days=6 (below 7)
+        ready, _ = MicroLiveCriteria.evaluate(
+            paper_days=6, total_trades=10, win_rate=0.45,
+            max_drawdown=0.10, profit_factor=1.2, positive_strategies=2,
+        )
+        self.assertFalse(ready)
+
+        # total_trades=9 (below 10)
+        ready, _ = MicroLiveCriteria.evaluate(
+            paper_days=7, total_trades=9, win_rate=0.45,
+            max_drawdown=0.10, profit_factor=1.2, positive_strategies=2,
+        )
+        self.assertFalse(ready)
+
+        # win_rate=0.449 (below 0.45)
+        ready, _ = MicroLiveCriteria.evaluate(
+            paper_days=7, total_trades=10, win_rate=0.449,
+            max_drawdown=0.10, profit_factor=1.2, positive_strategies=2,
+        )
+        self.assertFalse(ready)
+
+        # max_drawdown=0.101 (above 0.10)
+        ready, _ = MicroLiveCriteria.evaluate(
+            paper_days=7, total_trades=10, win_rate=0.45,
+            max_drawdown=0.101, profit_factor=1.2, positive_strategies=2,
+        )
+        self.assertFalse(ready)
+
+        # profit_factor=1.19 (below 1.2)
+        ready, _ = MicroLiveCriteria.evaluate(
+            paper_days=7, total_trades=10, win_rate=0.45,
+            max_drawdown=0.10, profit_factor=1.19, positive_strategies=2,
+        )
+        self.assertFalse(ready)
+
+    def test_hardcoded_constants_match_spec(self) -> None:
+        """MicroLiveCriteria constants must match the spec exactly."""
+        self.assertEqual(MicroLiveCriteria.MINIMUM_PAPER_DAYS, 7)
+        self.assertEqual(MicroLiveCriteria.MINIMUM_TRADES, 10)
+        self.assertAlmostEqual(MicroLiveCriteria.MINIMUM_WIN_RATE, 0.45)
+        self.assertAlmostEqual(MicroLiveCriteria.MAXIMUM_DRAWDOWN, 0.10)
+        self.assertAlmostEqual(MicroLiveCriteria.MINIMUM_PROFIT_FACTOR, 1.2)
+
+
 class MicroLiveCriteriaArtifactTests(unittest.TestCase):
     def _make_checkpoint(self, path: Path, wallet_states: dict, generated_at: str | None = None) -> None:
         ts = generated_at or datetime.now(UTC).isoformat()

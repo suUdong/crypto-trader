@@ -60,7 +60,15 @@ def create_strategy(
     if strategy_type == "obi":
         return OBIStrategy(strategy_config)
     if strategy_type == "vpin":
-        return VPINStrategy(strategy_config)
+        return VPINStrategy(
+            strategy_config,
+            vpin_high_threshold=float(params.get("vpin_high_threshold", 0.7)),
+            vpin_low_threshold=float(params.get("vpin_low_threshold", 0.45)),
+            bucket_count=int(params.get("bucket_count", 20)),
+            vpin_momentum_threshold=float(params.get("vpin_momentum_threshold", 0.01)),
+            vpin_rsi_ceiling=float(params.get("vpin_rsi_ceiling", 70.0)),
+            vpin_rsi_floor=float(params.get("vpin_rsi_floor", 30.0)),
+        )
     if strategy_type == "ema_crossover":
         return EMACrossoverStrategy(strategy_config)
     if strategy_type == "volatility_breakout":

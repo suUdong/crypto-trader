@@ -33,7 +33,7 @@ class KimchiPremiumStrategy:
         self._fx = fx_client or FXRateClient()
         self._premium_entry_ceiling = 0.05
         self._premium_exit_floor = 0.07
-        self._contrarian_buy_threshold = -0.01
+        self._contrarian_buy_threshold = -0.02
         self._cached_premium: float | None = None
         self._min_trade_interval_bars = min_trade_interval_bars
         self._min_confidence = min_confidence
