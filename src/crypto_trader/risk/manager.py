@@ -136,6 +136,13 @@ class RiskManager:
         loss_limit = starting_equity * self._config.max_daily_loss_pct
         return realized_pnl > -loss_limit
 
+    def should_force_exit(self, realized_pnl: float, starting_equity: float) -> bool:
+        """Circuit breaker: force-close all positions when daily loss limit is hit."""
+        if starting_equity <= 0:
+            return False
+        loss_limit = starting_equity * self._config.max_daily_loss_pct
+        return realized_pnl <= -loss_limit
+
     def exit_reason(
         self, position: Position, price: float, holding_bars: int = 0,
     ) -> str | None:

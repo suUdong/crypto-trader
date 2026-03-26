@@ -141,6 +141,49 @@ class StrategyWallet:
                             candle_index=len(candles) - 1,
                         )
             elif position is not None:
+                # Circuit breaker: force-close when daily loss limit hit
+                if self.risk_manager.should_force_exit(
+                    self.broker.realized_pnl, self.session_starting_equity,
+                ):
+                    now = candles[-1].timestamp
+                    order = self.broker.submit_order(
+                        OrderRequest(
+                            symbol=symbol,
+                            side=OrderSide.SELL,
+                            quantity=position.quantity,
+                            requested_at=now,
+                            reason="circuit_breaker",
+                        ),
+                        latest_price,
+                    )
+                    if order is not None and order.status == "filled":
+                        entry_value = position.entry_price * position.quantity
+                        if entry_value > 0:
+                            pnl_pct = (
+                                order.fill_price - position.entry_price
+                            ) / position.entry_price
+                            self.risk_manager.record_trade(pnl_pct)
+                    message = (
+                        f"[{self.name}] {symbol} price={latest_price:.2f} "
+                        f"signal=CIRCUIT_BREAKER reason=daily_loss_limit"
+                    )
+                    if order is not None:
+                        message += (
+                            f" order={order.status} side={order.side.value} "
+                            f"qty={order.quantity:.8f} fill={order.fill_price:.2f}"
+                        )
+                    return PipelineResult(
+                        symbol=symbol,
+                        signal=Signal(
+                            action=SignalAction.SELL,
+                            reason="circuit_breaker",
+                            confidence=1.0,
+                        ),
+                        order=order,
+                        message=message,
+                        latest_price=latest_price,
+                    )
+
                 holding_bars = (
                     0 if position.entry_index is None
                     else len(candles) - position.entry_index - 1

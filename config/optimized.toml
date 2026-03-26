@@ -55,6 +55,7 @@ take_profit_pct = 0.04
 trailing_stop_pct = 0.0
 partial_tp_pct = 0.5
 cooldown_bars = 3
+max_concurrent_positions = 2
 
 # kimchi_premium: Sharpe=1.22 Return=+5.29% WR=51% — BEST WIN RATE
 [[wallets]]
@@ -78,6 +79,7 @@ take_profit_pct = 0.04
 trailing_stop_pct = 0.0
 partial_tp_pct = 0.5
 cooldown_bars = 3
+max_concurrent_positions = 2
 
 # consensus: NEW — multi-strategy agreement filter for higher-quality entries
 [[wallets]]
@@ -105,6 +107,7 @@ take_profit_pct = 0.05
 trailing_stop_pct = 0.0
 partial_tp_pct = 0.5
 cooldown_bars = 3
+max_concurrent_positions = 2
 
 # composite: Sharpe=1.16 — stable but low frequency
 [[wallets]]
