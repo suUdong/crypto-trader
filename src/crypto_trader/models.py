@@ -268,6 +268,8 @@ class StrategyRunRecord:
     verdict_status: str
     verdict_confidence: float
     verdict_reasons: list[str] = field(default_factory=list)
+    wallet_name: str = ""
+    strategy_type: str = ""
 
 
 @dataclass(slots=True)

@@ -206,6 +206,8 @@ class MultiSymbolRuntime:
                     consecutive_failures=0,
                     verdict_status="continue",
                     verdict_confidence=1.0,
+                    wallet_name=wallet.name,
+                    strategy_type=wallet.strategy_type,
                 )
                 self._strategy_run_journal.append(record)
 
