@@ -129,6 +129,17 @@ class MeanReversionStrategy:
         except ValueError:
             pass
 
+        # CMF: for mean reversion, negative CMF (selling pressure) at dip = better entry
+        cmf_value: float | None = None
+        try:
+            vols = [c.volume for c in candles]
+            highs_cmf = [c.high for c in candles]
+            lows_cmf = [c.low for c in candles]
+            cmf_value = chaikin_money_flow(highs_cmf, lows_cmf, closes, vols)
+            indicators["cmf"] = cmf_value
+        except ValueError:
+            pass
+
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
@@ -181,17 +192,9 @@ class MeanReversionStrategy:
                 # OBV divergence boost: price at lower band but OBV rising = accumulation
                 if obv_trend is not None and obv_trend > 0.3:
                     base_conf = min(1.0, base_conf + 0.1)
-                # CMF buying pressure: positive CMF confirms accumulation
-                try:
-                    cmf_val = chaikin_money_flow(
-                        [c.high for c in candles], [c.low for c in candles],
-                        closes, [c.volume for c in candles],
-                    )
-                    indicators["cmf"] = cmf_val
-                    if cmf_val > 0.05:
-                        base_conf = min(1.0, base_conf + 0.05)
-                except ValueError:
-                    pass
+                # CMF: negative CMF at dip suggests capitulation (good MR entry)
+                if cmf_value is not None and cmf_value < -0.1:
+                    base_conf = min(1.0, base_conf + 0.05)
                 # EMA(50) macro: price below EMA(50) confirms extended dip (good for MR)
                 if ema50_value is not None and latest_close < ema50_value:
                     base_conf = min(1.0, base_conf + 0.05)

@@ -132,6 +132,9 @@ class VolatilityBreakoutStrategy:
         except ValueError:
             pass
 
+        highs = [c.high for c in candles]
+        lows = [c.low for c in candles]
+
         # Chaikin Money Flow
         cmf_value: float | None = None
         try:
@@ -143,8 +146,6 @@ class VolatilityBreakoutStrategy:
         # VWAP: price above VWAP = bullish breakout confirmation
         vwap_value: float | None = None
         try:
-            highs = [c.high for c in candles]
-            lows = [c.low for c in candles]
             vwap_value = rolling_vwap(highs, lows, closes, volumes, window=20)
             indicators["vwap"] = vwap_value
         except ValueError:
@@ -170,7 +171,7 @@ class VolatilityBreakoutStrategy:
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, obv_trend, ema50_value, vwap_value, kc_upper, effective.adx_threshold, indicators, context)
+        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, obv_trend, cmf_value, ema50_value, vwap_value, kc_upper, effective.adx_threshold, indicators, context)
 
     def _evaluate_entry(
         self,
@@ -182,6 +183,7 @@ class VolatilityBreakoutStrategy:
         macd_bullish: bool,
         squeeze: bool,
         obv_trend: float | None,
+        cmf_value: float | None,
         ema50_value: float | None,
         vwap_value: float | None,
         kc_upper: float | None,
@@ -246,6 +248,9 @@ class VolatilityBreakoutStrategy:
                 confidence = min(1.0, confidence + 0.05)
             # Keltner upper breakout: confirms strong trend move
             if kc_upper is not None and current_price > kc_upper:
+                confidence = min(1.0, confidence + 0.05)
+            # CMF buying pressure confirms breakout
+            if cmf_value is not None and cmf_value > 0.1:
                 confidence = min(1.0, confidence + 0.05)
             return Signal(
                 action=SignalAction.BUY,

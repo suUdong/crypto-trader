@@ -111,7 +111,6 @@ class EMACrossoverStrategy:
                 [c.high for c in candles], [c.low for c in candles],
                 closes, volumes,
             )
-            indicators["cmf"] = cmf_value
         except ValueError:
             pass
 
@@ -169,6 +168,8 @@ class EMACrossoverStrategy:
             indicators["vwap"] = vwap_value
         if kc_upper is not None:
             indicators["keltner_upper"] = kc_upper
+        if cmf_value is not None:
+            indicators["cmf"] = cmf_value
         context = {"strategy": "ema_crossover", "market_regime": regime.value}
 
         if position is not None:
@@ -192,6 +193,7 @@ class EMACrossoverStrategy:
             ema50_value=ema50_value,
             vwap_value=vwap_value,
             kc_upper=kc_upper,
+            cmf_value=cmf_value,
         )
 
     def _evaluate_entry(
@@ -211,6 +213,7 @@ class EMACrossoverStrategy:
         ema50_value: float | None = None,
         vwap_value: float | None = None,
         kc_upper: float | None = None,
+        cmf_value: float | None = None,
     ) -> Signal:
         cfg = effective or self._config
         # Noise ratio filter: skip entries in choppy markets (high whipsaw risk)
@@ -267,6 +270,9 @@ class EMACrossoverStrategy:
                 base_conf = min(1.0, base_conf + 0.05)
             # Keltner upper breakout confirms strong trend
             if kc_upper is not None and candles[-1].close > kc_upper:
+                base_conf = min(1.0, base_conf + 0.05)
+            # CMF buying pressure confirms crossover
+            if cmf_value is not None and cmf_value > 0.1:
                 base_conf = min(1.0, base_conf + 0.05)
             return Signal(
                 action=SignalAction.BUY,
