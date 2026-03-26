@@ -13,7 +13,8 @@ from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
-from crypto_trader.models import PipelineResult, RuntimeCheckpoint
+from crypto_trader.models import PipelineResult, RuntimeCheckpoint, StrategyRunRecord
+from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradeJournal
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
@@ -83,6 +84,7 @@ class MultiSymbolRuntime:
         self._last_pnl_notify: float = 0.0
         self._trade_journal = PaperTradeJournal(config.runtime.paper_trade_journal_path)
         self._journal_trade_counts: dict[str, int] = {w.name: 0 for w in wallets}
+        self._strategy_run_journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
         snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
         self._wallet_health = WalletHealthMonitor(snapshot_path)
         self._last_health_check: float = 0.0
@@ -184,6 +186,27 @@ class MultiSymbolRuntime:
                     self._logger.error(result.message)
                 else:
                     self._logger.info(result.message)
+                record = StrategyRunRecord(
+                    recorded_at=datetime.now(UTC).isoformat(),
+                    symbol=symbol,
+                    latest_price=result.latest_price,
+                    market_regime=self._current_market_regime,
+                    signal_action=result.signal.action.value,
+                    signal_reason=result.signal.reason,
+                    signal_confidence=result.signal.confidence,
+                    order_status=result.order.status if result.order else None,
+                    order_side=result.order.side if result.order else None,
+                    session_starting_equity=wallet.session_starting_equity,
+                    cash=wallet.broker.cash,
+                    open_positions=len(wallet.broker.positions),
+                    realized_pnl=wallet.broker.realized_pnl,
+                    success=result.error is None,
+                    error=result.error,
+                    consecutive_failures=0,
+                    verdict_status="continue",
+                    verdict_confidence=1.0,
+                )
+                self._strategy_run_journal.append(record)
 
         return results
 
