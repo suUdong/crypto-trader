@@ -16,20 +16,24 @@ class RuntimeCheckpointStoreTests(unittest.TestCase):
             checkpoint = RuntimeCheckpoint(
                 generated_at="2026-03-24T00:00:00Z",
                 iteration=5,
-                symbol="KRW-BTC",
-                latest_price=100.0,
-                last_signal_action="hold",
-                last_verdict_status="continue_paper",
-                success=True,
-                error=None,
-                cash=1_000.0,
-                mark_to_market_equity=1_000.0,
+                symbols=["KRW-BTC", "KRW-ETH"],
+                wallet_states={
+                    "momentum_wallet": {
+                        "strategy_type": "momentum",
+                        "cash": 1_000.0,
+                        "realized_pnl": 0.0,
+                        "open_positions": 0,
+                        "equity": 1_000.0,
+                        "trade_count": 0,
+                    },
+                },
             )
             store.save(checkpoint)
             loaded = store.load()
             assert loaded is not None
             self.assertEqual(loaded.iteration, 5)
-            self.assertEqual(loaded.symbol, "KRW-BTC")
+            self.assertEqual(loaded.symbols, ["KRW-BTC", "KRW-ETH"])
+            self.assertIn("momentum_wallet", loaded.wallet_states)
 
     def test_load_returns_none_when_file_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -44,30 +48,26 @@ class RuntimeCheckpointStoreTests(unittest.TestCase):
             cp1 = RuntimeCheckpoint(
                 generated_at="2026-03-24T00:00:00Z",
                 iteration=1,
-                symbol="KRW-BTC",
-                latest_price=100.0,
-                last_signal_action="hold",
-                last_verdict_status="continue_paper",
-                success=True,
-                error=None,
-                cash=1_000.0,
-                mark_to_market_equity=1_000.0,
+                symbols=["KRW-BTC"],
+                wallet_states={
+                    "w1": {"strategy_type": "momentum", "cash": 1_000.0,
+                           "realized_pnl": 0.0, "open_positions": 0,
+                           "equity": 1_000.0, "trade_count": 0},
+                },
             )
             store.save(cp1)
             cp2 = RuntimeCheckpoint(
                 generated_at="2026-03-24T01:00:00Z",
                 iteration=10,
-                symbol="KRW-ETH",
-                latest_price=200.0,
-                last_signal_action="buy",
-                last_verdict_status="reduce_risk",
-                success=True,
-                error=None,
-                cash=900.0,
-                mark_to_market_equity=950.0,
+                symbols=["KRW-BTC", "KRW-ETH"],
+                wallet_states={
+                    "w1": {"strategy_type": "momentum", "cash": 900.0,
+                           "realized_pnl": 50.0, "open_positions": 1,
+                           "equity": 950.0, "trade_count": 3},
+                },
             )
             store.save(cp2)
             loaded = store.load()
             assert loaded is not None
             self.assertEqual(loaded.iteration, 10)
-            self.assertEqual(loaded.symbol, "KRW-ETH")
+            self.assertEqual(loaded.symbols, ["KRW-BTC", "KRW-ETH"])

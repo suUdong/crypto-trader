@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 
 class SignalAction(StrEnum):
@@ -183,14 +184,8 @@ class OperatorReport:
 class RuntimeCheckpoint:
     generated_at: str
     iteration: int
-    symbol: str
-    latest_price: float | None
-    last_signal_action: str
-    last_verdict_status: str
-    success: bool
-    error: str | None
-    cash: float
-    mark_to_market_equity: float
+    symbols: list[str]
+    wallet_states: dict[str, Any]
 
 
 @dataclass(slots=True)

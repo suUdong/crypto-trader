@@ -77,14 +77,17 @@ class TradingRuntime:
                 RuntimeCheckpoint(
                     generated_at=datetime.now(UTC).isoformat(),
                     iteration=iteration + 1,
-                    symbol=result.symbol,
-                    latest_price=result.latest_price,
-                    last_signal_action=result.signal.action.value,
-                    last_verdict_status=verdict.status.value,
-                    success=result.error is None,
-                    error=result.error,
-                    cash=self._pipeline.broker.cash,
-                    mark_to_market_equity=self._pipeline.broker.equity(latest_prices),
+                    symbols=[result.symbol],
+                    wallet_states={
+                        "default": {
+                            "strategy_type": "default",
+                            "cash": self._pipeline.broker.cash,
+                            "realized_pnl": self._pipeline.broker.realized_pnl,
+                            "open_positions": len(self._pipeline.broker.positions),
+                            "equity": self._pipeline.broker.equity(latest_prices),
+                            "trade_count": len(self._pipeline.broker.closed_trades),
+                        },
+                    },
                 )
             )
             if result.error is None:

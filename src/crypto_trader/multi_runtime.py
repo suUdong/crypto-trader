@@ -13,7 +13,8 @@ from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
-from crypto_trader.models import PipelineResult
+from crypto_trader.models import PipelineResult, RuntimeCheckpoint
+from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.risk.kill_switch import KillSwitch
@@ -229,15 +230,15 @@ class MultiSymbolRuntime:
             wallet.set_macro_multiplier(regime_weight * weekend_mult)
 
     def _save_checkpoint(self, results: list[PipelineResult]) -> None:
-        checkpoint_path = Path(self._config.runtime.runtime_checkpoint_path)
-        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        store = RuntimeCheckpointStore(self._config.runtime.runtime_checkpoint_path)
+
+        latest_prices: dict[str, float] = {}
+        for r in results:
+            if r.latest_price is not None:
+                latest_prices[r.symbol] = r.latest_price
 
         wallet_states = {}
         for wallet in self._wallets:
-            latest_prices: dict[str, float] = {}
-            for r in results:
-                if r.latest_price is not None:
-                    latest_prices[r.symbol] = r.latest_price
             wallet_states[wallet.name] = {
                 "strategy_type": wallet.strategy_type,
                 "cash": wallet.broker.cash,
@@ -247,14 +248,14 @@ class MultiSymbolRuntime:
                 "trade_count": len(wallet.broker.closed_trades),
             }
 
-        checkpoint = {
-            "generated_at": datetime.now(UTC).isoformat(),
-            "iteration": self._iteration + 1,
-            "symbols": self._config.trading.symbols,
-            "wallet_states": wallet_states,
-        }
-        checkpoint_path.write_text(json.dumps(checkpoint, indent=2), encoding="utf-8")
-        self._save_heartbeat(checkpoint_path.parent)
+        checkpoint = RuntimeCheckpoint(
+            generated_at=datetime.now(UTC).isoformat(),
+            iteration=self._iteration + 1,
+            symbols=self._config.trading.symbols,
+            wallet_states=wallet_states,
+        )
+        store.save(checkpoint)
+        self._save_heartbeat(Path(self._config.runtime.runtime_checkpoint_path).parent)
 
     def _maybe_send_pnl_notify(self) -> None:
         if time.time() - self._last_pnl_notify < self.PNL_NOTIFY_INTERVAL:
