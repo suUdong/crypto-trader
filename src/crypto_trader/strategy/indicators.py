@@ -298,6 +298,44 @@ def rsi_divergence(
     return bullish, bearish
 
 
+def on_balance_volume(closes: list[float], volumes: list[float]) -> list[float]:
+    """On-Balance Volume: cumulative volume that tracks price direction.
+
+    OBV rises when close > prev_close (buying pressure).
+    OBV falls when close < prev_close (selling pressure).
+    Returns full OBV series same length as input.
+    """
+    if len(closes) != len(volumes):
+        raise ValueError("closes and volumes must be the same length")
+    if not closes:
+        return []
+    obv = [0.0]
+    for i in range(1, len(closes)):
+        if closes[i] > closes[i - 1]:
+            obv.append(obv[-1] + volumes[i])
+        elif closes[i] < closes[i - 1]:
+            obv.append(obv[-1] - volumes[i])
+        else:
+            obv.append(obv[-1])
+    return obv
+
+
+def obv_slope(closes: list[float], volumes: list[float], lookback: int = 10) -> float:
+    """Slope of OBV over the last `lookback` bars (normalized by OBV range).
+
+    Positive = rising OBV (accumulation), negative = falling (distribution).
+    Returns value roughly in [-1, 1] range.
+    """
+    obv = on_balance_volume(closes, volumes)
+    if len(obv) < lookback + 1:
+        raise ValueError("Not enough values for OBV slope")
+    recent = obv[-lookback:]
+    obv_range = max(recent) - min(recent)
+    if obv_range == 0:
+        return 0.0
+    return (recent[-1] - recent[0]) / obv_range
+
+
 def noise_ratio(closes: list[float], lookback: int) -> float:
     """Noise ratio: 1 - |net_move| / sum(|bar_moves|). Lower = stronger trend."""
     if len(closes) <= lookback:

@@ -8,6 +8,7 @@ from crypto_trader.strategy.indicators import (
     bollinger_bands,
     macd,
     momentum,
+    obv_slope,
     rsi,
     volume_sma,
 )
@@ -98,6 +99,15 @@ class CompositeStrategy:
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
         context = {"market_regime": regime.value}
 
+        # OBV trend confirmation
+        obv_trend: float | None = None
+        try:
+            volumes = [c.volume for c in candles]
+            obv_trend = obv_slope(closes, volumes, lookback=10)
+            indicators["obv_slope"] = obv_trend
+        except ValueError:
+            pass
+
         if position is None:
             entry_ready = (
                 momentum_value >= effective.momentum_entry_threshold
@@ -138,6 +148,9 @@ class CompositeStrategy:
                     base_conf = min(1.0, base_conf + 0.1)
                 # Macro trend alignment boosts confidence
                 if macro_trend_up:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # OBV accumulation boosts confidence
+                if obv_trend is not None and obv_trend > 0.3:
                     base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,

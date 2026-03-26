@@ -7,6 +7,7 @@ from crypto_trader.strategy.indicators import (
     average_directional_index,
     macd,
     momentum,
+    obv_slope,
     rsi,
     volume_sma,
 )
@@ -65,6 +66,15 @@ class MomentumStrategy:
         except ValueError:
             pass
 
+        # OBV trend confirmation
+        obv_trend: float | None = None
+        try:
+            volumes_list = [c.volume for c in candles]
+            obv_trend = obv_slope(closes, volumes_list, lookback=10)
+            indicators["obv_slope"] = obv_trend
+        except ValueError:
+            pass
+
         # Multi-timeframe trend: EMA(50) as macro trend filter
         macro_trend_up = False
         if len(closes) >= 50:
@@ -116,6 +126,9 @@ class MomentumStrategy:
                     base_conf = min(1.0, base_conf + 0.1)
                 # Macro trend alignment boosts confidence
                 if macro_trend_up:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # OBV accumulation boosts confidence
+                if obv_trend is not None and obv_trend > 0.3:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Volume confirmation: high volume (>2x avg) boosts confidence
                 volumes = [c.volume for c in candles]
