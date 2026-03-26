@@ -3,35 +3,36 @@
 Date: 2026-03-26 (FIRE Session #10)
 Branch: `master`
 
-## What Landed This Session (#10) — 5 Features, 13 New Tests
+## What Landed This Session (#10) — 14 Features, 24 New Tests, 5 Waves
 
-### Sortino Ratio
-- `_approx_sortino()` in `grid_wf.py`: penalizes only downside deviation (better for crypto)
-- Integrated into grid-wf output, backtest-all output, and GridCandidate dataclass
-- 6 unit tests covering edge cases (empty, uptrend, downtrend, no-downside, asymmetric)
+### Wave 1: Core Metrics (345db96)
+- **Sortino ratio** (`_approx_sortino`): downside-only deviation, better for crypto
+- **Max Consecutive Losses**: new field on BacktestResult for kill switch calibration
+- **Expanded param grids**: momentum 5 thresholds, vol_breakout 4x4, consensus min_agree
+- **backtest-all obi fix**: 7→8 strategies in comparison
+- +9 tests (641 total)
 
-### Calmar Ratio
-- `_approx_calmar()` in `grid_wf.py`: annualized return / max drawdown
-- Integrated into backtest-all CLI output and JSON export
-- 4 unit tests
+### Wave 2: Calmar & Multi-Symbol (2b8f211)
+- **Calmar ratio** (`_approx_calmar`): annualized return / max drawdown
+- **Multi-symbol backtest-all**: aggregates across ALL configured symbols (was single-symbol)
+- +4 tests (645 total)
 
-### Max Consecutive Losses (Kill Switch Calibration)
-- New `max_consecutive_losses` field on `BacktestResult` dataclass
-- Calculated in `BacktestEngine.run()` from trade log
-- Displayed in backtest-all output (MCL column)
-- 3 unit tests
+### Wave 3: Composite Scoring (27ca2b1)
+- **Composite strategy score**: Sharpe 30% + Sortino 25% + Calmar 15% + PF 20% + WinRate 10%
+- **Strategy ranking**: auto-sorted DEPLOY/RESEARCH/WATCHLIST/DROP recommendations
+- **Grid-wf scoring update**: Sharpe 40% + Sortino 30% + PF 30% (was Sharpe 70% + PF 30%)
 
-### Multi-Symbol backtest-all
-- `backtest-all` now aggregates across ALL configured symbols (was symbols[0] only)
-- Per-strategy averages for return, Sharpe, Sortino, Calmar, PF, win rate
-- Max drawdown and MCL use worst-case across symbols
-- JSON export includes `symbols` array and `symbols_tested` per strategy
+### Wave 4: Trade Analytics (18942dd)
+- **Trade duration tracking**: avg/max bars per trade for max_holding_bars calibration
+- **Win/loss streak analysis**: max_consecutive_wins alongside MCL
+- **Payoff ratio**: avg win / avg loss for Kelly criterion sizing
+- +6 tests (651 total)
 
-### Expanded Grid-WF Parameter Grids
-- momentum: 5 entry thresholds [0.002..0.01], 3 holding bars
-- volatility_breakout: 4 k_base [0.2..0.8], 4 noise_lookback [5..20]
-- consensus: min_agree [2, 3] variants
-- backtest-all includes `obi` strategy (was missing)
+### Wave 5: Kelly Criterion (current)
+- **Kelly fraction calculator**: f* = W - (1-W)/R, clamped to [0, 0.25]
+- Kelly % shown in strategy ranking output
+- Included in backtest-all JSON export
+- +5 tests (656 total)
 
 ## Previous Session Deliverables (Still Active)
 
@@ -48,25 +49,30 @@ Branch: `master`
 
 ```
 src/crypto_trader/
-  cli.py                # + multi-symbol backtest-all, Calmar/Sortino/MCL columns
-                        # + obi added to all_strategies
-                        # + _approx_calmar import
-  models.py             # + max_consecutive_losses field on BacktestResult
+  cli.py                  # + multi-symbol backtest-all with aggregation
+                          # + composite scoring, strategy ranking, Kelly %
+                          # + Calmar/Sortino/MCL/payoff/duration columns
+                          # + obi added to all_strategies
+  models.py               # + max_consecutive_losses, max_consecutive_wins
+                          # + avg_trade_duration_bars, max_trade_duration_bars
+                          # + payoff_ratio
   backtest/
-    engine.py           # + max consecutive losses calculation in run()
-    grid_wf.py          # + _approx_sortino(), _approx_calmar()
-                        # + avg_sortino on GridCandidate
-                        # + Expanded PARAM_GRIDS (momentum, volatility_breakout, consensus)
-                        # + Sortino/Calmar in _run_backtest_with_params return
+    engine.py             # + streak analysis, trade duration, payoff ratio calc
+    grid_wf.py            # + _approx_sortino(), _approx_calmar(), kelly_fraction()
+                          # + avg_sortino on GridCandidate
+                          # + Expanded PARAM_GRIDS
+                          # + Sortino-weighted scoring (40/30/30)
+                          # + Enriched best_validated export
 
-tests/ (+13 new tests)
-  test_sortino_and_mcl.py  # +6 Sortino, +4 Calmar, +3 MCL tests
+tests/
+  test_sortino_and_mcl.py # +24 tests: Sortino(6), Calmar(4), MCL(3),
+                          #   TradeMetrics(6), Kelly(5)
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` -> **645 passed, 3 skipped, 0 failures**
-- +13 new tests this session
+- `pytest tests/ -q` -> **656 passed, 3 skipped, 0 failures**
+- +24 new tests this session (5 waves)
 - All previous session tests still passing
 
 ## Current Gaps / Risks
@@ -80,11 +86,11 @@ tests/ (+13 new tests)
 
 ## Recommended Next Moves
 
-1. **Run `backtest-all`** with multi-symbol aggregation to rank all 7 strategies
-2. **Run `grid-wf`** for momentum and volatility_breakout with expanded grids
-3. **Set up cron** for `crypto-trader snapshot --output-dir artifacts/` every 6h
-4. **Monitor auto-disable** — check wallet-health.json after 7 days
-5. **Paper trading 7 days** -> micro-live gate by Apr 2
-6. **Telegram bot setup** — configure bot_token and chat_id in TOML
-7. **Strategy optimization** — use Calmar + Sortino to pick optimal params
-8. **Kill switch calibration** — use MCL from backtest-all to set max_consecutive_losses threshold
+1. **Run `backtest-all`** — rank all 8 strategies with composite score + Kelly %
+2. **Use Kelly fractions** to set position sizes in daemon.toml wallets
+3. **Run `grid-wf`** for top-ranked strategies with expanded grids
+4. **Set up cron** for `crypto-trader snapshot --output-dir artifacts/` every 6h
+5. **Kill switch calibration** — use MCL + max_trade_duration from backtest-all
+6. **Paper trading 7 days** -> micro-live gate by Apr 2
+7. **Telegram bot setup** — configure bot_token and chat_id in TOML
+8. **Capital rebalance** — use composite scores to weight wallet allocations

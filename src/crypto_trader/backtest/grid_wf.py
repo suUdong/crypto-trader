@@ -97,6 +97,18 @@ def _approx_sharpe(equity_curve: list[float]) -> float:
     return (mean_r / std_r) * (8760**0.5)
 
 
+def kelly_fraction(win_rate: float, payoff_ratio: float) -> float:
+    """Kelly criterion optimal fraction: f* = W - (1-W)/R.
+
+    Returns the fraction of capital to risk per trade.
+    Clamped to [0, 0.25] — never bet more than 25% (half-Kelly is common).
+    """
+    if payoff_ratio <= 0 or win_rate <= 0:
+        return 0.0
+    f = win_rate - (1.0 - win_rate) / payoff_ratio
+    return max(0.0, min(0.25, f))
+
+
 def _approx_calmar(equity_curve: list[float]) -> float:
     """Calmar ratio: annualized return / max drawdown."""
     if len(equity_curve) < 3:

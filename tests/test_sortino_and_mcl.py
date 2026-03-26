@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.backtest.engine import BacktestEngine
-from crypto_trader.backtest.grid_wf import _approx_calmar, _approx_sharpe, _approx_sortino
+from crypto_trader.backtest.grid_wf import _approx_calmar, _approx_sharpe, _approx_sortino, kelly_fraction
 from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
 from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
@@ -219,6 +219,33 @@ class TestTradeMetrics(unittest.TestCase):
         fields = BacktestResult.__dataclass_fields__
         for name in ["max_consecutive_wins", "avg_trade_duration_bars", "max_trade_duration_bars", "payoff_ratio"]:
             self.assertIn(name, fields)
+
+
+class TestKellyFraction(unittest.TestCase):
+    def test_kelly_positive_for_edge(self) -> None:
+        # 60% win rate, 1.5 payoff -> f* = 0.6 - 0.4/1.5 = 0.333
+        f = kelly_fraction(0.6, 1.5)
+        self.assertAlmostEqual(f, 0.25, places=2)  # clamped to 0.25
+
+    def test_kelly_zero_for_no_edge(self) -> None:
+        # 50% win rate, 1.0 payoff -> f* = 0.5 - 0.5/1.0 = 0.0
+        f = kelly_fraction(0.5, 1.0)
+        self.assertAlmostEqual(f, 0.0, places=4)
+
+    def test_kelly_zero_for_losing_strategy(self) -> None:
+        # 30% win rate, 1.0 payoff -> f* = 0.3 - 0.7/1.0 = -0.4 -> clamped to 0
+        f = kelly_fraction(0.3, 1.0)
+        self.assertEqual(f, 0.0)
+
+    def test_kelly_clamped_at_25_pct(self) -> None:
+        # 90% win rate, 10.0 payoff -> huge edge, but clamped
+        f = kelly_fraction(0.9, 10.0)
+        self.assertEqual(f, 0.25)
+
+    def test_kelly_zero_for_zero_inputs(self) -> None:
+        self.assertEqual(kelly_fraction(0, 0), 0.0)
+        self.assertEqual(kelly_fraction(0.5, 0), 0.0)
+        self.assertEqual(kelly_fraction(0, 1.5), 0.0)
 
 
 if __name__ == "__main__":

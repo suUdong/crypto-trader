@@ -671,7 +671,7 @@ def main() -> None:
     if args.command == "backtest-all":
         import json
         from datetime import date
-        from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino, _approx_calmar
+        from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino, _approx_calmar, kelly_fraction
 
         all_strategies = [
             "momentum", "mean_reversion", "vpin", "volatility_breakout",
@@ -778,6 +778,7 @@ def main() -> None:
                     "avg_trade_duration_bars": round(sum(sym_durations) / n, 1) if sym_durations else 0.0,
                     "max_trade_duration_bars": max_dur,
                     "payoff_ratio": round(sum(sym_payoffs) / n, 3) if sym_payoffs else 0.0,
+                    "kelly_fraction": round(kelly_fraction(sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0), 4),
                     "composite_score": round(composite, 3),
                 }
                 results_list.append(row)
@@ -801,10 +802,11 @@ def main() -> None:
             print(f"\n{'='*90}")
             print("  STRATEGY RANKING (by composite score)")
             print(f"{'='*90}")
-            print(f"\n  {'Rank':<6} {'Strategy':<22} {'Score':>7} {'Action':<20}")
-            print(f"  {'-'*55}")
+            print(f"\n  {'Rank':<6} {'Strategy':<22} {'Score':>7} {'Kelly%':>7} {'Action':<20}")
+            print(f"  {'-'*62}")
             for i, r in enumerate(ranked, 1):
                 score = r.get("composite_score", 0)
+                kf = r.get("kelly_fraction", 0) * 100
                 if score > 1.0 and r["return_pct"] > 0:
                     action = "DEPLOY candidate"
                 elif score > 0.5 and r["return_pct"] > 0:
@@ -813,7 +815,7 @@ def main() -> None:
                     action = "WATCHLIST"
                 else:
                     action = "DROP"
-                print(f"  #{i:<5} {r['strategy']:<22} {score:>6.3f} {action}")
+                print(f"  #{i:<5} {r['strategy']:<22} {score:>6.3f} {kf:>6.1f}% {action}")
 
         print(f"\n{'='*90}\n")
 
