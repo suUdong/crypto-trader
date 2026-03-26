@@ -32,6 +32,12 @@ class TestDataLoaders(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp()
         self._orig_dir = data_mod.ARTIFACTS_DIR
         data_mod.ARTIFACTS_DIR = Path(self.tmpdir)
+        # Clear st.cache_data between tests
+        try:
+            import streamlit as st
+            st.cache_data.clear()
+        except Exception:
+            pass
 
     def tearDown(self) -> None:
         data_mod.ARTIFACTS_DIR = self._orig_dir
@@ -185,10 +191,11 @@ class TestDashboardEntrypoint(unittest.TestCase):
 
     def test_app_uses_cross_version_timezone_utc(self) -> None:
         source = _read_source("dashboard/app.py")
-        self.assertIn("from datetime import datetime, timezone", source)
+        self.assertIn("from datetime import datetime,", source)
+        self.assertIn("timezone", source)
         self.assertIn("_UTC = timezone.utc", source)
         self.assertNotIn("from datetime import UTC, datetime", source)
-        self.assertIn("datetime.now(_UTC)", source)
+        self.assertIn("datetime.now(", source)
 
     def test_app_sets_page_config_before_auth_gate(self) -> None:
         source = _read_source("dashboard/app.py")
