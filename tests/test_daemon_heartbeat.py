@@ -28,7 +28,7 @@ class TestDaemonHeartbeat(unittest.TestCase):
         wallet.strategy_type = "momentum"
         wallet.broker.cash = 1_000_000.0
         wallet.broker.realized_pnl = 0.0
-        wallet.broker.positions = []
+        wallet.broker.positions = {}
         wallet.broker.closed_trades = []
         wallet.broker.equity.return_value = 1_000_000.0
 

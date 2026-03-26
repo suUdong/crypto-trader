@@ -13,12 +13,13 @@ from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
-from crypto_trader.models import PipelineResult, RuntimeCheckpoint, StrategyRunRecord
+from crypto_trader.models import PipelineResult, Position, RuntimeCheckpoint, StrategyRunRecord
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradeJournal
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.pnl_report import PnLReportGenerator
+from crypto_trader.risk.correlation_guard import CorrelationGuard
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
 from crypto_trader.risk.wallet_health import WalletHealthMonitor
 from crypto_trader.strategy.regime import (
@@ -89,6 +90,7 @@ class MultiSymbolRuntime:
         self._wallet_health = WalletHealthMonitor(snapshot_path)
         self._last_health_check: float = 0.0
         self._health_check_interval = 86400  # 24h
+        self._correlation_guard = CorrelationGuard(max_cluster_exposure=4)
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -111,6 +113,8 @@ class MultiSymbolRuntime:
             daemon,
             poll,
         )
+
+        self._restore_from_checkpoint()
 
         while not self._shutdown_requested:
             if self._kill_switch.is_triggered:
@@ -181,6 +185,23 @@ class MultiSymbolRuntime:
                     continue
                 if self._wallet_health.is_disabled(wallet.name):
                     continue
+                # Correlation guard: skip tick if no position and cluster is full
+                if not wallet.broker.positions:
+                    positions_list = [
+                        (w.name, sym)
+                        for w in self._wallets
+                        for sym in w.broker.positions
+                    ]
+                    cluster_exposure = self._correlation_guard.get_cluster_exposure(positions_list)
+                    check = self._correlation_guard.check_entry(symbol, wallet.name, cluster_exposure)
+                    if not check.allowed:
+                        self._logger.debug(
+                            "[%s] %s entry blocked by correlation guard: %s",
+                            wallet.name,
+                            symbol,
+                            check.reason,
+                        )
+                        continue
                 result = wallet.run_once(symbol, candles)
                 results.append(result)
                 if result.error:
@@ -298,6 +319,67 @@ class MultiSymbolRuntime:
             )
             wallet.set_macro_multiplier(regime_weight * weekend_mult)
 
+    def _restore_from_checkpoint(self) -> None:
+        """Restore wallet broker state from last checkpoint if available."""
+        cp_path = Path(self._config.runtime.runtime_checkpoint_path)
+        if not cp_path.exists():
+            self._logger.info("No checkpoint found, starting fresh")
+            return
+
+        try:
+            checkpoint = json.loads(cp_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            self._logger.warning("Failed to read checkpoint for restore: %s", exc)
+            return
+
+        wallet_states = checkpoint.get("wallet_states", {})
+        restored_count = 0
+
+        for wallet in self._wallets:
+            ws = wallet_states.get(wallet.name)
+            if ws is None:
+                continue
+
+            # Restore cash and realized PnL
+            wallet.broker.cash = ws.get("cash", wallet.broker.cash)
+            wallet.broker.realized_pnl = ws.get("realized_pnl", 0.0)
+            wallet.session_starting_equity = ws.get("cash", wallet.broker.cash) + sum(
+                p.get("quantity", 0) * p.get("entry_price", 0)
+                for p in ws.get("positions", {}).values()
+            )
+
+            # Restore open positions
+            positions_data = ws.get("positions", {})
+            for symbol, pos_data in positions_data.items():
+                try:
+                    entry_time = datetime.fromisoformat(pos_data["entry_time"])
+                except (KeyError, ValueError):
+                    entry_time = datetime.now(UTC)
+
+                position = Position(
+                    symbol=pos_data.get("symbol", symbol),
+                    quantity=pos_data["quantity"],
+                    entry_price=pos_data["entry_price"],
+                    entry_time=entry_time,
+                    entry_fee_paid=pos_data.get("entry_fee_paid", 0.0),
+                    high_watermark=pos_data.get("high_watermark", 0.0),
+                    partial_tp_taken=pos_data.get("partial_tp_taken", False),
+                )
+                wallet.broker.positions[symbol] = position
+                restored_count += 1
+
+        if restored_count > 0:
+            self._logger.info(
+                "Restored %d positions from checkpoint across %d wallets",
+                restored_count,
+                len(wallet_states),
+            )
+
+        # Update journal trade counts to avoid re-journaling old trades
+        for wallet in self._wallets:
+            self._journal_trade_counts[wallet.name] = len(wallet.broker.closed_trades)
+            self._prev_trade_count[wallet.name] = len(wallet.broker.closed_trades)
+
     def _save_checkpoint(self, results: list[PipelineResult]) -> None:
         store = RuntimeCheckpointStore(self._config.runtime.runtime_checkpoint_path)
 
@@ -315,6 +397,18 @@ class MultiSymbolRuntime:
                 "open_positions": len(wallet.broker.positions),
                 "equity": wallet.broker.equity(latest_prices),
                 "trade_count": len(wallet.broker.closed_trades),
+                "positions": {
+                    symbol: {
+                        "symbol": pos.symbol,
+                        "quantity": pos.quantity,
+                        "entry_price": pos.entry_price,
+                        "entry_time": pos.entry_time.isoformat(),
+                        "entry_fee_paid": pos.entry_fee_paid,
+                        "high_watermark": pos.high_watermark,
+                        "partial_tp_taken": pos.partial_tp_taken,
+                    }
+                    for symbol, pos in wallet.broker.positions.items()
+                },
             }
 
         checkpoint = RuntimeCheckpoint(
