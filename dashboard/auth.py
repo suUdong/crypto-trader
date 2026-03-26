@@ -50,9 +50,9 @@ def render_login(
         session_key: Key in st.session_state to store auth flag.
     """
     st.markdown(
-        '<div style="text-align:center; padding:2rem 1rem;">'
-        '<h1 style="font-size:3rem;">🔒</h1>'
-        "<h2>로그인</h2>"
+        '<div class="login-brand">'
+        "<h2>크립토 트레이더</h2>"
+        '<p>실시간 자동매매 모니터링 대시보드</p>'
         "</div>",
         unsafe_allow_html=True,
     )

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
@@ -35,6 +38,7 @@ from dashboard.data import (  # noqa: E402
 from dashboard.styles import inject_css  # noqa: E402
 
 _UTC = timezone.utc  # noqa: UP017
+_KST = timezone(timedelta(hours=9))
 
 # ── 페이지 설정 ───────────────────────────────────────────
 st.set_page_config(
@@ -50,8 +54,20 @@ if not check_auth():
     render_login()
     st.stop()
 
-# ── 헤더 ──────────────────────────────────────────────────
-st.markdown("## 📊 크립토 트레이더 대시보드")
+# ── 자동 새로고침 (60초) ──────────────────────────────────
+st.markdown(
+    '<meta http-equiv="refresh" content="60">',
+    unsafe_allow_html=True,
+)
+
+# ── 헤더 + 로그아웃 ──────────────────────────────────────
+col_title, col_logout = st.columns([5, 1])
+with col_title:
+    st.markdown("## 크립토 트레이더")
+with col_logout:
+    if st.button("로그아웃", key="logout_btn"):
+        st.session_state["dashboard_authenticated"] = False
+        st.rerun()
 
 # ── 데몬 상태 (전체 공통) ─────────────────────────────────
 try:
@@ -100,7 +116,7 @@ else:
 
 # ── 탭 내비게이션 ─────────────────────────────────────────
 tab_trading, tab_wallets, tab_signals, tab_regime, tab_operator, tab_perf = st.tabs(
-    ["현황", "전략비교", "시그널", "시장국면", "운영리포트", "성과"]
+    ["현황", "전략", "시그널", "국면", "운영", "성과"]
 )
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -291,7 +307,9 @@ with tab_wallets:
             fig_ret.update_layout(
                 title="전략별 수익률",
                 template="plotly_dark",
-                margin=dict(l=8, r=8, t=32, b=8),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=24),
                 height=280,
                 font=dict(size=11),
                 yaxis_title="수익률 (%)",
@@ -307,7 +325,9 @@ with tab_wallets:
                 title="전략별 자본금 / 손익",
                 barmode="group",
                 template="plotly_dark",
-                margin=dict(l=8, r=8, t=32, b=8),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=24),
                 height=280,
                 legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
                 font=dict(size=11),
@@ -320,7 +340,9 @@ with tab_wallets:
             fig2.update_layout(
                 title="전략별 거래 수",
                 template="plotly_dark",
-                margin=dict(l=8, r=8, t=32, b=8),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=24),
                 height=280,
                 font=dict(size=11),
             )
@@ -344,6 +366,9 @@ with tab_signals:
         hide_hold = st.checkbox("관망(hold) 숨기기", value=True)
         filtered = [r for r in runs if not (hide_hold and r.get("signal_action") == "hold")]
         st.markdown(f"#### 시그널 히스토리 ({len(filtered)}건 / 전체 {len(runs)}건)")
+
+        # Batch render into single HTML block for performance
+        html_parts = ['<div class="signal-container">']
         for run in reversed(filtered[-50:]):
             ts = run.get("recorded_at", "")[:19]
             action = run.get("signal_action", "hold")
@@ -365,18 +390,27 @@ with tab_signals:
                 css_cls = "signal-hold"
                 icon = "⚪"
 
+            # Confidence bar
+            conf_color = "#4ade80" if confidence > 0.7 else "#fbbf24" if confidence > 0.4 else "#f87171"
+            conf_bar = (
+                f'<span class="conf-track">'
+                f'<span class="conf-fill" style="width:{confidence*100:.0f}%;'
+                f'background:{conf_color};"></span></span>'
+            )
+
             wallet_display = f" · {strategy_kr(wallet)}" if wallet else ""
-            st.markdown(
+            html_parts.append(
                 f'<div class="signal-row">'
                 f'{icon} <span class="{css_cls}">{action_kr}</span> '
-                f"<strong>{symbol_kr(symbol)}</strong> ₩{price:,.0f} · {reason} · 신뢰도 {confidence:.0%}"
+                f"<strong>{symbol_kr(symbol)}</strong> ₩{price:,.0f} · {reason} · "
+                f"{confidence:.0%} {conf_bar}"
                 f"{wallet_display}"
-                f'<br><span style="color:#666;font-size:0.8125rem">'
+                f'<br><span style="color:var(--text-secondary);font-size:0.8125rem">'
                 f"{ts} · {regime_kr(regime)}</span>"
-                f"</div>",
-                unsafe_allow_html=True,
+                f"</div>"
             )
-            st.divider()
+        html_parts.append("</div>")
+        st.markdown("".join(html_parts), unsafe_allow_html=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 탭 4: 시장국면 — Regime 상태
@@ -636,7 +670,9 @@ with tab_perf:
 
             fig.update_layout(
                 template="plotly_dark",
-                margin=dict(l=8, r=8, t=32, b=8),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=24),
                 height=280,
                 yaxis_title="가격 (KRW)",
                 xaxis_title="",
@@ -650,5 +686,5 @@ with tab_perf:
 
 # ── 푸터 ──────────────────────────────────────────────────
 st.divider()
-now_str = datetime.now(_UTC).strftime("%Y-%m-%d %H:%M UTC")
-st.caption(f"마지막 새로고침: {now_str}")
+now_str = datetime.now(_KST).strftime("%Y-%m-%d %H:%M KST")
+st.caption(f"마지막 새로고침: {now_str} · 60초 자동 갱신")
