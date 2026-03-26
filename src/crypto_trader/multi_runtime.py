@@ -23,6 +23,7 @@ from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier,
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.risk.correlation_guard import CorrelationGuard
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
+from crypto_trader.risk.slippage_monitor import SlippageMonitor
 from crypto_trader.risk.wallet_health import WalletHealthMonitor
 from crypto_trader.strategy.regime import (
     WEEKEND_POSITION_MULTIPLIER,
@@ -59,6 +60,9 @@ class MultiSymbolRuntime:
                 max_consecutive_losses=config.kill_switch.max_consecutive_losses,
                 max_strategy_drawdown_pct=config.kill_switch.max_strategy_drawdown_pct,
                 cooldown_minutes=config.kill_switch.cooldown_minutes,
+                warn_threshold_pct=config.kill_switch.warn_threshold_pct,
+                reduce_threshold_pct=config.kill_switch.reduce_threshold_pct,
+                reduce_position_factor=config.kill_switch.reduce_position_factor,
             )
         )
         self._kill_switch_path = Path(
@@ -98,6 +102,9 @@ class MultiSymbolRuntime:
         self._last_health_check: float = 0.0
         self._health_check_interval = 86400  # 24h
         self._correlation_guard = CorrelationGuard(max_cluster_exposure=4)
+        self._slippage_monitor = SlippageMonitor(
+            expected_slippage_pct=config.backtest.slippage_pct,
+        )
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -133,6 +140,7 @@ class MultiSymbolRuntime:
                 break
 
             self._maybe_check_wallet_health()
+            self._apply_kill_switch_penalty()
             tick_results = self._run_tick(symbols)
             self._check_kill_switch_after_tick(tick_results)
             self._save_checkpoint(tick_results)
@@ -232,6 +240,13 @@ class MultiSymbolRuntime:
                     )
                     # Log trade or rejection
                     if result.order is not None and result.order.status == "filled":
+                        self._slippage_monitor.record_fill(
+                            symbol=symbol,
+                            side=result.order.side.value,
+                            market_price=result.latest_price or result.order.fill_price,
+                            fill_price=result.order.fill_price,
+                            quantity=result.order.quantity,
+                        )
                         self._structured_logger.log_trade(
                             wallet_name=wallet.name,
                             strategy_type=wallet.strategy_type,
@@ -381,6 +396,18 @@ class MultiSymbolRuntime:
                 adjustment.position_size_multiplier,
                 self._current_market_regime,
                 self._is_weekend,
+            )
+
+    def _apply_kill_switch_penalty(self) -> None:
+        """Scale down position sizes when kill switch tiered thresholds are breached."""
+        penalty = self._kill_switch.state.position_size_penalty
+        if penalty < 1.0:
+            for wallet in self._wallets:
+                current = wallet._macro_multiplier
+                wallet.set_macro_multiplier(current * penalty)
+            self._logger.warning(
+                "Kill switch penalty active: position sizes scaled by %.0f%%",
+                penalty * 100,
             )
 
     def _apply_regime_weights(self) -> None:
@@ -616,6 +643,7 @@ class MultiSymbolRuntime:
         gate.save(decision, promo_path)
 
     def _save_heartbeat(self, artifacts_dir: Path) -> None:
+        slip_stats = self._slippage_monitor.get_stats()
         heartbeat = {
             "last_heartbeat": datetime.now(UTC).isoformat(),
             "pid": os.getpid(),
@@ -626,6 +654,19 @@ class MultiSymbolRuntime:
             "config_path": self._config_path,
             "symbols": self._config.trading.symbols,
             "wallet_names": self._wallet_names,
+            "slippage": {
+                "total_trades": slip_stats.total_trades,
+                "anomaly_count": slip_stats.anomaly_count,
+                "avg_slippage_pct": round(slip_stats.avg_slippage_pct * 100, 4),
+                "max_slippage_pct": round(slip_stats.max_slippage_pct * 100, 4),
+                "anomaly_rate": round(self._slippage_monitor.anomaly_rate * 100, 2),
+            },
+            "kill_switch": {
+                "warning_active": self._kill_switch.state.warning_active,
+                "position_size_penalty": self._kill_switch.state.position_size_penalty,
+                "portfolio_drawdown_pct": round(self._kill_switch.state.portfolio_drawdown_pct * 100, 2),
+                "daily_loss_pct": round(self._kill_switch.state.daily_loss_pct * 100, 2),
+            },
         }
         heartbeat_path = artifacts_dir / "daemon-heartbeat.json"
         heartbeat_path.write_text(json.dumps(heartbeat, indent=2), encoding="utf-8")

@@ -7,7 +7,7 @@ from crypto_trader.risk.manager import RiskManager
 
 
 def _make_manager() -> RiskManager:
-    return RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02))
+    return RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02, max_position_pct=1.0))
 
 
 class KellyFractionTests(unittest.TestCase):
@@ -82,7 +82,7 @@ class KellyFractionTests(unittest.TestCase):
 class KellySizePositionTests(unittest.TestCase):
     def test_size_position_falls_back_to_fixed(self) -> None:
         # With no history, uses fixed risk sizing
-        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02))
+        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02, max_position_pct=1.0))
         quantity = manager.size_position(equity=10_000.0, price=100.0)
         # risk_budget = 10000 * 0.01 = 100, stop_distance = 100 * 0.02 = 2, qty = 100/2 = 50
         self.assertAlmostEqual(quantity, 50.0, places=5)
@@ -91,7 +91,7 @@ class KellySizePositionTests(unittest.TestCase):
         # 60% win rate, payoff=2.0 => half-kelly=0.2
         # Kelly sizing: qty = (10000 * 0.2) / 100 = 20
         # Fixed sizing: qty = (10000*0.01) / (100*0.02) = 50
-        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02))
+        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02, max_position_pct=1.0))
         for _ in range(6):
             manager.record_trade(0.10)
         for _ in range(4):
@@ -101,7 +101,7 @@ class KellySizePositionTests(unittest.TestCase):
 
     def test_size_position_zero_kelly_falls_back_to_fixed(self) -> None:
         # Negative Kelly (bad strategy) is clamped to 0 → falls back to fixed
-        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02))
+        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02, max_position_pct=1.0))
         for _ in range(3):
             manager.record_trade(0.05)
         for _ in range(7):
@@ -112,7 +112,7 @@ class KellySizePositionTests(unittest.TestCase):
 
     def test_size_position_respects_macro_multiplier(self) -> None:
         # With Kelly available, macro_multiplier scales the result
-        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02))
+        manager = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.02, max_position_pct=1.0))
         for _ in range(6):
             manager.record_trade(0.10)
         for _ in range(4):

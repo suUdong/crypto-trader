@@ -12,6 +12,7 @@ class DrawdownSizingTests(unittest.TestCase):
             risk_per_trade_pct=0.01,
             stop_loss_pct=0.02,
             max_daily_loss_pct=0.05,
+            max_position_pct=1.0,
         )
         defaults.update(kwargs)
         return RiskManager(RiskConfig(**defaults))

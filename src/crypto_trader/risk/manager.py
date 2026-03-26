@@ -195,7 +195,11 @@ class RiskManager:
         streak_mult = 1.0
         if self._consecutive_wins >= 3:
             streak_mult = min(1.3, 1.0 + 0.05 * self._consecutive_wins)
-        return base_quantity * scale * streak_mult
+        sized = base_quantity * scale * streak_mult
+        # Hard cap: never exceed max_position_pct of equity in a single position
+        max_position_value = equity * self._config.max_position_pct
+        max_qty_by_cap = max_position_value / price if price > 0 else 0.0
+        return min(sized, max_qty_by_cap)
 
     def portfolio_heat(
         self, open_positions: list[tuple[float, float]], equity: float,

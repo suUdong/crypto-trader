@@ -78,6 +78,7 @@ class RiskConfig:
     drawdown_reduction_pct: float = 0.5
     partial_tp_pct: float = 0.5
     cooldown_bars: int = 3
+    max_position_pct: float = 0.25
 
 
 @dataclass(slots=True)
@@ -87,6 +88,9 @@ class KillSwitchCfg:
     max_consecutive_losses: int = 5
     max_strategy_drawdown_pct: float = 0.10
     cooldown_minutes: int = 60
+    warn_threshold_pct: float = 0.5
+    reduce_threshold_pct: float = 0.75
+    reduce_position_factor: float = 0.5
 
 
 @dataclass(slots=True)
@@ -399,6 +403,9 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         cooldown_bars=int(
             _read_value(raw, env, "risk", "cooldown_bars", "CT_COOLDOWN_BARS", 3)
         ),
+        max_position_pct=float(
+            _read_value(raw, env, "risk", "max_position_pct", "CT_MAX_POSITION_PCT", 0.25)
+        ),
     )
     backtest = BacktestConfig(
         initial_capital=float(
@@ -631,6 +638,18 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         cooldown_minutes=int(
             _read_value(raw, env, "kill_switch", "cooldown_minutes",
                         "CT_KS_COOLDOWN_MIN", 60)
+        ),
+        warn_threshold_pct=float(
+            _read_value(raw, env, "kill_switch", "warn_threshold_pct",
+                        "CT_KS_WARN_THRESHOLD", 0.5)
+        ),
+        reduce_threshold_pct=float(
+            _read_value(raw, env, "kill_switch", "reduce_threshold_pct",
+                        "CT_KS_REDUCE_THRESHOLD", 0.75)
+        ),
+        reduce_position_factor=float(
+            _read_value(raw, env, "kill_switch", "reduce_position_factor",
+                        "CT_KS_REDUCE_FACTOR", 0.5)
         ),
     )
     raw_wallets = raw.get("wallets", None)
@@ -869,6 +888,7 @@ def _positive_probability_fields(config: AppConfig) -> dict[str, float]:
         "risk.stop_loss_pct": config.risk.stop_loss_pct,
         "risk.take_profit_pct": config.risk.take_profit_pct,
         "risk.max_daily_loss_pct": config.risk.max_daily_loss_pct,
+        "risk.max_position_pct": config.risk.max_position_pct,
     }
 
 
