@@ -22,6 +22,8 @@ from dashboard.data import (  # noqa: E402
     load_daily_performance,
     load_drift_report,
     load_health,
+    load_kill_switch,
+    load_pnl_report,
     load_positions,
     load_promotion_gate,
     load_regime_report,
@@ -136,6 +138,46 @@ with tab_trading:
                 f"마지막 시그널: {last_signal}",
                 unsafe_allow_html=True,
             )
+
+        # 킬스위치 & 프로모션 게이트 상태
+        ks_col, pg_col = st.columns(2)
+        with ks_col:
+            try:
+                ks = load_kill_switch()
+            except Exception:
+                ks = None
+            if ks is None:
+                st.markdown('<span class="status-badge status-warn">킬스위치 ?</span>', unsafe_allow_html=True)
+            elif ks.get("triggered"):
+                st.markdown(
+                    f'<span class="status-badge status-fail">킬스위치 발동</span> {ks.get("trigger_reason", "")}',
+                    unsafe_allow_html=True,
+                )
+            else:
+                dd = ks.get("portfolio_drawdown_pct", 0) * 100
+                st.markdown(
+                    f'<span class="status-badge status-ok">킬스위치 정상</span> MDD {dd:.3f}%',
+                    unsafe_allow_html=True,
+                )
+        with pg_col:
+            try:
+                pg = load_promotion_gate()
+            except Exception:
+                pg = None
+            if pg is None:
+                st.markdown('<span class="status-badge status-warn">프로모션 ?</span>', unsafe_allow_html=True)
+            else:
+                pg_status = pg.get("status", "unknown")
+                if pg_status == "candidate_for_promotion":
+                    badge = "status-ok"
+                    label = "프로모션 준비"
+                elif pg_status == "stay_in_paper":
+                    badge = "status-warn"
+                    label = "페이퍼 유지"
+                else:
+                    badge = "status-fail"
+                    label = "프로모션 불가"
+                st.markdown(f'<span class="status-badge {badge}">{label}</span>', unsafe_allow_html=True)
 
         # 체크포인트 시간
         gen_at = checkpoint.get("generated_at", "")

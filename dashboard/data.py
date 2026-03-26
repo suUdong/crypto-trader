@@ -164,3 +164,11 @@ def load_operator_report() -> str | None:
 
 def load_daemon_heartbeat() -> dict[str, Any] | None:
     return _load_json("daemon-heartbeat.json")
+
+
+def load_kill_switch() -> dict[str, Any] | None:
+    return _load_json("kill-switch.json")
+
+
+def load_pnl_report() -> dict[str, Any] | None:
+    return _load_json("pnl-report.json")
