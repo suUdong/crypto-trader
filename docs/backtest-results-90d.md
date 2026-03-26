@@ -1,6 +1,7 @@
 # 90-Day Backtest Results
 
 Date: 2026-03-26
+Last revalidated: 2026-03-26T15:16:45+09:00
 Scope: 7 strategies x 4 symbols (`KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`) on 90 days of `minute60` candles from Upbit
 
 ## Command
@@ -10,6 +11,7 @@ PYTHONPATH=src .venv/bin/python scripts/backtest_all.py 90 --cache-dir artifacts
 ```
 
 Raw JSON output was generated at `artifacts/backtest-results-90d.json` during the run.
+This report was revalidated on `2026-03-26T15:16:45+09:00` and matched the prior 90-day baseline exactly.
 
 ## Executive Summary
 
