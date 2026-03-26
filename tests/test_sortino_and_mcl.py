@@ -153,5 +153,73 @@ class TestMaxConsecutiveLosses(unittest.TestCase):
         self.assertIn("max_consecutive_losses", BacktestResult.__dataclass_fields__)
 
 
+class TestTradeMetrics(unittest.TestCase):
+    """Tests for trade duration, win streak, and payoff ratio."""
+
+    def _run_backtest(self, closes: list[float]) -> object:
+        candles = _build_candles(closes)
+        strategy = create_strategy(
+            "momentum",
+            StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                adx_threshold=0.0,
+                volume_filter_mult=0.0,
+            ),
+            RegimeConfig(),
+        )
+        rm = RiskManager(RiskConfig(atr_stop_multiplier=0.0))
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=rm,
+            config=BacktestConfig(),
+            symbol="KRW-BTC",
+        )
+        return engine.run(candles)
+
+    def test_max_consecutive_wins_tracked(self) -> None:
+        closes = [100.0] * 20
+        for _ in range(3):
+            closes.extend([95.0, 93.0, 91.0, 89.0, 92.0, 95.0, 98.0, 100.0])
+        result = self._run_backtest(closes)
+        self.assertIsInstance(result.max_consecutive_wins, int)
+        self.assertGreaterEqual(result.max_consecutive_wins, 0)
+
+    def test_avg_trade_duration_non_negative(self) -> None:
+        closes = [100.0] * 20
+        for _ in range(3):
+            closes.extend([95.0, 93.0, 91.0, 89.0, 92.0, 95.0, 98.0, 100.0])
+        result = self._run_backtest(closes)
+        self.assertGreaterEqual(result.avg_trade_duration_bars, 0.0)
+
+    def test_max_trade_duration_non_negative(self) -> None:
+        closes = [100.0] * 20
+        for _ in range(3):
+            closes.extend([95.0, 93.0, 91.0, 89.0, 92.0, 95.0, 98.0, 100.0])
+        result = self._run_backtest(closes)
+        self.assertIsInstance(result.max_trade_duration_bars, int)
+        self.assertGreaterEqual(result.max_trade_duration_bars, 0)
+
+    def test_payoff_ratio_non_negative(self) -> None:
+        closes = [100.0] * 20
+        for _ in range(3):
+            closes.extend([95.0, 93.0, 91.0, 89.0, 92.0, 95.0, 98.0, 100.0])
+        result = self._run_backtest(closes)
+        self.assertGreaterEqual(result.payoff_ratio, 0.0)
+
+    def test_no_trades_zero_metrics(self) -> None:
+        result = self._run_backtest([100.0] * 50)
+        self.assertEqual(result.max_consecutive_wins, 0)
+        self.assertEqual(result.avg_trade_duration_bars, 0.0)
+        self.assertEqual(result.max_trade_duration_bars, 0)
+        self.assertEqual(result.payoff_ratio, 0.0)
+
+    def test_backtest_result_has_new_fields(self) -> None:
+        from crypto_trader.models import BacktestResult
+        fields = BacktestResult.__dataclass_fields__
+        for name in ["max_consecutive_wins", "avg_trade_duration_bars", "max_trade_duration_bars", "payoff_ratio"]:
+            self.assertIn(name, fields)
+
+
 if __name__ == "__main__":
     unittest.main()

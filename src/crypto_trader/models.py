@@ -201,6 +201,10 @@ class BacktestResult:
     trade_log: list[TradeRecord]
     equity_curve: list[float]
     max_consecutive_losses: int = 0
+    max_consecutive_wins: int = 0
+    avg_trade_duration_bars: float = 0.0
+    max_trade_duration_bars: int = 0
+    payoff_ratio: float = 0.0
 
 
 @dataclass(slots=True)

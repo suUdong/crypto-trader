@@ -171,14 +171,35 @@ class BacktestEngine:
         max_drawdown = _max_drawdown(equity_curve)
         total_return_pct = (final_equity / self._config.initial_capital) - 1.0
 
-        max_consec = 0
-        current_consec = 0
+        # Streak analysis
+        max_consec_loss = 0
+        max_consec_win = 0
+        cur_loss = 0
+        cur_win = 0
         for trade in trades:
             if trade.pnl < 0:
-                current_consec += 1
-                max_consec = max(max_consec, current_consec)
+                cur_loss += 1
+                max_consec_loss = max(max_consec_loss, cur_loss)
+                cur_win = 0
             else:
-                current_consec = 0
+                cur_win += 1
+                max_consec_win = max(max_consec_win, cur_win)
+                cur_loss = 0
+
+        # Trade duration (in hours = bars for hourly candles)
+        durations = []
+        for trade in trades:
+            dt = trade.exit_time - trade.entry_time
+            durations.append(dt.total_seconds() / 3600.0)
+        avg_duration = sum(durations) / len(durations) if durations else 0.0
+        max_duration = int(max(durations)) if durations else 0
+
+        # Payoff ratio: avg win / avg loss
+        wins = [t.pnl for t in trades if t.pnl > 0]
+        losses = [abs(t.pnl) for t in trades if t.pnl < 0]
+        avg_win = sum(wins) / len(wins) if wins else 0.0
+        avg_loss = sum(losses) / len(losses) if losses else 0.0
+        payoff = avg_win / avg_loss if avg_loss > 0 else 0.0
 
         return BacktestResult(
             initial_capital=self._config.initial_capital,
@@ -189,7 +210,11 @@ class BacktestEngine:
             max_drawdown=max_drawdown,
             trade_log=trades,
             equity_curve=equity_curve,
-            max_consecutive_losses=max_consec,
+            max_consecutive_losses=max_consec_loss,
+            max_consecutive_wins=max_consec_win,
+            avg_trade_duration_bars=avg_duration,
+            max_trade_duration_bars=max_duration,
+            payoff_ratio=payoff,
         )
 
 

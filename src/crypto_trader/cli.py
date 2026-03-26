@@ -709,8 +709,12 @@ def main() -> None:
                 sym_pfs: list[float] = []
                 sym_mdds: list[float] = []
                 sym_wrs: list[float] = []
+                sym_payoffs: list[float] = []
+                sym_durations: list[float] = []
                 total_trades = 0
                 max_mcl = 0
+                max_mcw = 0
+                max_dur = 0
 
                 for sym, candles in candles_map.items():
                     bt_strategy = create_strategy(strat_name, config.strategy, config.regime)
@@ -734,8 +738,12 @@ def main() -> None:
                     sym_pfs.append(pf)
                     sym_mdds.append(bt_result.max_drawdown * 100)
                     sym_wrs.append(bt_result.win_rate * 100)
+                    sym_payoffs.append(bt_result.payoff_ratio)
+                    sym_durations.append(bt_result.avg_trade_duration_bars)
                     total_trades += len(bt_result.trade_log)
                     max_mcl = max(max_mcl, bt_result.max_consecutive_losses)
+                    max_mcw = max(max_mcw, bt_result.max_consecutive_wins)
+                    max_dur = max(max_dur, bt_result.max_trade_duration_bars)
 
                 n = len(sym_returns)
                 if n == 0:
@@ -766,6 +774,10 @@ def main() -> None:
                     "win_rate_pct": round(sum(sym_wrs) / n, 1),
                     "trade_count": total_trades,
                     "max_consecutive_losses": max_mcl,
+                    "max_consecutive_wins": max_mcw,
+                    "avg_trade_duration_bars": round(sum(sym_durations) / n, 1) if sym_durations else 0.0,
+                    "max_trade_duration_bars": max_dur,
+                    "payoff_ratio": round(sum(sym_payoffs) / n, 3) if sym_payoffs else 0.0,
                     "composite_score": round(composite, 3),
                 }
                 results_list.append(row)
