@@ -3,7 +3,7 @@
 Date: 2026-03-26 (FIRE Session #11)
 Branch: `master`
 
-## What Landed This Session (#11) — 15 Features, 49 New Tests, 4 Waves
+## What Landed This Session (#11) — 20 Features, 60 New Tests, 5 Waves
 
 ### Wave 1: Backtest Accuracy Fixes + Sharpe + MACD (21e78a3)
 - **BUG FIX**: `holding_bars` now passed to `exit_reason()` — time_decay_exit was dead code
@@ -28,19 +28,26 @@ Branch: `master`
 - **8 strategies** now available for consensus and backtest-all ranking
 - +10 tests (706)
 
-### Wave 4: Dynamic Risk + Sortino (this commit)
+### Wave 4: Dynamic Risk + Sortino (ec53a1f)
 - **Dynamic stop tightening**: after 3+ consecutive losses, stop tightens 20%
 - Sortino ratio added to `BacktestResult` (downside-only volatility)
 - +12 tests (718)
 
-## Impact on Trading
-- **Backtest accuracy**: Previous backtests were overly optimistic (time_decay, cooldown, auto_pause all non-functional). Re-run backtest-all for corrected results.
-- **Risk reduction**: Breakeven stop + dynamic stop tightening reduce drawdown on reversals and losing streaks
-- **Signal quality**: MACD confirmation on 4 strategies (composite, momentum, vol breakout, ema crossover)
-- **Strategy diversity**: 8 independent strategies for consensus voting and capital allocation
+### Wave 5: Calmar + Complete MACD Coverage (1f032a6)
+- Calmar ratio added to `BacktestResult` (annualized return / max drawdown)
+- MACD confirmation for MeanReversionStrategy — all 5 core strategies now have MACD
+- ema_crossover param grids added to grid-wf for optimization
+- +11 tests (729)
 
-## Available Strategies (8)
-momentum, mean_reversion, composite, volatility_breakout, vpin, obi, ema_crossover, kimchi_premium (+ consensus meta-strategy)
+## Impact on Trading
+- **Backtest accuracy**: 3 critical bugs fixed — previous results were overly optimistic
+- **Risk reduction**: Breakeven stop + dynamic stop tightening reduce drawdown
+- **Signal quality**: MACD confirmation on all 5 core strategies
+- **Strategy diversity**: 8 independent strategies + consensus meta-strategy
+- **Metrics completeness**: Sharpe, Sortino, Calmar all computed directly in BacktestResult
+
+## Available Strategies (8 + consensus)
+momentum, mean_reversion, composite, volatility_breakout, vpin, obi, ema_crossover, kimchi_premium
 
 ## Full Metrics on BacktestResult
 Sharpe, Sortino, Calmar, Profit Factor, Win Rate, Max Drawdown,
@@ -54,7 +61,7 @@ Expected Value per Trade, Recovery Factor, Tail Ratio
 - Session #7: Signal quality, risk management
 - Sessions #2-6: Core infrastructure
 
-## Validation: **718 passed, 3 skipped, 0 failures**
+## Validation: **729 passed, 3 skipped, 0 failures**
 
 ## Recommended Next Moves
 1. Re-run `crypto-trader backtest-all` — results differ due to 3 backtest bug fixes
