@@ -122,15 +122,6 @@ class EMACrossoverStrategy:
         except ValueError:
             pass
 
-        # Williams %R
-        wpr_value: float | None = None
-        try:
-            wpr_value = williams_percent_r(highs_list, lows_list, closes)
-        except ValueError:
-            pass
-        if wpr_value is not None:
-            indicators["williams_r"] = wpr_value
-
         # VWAP: price above VWAP = bullish bias for trend-following
         vwap_value: float | None = None
         try:
@@ -158,6 +149,15 @@ class EMACrossoverStrategy:
         except ValueError:
             pass
 
+        # Williams %R
+        wpr_value: float | None = None
+        try:
+            _h = [c.high for c in candles]
+            _l = [c.low for c in candles]
+            wpr_value = williams_percent_r(_h, _l, closes)
+        except ValueError:
+            pass
+
         indicators = {
             "ema_fast": fast_now,
             "ema_slow": slow_now,
@@ -180,6 +180,8 @@ class EMACrossoverStrategy:
             indicators["keltner_upper"] = kc_upper
         if cmf_value is not None:
             indicators["cmf"] = cmf_value
+        if wpr_value is not None:
+            indicators["williams_r"] = wpr_value
         context = {"strategy": "ema_crossover", "market_regime": regime.value}
 
         if position is not None:
@@ -204,6 +206,7 @@ class EMACrossoverStrategy:
             vwap_value=vwap_value,
             kc_upper=kc_upper,
             cmf_value=cmf_value,
+            wpr_value=wpr_value,
         )
 
     def _evaluate_entry(
@@ -224,6 +227,7 @@ class EMACrossoverStrategy:
         vwap_value: float | None = None,
         kc_upper: float | None = None,
         cmf_value: float | None = None,
+        wpr_value: float | None = None,
     ) -> Signal:
         cfg = effective or self._config
         # Noise ratio filter: skip entries in choppy markets (high whipsaw risk)
@@ -284,6 +288,9 @@ class EMACrossoverStrategy:
             # CMF buying pressure confirms crossover
             if cmf_value is not None and cmf_value > 0.1:
                 base_conf = min(1.0, base_conf + 0.05)
+            # Williams %R not overbought confirms entry has room to run
+            if wpr_value is not None and wpr_value < -20.0:
+                base_conf = min(1.0, base_conf + 0.03)
             return Signal(
                 action=SignalAction.BUY,
                 reason="ema_crossover_buy",

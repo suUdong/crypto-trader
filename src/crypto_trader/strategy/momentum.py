@@ -14,6 +14,7 @@ from crypto_trader.strategy.indicators import (
     rolling_vwap,
     rsi,
     volume_sma,
+    williams_percent_r,
 )
 from crypto_trader.strategy.regime import RegimeDetector
 
@@ -100,6 +101,14 @@ class MomentumStrategy:
         try:
             kc_upper, _, _ = keltner_channels(highs, lows, closes)
             indicators["keltner_upper"] = kc_upper
+        except ValueError:
+            pass
+
+        # Williams %R: overbought/oversold context
+        wpr_value: float | None = None
+        try:
+            wpr_value = williams_percent_r(highs, lows, closes)
+            indicators["williams_r"] = wpr_value
         except ValueError:
             pass
 
@@ -230,6 +239,15 @@ class MomentumStrategy:
                 action=SignalAction.SELL,
                 reason="rsi_overbought",
                 confidence=min(1.0, rsi_value / 100.0),
+                indicators=indicators,
+                context=context,
+            )
+        # Williams %R extreme overbought exit
+        if wpr_value is not None and wpr_value > -5.0:
+            return Signal(
+                action=SignalAction.SELL,
+                reason="williams_r_overbought",
+                confidence=0.75,
                 indicators=indicators,
                 context=context,
             )
