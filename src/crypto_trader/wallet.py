@@ -25,6 +25,7 @@ from crypto_trader.models import (
 )
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
+from crypto_trader.strategy.consensus import ConsensusStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
@@ -67,6 +68,15 @@ def create_strategy(
             ma_filter_period=strategy_config.ma_filter_period,
             max_holding_bars=strategy_config.max_holding_bars,
         )
+    if strategy_type == "consensus":
+        sub_strategy_names = params.get("sub_strategies", ["momentum", "vpin"])
+        min_agree = int(params.get("min_agree", 2))
+        sub_strategies = [
+            create_strategy(name, strategy_config, regime_config)
+            for name in sub_strategy_names
+            if name != "consensus"  # prevent recursion
+        ]
+        return ConsensusStrategy(sub_strategies, min_agree=min_agree)
     return CompositeStrategy(strategy_config, regime_config)
 
 

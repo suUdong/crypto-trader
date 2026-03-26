@@ -183,6 +183,60 @@ take_profit_pct = 0.04
 risk_per_trade_pct = 0.015
 atr_stop_multiplier = 3.0
 
+# --- Volatility breakout wallets (Larry Williams-style breakout) ---
+
+[[wallets]]
+name = "vbreak_btc_wallet"
+strategy = "volatility_breakout"
+initial_capital = 1_000_000.0
+symbols = ["KRW-BTC"]
+# BTC volatility breakout with tight k for trend-following
+[wallets.strategy_overrides]
+k_base = 0.5
+noise_lookback = 20
+ma_filter_period = 20
+max_holding_bars = 36
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.01
+
+[[wallets]]
+name = "vbreak_eth_wallet"
+strategy = "volatility_breakout"
+initial_capital = 1_000_000.0
+symbols = ["KRW-ETH"]
+# ETH volatility breakout — wider range for higher volatility
+[wallets.strategy_overrides]
+k_base = 0.3
+noise_lookback = 15
+ma_filter_period = 15
+max_holding_bars = 36
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.015
+atr_stop_multiplier = 3.0
+
+# --- Consensus wallet (multi-strategy agreement filter) ---
+
+[[wallets]]
+name = "consensus_btc_wallet"
+strategy = "consensus"
+initial_capital = 1_000_000.0
+symbols = ["KRW-BTC"]
+# Only enters when both momentum AND vpin agree — higher confidence trades
+[wallets.strategy_overrides]
+sub_strategies = ["momentum", "vpin"]
+min_agree = 2
+momentum_lookback = 15
+rsi_period = 14
+max_holding_bars = 48
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.015
+
 [credentials]
 upbit_access_key = ""
 upbit_secret_key = ""

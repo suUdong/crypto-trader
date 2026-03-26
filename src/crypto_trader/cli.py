@@ -62,6 +62,7 @@ def main() -> None:
             "micro-live-check",
             "rebalance-capital",
             "walk-forward",
+            "grid-wf",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -70,6 +71,7 @@ def main() -> None:
         choices=[
             "momentum", "mean_reversion", "composite",
             "kimchi_premium", "obi", "vpin", "volatility_breakout",
+            "consensus",
         ],
         default="composite",
         help="Strategy type for backtest (default: composite)",
@@ -85,6 +87,13 @@ def main() -> None:
         type=int,
         default=90,
         help="Number of days for walk-forward validation (default: 90)",
+    )
+    parser.add_argument(
+        "--top-n",
+        type=int,
+        default=5,
+        dest="top_n",
+        help="Number of top grid search candidates to validate (default: 5)",
     )
     args = parser.parse_args()
 
@@ -397,6 +406,70 @@ def main() -> None:
         overall = "PASS" if all_passed else "FAIL"
         print(f"  Overall: [{overall}]")
         print(f"{'='*60}\n")
+        return
+
+    if args.command == "grid-wf":
+        from crypto_trader.backtest.grid_wf import run_grid_wf
+
+        strategy_type = args.strategy
+        days = args.days
+        top_n = args.top_n
+        symbols = config.trading.symbols
+
+        # Fetch candles
+        candles_map: dict[str, list] = {}
+        for sym in symbols:
+            try:
+                c = market_data.get_ohlcv(sym, interval=config.trading.interval, count=days * 24)
+                if c and len(c) >= 100:
+                    candles_map[sym] = c
+            except Exception as e:
+                print(f"  Skipping {sym}: {e}")
+
+        if not candles_map:
+            print("No candle data available for grid-wf.")
+            return
+
+        print(f"\n{'='*60}")
+        print(f"  GRID-WF: {strategy_type} ({days}d, top-{top_n})")
+        print(f"{'='*60}")
+
+        summary = run_grid_wf(
+            strategy_type=strategy_type,
+            candles_by_symbol=candles_map,
+            top_n=top_n,
+            backtest_config=config.backtest,
+            risk_config=config.risk,
+        )
+
+        print(f"\n  Candidates tested: {summary.candidates_tested}")
+        print(f"  Candidates validated (WF pass): {summary.candidates_validated}")
+
+        print(f"\n  {'Rank':<5} {'Sharpe':>8} {'Return%':>9} {'Trades':>7} {'WF':>6} {'EffR':>7} {'OOS WR':>7}")
+        print(f"  {'-'*50}")
+        for i, r in enumerate(summary.results, 1):
+            wf_status = "PASS" if r.validated else "FAIL"
+            eff_r = r.wf_report.avg_efficiency_ratio
+            oos_wr = r.wf_report.oos_win_rate
+            print(
+                f"  #{i:<4} {r.candidate.avg_sharpe:>7.2f} "
+                f"{r.candidate.avg_return_pct:>+8.2f}% "
+                f"{r.candidate.total_trades:>7} "
+                f"[{wf_status}] "
+                f"{eff_r:>6.3f} "
+                f"{oos_wr:>6.1%}"
+            )
+            print(f"         params: {r.candidate.params}")
+
+        best = summary.best_validated
+        if best:
+            print(f"\n  BEST VALIDATED: Sharpe={best.candidate.avg_sharpe:.2f} "
+                  f"Return={best.candidate.avg_return_pct:+.2f}%")
+            print(f"  Params: {best.candidate.params}")
+        else:
+            print("\n  No candidates passed walk-forward validation.")
+
+        print(f"\n{'='*60}\n")
         return
 
     if args.command == "run-multi":

@@ -157,6 +157,7 @@ _STRATEGY_FIELD_NAMES = {field.name for field in fields(StrategyConfig)}
 _RISK_FIELD_NAMES = {field.name for field in fields(RiskConfig)}
 _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
     "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
+    "consensus": {"sub_strategies", "min_agree"},
 }
 
 
@@ -736,6 +737,7 @@ def _validate_config(config: AppConfig) -> None:
         "obi",
         "vpin",
         "volatility_breakout",
+        "consensus",
     }
     for wc in config.wallets:
         if not wc.name.strip():
