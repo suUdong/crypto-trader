@@ -1,79 +1,71 @@
 # Session Handoff
 
-Date: 2026-03-26 (FIRE Session #12 — Final)
+Date: 2026-03-27 (FIRE Session #13)
 Branch: `master`
 
-## What Landed This Session (#12) — 11 Waves, 175+ New Tests
+## What Landed This Session (#13) — Daemon Resilience & Promotion Infrastructure
 
-### Wave 12: Entry Quality Enhancement +18 tests
-- All strategies: ADX filter + volume confirmation
-- Backtest engine: confidence gate, noise ratio filter
+### Position Persistence Across Restarts
+- Daemon now restores wallet positions, cash, realized_pnl from checkpoint on startup
+- Checkpoint enriched with full position details (symbol, qty, entry_price, entry_time, fees)
+- Critical for promotion gate evidence accumulation
 
-### Wave 13: Regime Awareness & Backtest Accuracy +13 tests
-- EMA crossover: full regime awareness
-- Momentum: EMA(50) macro trend, backtest: true partial TP
+### PortfolioPromotionGate (Multi-Wallet)
+- New `PortfolioPromotionGate` class evaluates promotion readiness across all 9 wallets
+- Criteria: 7d paper trading, 10+ trades, 2+ profitable wallets, positive portfolio return
+- `PortfolioPromotionDecision` dataclass with per-wallet breakdown
+- New `portfolio-gate` CLI command for portfolio-level gate check
 
-### Wave 14-15: Volume Confirmation + Cross-Strategy Expansion +37 tests
-- OBV indicator + OBV slope, grid param expansion
-- All strategies: OBV, EMA(50), regime parity
+### Periodic Artifact Refresh in Daemon
+- Every 60 iterations (~1 hour): auto-refresh drift-report, promotion-gate, positions
+- Eliminates stale artifact problem identified in Session #12
 
-### Wave 16: Strategy Filter Parity +11 tests
-- MR: volume + OBV, VolBreakout: regime awareness
+### Correlation Guard
+- `CorrelationGuard` prevents over-exposure to correlated assets (BTC/ETH/SOL/XRP cluster)
+- Max 4 wallets with simultaneous positions in same cluster
+- Integrated into daemon `_run_tick` — wallets with no position skip entry when cluster full
 
-### Wave 17: Consensus Enhancement + Analytics +8 tests
-- Weighted confidence, agreement ratio, regime breakdown in BacktestResult
+### CLI Improvements
+- `refresh-artifacts` command: regenerate all stale artifacts at once
+- `portfolio-gate` command: portfolio-level promotion readiness check
+- Fixed `--strategy` flag being ignored (was hardcoded to CompositeStrategy)
 
-### Wave 18: VWAP + Walk-Forward Scoring +12 tests
-- VWAP in all strategies, WF OOS profit factor + Sharpe
+### Tests: +14 new tests
+- 7 tests for PortfolioPromotionGate (missing checkpoint, criteria checks, save/load, per-wallet)
+- 7 tests for CorrelationGuard (exposure limits, clusters, unknown symbols)
 
-### Wave 19: Max Drawdown Duration + Keltner Channels +28 tests
-- Keltner Channels indicator, max_drawdown_duration_bars
-
-### Wave 20-22: Keltner + CMF Integration +48 tests
-- Keltner + CMF wired into all 5 strategies
-- MR: CMF capitulation logic, Keltner lower touch
-
-### Wave 23: Final Parity
-- Momentum: noise ratio (low noise = strong trend boost)
-
-## Cumulative (Session #11 + #12)
+## Cumulative (Session #11 + #12 + #13)
 
 ### Key Stats
-- **22 Waves** across 2 sessions
-- **962+ tests passed**, 3 skipped, 0 failures
-- **8 strategies** + consensus
-- **10 indicators**: MACD, ADX, OBV, VWAP, Keltner, CMF, noise ratio, StochRSI, RSI divergence, BB width
-- **9 risk controls**: breakeven, dynamic stop, profit-lock, portfolio heat, cooldown, auto-pause, frequency limiter, confidence gate, partial TP
+- **1000 tests passed**, 3 skipped, 0 failures
+- **8 strategies** + consensus across 9 wallets, 4 symbols
+- **10 indicators**, **9 risk controls** + correlation guard
+- Position persistence across daemon restarts
+- Auto-refreshing artifacts every ~1 hour
 
-### COMPLETE Strategy Filter Coverage
-| Filter | Composite | Momentum | MeanRev | VolBreakout | EMA Cross |
-|--------|-----------|----------|---------|-------------|-----------|
-| MACD | Y | Y | Y | Y | Y |
-| ADX | Y | Y | Y | Y | Y |
-| Volume | Y | Y | Y | Y | Y |
-| OBV | Y | Y | Y | Y | Y |
-| EMA(50) | Y | Y | Y | Y | Y |
-| Regime | Y | Y | Y | Y | Y |
-| VWAP | Y | Y | Y | Y | Y |
-| Keltner | Y | Y | Y | Y | Y |
-| CMF | Y | Y | Y | Y | Y |
-| Noise Ratio | Y | Y | Y | Y | Y |
-| StochRSI | - | - | - | - | Y |
-| RSI Div | - | - | Y | - | - |
-| BB Squeeze | - | - | - | Y | - |
+### Promotion Gate Progress (as of 2026-03-27)
+| Criterion | Required | Status |
+|-----------|----------|--------|
+| Backtest return > 0 | > 0% | **PASS** (+3.57%) |
+| Backtest MDD <= 20% | <= 20% | **PASS** (0.37%) |
+| Paper runs >= 5 | >= 5 | **PASS** (20 runs) |
+| Drift status | on_track | **PASS** |
+| Latest verdict | continue | **PASS** |
+| Paper realized PnL > 0 | > 0 | **FAIL** (0 closed trades) |
 
-### BacktestResult Analytics
-- Sharpe, Sortino, Calmar, RAR, recovery, tail ratios
-- avg_entry_confidence, high/low confidence win rates
-- exit_reason_counts + exit_reason_avg_pnl breakdown
-- Per-regime breakdown, max_drawdown_duration_bars
-- entry_confidence on every TradeRecord
+**5/6 green** — only realized PnL remains. With position persistence, trades will now accumulate across restarts.
 
-## Validation: **962+ passed, 3 skipped, 0 failures**
+### Daemon Status
+- 9 wallets: momentum(2) + kimchi(1) + vpin(3) + vbreak(2) + consensus(1)
+- 4 symbols: KRW-BTC, KRW-ETH, KRW-XRP, KRW-SOL
+- Portfolio: 9,000,000 KRW starting capital
+- Market regime: sideways (most strategies holding)
+- 1 open position: kimchi_premium BTC
 
 ## Recommended Next Moves
-1. `crypto-trader backtest-all` -> re-rank with all new filters
-2. `crypto-trader grid-wf-all --days 90 --top-n 5` -> optimize params
-3. Paper trade 7 days -> micro-live gate by Apr 2
-4. Add correlation guard for multi-symbol portfolio
+1. **Wait for trades to close** → promotion gate 5/6 → 6/6 (position persistence now accumulates evidence)
+2. `crypto-trader backtest-all` → re-rank strategies with all 10 filters
+3. `crypto-trader grid-wf-all --days 90 --top-n 5` → optimize per-symbol params
+4. Paper trade 7 days → micro-live gate by Apr 2
 5. Tune per-symbol ADX/noise thresholds via walk-forward
+6. Add EMA crossover + mean_reversion wallets to daemon config
