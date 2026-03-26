@@ -26,5 +26,9 @@ class StrategyRunJournal:
         for line in recent:
             payload = json.loads(line)
             payload.setdefault("market_regime", None)
+            payload.setdefault("wallet_name", "")
+            payload.setdefault("strategy_type", "")
+            payload.setdefault("signal_indicators", {})
+            payload.setdefault("signal_context", {})
             records.append(StrategyRunRecord(**payload))
         return records

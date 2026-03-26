@@ -270,6 +270,8 @@ class StrategyRunRecord:
     verdict_reasons: list[str] = field(default_factory=list)
     wallet_name: str = ""
     strategy_type: str = ""
+    signal_indicators: dict[str, float] = field(default_factory=dict)
+    signal_context: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

@@ -229,6 +229,8 @@ class MultiSymbolRuntime:
                     verdict_confidence=1.0,
                     wallet_name=wallet.name,
                     strategy_type=wallet.strategy_type,
+                    signal_indicators=result.signal.indicators,
+                    signal_context=result.signal.context,
                 )
                 self._strategy_run_journal.append(record)
 

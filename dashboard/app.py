@@ -341,8 +341,10 @@ with tab_signals:
         st.info("최근 시그널 기록이 없습니다.")
     else:
         ACTION_KR = {"buy": "매수", "sell": "매도", "hold": "관망"}
-        st.markdown(f"#### 시그널 히스토리 ({len(runs)}건)")
-        for run in reversed(runs[-50:]):
+        hide_hold = st.checkbox("관망(hold) 숨기기", value=True)
+        filtered = [r for r in runs if not (hide_hold and r.get("signal_action") == "hold")]
+        st.markdown(f"#### 시그널 히스토리 ({len(filtered)}건 / 전체 {len(runs)}건)")
+        for run in reversed(filtered[-50:]):
             ts = run.get("recorded_at", "")[:19]
             action = run.get("signal_action", "hold")
             symbol = run.get("symbol", "?")
@@ -350,6 +352,7 @@ with tab_signals:
             regime = run.get("market_regime", "")
             reason = run.get("signal_reason", "")
             confidence = run.get("signal_confidence", 0)
+            wallet = run.get("wallet_name", "")
 
             action_kr = ACTION_KR.get(action, action)
             if action == "buy":
@@ -362,10 +365,12 @@ with tab_signals:
                 css_cls = "signal-hold"
                 icon = "⚪"
 
+            wallet_display = f" · {strategy_kr(wallet)}" if wallet else ""
             st.markdown(
                 f'<div class="signal-row">'
                 f'{icon} <span class="{css_cls}">{action_kr}</span> '
                 f"<strong>{symbol_kr(symbol)}</strong> ₩{price:,.0f} · {reason} · 신뢰도 {confidence:.0%}"
+                f"{wallet_display}"
                 f'<br><span style="color:#666;font-size:0.8125rem">'
                 f"{ts} · {regime_kr(regime)}</span>"
                 f"</div>",
