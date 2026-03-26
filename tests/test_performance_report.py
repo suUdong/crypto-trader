@@ -129,13 +129,31 @@ class TestGenerateReport(unittest.TestCase):
     def test_report_has_artifact_health_section(self) -> None:
         md = generate_performance_report(self.checkpoint, self.journal)
         self.assertIn("## Artifact Health", md)
-        self.assertIn("CONSISTENT", md)
+        self.assertIn("HEALTHY", md)
 
     def test_report_warns_when_heartbeat_missing(self) -> None:
         self.heartbeat.unlink()
         md = generate_performance_report(self.checkpoint, self.journal)
         self.assertIn("WARNING (missing_heartbeat)", md)
         self.assertIn("point-in-time diagnostic summary", md)
+
+    def test_report_warns_when_artifacts_are_stale(self) -> None:
+        stale_ts = "2026-03-20T00:00:00+00:00"
+        _write_checkpoint(self.checkpoint, generated_at=stale_ts)
+        self.heartbeat.write_text(json.dumps({
+            "last_heartbeat": stale_ts,
+            "pid": 1234,
+            "iteration": 50,
+            "uptime_seconds": 120.0,
+            "poll_interval_seconds": 60,
+            "session_id": "session-123",
+            "config_path": "config/test.toml",
+            "symbols": ["KRW-BTC", "KRW-ETH"],
+            "wallet_names": ["momentum_wallet", "mean_reversion_wallet", "obi_wallet"],
+        }), encoding="utf-8")
+        md = generate_performance_report(self.checkpoint, self.journal)
+        self.assertIn("WARNING (stale_artifacts)", md)
+        self.assertIn("Freshness status | stale_artifacts |", md)
 
 
 class TestComputePaperDays(unittest.TestCase):
@@ -311,12 +329,38 @@ class TestArtifactHealthSection(unittest.TestCase):
             source_session_id="session-a",
             heartbeat_generated_at="2026-03-26T00:00:05+00:00",
             heartbeat_session_id="session-b",
+            heartbeat_poll_interval_seconds=60,
             artifact_consistency_status="session_mismatch",
             artifact_consistency_reason="checkpoint and heartbeat session ids differ",
         )
         section = build_artifact_health_section(report)
         self.assertIn("WARNING (session_mismatch)", section)
         self.assertIn("checkpoint and heartbeat session ids differ", section)
+
+    def test_health_section_warns_on_stale_heartbeat(self) -> None:
+        report = PortfolioPnLReport(
+            generated_at="2026-03-26T01:00:00+00:00",
+            period="72h",
+            strategies=[],
+            portfolio_return_pct=0.0,
+            portfolio_sharpe=0.0,
+            portfolio_mdd=0.0,
+            portfolio_win_rate=0.0,
+            total_trades=0,
+            total_realized_pnl=0.0,
+            total_equity=0.0,
+            total_initial_capital=0.0,
+            source_generated_at="2026-03-26T00:59:00+00:00",
+            source_session_id="session-a",
+            heartbeat_generated_at="2026-03-26T00:40:00+00:00",
+            heartbeat_session_id="session-a",
+            heartbeat_poll_interval_seconds=60,
+            artifact_consistency_status="consistent",
+            artifact_consistency_reason="checkpoint and heartbeat align",
+        )
+        section = build_artifact_health_section(report)
+        self.assertIn("WARNING (stale_heartbeat)", section)
+        self.assertIn("Heartbeat age | 20m 0s (stale)", section)
 
 
 if __name__ == "__main__":

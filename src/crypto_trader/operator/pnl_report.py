@@ -46,6 +46,7 @@ class PortfolioPnLReport:
     source_symbols: list[str] = field(default_factory=list)
     heartbeat_generated_at: str = ""
     heartbeat_session_id: str = ""
+    heartbeat_poll_interval_seconds: int = 0
     artifact_consistency_status: str = "unknown"
     artifact_consistency_reason: str = ""
 
@@ -82,6 +83,7 @@ class PnLReportGenerator:
         (
             heartbeat_generated_at,
             heartbeat_session_id,
+            heartbeat_poll_interval_seconds,
             artifact_consistency_status,
             artifact_consistency_reason,
         ) = self._resolve_artifact_consistency(
@@ -215,6 +217,7 @@ class PnLReportGenerator:
             source_symbols=source_symbols,
             heartbeat_generated_at=heartbeat_generated_at,
             heartbeat_session_id=heartbeat_session_id,
+            heartbeat_poll_interval_seconds=heartbeat_poll_interval_seconds,
             artifact_consistency_status=artifact_consistency_status,
             artifact_consistency_reason=artifact_consistency_reason,
         )
@@ -250,6 +253,7 @@ class PnLReportGenerator:
             f"| Symbols | {', '.join(report.source_symbols) or 'n/a'} |",
             f"| Heartbeat Generated | {report.heartbeat_generated_at or 'n/a'} |",
             f"| Heartbeat Session | {report.heartbeat_session_id or 'n/a'} |",
+            f"| Heartbeat Poll Interval | {report.heartbeat_poll_interval_seconds or 'n/a'} |",
             f"| Consistency | {report.artifact_consistency_status} |",
             f"| Consistency Reason | {report.artifact_consistency_reason or 'n/a'} |",
             "",
@@ -311,6 +315,7 @@ class PnLReportGenerator:
                 "symbols": report.source_symbols,
                 "heartbeat_generated_at": report.heartbeat_generated_at,
                 "heartbeat_session_id": report.heartbeat_session_id,
+                "heartbeat_poll_interval_seconds": report.heartbeat_poll_interval_seconds,
                 "consistency_status": report.artifact_consistency_status,
                 "consistency_reason": report.artifact_consistency_reason,
             },
@@ -356,19 +361,20 @@ class PnLReportGenerator:
         checkpoint_session_id: str,
         checkpoint_wallet_names: list[str],
         checkpoint_symbols: list[str],
-    ) -> tuple[str, str, str, str]:
+    ) -> tuple[str, str, int, str, str]:
         heartbeat_path = checkpoint_path.parent / "daemon-heartbeat.json"
         if not checkpoint_session_id:
-            return "", "", "legacy_checkpoint", "checkpoint missing session metadata"
+            return "", "", 0, "legacy_checkpoint", "checkpoint missing session metadata"
         if not heartbeat_path.exists():
-            return "", "", "missing_heartbeat", "heartbeat artifact missing"
+            return "", "", 0, "missing_heartbeat", "heartbeat artifact missing"
 
         try:
             heartbeat = json.loads(heartbeat_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            return "", "", "invalid_heartbeat", "heartbeat JSON is invalid"
+            return "", "", 0, "invalid_heartbeat", "heartbeat JSON is invalid"
         heartbeat_generated_at = str(heartbeat.get("last_heartbeat", ""))
         heartbeat_session_id = str(heartbeat.get("session_id", ""))
+        heartbeat_poll_interval_seconds = int(heartbeat.get("poll_interval_seconds", 0) or 0)
         heartbeat_wallet_names = list(heartbeat.get("wallet_names", []))
         heartbeat_symbols = list(heartbeat.get("symbols", []))
 
@@ -376,6 +382,7 @@ class PnLReportGenerator:
             return (
                 heartbeat_generated_at,
                 heartbeat_session_id,
+                heartbeat_poll_interval_seconds,
                 "session_mismatch",
                 "checkpoint and heartbeat session ids differ",
             )
@@ -383,6 +390,7 @@ class PnLReportGenerator:
             return (
                 heartbeat_generated_at,
                 heartbeat_session_id,
+                heartbeat_poll_interval_seconds,
                 "wallet_mismatch",
                 "checkpoint and heartbeat wallet sets differ",
             )
@@ -390,10 +398,17 @@ class PnLReportGenerator:
             return (
                 heartbeat_generated_at,
                 heartbeat_session_id,
+                heartbeat_poll_interval_seconds,
                 "symbol_mismatch",
                 "checkpoint and heartbeat symbol sets differ",
             )
-        return heartbeat_generated_at, heartbeat_session_id, "consistent", "checkpoint and heartbeat align"
+        return (
+            heartbeat_generated_at,
+            heartbeat_session_id,
+            heartbeat_poll_interval_seconds,
+            "consistent",
+            "checkpoint and heartbeat align",
+        )
 
     @staticmethod
     def _approx_sharpe_from_return(return_pct: float, period: str) -> float:
