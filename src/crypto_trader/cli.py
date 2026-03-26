@@ -673,7 +673,7 @@ def main() -> None:
     if args.command == "backtest-all":
         import json
         from datetime import date
-        from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino, _approx_calmar, kelly_fraction
+        from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino, _approx_calmar, kelly_fraction, bootstrap_return_ci
 
         all_strategies = [
             "momentum", "mean_reversion", "vpin", "volatility_breakout",
@@ -716,6 +716,7 @@ def main() -> None:
                 sym_recoveries: list[float] = []
                 sym_tails: list[float] = []
                 sym_durations: list[float] = []
+                all_trade_returns: list[float] = []
                 total_trades = 0
                 max_mcl = 0
                 max_mcw = 0
@@ -748,6 +749,7 @@ def main() -> None:
                     sym_recoveries.append(bt_result.recovery_factor)
                     sym_tails.append(bt_result.tail_ratio)
                     sym_durations.append(bt_result.avg_trade_duration_bars)
+                    all_trade_returns.extend(t.pnl_pct for t in bt_result.trade_log)
                     total_trades += len(bt_result.trade_log)
                     max_mcl = max(max_mcl, bt_result.max_consecutive_losses)
                     max_mcw = max(max_mcw, bt_result.max_consecutive_wins)
@@ -789,6 +791,8 @@ def main() -> None:
                     "expected_value_per_trade": round(sum(sym_evs) / n, 2) if sym_evs else 0.0,
                     "recovery_factor": round(sum(sym_recoveries) / n, 3) if sym_recoveries else 0.0,
                     "tail_ratio": round(sum(sym_tails) / n, 3) if sym_tails else 0.0,
+                    "return_ci_5": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[0] * 100, 3) if all_trade_returns else 0.0,
+                    "return_ci_95": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[1] * 100, 3) if all_trade_returns else 0.0,
                     "kelly_fraction": round(kelly_fraction(sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0), 4),
                     "composite_score": round(composite, 3),
                 }

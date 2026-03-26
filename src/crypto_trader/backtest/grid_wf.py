@@ -97,6 +97,35 @@ def _approx_sharpe(equity_curve: list[float]) -> float:
     return (mean_r / std_r) * (8760**0.5)
 
 
+def bootstrap_return_ci(
+    trade_returns: list[float],
+    n_samples: int = 1000,
+    ci_low: float = 0.05,
+    ci_high: float = 0.95,
+) -> tuple[float, float]:
+    """Bootstrap resample trade returns to estimate confidence interval.
+
+    Returns (5th percentile, 95th percentile) of resampled mean returns.
+    """
+    import random
+
+    if not trade_returns:
+        return 0.0, 0.0
+    if len(trade_returns) == 1:
+        return trade_returns[0], trade_returns[0]
+
+    n = len(trade_returns)
+    means: list[float] = []
+    for _ in range(n_samples):
+        sample = random.choices(trade_returns, k=n)
+        means.append(sum(sample) / n)
+
+    means.sort()
+    idx_low = max(0, int(len(means) * ci_low))
+    idx_high = min(len(means) - 1, int(len(means) * ci_high))
+    return means[idx_low], means[idx_high]
+
+
 def kelly_fraction(win_rate: float, payoff_ratio: float) -> float:
     """Kelly criterion optimal fraction: f* = W - (1-W)/R.
 
