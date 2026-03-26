@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, cast
+
+import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 
@@ -87,8 +92,12 @@ def _load_json(filename: str) -> dict[str, Any] | None:
     path = ARTIFACTS_DIR / filename
     if not path.exists():
         return None
-    with open(path) as f:
-        return cast(dict[str, Any], json.load(f))
+    try:
+        with open(path) as f:
+            return cast(dict[str, Any], json.load(f))
+    except (json.JSONDecodeError, ValueError):
+        logger.warning("Corrupted JSON: %s", path)
+        return None
 
 
 def _load_jsonl(filename: str) -> list[dict[str, Any]]:
@@ -114,61 +123,76 @@ def _load_md(filename: str) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
+@st.cache_data(ttl=30)
 def load_checkpoint() -> dict[str, Any] | None:
     return _load_json("runtime-checkpoint.json")
 
 
+@st.cache_data(ttl=30)
 def load_positions() -> dict[str, Any] | None:
     return _load_json("positions.json")
 
 
+@st.cache_data(ttl=30)
 def load_health() -> dict[str, Any] | None:
     return _load_json("health.json")
 
 
+@st.cache_data(ttl=30)
 def load_regime_report() -> dict[str, Any] | None:
     return _load_json("regime-report.json")
 
 
+@st.cache_data(ttl=30)
 def load_drift_report() -> dict[str, Any] | None:
     return _load_json("drift-report.json")
 
 
+@st.cache_data(ttl=30)
 def load_promotion_gate() -> dict[str, Any] | None:
     return _load_json("promotion-gate.json")
 
 
+@st.cache_data(ttl=30)
 def load_drift_calibration() -> dict[str, Any] | None:
     return _load_json("drift-calibration.json")
 
 
+@st.cache_data(ttl=30)
 def load_backtest_baseline() -> dict[str, Any] | None:
     return _load_json("backtest-baseline.json")
 
 
+@st.cache_data(ttl=30)
 def load_daily_performance() -> dict[str, Any] | None:
     return _load_json("daily-performance.json")
 
 
+@st.cache_data(ttl=30)
 def load_strategy_runs() -> list[dict[str, Any]]:
     return _load_jsonl("strategy-runs.jsonl")
 
 
+@st.cache_data(ttl=60)
 def load_daily_memo() -> str | None:
     return _load_md("daily-memo.md")
 
 
+@st.cache_data(ttl=60)
 def load_operator_report() -> str | None:
     return _load_md("operator-report.md")
 
 
+@st.cache_data(ttl=15)
 def load_daemon_heartbeat() -> dict[str, Any] | None:
     return _load_json("daemon-heartbeat.json")
 
 
+@st.cache_data(ttl=30)
 def load_kill_switch() -> dict[str, Any] | None:
     return _load_json("kill-switch.json")
 
 
+@st.cache_data(ttl=30)
 def load_pnl_report() -> dict[str, Any] | None:
     return _load_json("pnl-report.json")
