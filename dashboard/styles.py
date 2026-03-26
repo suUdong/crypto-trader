@@ -25,7 +25,7 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     font-size: 1rem !important;
 }
 
-/* ── Tab Navigation ── */
+/* ── Tab Navigation: horizontal scroll on mobile ── */
 [data-testid="stTabs"] [role="tablist"] {
     gap: 0 !important;
     overflow-x: auto;
@@ -49,14 +49,28 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
     padding: 1rem;
+    min-width: 0;
+    overflow: hidden;
 }
 [data-testid="stMetricLabel"] {
     font-size: 0.8125rem !important;
     color: #888 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 [data-testid="stMetricValue"] {
     font-size: 1.5rem !important;
     font-weight: 700 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+[data-testid="stMetricDelta"] {
+    font-size: 0.75rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ── Status Badges ── */
@@ -89,8 +103,71 @@ button, [role="tab"], .stSelectbox, .stButton > button {
 .signal-sell { color: #f87171; font-weight: 600; }
 .signal-hold { color: #9ca3af; }
 
+/* ── Signal timeline compact on mobile ── */
+.signal-row {
+    padding: 0.5rem 0;
+    line-height: 1.5;
+    font-size: 0.9375rem;
+}
+
+/* ── DataFrames: horizontal scroll, compact font ── */
+[data-testid="stDataFrame"], .dataframe-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.8125rem !important;
+}
+[data-testid="stDataFrame"] table {
+    font-size: 0.8125rem !important;
+    min-width: 100%;
+}
+
+/* ── Position cards: full-width on mobile ── */
+.position-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+    font-size: 0.9375rem;
+}
+
 /* ── Responsive Breakpoints ── */
-/* Mobile < 600px (Galaxy Z Fold7 cover: 375px) */
+
+/* Galaxy Z Fold7 커버 (375px) */
+@media (max-width: 375px) {
+    .block-container {
+        max-width: 100% !important;
+        padding: 0.375rem !important;
+    }
+    [data-testid="stTabs"] [role="tab"] {
+        padding: 0.375rem 0.4rem !important;
+        font-size: 0.6875rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.6875rem !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: 0.625rem !important;
+    }
+    /* 컬럼 스택 (3컬럼 → 1컬럼) */
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+    .signal-row { font-size: 0.8125rem; }
+    h2, h3 { font-size: 1.1rem !important; }
+    h4 { font-size: 0.9375rem !important; }
+}
+
+/* Mobile 일반 < 600px */
 @media (max-width: 599px) {
     .block-container {
         max-width: 100% !important;
@@ -101,15 +178,46 @@ button, [role="tab"], .stSelectbox, .stButton > button {
         font-size: 0.75rem !important;
     }
     [data-testid="stMetricValue"] {
-        font-size: 1.25rem !important;
+        font-size: 1.125rem !important;
     }
+    [data-testid="stMetricDelta"] {
+        font-size: 0.6875rem !important;
+    }
+    /* 3컬럼 → 1컬럼 스택 */
     [data-testid="stHorizontalBlock"] {
         flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+    .js-plotly-plot .plotly {
+        height: 220px !important;
     }
 }
 
-/* Tablet 600-960px (Galaxy Z Fold7 inner: 600px) */
-@media (min-width: 600px) and (max-width: 959px) {
+/* Galaxy Z Fold7 내부 (600px) / 태블릿 600-768px */
+@media (min-width: 600px) and (max-width: 768px) {
+    .block-container {
+        max-width: 100% !important;
+        padding: 0.75rem !important;
+    }
+    /* 3컬럼 → 2컬럼 */
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
+        flex: 1 1 calc(50% - 0.5rem) !important;
+        min-width: calc(50% - 0.5rem) !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* 태블릿 768-960px */
+@media (min-width: 769px) and (max-width: 959px) {
     .block-container {
         max-width: 720px !important;
         margin: 0 auto !important;
