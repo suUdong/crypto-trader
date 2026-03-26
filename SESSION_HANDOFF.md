@@ -3,7 +3,7 @@
 Date: 2026-03-26 (FIRE Session #7)
 Branch: `master`
 
-## What Landed This Session (#7) — 10 User Stories in 3 Waves
+## What Landed This Session (#7) — 12 User Stories in 4 Waves
 
 ### Wave 1: Signal Quality (US-023 to US-026)
 - **US-023**: Adaptive RSI ceiling — strong momentum widens RSI ceiling from 60 toward 80
@@ -17,18 +17,17 @@ Branch: `master`
 - **US-030**: Time-decay exit — closes underwater positions held > 75% of max_holding_bars
 
 ### Wave 3: Profit Locking & Comparison (US-032 to US-033)
-- **US-032**: Trailing stop auto-activates at 2% after partial take-profit (locks remaining profits)
-- **US-033**: `backtest-all` CLI — runs all strategies, outputs comparison table + JSON export
+- **US-032**: Trailing stop auto-activates at 2% after partial take-profit
+- **US-033**: `backtest-all` CLI — runs all strategies, outputs comparison table + JSON
+
+### Wave 4: Discipline & Consensus (US-035 to US-036)
+- **US-035**: Post-loss cooldown — skips entries for 3 bars after a losing trade
+- **US-036**: Weighted consensus voting — min_confidence_sum gate for higher-quality entries
 
 ## Previous Session Deliverables (Still Active)
 
 ### Session #6: Risk & Backtest Tooling (13 stories)
-- Drawdown sizing, regime-aware grid search, equity curve export
-- Adaptive confidence, profit factor scoring, consecutive loss kill switch
-
 ### Session #5: Grid-WF + Consensus + Daemon Expansion
-- `grid-wf` CLI, `ConsensusStrategy`, 3 new daemon wallets (9 total)
-
 ### Session #4: Walk-Forward CLI + PnL History
 ### Session #3: Per-Strategy PnL Tracking
 ### Session #2: Per-Symbol Wallets
@@ -38,7 +37,7 @@ Branch: `master`
 ```
 src/crypto_trader/
   config.py             # + adx_period, adx_threshold, volume_filter_mult in StrategyConfig
-                        # + partial_tp_pct in RiskConfig
+                        # + partial_tp_pct, cooldown_bars in RiskConfig
                         # bollinger_stddev 1.8→1.5, atr_stop_multiplier 0→2.0
   cli.py                # + backtest-all command
   models.py             # + partial_tp_taken on Position
@@ -46,47 +45,53 @@ src/crypto_trader/
     momentum.py         # + adaptive RSI ceiling, ADX filter, volume filter
     volatility_breakout.py  # + ADX filter, volume filter
     mean_reversion.py   # + RSI confirmation filter (oversold_floor+10)
+    consensus.py        # + min_confidence_sum weighted voting
     indicators.py       # + average_directional_index(), volume_sma()
   risk/
     manager.py          # + partial_take_profit, time_decay_exit, auto-trailing after partial TP
-  wallet.py             # + partial TP sell logic, holding_bars passed to exit_reason
+                        # + post-loss cooldown (tick_cooldown, in_cooldown)
+  wallet.py             # + partial TP sell, holding_bars, cooldown check, consensus params
   backtest/
     grid_wf.py          # + ATR stop in backtest runner
 
-tests/ (39 new tests)
-  test_adaptive_rsi_ceiling.py    # 4 tests
-  test_partial_take_profit.py     # 5 tests
-  test_adx_indicator.py           # 8 tests
+tests/ (50 new tests)
+  test_adaptive_rsi_ceiling.py      # 4 tests
+  test_partial_take_profit.py       # 5 tests
+  test_adx_indicator.py             # 8 tests
   test_mean_reversion_rsi_filter.py # 4 tests
-  test_volume_filter.py           # 7 tests
-  test_time_decay_exit.py         # 5 tests
+  test_volume_filter.py             # 7 tests
+  test_time_decay_exit.py           # 5 tests
   test_trailing_after_partial_tp.py # 4 tests
-  test_backtest_all_cli.py        # 2 tests
+  test_backtest_all_cli.py          # 2 tests
+  test_cooldown.py                  # 6 tests
+  test_weighted_consensus.py        # 5 tests
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` → **578 passed, 3 skipped, 0 failures**
-- +39 new tests this session across 3 commits
-- 3 commits pushed to master
+- `pytest tests/ -q` → **589 passed, 3 skipped, 0 failures**
+- +50 new tests this session across 4 commits
+- 4 commits pushed to master
 
 ## Current Gaps / Risks
 
 1. **3 new wallets not deployed** — daemon restart needed
 2. **No closed trades yet** — strategies waiting for entry signals
-3. ~~Momentum RSI conflict~~ **FIXED** — adaptive RSI ceiling
+3. ~~Momentum RSI conflict~~ **FIXED**
 4. Kimchi premium uses simulated premium — live may diverge
-5. Telegram not live-verified (no bot token)
-6. **Volume filter disabled by default** — enable via `volume_filter_mult: 1.2` in config
+5. Telegram not live-verified
+6. **Volume filter disabled by default** — enable via `volume_filter_mult: 1.2`
 7. **ATR stops now default** — may change exit behavior vs. fixed % stops
+8. **Cooldown may reduce trade frequency** — tune cooldown_bars if too restrictive
 
 ## Recommended Next Moves
 
 1. **Restart daemon** with updated config (all 9 wallets + new features)
 2. **Run `backtest-all`** to compare all strategies on current market data
-3. **Run regime-aware grid-wf** — `crypto-trader grid-wf --strategy momentum --days 90`
-4. **Enable volume filter** in production: set `volume_filter_mult: 1.2` in daemon.toml
-5. **Monitor partial TP + trailing** — verify scale-out works as expected in paper trading
-6. **Automate snapshots** — cron `crypto-trader snapshot` every 6h
-7. **Telegram bot setup** for daily PnL alerts
-8. **Paper trading 7 days** → micro-live gate by Apr 2
+3. **Run regime-aware grid-wf** for momentum and volatility_breakout
+4. **Enable volume filter** in production: `volume_filter_mult: 1.2`
+5. **Set consensus `min_confidence_sum: 1.2`** for higher-quality consensus entries
+6. **Monitor partial TP + trailing** in paper trading
+7. **Automate snapshots** — cron `crypto-trader snapshot` every 6h
+8. **Telegram bot setup** for daily PnL alerts
+9. **Paper trading 7 days** → micro-live gate by Apr 2
