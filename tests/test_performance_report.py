@@ -223,13 +223,15 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
             period="72h",
             strategies=[
                 StrategyPnLMetrics(
-                    strategy="momentum", total_return_pct=5.0, realized_pnl=50000,
+                    strategy="momentum", wallet="momentum_wallet",
+                    total_return_pct=5.0, realized_pnl=50000,
                     unrealized_pnl=0, trade_count=15, win_count=9, loss_count=6,
                     win_rate=0.6, profit_factor=1.5, max_drawdown_pct=0.0,
                     sharpe_ratio=1.2, equity=1_050_000, initial_capital=1_000_000,
                 ),
                 StrategyPnLMetrics(
-                    strategy="mean_reversion", total_return_pct=3.0, realized_pnl=30000,
+                    strategy="mean_reversion", wallet="mean_reversion_wallet",
+                    total_return_pct=3.0, realized_pnl=30000,
                     unrealized_pnl=0, trade_count=10, win_count=6, loss_count=4,
                     win_rate=0.6, profit_factor=1.5, max_drawdown_pct=0.0,
                     sharpe_ratio=1.0, equity=1_030_000, initial_capital=1_000_000,

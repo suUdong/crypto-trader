@@ -4,13 +4,14 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
 @dataclass(slots=True)
 class StrategyPnLMetrics:
     strategy: str
+    wallet: str
     total_return_pct: float
     realized_pnl: float
     unrealized_pnl: float
@@ -48,8 +49,16 @@ class PnLReportGenerator:
         checkpoint_path: str | Path,
         trade_journal_path: str | Path | None = None,
         period: str = "daily",
+        hours: int = 0,
     ) -> PortfolioPnLReport:
-        """Generate report from runtime checkpoint JSON."""
+        """Generate report from runtime checkpoint JSON.
+
+        Args:
+            checkpoint_path: Path to runtime checkpoint.
+            trade_journal_path: Path to paper trade journal (JSONL).
+            period: Label for the report period.
+            hours: If > 0, only include trades from the last N hours.
+        """
         cp_path = Path(checkpoint_path)
         if not cp_path.exists():
             return self._empty_report(period)
@@ -57,8 +66,12 @@ class PnLReportGenerator:
         checkpoint = json.loads(cp_path.read_text(encoding="utf-8"))
         wallet_states = checkpoint.get("wallet_states", {})
 
-        # Load trade journal if available
+        # Load trade journal if available, with optional time filtering
         trades_by_wallet: dict[str, list[dict]] = {}
+        cutoff: datetime | None = None
+        if hours > 0:
+            cutoff = datetime.now(UTC) - timedelta(hours=hours)
+
         if trade_journal_path:
             tj_path = Path(trade_journal_path)
             if tj_path.exists():
@@ -66,6 +79,17 @@ class PnLReportGenerator:
                     if not line.strip():
                         continue
                     trade = json.loads(line)
+                    # Time filtering
+                    if cutoff is not None:
+                        exit_time_str = trade.get("exit_time", "")
+                        try:
+                            exit_time = datetime.fromisoformat(exit_time_str)
+                            if exit_time.tzinfo is None:
+                                exit_time = exit_time.replace(tzinfo=UTC)
+                            if exit_time < cutoff:
+                                continue
+                        except (ValueError, TypeError):
+                            continue
                     wallet = trade.get("wallet", "unknown")
                     trades_by_wallet.setdefault(wallet, []).append(trade)
 
@@ -89,6 +113,11 @@ class PnLReportGenerator:
             wins = sum(1 for t in wallet_trades if t.get("pnl", 0) > 0)
             losses = sum(1 for t in wallet_trades if t.get("pnl", 0) <= 0)
 
+            # When filtering by time, use journal trade count
+            if hours > 0:
+                trade_count = len(wallet_trades)
+                realized = sum(t.get("pnl", 0) for t in wallet_trades)
+
             if trade_count > 0 and not wallet_trades:
                 # Estimate from realized PnL
                 wins = trade_count if realized > 0 else 0
@@ -106,10 +135,14 @@ class PnLReportGenerator:
             mdd = max(0.0, -return_pct) if return_pct < 0 else 0.0
 
             # Approximate Sharpe (annualized from period return)
-            sharpe = self._approx_sharpe_from_return(return_pct, period)
+            effective_period = period
+            if hours > 0:
+                effective_period = f"{hours}h"
+            sharpe = self._approx_sharpe_from_return(return_pct, effective_period)
 
             metrics = StrategyPnLMetrics(
                 strategy=strategy_type,
+                wallet=wallet_name,
                 total_return_pct=return_pct,
                 realized_pnl=realized,
                 unrealized_pnl=unrealized,
@@ -133,13 +166,14 @@ class PnLReportGenerator:
             total_realized += realized
 
         portfolio_return = (total_equity / max(1, total_initial) - 1.0) * 100.0
-        portfolio_sharpe = self._approx_sharpe_from_return(portfolio_return, period)
+        effective_period = f"{hours}h" if hours > 0 else period
+        portfolio_sharpe = self._approx_sharpe_from_return(portfolio_return, effective_period)
         portfolio_mdd = max(0.0, -portfolio_return) if portfolio_return < 0 else 0.0
         portfolio_win_rate = total_wins / max(1, total_wins + total_losses)
 
         return PortfolioPnLReport(
             generated_at=datetime.now(UTC).isoformat(),
-            period=period,
+            period=effective_period,
             strategies=strategies,
             portfolio_return_pct=portfolio_return,
             portfolio_sharpe=portfolio_sharpe,
@@ -171,16 +205,16 @@ class PnLReportGenerator:
             f"| Total Trades | {report.total_trades} |",
             f"| Realized PnL | {report.total_realized_pnl:+,.0f} KRW |",
             "",
-            "## Strategy Breakdown",
+            "## Per-Wallet Breakdown",
             "",
-            "| Strategy | Return% | Equity | Realized | Trades | Win% | PF | Sharpe |",
-            "|----------|---------|--------|----------|--------|------|-----|--------|",
+            "| Wallet | Strategy | Return% | Equity | Realized | Trades | Win% | PF | Sharpe |",
+            "|--------|----------|---------|--------|----------|--------|------|-----|--------|",
         ]
 
         for s in sorted(report.strategies, key=lambda x: x.total_return_pct, reverse=True):
             pf = f"{s.profit_factor:.2f}" if s.profit_factor < 1000 else "inf"
             lines.append(
-                f"| {s.strategy} | {s.total_return_pct:+.3f}% | "
+                f"| {s.wallet} | {s.strategy} | {s.total_return_pct:+.3f}% | "
                 f"{s.equity:,.0f} | {s.realized_pnl:+,.0f} | "
                 f"{s.trade_count} | {s.win_rate:.0%} | {pf} | "
                 f"{s.sharpe_ratio:.2f} |"
@@ -190,14 +224,14 @@ class PnLReportGenerator:
             "",
             "## Cumulative Realized PnL",
             "",
-            "| Strategy | Cumulative Realized PnL |",
-            "|----------|------------------------|",
+            "| Wallet | Strategy | Cumulative Realized PnL |",
+            "|--------|----------|------------------------|",
         ])
         cumulative = 0.0
         for s in sorted(report.strategies, key=lambda x: x.realized_pnl, reverse=True):
             cumulative += s.realized_pnl
-            lines.append(f"| {s.strategy} | {cumulative:+,.0f} KRW |")
-        lines.append(f"| **Total** | **{report.total_realized_pnl:+,.0f} KRW** |")
+            lines.append(f"| {s.wallet} | {s.strategy} | {cumulative:+,.0f} KRW |")
+        lines.append(f"| | **Total** | **{report.total_realized_pnl:+,.0f} KRW** |")
 
         lines.extend(["", "*Auto-generated PnL report*"])
         return "\n".join(lines)
@@ -227,6 +261,7 @@ class PnLReportGenerator:
         for s in sorted(report.strategies, key=lambda x: x.realized_pnl, reverse=True):
             cumulative += s.realized_pnl
             json_data["strategies"].append({
+                "wallet": s.wallet,
                 "strategy": s.strategy,
                 "return_pct": s.total_return_pct,
                 "realized_pnl": s.realized_pnl,
@@ -254,11 +289,12 @@ class PnLReportGenerator:
 
     @staticmethod
     def _approx_sharpe_from_return(return_pct: float, period: str) -> float:
-        """Approximate annualized Sharpe from period return.
-
-        Assumes volatility is proportional to return magnitude (rough estimate).
-        """
-        period_days = {"daily": 1, "weekly": 7, "monthly": 30, "48h": 2}.get(period, 1)
+        """Approximate annualized Sharpe from period return."""
+        # Parse hours-based periods like "72h", "24h"
+        if period.endswith("h") and period[:-1].isdigit():
+            period_days = int(period[:-1]) / 24.0
+        else:
+            period_days = {"daily": 1, "weekly": 7, "monthly": 30, "48h": 2}.get(period, 1)
         if period_days == 0:
             return 0.0
         daily_return = return_pct / period_days

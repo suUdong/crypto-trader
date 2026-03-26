@@ -108,6 +108,7 @@ class TradeRecord:
     pnl: float
     pnl_pct: float
     exit_reason: str
+    wallet: str = ""
 
 
 @dataclass(slots=True)

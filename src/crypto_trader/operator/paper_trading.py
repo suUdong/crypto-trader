@@ -18,7 +18,9 @@ class PaperTradeJournal:
     def __init__(self, path: str | Path) -> None:
         self._path = Path(path)
 
-    def append_many(self, trades: list[TradeRecord]) -> None:
+    def append_many(
+        self, trades: list[TradeRecord], wallet_name: str = "",
+    ) -> None:
         if not trades:
             return
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -27,6 +29,8 @@ class PaperTradeJournal:
                 payload = asdict(trade)
                 payload["entry_time"] = trade.entry_time.isoformat()
                 payload["exit_time"] = trade.exit_time.isoformat()
+                if wallet_name:
+                    payload["wallet"] = wallet_name
                 handle.write(json.dumps(payload, ensure_ascii=True))
                 handle.write("\n")
 

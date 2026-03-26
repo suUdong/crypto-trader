@@ -281,7 +281,7 @@ class MultiSymbolRuntime:
             prev_count = self._journal_trade_counts.get(wallet.name, 0)
             if current_count > prev_count:
                 new_trades = wallet.broker.closed_trades[prev_count:current_count]
-                self._trade_journal.append_many(new_trades)
+                self._trade_journal.append_many(new_trades, wallet_name=wallet.name)
                 self._journal_trade_counts[wallet.name] = current_count
 
     def _maybe_send_pnl_notify(self) -> None:

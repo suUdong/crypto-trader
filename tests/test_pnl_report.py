@@ -62,7 +62,7 @@ class PnLReportTests(unittest.TestCase):
             report = gen.generate_from_checkpoint(cp)
             md = gen.to_markdown(report)
             self.assertIn("Portfolio Summary", md)
-            self.assertIn("Strategy Breakdown", md)
+            self.assertIn("Per-Wallet Breakdown", md)
             self.assertIn("mean_reversion", md)
 
     def test_save_creates_md_and_json(self) -> None:

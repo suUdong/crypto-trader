@@ -72,6 +72,12 @@ def main() -> None:
         default="composite",
         help="Strategy type for backtest (default: composite)",
     )
+    parser.add_argument(
+        "--hours",
+        type=int,
+        default=0,
+        help="Time window in hours for PnL report filtering (e.g. 72 for 3-day report)",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -224,10 +230,12 @@ def main() -> None:
 
     if args.command == "pnl-report":
         generator = PnLReportGenerator()
+        period = f"{args.hours}h" if args.hours > 0 else "daily"
         report = generator.generate_from_checkpoint(
             checkpoint_path=config.runtime.runtime_checkpoint_path,
             trade_journal_path=config.runtime.paper_trade_journal_path,
-            period="daily",
+            period=period,
+            hours=args.hours,
         )
         output_path = "artifacts/pnl-report.md"
         generator.save(report, output_path)
