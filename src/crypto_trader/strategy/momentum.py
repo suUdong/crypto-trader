@@ -79,6 +79,14 @@ class MomentumStrategy:
         except ValueError:
             pass
 
+        # Noise ratio: low noise = strong trend (good for momentum)
+        nr_value: float | None = None
+        try:
+            nr_value = noise_ratio(closes, effective.noise_lookback)
+            indicators["noise_ratio"] = nr_value
+        except ValueError:
+            pass
+
         # Chaikin Money Flow
         cmf_value: float | None = None
         try:
@@ -165,6 +173,9 @@ class MomentumStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Keltner breakout: price above upper Keltner = strong momentum
                 if kc_upper is not None and closes[-1] > kc_upper:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # Low noise = strong trend = good for momentum
+                if nr_value is not None and nr_value < 0.4:
                     base_conf = min(1.0, base_conf + 0.05)
                 # CMF buying pressure confirmation
                 if cmf_value is not None and cmf_value > 0.05:
