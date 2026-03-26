@@ -6,6 +6,7 @@ from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
+    keltner_channels,
     macd,
     noise_ratio,
     obv_slope,
@@ -127,6 +128,15 @@ class EMACrossoverStrategy:
             except (ValueError, IndexError):
                 pass
 
+        # Keltner Channels: breakout above upper KC = strong trend
+        kc_upper: float | None = None
+        try:
+            highs_list = [c.high for c in candles]
+            lows_list = [c.low for c in candles]
+            kc_upper, _, _ = keltner_channels(highs_list, lows_list, closes)
+        except ValueError:
+            pass
+
         indicators = {
             "ema_fast": fast_now,
             "ema_slow": slow_now,
@@ -145,6 +155,8 @@ class EMACrossoverStrategy:
             indicators["ema50"] = ema50_value
         if vwap_value is not None:
             indicators["vwap"] = vwap_value
+        if kc_upper is not None:
+            indicators["keltner_upper"] = kc_upper
         context = {"strategy": "ema_crossover", "market_regime": regime.value}
 
         if position is not None:
@@ -167,6 +179,7 @@ class EMACrossoverStrategy:
             nr_value=nr_value,
             ema50_value=ema50_value,
             vwap_value=vwap_value,
+            kc_upper=kc_upper,
         )
 
     def _evaluate_entry(
@@ -185,6 +198,7 @@ class EMACrossoverStrategy:
         nr_value: float | None = None,
         ema50_value: float | None = None,
         vwap_value: float | None = None,
+        kc_upper: float | None = None,
     ) -> Signal:
         cfg = effective or self._config
         # Noise ratio filter: skip entries in choppy markets (high whipsaw risk)
@@ -238,6 +252,9 @@ class EMACrossoverStrategy:
                 base_conf = min(1.0, base_conf + 0.05)
             # VWAP alignment: price above VWAP confirms bullish bias
             if vwap_value is not None and indicators.get("ema_fast", 0) > vwap_value:
+                base_conf = min(1.0, base_conf + 0.05)
+            # Keltner upper breakout confirms strong trend
+            if kc_upper is not None and candles[-1].close > kc_upper:
                 base_conf = min(1.0, base_conf + 0.05)
             return Signal(
                 action=SignalAction.BUY,

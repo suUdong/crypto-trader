@@ -6,6 +6,7 @@ from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
     bollinger_band_width,
+    keltner_channels,
     macd,
     noise_ratio,
     obv_slope,
@@ -149,10 +150,18 @@ class VolatilityBreakoutStrategy:
             except (ValueError, IndexError):
                 pass
 
+        # Keltner Channels: breakout above upper KC confirms strong move
+        kc_upper: float | None = None
+        try:
+            kc_upper, _, _ = keltner_channels(highs, lows, closes)
+            indicators["keltner_upper"] = kc_upper
+        except ValueError:
+            pass
+
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, obv_trend, ema50_value, vwap_value, effective.adx_threshold, indicators, context)
+        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, obv_trend, ema50_value, vwap_value, kc_upper, effective.adx_threshold, indicators, context)
 
     def _evaluate_entry(
         self,
@@ -166,6 +175,7 @@ class VolatilityBreakoutStrategy:
         obv_trend: float | None,
         ema50_value: float | None,
         vwap_value: float | None,
+        kc_upper: float | None,
         adx_threshold: float,
         indicators: dict[str, float],
         context: dict[str, str],
@@ -224,6 +234,9 @@ class VolatilityBreakoutStrategy:
                 confidence = min(1.0, confidence + 0.05)
             # VWAP alignment: breakout above VWAP confirms buying pressure
             if vwap_value is not None and current_price > vwap_value:
+                confidence = min(1.0, confidence + 0.05)
+            # Keltner upper breakout: confirms strong trend move
+            if kc_upper is not None and current_price > kc_upper:
                 confidence = min(1.0, confidence + 0.05)
             return Signal(
                 action=SignalAction.BUY,

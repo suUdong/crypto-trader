@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma
+from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, keltner_channels, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -119,6 +119,16 @@ class MeanReversionStrategy:
         except ValueError:
             pass
 
+        # Keltner Channels: price below lower KC confirms extended dip
+        kc_lower: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            _, _, kc_lower = keltner_channels(highs, lows, closes)
+            indicators["keltner_lower"] = kc_lower
+        except ValueError:
+            pass
+
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
@@ -176,6 +186,9 @@ class MeanReversionStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # VWAP: price below VWAP confirms bearish pressure (good entry for MR)
                 if vwap_value is not None and latest_close < vwap_value:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # Keltner lower: price below KC lower confirms deep dip (good for MR)
+                if kc_lower is not None and latest_close < kc_lower:
                     base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,

@@ -405,3 +405,31 @@ def noise_ratio(closes: list[float], lookback: int) -> float:
     if gross_move == 0:
         return 1.0
     return 1.0 - (net_move / gross_move)
+
+
+def chaikin_money_flow(
+    highs: list[float], lows: list[float], closes: list[float],
+    volumes: list[float], period: int = 20,
+) -> float:
+    """Chaikin Money Flow: measures buying/selling pressure over a period.
+
+    CMF = sum(MFV) / sum(volume) over `period` bars
+    MFV = ((close - low) - (high - close)) / (high - low) * volume
+
+    CMF > 0 = buying pressure, CMF < 0 = selling pressure.
+    """
+    if len(highs) < period or len(lows) < period or len(closes) < period or len(volumes) < period:
+        raise ValueError(f"Need at least {period} values for CMF")
+    mfv_sum = 0.0
+    vol_sum = 0.0
+    for i in range(-period, 0):
+        hl_range = highs[i] - lows[i]
+        if hl_range > 0:
+            mf_multiplier = ((closes[i] - lows[i]) - (highs[i] - closes[i])) / hl_range
+        else:
+            mf_multiplier = 0.0
+        mfv_sum += mf_multiplier * volumes[i]
+        vol_sum += volumes[i]
+    if vol_sum == 0:
+        return 0.0
+    return mfv_sum / vol_sum
