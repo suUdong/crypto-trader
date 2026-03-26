@@ -353,6 +353,8 @@ class MultiSymbolRuntime:
             for symbol, pos_data in positions_data.items():
                 try:
                     entry_time = datetime.fromisoformat(pos_data["entry_time"])
+                    if entry_time.tzinfo is None:
+                        entry_time = entry_time.replace(tzinfo=UTC)
                 except (KeyError, ValueError):
                     entry_time = datetime.now(UTC)
 
@@ -361,6 +363,7 @@ class MultiSymbolRuntime:
                     quantity=pos_data["quantity"],
                     entry_price=pos_data["entry_price"],
                     entry_time=entry_time,
+                    entry_index=pos_data.get("entry_index"),
                     entry_fee_paid=pos_data.get("entry_fee_paid", 0.0),
                     high_watermark=pos_data.get("high_watermark", 0.0),
                     partial_tp_taken=pos_data.get("partial_tp_taken", False),
@@ -403,6 +406,7 @@ class MultiSymbolRuntime:
                         "quantity": pos.quantity,
                         "entry_price": pos.entry_price,
                         "entry_time": pos.entry_time.isoformat(),
+                        "entry_index": pos.entry_index,
                         "entry_fee_paid": pos.entry_fee_paid,
                         "high_watermark": pos.high_watermark,
                         "partial_tp_taken": pos.partial_tp_taken,
