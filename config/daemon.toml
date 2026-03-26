@@ -38,6 +38,8 @@ stop_loss_pct = 0.03
 take_profit_pct = 0.06
 max_daily_loss_pct = 0.05
 max_concurrent_positions = 4
+trailing_stop_pct = 0.02
+atr_stop_multiplier = 2.0
 
 [backtest]
 initial_capital = 1000000.0

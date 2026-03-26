@@ -173,22 +173,33 @@ class MultiSymbolRuntime:
         total_equity = sum(w.broker.equity(latest_prices) for w in self._wallets)
         total_realized = sum(w.broker.realized_pnl for w in self._wallets)
 
-        # Detect new trade completions and whether they won
-        trade_won: bool | None = None
+        # Detect new trade completions and feed each to kill switch
+        new_trade_results: list[bool] = []
         for wallet in self._wallets:
             current_count = len(wallet.broker.closed_trades)
             prev_count = self._prev_trade_count.get(wallet.name, 0)
             if current_count > prev_count:
-                last_trade = wallet.broker.closed_trades[-1]
-                trade_won = last_trade.pnl > 0
+                for trade in wallet.broker.closed_trades[prev_count:]:
+                    new_trade_results.append(trade.pnl > 0)
                 self._prev_trade_count[wallet.name] = current_count
 
-        state = self._kill_switch.check(
-            current_equity=total_equity,
-            starting_equity=self._total_starting_equity,
-            realized_pnl=total_realized,
-            trade_won=trade_won,
-        )
+        if not new_trade_results:
+            state = self._kill_switch.check(
+                current_equity=total_equity,
+                starting_equity=self._total_starting_equity,
+                realized_pnl=total_realized,
+                trade_won=None,
+            )
+        else:
+            for won in new_trade_results:
+                state = self._kill_switch.check(
+                    current_equity=total_equity,
+                    starting_equity=self._total_starting_equity,
+                    realized_pnl=total_realized,
+                    trade_won=won,
+                )
+                if state.triggered:
+                    break
         self._kill_switch.save(self._kill_switch_path)
 
         if state.triggered:

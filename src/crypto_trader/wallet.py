@@ -103,6 +103,7 @@ class StrategyWallet:
                                 reason=signal.reason,
                             ),
                             latest_price,
+                            candle_index=len(candles) - 1,
                         )
             elif position is not None:
                 exit_reason = self.risk_manager.exit_reason(position, latest_price)

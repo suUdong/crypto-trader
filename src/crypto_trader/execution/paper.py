@@ -15,7 +15,7 @@ class PaperBroker:
         self.realized_pnl = 0.0
         self._sequence = 0
 
-    def submit_order(self, request: OrderRequest, market_price: float) -> OrderResult:
+    def submit_order(self, request: OrderRequest, market_price: float, candle_index: int | None = None) -> OrderResult:
         self._sequence += 1
         fill_price = self._apply_slippage(request.side, market_price)
         notional = fill_price * request.quantity
@@ -41,7 +41,7 @@ class PaperBroker:
                 quantity=request.quantity,
                 entry_price=fill_price,
                 entry_time=request.requested_at,
-                entry_index=self._sequence,
+                entry_index=candle_index if candle_index is not None else self._sequence,
                 entry_fee_paid=fee,
             )
             return OrderResult(

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class KillSwitchConfig:
     max_portfolio_drawdown_pct: float = 0.05
     max_daily_loss_pct: float = 0.03
-    max_consecutive_losses: int = 5
+    max_consecutive_losses: int = 15
     max_strategy_drawdown_pct: float = 0.08
     cooldown_minutes: int = 60
 
