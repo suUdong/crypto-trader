@@ -150,3 +150,51 @@ take_profit_pct = 0.04
         momentum_wallet = config.wallets[0]
         self.assertEqual(momentum_wallet.strategy_overrides["momentum_lookback"], 15)
         self.assertEqual(momentum_wallet.risk_overrides["take_profit_pct"], 0.04)
+
+    def test_loads_session7_strategy_fields(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {
+                "CT_ADX_PERIOD": "10",
+                "CT_ADX_THRESHOLD": "25.0",
+                "CT_VOLUME_FILTER_MULT": "1.2",
+            },
+        )
+        self.assertEqual(config.strategy.adx_period, 10)
+        self.assertEqual(config.strategy.adx_threshold, 25.0)
+        self.assertEqual(config.strategy.volume_filter_mult, 1.2)
+
+    def test_loads_session7_risk_fields(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {
+                "CT_PARTIAL_TP_PCT": "0.3",
+                "CT_COOLDOWN_BARS": "5",
+            },
+        )
+        self.assertEqual(config.risk.partial_tp_pct, 0.3)
+        self.assertEqual(config.risk.cooldown_bars, 5)
+
+    def test_optimized_toml_loads_all_wallets(self) -> None:
+        config = load_config(ROOT / "config" / "optimized.toml", {})
+        self.assertEqual(len(config.wallets), 8)
+        names = {w.name for w in config.wallets}
+        self.assertIn("momentum_wallet", names)
+        self.assertIn("consensus_wallet", names)
+        self.assertIn("kimchi_premium_wallet", names)
+        # Verify new fields are parsed at global level
+        self.assertEqual(config.strategy.adx_period, 14)
+        self.assertEqual(config.strategy.adx_threshold, 20.0)
+        self.assertEqual(config.risk.partial_tp_pct, 0.5)
+        self.assertEqual(config.risk.cooldown_bars, 3)
+        self.assertEqual(config.risk.atr_stop_multiplier, 2.0)
+
+    def test_optimized_toml_consensus_wallet_has_extra_params(self) -> None:
+        config = load_config(ROOT / "config" / "optimized.toml", {})
+        consensus = [w for w in config.wallets if w.strategy == "consensus"][0]
+        self.assertEqual(consensus.strategy_overrides["min_agree"], 2)
+        self.assertEqual(consensus.strategy_overrides["min_confidence_sum"], 1.2)
+        self.assertEqual(
+            consensus.strategy_overrides["sub_strategies"],
+            ["momentum", "kimchi_premium"],
+        )
