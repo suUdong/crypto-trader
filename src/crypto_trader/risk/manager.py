@@ -180,6 +180,11 @@ class RiskManager:
             if bar_ratio >= 0.75 and pnl_pct < 0:
                 return "time_decay_exit"
 
+        # Breakeven stop: if position ever gained >= 1.5% (watermark), stop at entry
+        watermark_gain = (position.high_watermark - position.entry_price) / position.entry_price
+        if watermark_gain >= 0.015 and price <= position.entry_price:
+            return "breakeven_stop"
+
         # ATR-based dynamic stops (if ATR available and multiplier set)
         if self._atr_stop_multiplier > 0 and self._current_atr > 0:
             atr_stop_distance = self._current_atr * self._atr_stop_multiplier

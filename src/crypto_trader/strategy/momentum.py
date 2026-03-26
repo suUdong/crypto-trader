@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import average_directional_index, momentum, rsi, volume_sma
+from crypto_trader.strategy.indicators import average_directional_index, macd, momentum, rsi, volume_sma
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -28,7 +28,26 @@ class MomentumStrategy:
         lows = [c.low for c in candles]
         momentum_value = momentum(closes, effective.momentum_lookback)
         rsi_value = rsi(closes, effective.rsi_period)
-        indicators = {"momentum": momentum_value, "rsi": rsi_value}
+
+        # MACD confirmation (optional, needs 35+ candles)
+        macd_bullish = False
+        macd_line_val = 0.0
+        macd_signal_val = 0.0
+        macd_hist_val = 0.0
+        if len(closes) >= 35:
+            try:
+                macd_line_val, macd_signal_val, macd_hist_val = macd(closes)
+                macd_bullish = macd_hist_val > 0
+            except ValueError:
+                pass
+
+        indicators = {
+            "momentum": momentum_value,
+            "rsi": rsi_value,
+            "macd_line": macd_line_val,
+            "macd_signal": macd_signal_val,
+            "macd_histogram": macd_hist_val,
+        }
         context = {"market_regime": regime.value, "strategy": "momentum"}
 
         # ADX trend strength filter
@@ -78,10 +97,13 @@ class MomentumStrategy:
                             )
                     except ValueError:
                         pass
+                base_conf = min(1.0, 0.5 + abs(momentum_value))
+                if macd_bullish:
+                    base_conf = min(1.0, base_conf + 0.1)
                 return Signal(
                     action=SignalAction.BUY,
                     reason="momentum_rsi_alignment",
-                    confidence=min(1.0, 0.5 + abs(momentum_value)),
+                    confidence=base_conf,
                     indicators=indicators,
                     context=context,
                 )

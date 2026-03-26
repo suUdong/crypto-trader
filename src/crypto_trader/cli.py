@@ -857,6 +857,49 @@ def main() -> None:
                     action = "DROP"
                 print(f"  #{i:<5} {r['strategy']:<22} {score:>6.3f} {kf:>6.1f}% {action}")
 
+        # Correlation guard: warn about highly correlated strategy pairs
+        if len(results_list) >= 2:
+            equity_curves: dict[str, list[float]] = {}
+            for strat_name2 in all_strategies:
+                try:
+                    curves: list[list[float]] = []
+                    for sym, candle_list in candles_map.items():
+                        bt_s = create_strategy(strat_name2, config.strategy, config.regime)
+                        bt_r = _build_risk_manager(config)
+                        eng = BacktestEngine(
+                            strategy=bt_s, risk_manager=bt_r,
+                            config=config.backtest, symbol=sym,
+                        )
+                        res = eng.run(candle_list)
+                        curves.append(res.equity_curve)
+                    if curves:
+                        # Use the first symbol's equity curve as representative
+                        equity_curves[strat_name2] = curves[0]
+                except Exception:
+                    pass
+
+            corr_warnings: list[str] = []
+            strat_names = list(equity_curves.keys())
+            for i in range(len(strat_names)):
+                for j in range(i + 1, len(strat_names)):
+                    a = equity_curves[strat_names[i]]
+                    b = equity_curves[strat_names[j]]
+                    min_len = min(len(a), len(b))
+                    if min_len >= 20:
+                        from crypto_trader.strategy.indicators import rolling_correlation
+                        corr = rolling_correlation(a[:min_len], b[:min_len], min_len)
+                        if corr > 0.8:
+                            corr_warnings.append(
+                                f"  {strat_names[i]} <-> {strat_names[j]}: r={corr:.3f}"
+                            )
+
+            if corr_warnings:
+                print(f"\n{'='*90}")
+                print("  CORRELATION WARNINGS (r > 0.8 — avoid deploying both)")
+                print(f"{'='*90}")
+                for w in corr_warnings:
+                    print(w)
+
         print(f"\n{'='*90}\n")
 
         # Save results
