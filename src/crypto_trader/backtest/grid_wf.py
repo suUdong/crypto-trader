@@ -186,12 +186,14 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
         "momentum_lookback": [10, 15, 20],
         "momentum_entry_threshold": [0.002, 0.004, 0.006, 0.008, 0.01],
         "rsi_period": [14, 18],
+        "adx_threshold": [15.0, 20.0, 25.0],
         "max_holding_bars": [24, 36, 48],
     },
     "mean_reversion": {
         "bollinger_window": [15, 20, 25],
         "bollinger_stddev": [1.5, 1.8, 2.0],
         "rsi_period": [14, 18],
+        "noise_lookback": [15, 20],
         "max_holding_bars": [36, 48],
     },
     "vpin": {
@@ -203,6 +205,7 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
         "k_base": [0.2, 0.4, 0.6, 0.8],
         "noise_lookback": [5, 10, 15, 20],
         "ma_filter_period": [10, 20],
+        "adx_threshold": [15.0, 20.0, 25.0],
         "max_holding_bars": [24, 36, 48],
     },
     "composite": {
@@ -210,6 +213,7 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
         "bollinger_window": [15, 20],
         "bollinger_stddev": [1.5, 1.8],
         "rsi_period": [14, 18],
+        "adx_threshold": [15.0, 20.0, 25.0],
         "max_holding_bars": [36, 48],
     },
     "kimchi_premium": {
@@ -223,6 +227,7 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     },
     "ema_crossover": {
         "rsi_period": [14, 18],
+        "adx_threshold": [15.0, 20.0, 25.0],
         "max_holding_bars": [24, 36, 48],
     },
     "consensus": {
