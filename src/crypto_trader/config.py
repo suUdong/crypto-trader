@@ -167,6 +167,7 @@ class AppConfig:
         WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
         WalletConfig("composite_wallet", "composite", 1_000_000.0),
     ])
+    source_config_path: str = ""
 
 
 _STRATEGY_FIELD_NAMES = {field.name for field in fields(StrategyConfig)}
@@ -643,6 +644,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         macro=macro,
         kill_switch=kill_switch,
         wallets=wallets,
+        source_config_path=str(config_path),
     )
     _validate_config(app_config)
     return app_config

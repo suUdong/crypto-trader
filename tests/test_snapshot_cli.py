@@ -75,6 +75,8 @@ class TestSnapshotCLI:
             "trades": report.total_trades,
             "win_rate": round(report.portfolio_win_rate, 4),
             "realized_pnl": round(report.total_realized_pnl, 0),
+            "source_session_id": report.source_session_id,
+            "artifact_consistency_status": report.artifact_consistency_status,
             "report_path": "artifacts/pnl-report.md",
             "snapshot_path": "artifacts/pnl-snapshots.jsonl",
         }
@@ -88,6 +90,8 @@ class TestSnapshotCLI:
         assert "trades" in parsed
         assert "win_rate" in parsed
         assert "realized_pnl" in parsed
+        assert "source_session_id" in parsed
+        assert "artifact_consistency_status" in parsed
         assert "report_path" in parsed
 
     def test_snapshot_error_produces_error_json(self) -> None:

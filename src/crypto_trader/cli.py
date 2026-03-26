@@ -342,6 +342,8 @@ def main() -> None:
                 "trades": report.total_trades,
                 "win_rate": round(report.portfolio_win_rate, 4),
                 "realized_pnl": round(report.total_realized_pnl, 0),
+                "source_session_id": report.source_session_id,
+                "artifact_consistency_status": report.artifact_consistency_status,
                 "report_path": str(output_path),
                 "snapshot_path": str(snapshot_path),
             }
@@ -1170,6 +1172,7 @@ def main() -> None:
             ),
             checkpoint_store=RuntimeCheckpointStore(config.runtime.runtime_checkpoint_path),
             poll_interval_seconds=config.runtime.poll_interval_seconds,
+            config_path=config.source_config_path,
         )
         runtime_single.run(config.runtime.max_iterations)
         return

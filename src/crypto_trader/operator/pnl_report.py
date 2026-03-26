@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -39,6 +39,15 @@ class PortfolioPnLReport:
     total_realized_pnl: float
     total_equity: float
     total_initial_capital: float
+    source_generated_at: str = ""
+    source_session_id: str = ""
+    source_config_path: str = ""
+    source_wallet_names: list[str] = field(default_factory=list)
+    source_symbols: list[str] = field(default_factory=list)
+    heartbeat_generated_at: str = ""
+    heartbeat_session_id: str = ""
+    artifact_consistency_status: str = "unknown"
+    artifact_consistency_reason: str = ""
 
 
 class PnLReportGenerator:
@@ -65,6 +74,22 @@ class PnLReportGenerator:
 
         checkpoint = json.loads(cp_path.read_text(encoding="utf-8"))
         wallet_states = checkpoint.get("wallet_states", {})
+        source_generated_at = str(checkpoint.get("generated_at", ""))
+        source_session_id = str(checkpoint.get("session_id", ""))
+        source_config_path = str(checkpoint.get("config_path", ""))
+        source_wallet_names = list(checkpoint.get("wallet_names", wallet_states.keys()))
+        source_symbols = list(checkpoint.get("symbols", []))
+        (
+            heartbeat_generated_at,
+            heartbeat_session_id,
+            artifact_consistency_status,
+            artifact_consistency_reason,
+        ) = self._resolve_artifact_consistency(
+            checkpoint_path=cp_path,
+            checkpoint_session_id=source_session_id,
+            checkpoint_wallet_names=source_wallet_names,
+            checkpoint_symbols=source_symbols,
+        )
 
         # Load trade journal if available, with optional time filtering
         trades_by_wallet: dict[str, list[dict]] = {}
@@ -183,6 +208,15 @@ class PnLReportGenerator:
             total_realized_pnl=total_realized,
             total_equity=total_equity,
             total_initial_capital=total_initial,
+            source_generated_at=source_generated_at,
+            source_session_id=source_session_id,
+            source_config_path=source_config_path,
+            source_wallet_names=source_wallet_names,
+            source_symbols=source_symbols,
+            heartbeat_generated_at=heartbeat_generated_at,
+            heartbeat_session_id=heartbeat_session_id,
+            artifact_consistency_status=artifact_consistency_status,
+            artifact_consistency_reason=artifact_consistency_reason,
         )
 
     def to_markdown(self, report: PortfolioPnLReport) -> str:
@@ -204,6 +238,20 @@ class PnLReportGenerator:
             f"| Win Rate | {report.portfolio_win_rate:.1%} |",
             f"| Total Trades | {report.total_trades} |",
             f"| Realized PnL | {report.total_realized_pnl:+,.0f} KRW |",
+            "",
+            "## Artifact Context",
+            "",
+            "| Metric | Value |",
+            "|--------|-------|",
+            f"| Checkpoint Generated | {report.source_generated_at or 'n/a'} |",
+            f"| Checkpoint Session | {report.source_session_id or 'n/a'} |",
+            f"| Config Path | {report.source_config_path or 'n/a'} |",
+            f"| Wallets | {', '.join(report.source_wallet_names) or 'n/a'} |",
+            f"| Symbols | {', '.join(report.source_symbols) or 'n/a'} |",
+            f"| Heartbeat Generated | {report.heartbeat_generated_at or 'n/a'} |",
+            f"| Heartbeat Session | {report.heartbeat_session_id or 'n/a'} |",
+            f"| Consistency | {report.artifact_consistency_status} |",
+            f"| Consistency Reason | {report.artifact_consistency_reason or 'n/a'} |",
             "",
             "## Per-Wallet Breakdown",
             "",
@@ -255,6 +303,17 @@ class PnLReportGenerator:
             "total_trades": report.total_trades,
             "total_realized_pnl": report.total_realized_pnl,
             "total_equity": report.total_equity,
+            "artifact_context": {
+                "checkpoint_generated_at": report.source_generated_at,
+                "checkpoint_session_id": report.source_session_id,
+                "config_path": report.source_config_path,
+                "wallet_names": report.source_wallet_names,
+                "symbols": report.source_symbols,
+                "heartbeat_generated_at": report.heartbeat_generated_at,
+                "heartbeat_session_id": report.heartbeat_session_id,
+                "consistency_status": report.artifact_consistency_status,
+                "consistency_reason": report.artifact_consistency_reason,
+            },
             "strategies": [],
         }
         cumulative = 0.0
@@ -290,6 +349,51 @@ class PnLReportGenerator:
             total_equity=0.0,
             total_initial_capital=0.0,
         )
+
+    @staticmethod
+    def _resolve_artifact_consistency(
+        checkpoint_path: Path,
+        checkpoint_session_id: str,
+        checkpoint_wallet_names: list[str],
+        checkpoint_symbols: list[str],
+    ) -> tuple[str, str, str, str]:
+        heartbeat_path = checkpoint_path.parent / "daemon-heartbeat.json"
+        if not checkpoint_session_id:
+            return "", "", "legacy_checkpoint", "checkpoint missing session metadata"
+        if not heartbeat_path.exists():
+            return "", "", "missing_heartbeat", "heartbeat artifact missing"
+
+        try:
+            heartbeat = json.loads(heartbeat_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return "", "", "invalid_heartbeat", "heartbeat JSON is invalid"
+        heartbeat_generated_at = str(heartbeat.get("last_heartbeat", ""))
+        heartbeat_session_id = str(heartbeat.get("session_id", ""))
+        heartbeat_wallet_names = list(heartbeat.get("wallet_names", []))
+        heartbeat_symbols = list(heartbeat.get("symbols", []))
+
+        if heartbeat_session_id != checkpoint_session_id:
+            return (
+                heartbeat_generated_at,
+                heartbeat_session_id,
+                "session_mismatch",
+                "checkpoint and heartbeat session ids differ",
+            )
+        if checkpoint_wallet_names and heartbeat_wallet_names and checkpoint_wallet_names != heartbeat_wallet_names:
+            return (
+                heartbeat_generated_at,
+                heartbeat_session_id,
+                "wallet_mismatch",
+                "checkpoint and heartbeat wallet sets differ",
+            )
+        if checkpoint_symbols and heartbeat_symbols and checkpoint_symbols != heartbeat_symbols:
+            return (
+                heartbeat_generated_at,
+                heartbeat_session_id,
+                "symbol_mismatch",
+                "checkpoint and heartbeat symbol sets differ",
+            )
+        return heartbeat_generated_at, heartbeat_session_id, "consistent", "checkpoint and heartbeat align"
 
     @staticmethod
     def _approx_sharpe_from_return(return_pct: float, period: str) -> float:
@@ -329,6 +433,8 @@ class PnLSnapshotStore:
             "total_realized_pnl": round(report.total_realized_pnl, 0),
             "total_trades": report.total_trades,
             "portfolio_win_rate": round(report.portfolio_win_rate, 4),
+            "source_session_id": report.source_session_id,
+            "artifact_consistency_status": report.artifact_consistency_status,
             "wallets": [
                 {
                     "wallet": s.wallet,

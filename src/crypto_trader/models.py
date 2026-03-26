@@ -188,6 +188,9 @@ class RuntimeCheckpoint:
     iteration: int
     symbols: list[str]
     wallet_states: dict[str, Any]
+    session_id: str = ""
+    config_path: str = ""
+    wallet_names: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)

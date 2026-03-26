@@ -23,6 +23,7 @@ class TradingRuntime:
         paper_trading_operations: PaperTradingOperations,
         checkpoint_store: RuntimeCheckpointStore,
         poll_interval_seconds: int,
+        config_path: str = "",
     ) -> None:
         self._pipeline = pipeline
         self._monitor = monitor
@@ -32,6 +33,8 @@ class TradingRuntime:
         self._checkpoint_store = checkpoint_store
         self._poll_interval_seconds = poll_interval_seconds
         self._logger = logging.getLogger(__name__)
+        self._session_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        self._config_path = config_path
 
     def run(self, max_iterations: int = 0) -> None:
         checkpoint = self._checkpoint_store.load()
@@ -88,6 +91,9 @@ class TradingRuntime:
                             "trade_count": len(self._pipeline.broker.closed_trades),
                         },
                     },
+                    session_id=self._session_id,
+                    config_path=self._config_path,
+                    wallet_names=["default"],
                 )
             )
             if result.error is None:

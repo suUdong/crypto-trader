@@ -27,6 +27,9 @@ class RuntimeCheckpointStoreTests(unittest.TestCase):
                         "trade_count": 0,
                     },
                 },
+                session_id="session-123",
+                config_path="config/test.toml",
+                wallet_names=["momentum_wallet"],
             )
             store.save(checkpoint)
             loaded = store.load()
@@ -34,6 +37,9 @@ class RuntimeCheckpointStoreTests(unittest.TestCase):
             self.assertEqual(loaded.iteration, 5)
             self.assertEqual(loaded.symbols, ["KRW-BTC", "KRW-ETH"])
             self.assertIn("momentum_wallet", loaded.wallet_states)
+            self.assertEqual(loaded.session_id, "session-123")
+            self.assertEqual(loaded.config_path, "config/test.toml")
+            self.assertEqual(loaded.wallet_names, ["momentum_wallet"])
 
     def test_load_returns_none_when_file_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -54,6 +60,9 @@ class RuntimeCheckpointStoreTests(unittest.TestCase):
                            "realized_pnl": 0.0, "open_positions": 0,
                            "equity": 1_000.0, "trade_count": 0},
                 },
+                session_id="session-a",
+                config_path="config/a.toml",
+                wallet_names=["w1"],
             )
             store.save(cp1)
             cp2 = RuntimeCheckpoint(
@@ -65,9 +74,14 @@ class RuntimeCheckpointStoreTests(unittest.TestCase):
                            "realized_pnl": 50.0, "open_positions": 1,
                            "equity": 950.0, "trade_count": 3},
                 },
+                session_id="session-b",
+                config_path="config/b.toml",
+                wallet_names=["w1"],
             )
             store.save(cp2)
             loaded = store.load()
             assert loaded is not None
             self.assertEqual(loaded.iteration, 10)
             self.assertEqual(loaded.symbols, ["KRW-BTC", "KRW-ETH"])
+            self.assertEqual(loaded.session_id, "session-b")
+            self.assertEqual(loaded.config_path, "config/b.toml")

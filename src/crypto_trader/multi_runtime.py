@@ -60,6 +60,9 @@ class MultiSymbolRuntime:
         self._kill_switch_path = Path(
             getattr(config.runtime, "kill_switch_path", "artifacts/kill-switch.json")
         )
+        self._session_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + f"-{os.getpid()}"
+        self._config_path = getattr(config, "source_config_path", "")
+        self._wallet_names = [w.name for w in wallets]
         if kill_switch is None and not config.trading.paper_trading:
             # Only auto-load kill switch state for live trading
             self._kill_switch.load(self._kill_switch_path)
@@ -293,6 +296,9 @@ class MultiSymbolRuntime:
             iteration=self._iteration + 1,
             symbols=self._config.trading.symbols,
             wallet_states=wallet_states,
+            session_id=self._session_id,
+            config_path=self._config_path,
+            wallet_names=self._wallet_names,
         )
         store.save(checkpoint)
         self._persist_journal()
@@ -376,6 +382,10 @@ class MultiSymbolRuntime:
             "iteration": self._iteration + 1,
             "uptime_seconds": round(time.monotonic() - self._start_time, 1),
             "poll_interval_seconds": self._config.runtime.poll_interval_seconds,
+            "session_id": self._session_id,
+            "config_path": self._config_path,
+            "symbols": self._config.trading.symbols,
+            "wallet_names": self._wallet_names,
         }
         heartbeat_path = artifacts_dir / "daemon-heartbeat.json"
         heartbeat_path.write_text(json.dumps(heartbeat, indent=2), encoding="utf-8")
