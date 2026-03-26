@@ -1,7 +1,7 @@
 # 90-Day Backtest Results
 
 Date: 2026-03-26
-Last revalidated: 2026-03-26T15:16:45+09:00
+Last revalidated: 2026-03-26T15:21:21+09:00
 Scope: 7 strategies x 4 symbols (`KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`) on 90 days of `minute60` candles from Upbit
 
 ## Command
@@ -11,7 +11,7 @@ PYTHONPATH=src .venv/bin/python scripts/backtest_all.py 90 --cache-dir artifacts
 ```
 
 Raw JSON output was generated at `artifacts/backtest-results-90d.json` during the run.
-This report was revalidated on `2026-03-26T15:16:45+09:00` and matched the prior 90-day baseline exactly.
+This report was revalidated on `2026-03-26T15:21:21+09:00` and matched the prior 90-day baseline exactly.
 
 ## Executive Summary
 
@@ -79,3 +79,8 @@ Worst return combinations:
 - `vpin` was more robust than the strategy-average headline suggests, posting positive returns on `KRW-BTC`, `KRW-ETH`, and `KRW-SOL`.
 - `KRW-XRP` was the consistent drag across the matrix and deserves either separate tuning or removal from a shared-parameter deployment set.
 - `composite` needs a minimum-trade guard before it should be treated as a top baseline performer.
+
+## Validation History
+
+- `2026-03-26T15:16:45+09:00`: rerun matched the original 90-day baseline exactly.
+- `2026-03-26T15:21:21+09:00`: rerun matched the original 90-day baseline exactly.
