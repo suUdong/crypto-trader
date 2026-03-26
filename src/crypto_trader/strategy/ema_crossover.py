@@ -42,7 +42,7 @@ class EMACrossoverStrategy:
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None,
+        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
     ) -> Signal:
         regime = self._regime_detector.detect(candles)
         effective = self._regime_detector.adjust(self._config, regime)

@@ -36,7 +36,13 @@ from crypto_trader.strategy.vpin import VPINStrategy
 
 
 class StrategyProtocol(Protocol):
-    def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal: ...
+    def evaluate(
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal: ...
 
 
 def create_strategy(
@@ -88,7 +94,11 @@ def create_strategy(
             if name != "consensus"  # prevent recursion
         ]
         min_confidence_sum = float(params.get("min_confidence_sum", 0.0))
-        return ConsensusStrategy(sub_strategies, min_agree=min_agree, min_confidence_sum=min_confidence_sum)
+        return ConsensusStrategy(
+            sub_strategies,
+            min_agree=min_agree,
+            min_confidence_sum=min_confidence_sum,
+        )
     return CompositeStrategy(strategy_config, regime_config)
 
 
@@ -120,11 +130,7 @@ class StrategyWallet:
             self.risk_manager.update_atr_from_candles(candles)
             self.risk_manager.tick_cooldown()
             position = self.broker.positions.get(symbol)
-            # Pass symbol to strategies that support per-symbol context (e.g. kimchi cooldown)
-            if isinstance(self.strategy, KimchiPremiumStrategy):
-                signal = self.strategy.evaluate(candles, position, symbol=symbol)
-            else:
-                signal = self.strategy.evaluate(candles, position)
+            signal = self.strategy.evaluate(candles, position, symbol=symbol)
             latest_price = candles[-1].close
             order: OrderResult | None = None
 

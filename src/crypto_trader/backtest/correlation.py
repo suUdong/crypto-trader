@@ -18,12 +18,12 @@ def signal_correlation(
 
     # Generate binary signal vectors (1=BUY, 0=not BUY)
     vectors: dict[str, list[int]] = {}
-    for name, strategy in zip(names, strategies):
+    for name, strategy in zip(names, strategies, strict=False):
         signals: list[int] = []
         for i in range(30, len(candles)):  # need warmup
-            window = candles[:i+1]
+            window = candles[: i + 1]
             try:
-                sig = strategy.evaluate(window, None)
+                sig = strategy.evaluate(window, None, symbol="")
                 signals.append(1 if sig.action is SignalAction.BUY else 0)
             except Exception:
                 signals.append(0)

@@ -39,6 +39,7 @@ def _make_strategy(
 
     mock_binance = MagicMock()
     mock_binance.get_btc_usdt_price.return_value = binance_price
+    mock_binance.get_usdt_price.return_value = binance_price
     mock_fx = MagicMock()
     mock_fx.get_usd_krw_rate.return_value = fx_rate
 

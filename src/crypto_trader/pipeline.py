@@ -57,7 +57,7 @@ class TradingPipeline:
             self._risk_manager.update_atr_from_candles(candles)
             now = candles[-1].timestamp if candles else datetime.utcnow()
             position = self._broker.positions.get(symbol)
-            signal = self._strategy.evaluate(candles, position)
+            signal = self._strategy.evaluate(candles, position, symbol=symbol)
             latest_price = candles[-1].close
             order: OrderResult | None = None
 

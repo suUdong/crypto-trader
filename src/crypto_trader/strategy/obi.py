@@ -40,7 +40,7 @@ class OBIStrategy:
         self._obi_sell_threshold = obi_sell_threshold
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None
+        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
     ) -> Signal:
         minimum = max(self._config.rsi_period + 1, self._config.momentum_lookback + 1)
         if len(candles) < minimum:

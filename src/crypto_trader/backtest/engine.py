@@ -9,7 +9,13 @@ from crypto_trader.strategy.regime import MarketRegime, RegimeDetector
 
 
 class _StrategyProtocol(Protocol):
-    def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal: ...
+    def evaluate(
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal: ...
 
 
 class BacktestEngine:
@@ -63,7 +69,7 @@ class BacktestEngine:
                 exit_reason = self._risk_manager.exit_reason(
                     open_position, market_price, holding_bars=holding_bars,
                 )
-                signal = self._strategy.evaluate(window, open_position)
+                signal = self._strategy.evaluate(window, open_position, symbol=self._symbol)
                 if exit_reason is None and signal.action is SignalAction.SELL:
                     exit_reason = signal.reason
 
@@ -79,7 +85,11 @@ class BacktestEngine:
                         cash += gross - exit_fee
                         partial_entry_cost = open_position.entry_price * sell_qty
                         partial_entry_fee = open_position.entry_fee_paid * partial_frac
-                        pnl = (exit_price - open_position.entry_price) * sell_qty - exit_fee - partial_entry_fee
+                        pnl = (
+                            (exit_price - open_position.entry_price) * sell_qty
+                            - exit_fee
+                            - partial_entry_fee
+                        )
                         realized_pnl += pnl
                         pnl_pct = pnl / max(1.0, partial_entry_cost + partial_entry_fee)
                         trades.append(
@@ -140,7 +150,7 @@ class BacktestEngine:
                         open_position = None
 
             if open_position is None:
-                signal = self._strategy.evaluate(window, None)
+                signal = self._strategy.evaluate(window, None, symbol=self._symbol)
                 can_open = self._risk_manager.can_open(
                     active_positions=0,
                     realized_pnl=realized_pnl,
@@ -314,7 +324,7 @@ class BacktestEngine:
             regime_breakdown[r]["total_pnl"] += t.pnl
             if t.pnl > 0:
                 regime_breakdown[r]["wins"] += 1
-        for r, stats in regime_breakdown.items():
+        for stats in regime_breakdown.values():
             cnt = stats["trade_count"]
             stats["win_rate"] = stats["wins"] / cnt if cnt > 0 else 0.0
             stats["avg_pnl"] = stats["total_pnl"] / cnt if cnt > 0 else 0.0

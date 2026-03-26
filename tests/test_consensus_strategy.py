@@ -31,7 +31,13 @@ class _FakeStrategy:
         self._confidence = confidence
         self._reason = reason
 
-    def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal:
+    def evaluate(
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal:
         return Signal(
             action=self._action,
             reason=self._reason,

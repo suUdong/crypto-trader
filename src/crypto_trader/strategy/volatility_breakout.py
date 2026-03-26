@@ -40,11 +40,13 @@ class VolatilityBreakoutStrategy:
         self._k_base = k_base
         self._noise_lookback = noise_lookback
         self._ma_filter_period = ma_filter_period
-        self._max_holding_bars = max_holding_bars if max_holding_bars is not None else config.max_holding_bars
+        self._max_holding_bars = (
+            max_holding_bars if max_holding_bars is not None else config.max_holding_bars
+        )
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None
+        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
     ) -> Signal:
         regime = self._regime_detector.detect(candles)
         effective = self._regime_detector.adjust(self._config, regime)
@@ -171,7 +173,23 @@ class VolatilityBreakoutStrategy:
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, obv_trend, cmf_value, ema50_value, vwap_value, kc_upper, effective.adx_threshold, indicators, context)
+        return self._evaluate_entry(
+            current_price,
+            breakout_level,
+            ma,
+            adx_value,
+            volume_ok,
+            macd_bullish,
+            squeeze,
+            obv_trend,
+            cmf_value,
+            ema50_value,
+            vwap_value,
+            kc_upper,
+            effective.adx_threshold,
+            indicators,
+            context,
+        )
 
     def _evaluate_entry(
         self,

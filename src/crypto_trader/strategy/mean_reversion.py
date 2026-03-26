@@ -2,7 +2,21 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, chaikin_money_flow, keltner_channels, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma, williams_percent_r
+from crypto_trader.strategy.indicators import (
+    _ema,
+    average_directional_index,
+    bollinger_bands,
+    chaikin_money_flow,
+    keltner_channels,
+    macd,
+    noise_ratio,
+    obv_slope,
+    rolling_vwap,
+    rsi,
+    rsi_divergence,
+    volume_sma,
+    williams_percent_r,
+)
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -11,7 +25,13 @@ class MeanReversionStrategy:
         self._config = config
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
 
-    def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal:
+    def evaluate(
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal:
         regime = self._regime_detector.detect(candles)
         effective = self._regime_detector.adjust(self._config, regime)
         minimum = max(effective.bollinger_window + 1, effective.rsi_period + 1)

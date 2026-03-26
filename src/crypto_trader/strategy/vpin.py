@@ -37,7 +37,7 @@ class VPINStrategy:
         self._vpin_rsi_floor = vpin_rsi_floor
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None
+        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
     ) -> Signal:
         minimum = max(
             self._config.rsi_period + 1,
