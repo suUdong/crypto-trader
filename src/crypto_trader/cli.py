@@ -77,7 +77,7 @@ def main() -> None:
         "--strategy",
         choices=[
             "momentum", "mean_reversion", "composite",
-            "kimchi_premium", "obi", "vpin", "volatility_breakout",
+            "kimchi_premium", "obi", "vpin", "volatility_breakout", "ema_crossover",
             "consensus",
         ],
         default="composite",
@@ -678,7 +678,7 @@ def main() -> None:
 
         all_strategies = [
             "momentum", "mean_reversion", "vpin", "volatility_breakout",
-            "kimchi_premium", "obi", "consensus",
+            "kimchi_premium", "obi", "ema_crossover", "consensus",
         ]
         symbols = config.trading.symbols
         results_list: list[dict] = []

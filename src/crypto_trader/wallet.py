@@ -26,6 +26,7 @@ from crypto_trader.models import (
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.consensus import ConsensusStrategy
+from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
@@ -60,6 +61,8 @@ def create_strategy(
         return OBIStrategy(strategy_config)
     if strategy_type == "vpin":
         return VPINStrategy(strategy_config)
+    if strategy_type == "ema_crossover":
+        return EMACrossoverStrategy(strategy_config)
     if strategy_type == "volatility_breakout":
         return VolatilityBreakoutStrategy(
             strategy_config,

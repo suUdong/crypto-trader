@@ -4,6 +4,7 @@ from crypto_trader.config import StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     average_directional_index,
+    macd,
     noise_ratio,
     simple_moving_average,
     volume_sma,
@@ -76,6 +77,17 @@ class VolatilityBreakoutStrategy:
         except ValueError:
             pass
 
+        # MACD confirmation
+        macd_bullish = False
+        macd_hist_val = 0.0
+        if len(closes) >= 35:
+            try:
+                _, _, macd_hist_val = macd(closes)
+                macd_bullish = macd_hist_val > 0
+                indicators["macd_histogram"] = macd_hist_val
+            except ValueError:
+                pass
+
         # Volume filter: compute ratio before entry check
         volume_ok = True
         vol_mult = self._config.volume_filter_mult
@@ -92,7 +104,7 @@ class VolatilityBreakoutStrategy:
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, indicators, context)
+        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, indicators, context)
 
     def _evaluate_entry(
         self,
@@ -101,6 +113,7 @@ class VolatilityBreakoutStrategy:
         ma: float,
         adx_value: float | None,
         volume_ok: bool,
+        macd_bullish: bool,
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
@@ -136,6 +149,8 @@ class VolatilityBreakoutStrategy:
             # Confidence based on how far above breakout level
             excess = (current_price - breakout_level) / breakout_level if breakout_level > 0 else 0
             confidence = min(1.0, 0.6 + excess * 10)
+            if macd_bullish:
+                confidence = min(1.0, confidence + 0.1)
             return Signal(
                 action=SignalAction.BUY,
                 reason="volatility_breakout",

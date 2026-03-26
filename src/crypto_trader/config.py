@@ -793,6 +793,7 @@ def _validate_config(config: AppConfig) -> None:
         "obi",
         "vpin",
         "volatility_breakout",
+        "ema_crossover",
         "consensus",
     }
     for wc in config.wallets:
