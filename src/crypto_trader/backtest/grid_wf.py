@@ -311,7 +311,8 @@ def grid_search(
             avg_profit_factor = sum(profit_factors) / len(profit_factors)
             scored.append((params, avg_sharpe, avg_return, trades, avg_profit_factor, avg_sortino))
 
-    scored.sort(key=lambda x: x[1] * 0.7 + x[4] * 0.3, reverse=True)
+    # Composite score: Sharpe 40% + Sortino 30% + PF 30% (better for crypto asymmetry)
+    scored.sort(key=lambda x: x[1] * 0.4 + x[5] * 0.3 + x[4] * 0.3, reverse=True)
     return [
         GridCandidate(
             strategy_type=strategy_type,

@@ -742,18 +742,31 @@ def main() -> None:
                     print(f"  {strat_name:<22} {'(no valid results)':>40}")
                     continue
 
+                avg_sharpe = round(sum(sym_sharpes) / n, 3)
+                avg_sortino = round(sum(sym_sortinos) / n, 3)
+                avg_calmar = round(sum(sym_calmars) / n, 3)
+                avg_pf = round(sum(sym_pfs) / n, 3)
+                # Composite score: Sharpe 30% + Sortino 25% + Calmar 15% + PF 20% + WinRate 10%
+                composite = (
+                    avg_sharpe * 0.30
+                    + avg_sortino * 0.25
+                    + avg_calmar * 0.15
+                    + avg_pf * 0.20
+                    + (sum(sym_wrs) / n / 100) * 0.10
+                )
                 row = {
                     "strategy": strat_name,
                     "symbols_tested": n,
                     "return_pct": round(sum(sym_returns) / n, 3),
-                    "sharpe": round(sum(sym_sharpes) / n, 3),
-                    "sortino": round(sum(sym_sortinos) / n, 3),
-                    "calmar": round(sum(sym_calmars) / n, 3),
-                    "profit_factor": round(sum(sym_pfs) / n, 3),
+                    "sharpe": avg_sharpe,
+                    "sortino": avg_sortino,
+                    "calmar": avg_calmar,
+                    "profit_factor": avg_pf,
                     "max_drawdown_pct": round(max(sym_mdds), 3),
                     "win_rate_pct": round(sum(sym_wrs) / n, 1),
                     "trade_count": total_trades,
                     "max_consecutive_losses": max_mcl,
+                    "composite_score": round(composite, 3),
                 }
                 results_list.append(row)
                 print(
@@ -770,6 +783,26 @@ def main() -> None:
             except Exception as exc:
                 print(f"  {strat_name:<22} ERROR: {exc}")
 
+        # Strategy recommendations based on composite score
+        if results_list:
+            ranked = sorted(results_list, key=lambda r: r.get("composite_score", 0), reverse=True)
+            print(f"\n{'='*90}")
+            print("  STRATEGY RANKING (by composite score)")
+            print(f"{'='*90}")
+            print(f"\n  {'Rank':<6} {'Strategy':<22} {'Score':>7} {'Action':<20}")
+            print(f"  {'-'*55}")
+            for i, r in enumerate(ranked, 1):
+                score = r.get("composite_score", 0)
+                if score > 1.0 and r["return_pct"] > 0:
+                    action = "DEPLOY candidate"
+                elif score > 0.5 and r["return_pct"] > 0:
+                    action = "RESEARCH hold"
+                elif r["return_pct"] > 0:
+                    action = "WATCHLIST"
+                else:
+                    action = "DROP"
+                print(f"  #{i:<5} {r['strategy']:<22} {score:>6.3f} {action}")
+
         print(f"\n{'='*90}\n")
 
         # Save results
@@ -779,7 +812,7 @@ def main() -> None:
             "date": date.today().isoformat(),
             "symbols": list(candles_map.keys()),
             "candle_count": config.trading.candle_count,
-            "results": results_list,
+            "results": ranked if results_list else [],
         }
         export_path = artifacts_dir / f"backtest-all-{date.today().isoformat()}.json"
         export_path.write_text(json.dumps(export, indent=2), encoding="utf-8")
