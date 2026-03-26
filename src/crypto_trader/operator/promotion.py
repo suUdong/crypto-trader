@@ -9,6 +9,7 @@ from crypto_trader.models import (
     BacktestBaseline,
     DriftReport,
     DriftStatus,
+    PortfolioPromotionDecision,
     PromotionGateDecision,
     PromotionStatus,
     StrategyRunRecord,
@@ -235,4 +236,145 @@ class PromotionGate:
         payload = asdict(decision)
         payload["status"] = decision.status.value
         payload["drift_status"] = decision.drift_status.value
+        target.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+class PortfolioPromotionGate:
+    """Evaluate promotion readiness across the entire multi-wallet portfolio."""
+
+    MINIMUM_PAPER_DAYS = 7
+    MINIMUM_TOTAL_TRADES = 10
+    MINIMUM_PROFITABLE_WALLETS = 2
+    MINIMUM_PORTFOLIO_RETURN_PCT = 0.0  # must be positive
+
+    def evaluate_from_checkpoint(
+        self,
+        checkpoint_path: str | Path,
+        journal_path: str | Path | None = None,
+    ) -> PortfolioPromotionDecision:
+        """Evaluate portfolio-level promotion from runtime checkpoint."""
+        cp_path = Path(checkpoint_path)
+        if not cp_path.exists():
+            return self._fail("Checkpoint file not found")
+
+        checkpoint = json.loads(cp_path.read_text(encoding="utf-8"))
+        wallet_states = checkpoint.get("wallet_states", {})
+        generated_at_str = checkpoint.get("generated_at", "")
+
+        # Calculate paper days
+        now = datetime.now(UTC)
+        try:
+            gen_dt = datetime.fromisoformat(generated_at_str)
+            paper_days = max(0, (now - gen_dt).days)
+        except Exception:
+            paper_days = 0
+
+        # Also check journal for first trade timestamp
+        if journal_path:
+            jp = Path(journal_path)
+            if jp.exists():
+                first_line = ""
+                with jp.open(encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                if first_line:
+                    try:
+                        first_rec = json.loads(first_line)
+                        ts = first_rec.get("recorded_at", "")
+                        first_dt = datetime.fromisoformat(ts)
+                        paper_days = max(paper_days, (now - first_dt).days)
+                    except Exception:
+                        pass
+
+        initial_capital = 1_000_000.0
+        per_wallet: dict[str, dict] = {}
+        total_equity = 0.0
+        total_realized_pnl = 0.0
+        total_trades = 0
+        profitable_wallets = 0
+
+        for name, ws in wallet_states.items():
+            equity = ws.get("equity", initial_capital)
+            pnl = ws.get("realized_pnl", 0.0)
+            trades = ws.get("trade_count", 0)
+            return_pct = (equity - initial_capital) / initial_capital if initial_capital > 0 else 0.0
+            per_wallet[name] = {
+                "equity": equity,
+                "realized_pnl": pnl,
+                "trades": trades,
+                "return_pct": return_pct,
+            }
+            total_equity += equity
+            total_realized_pnl += pnl
+            total_trades += trades
+            if equity > initial_capital:
+                profitable_wallets += 1
+
+        wallet_count = len(wallet_states)
+        total_initial = initial_capital * wallet_count
+        portfolio_return_pct = (total_equity - total_initial) / total_initial if total_initial > 0 else 0.0
+
+        # Evaluate criteria
+        reasons: list[str] = []
+        if paper_days < self.MINIMUM_PAPER_DAYS:
+            reasons.append(f"Need {self.MINIMUM_PAPER_DAYS}d paper trading (have {paper_days}d)")
+        if total_trades < self.MINIMUM_TOTAL_TRADES:
+            reasons.append(f"Need {self.MINIMUM_TOTAL_TRADES}+ trades (have {total_trades})")
+        if profitable_wallets < self.MINIMUM_PROFITABLE_WALLETS:
+            reasons.append(
+                f"Need {self.MINIMUM_PROFITABLE_WALLETS}+ profitable wallets (have {profitable_wallets})"
+            )
+        if portfolio_return_pct <= self.MINIMUM_PORTFOLIO_RETURN_PCT:
+            reasons.append(f"Portfolio return {portfolio_return_pct:.4%} not positive")
+
+        if reasons:
+            status = PromotionStatus.STAY_IN_PAPER
+        else:
+            status = PromotionStatus.CANDIDATE_FOR_PROMOTION
+            reasons.append("Portfolio meets all promotion criteria")
+
+        return PortfolioPromotionDecision(
+            generated_at=now.isoformat(),
+            status=status,
+            reasons=reasons,
+            wallet_count=wallet_count,
+            total_equity=total_equity,
+            total_realized_pnl=total_realized_pnl,
+            portfolio_return_pct=portfolio_return_pct,
+            profitable_wallets=profitable_wallets,
+            total_trades=total_trades,
+            paper_days=paper_days,
+            per_wallet=per_wallet,
+        )
+
+    def _fail(self, reason: str) -> PortfolioPromotionDecision:
+        return PortfolioPromotionDecision(
+            generated_at=datetime.now(UTC).isoformat(),
+            status=PromotionStatus.DO_NOT_PROMOTE,
+            reasons=[reason],
+            wallet_count=0,
+            total_equity=0.0,
+            total_realized_pnl=0.0,
+            portfolio_return_pct=0.0,
+            profitable_wallets=0,
+            total_trades=0,
+            paper_days=0,
+            per_wallet={},
+        )
+
+    def save(self, decision: PortfolioPromotionDecision, path: str | Path) -> None:
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "generated_at": decision.generated_at,
+            "status": decision.status.value,
+            "reasons": decision.reasons,
+            "wallet_count": decision.wallet_count,
+            "total_equity": decision.total_equity,
+            "total_realized_pnl": decision.total_realized_pnl,
+            "portfolio_return_pct": decision.portfolio_return_pct,
+            "profitable_wallets": decision.profitable_wallets,
+            "total_trades": decision.total_trades,
+            "paper_days": decision.paper_days,
+            "per_wallet": decision.per_wallet,
+        }
         target.write_text(json.dumps(payload, indent=2), encoding="utf-8")

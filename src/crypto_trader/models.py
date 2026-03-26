@@ -302,6 +302,21 @@ class PromotionGateDecision:
 
 
 @dataclass(slots=True)
+class PortfolioPromotionDecision:
+    generated_at: str
+    status: PromotionStatus
+    reasons: list[str]
+    wallet_count: int
+    total_equity: float
+    total_realized_pnl: float
+    portfolio_return_pct: float
+    profitable_wallets: int
+    total_trades: int
+    paper_days: int
+    per_wallet: dict[str, dict]  # wallet_name -> {equity, pnl, trades, return_pct}
+
+
+@dataclass(slots=True)
 class OrderbookEntry:
     price: float
     size: float

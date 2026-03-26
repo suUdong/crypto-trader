@@ -125,6 +125,7 @@ class MultiSymbolRuntime:
             tick_results = self._run_tick(symbols)
             self._check_kill_switch_after_tick(tick_results)
             self._save_checkpoint(tick_results)
+            self._maybe_refresh_artifacts()
             self._maybe_send_pnl_notify()
             self._iteration += 1
 
@@ -397,6 +398,49 @@ class MultiSymbolRuntime:
             self._last_pnl_notify = time.time()
         except Exception as exc:
             self._logger.error("Failed to send PnL notification: %s", exc)
+
+    def _maybe_refresh_artifacts(self) -> None:
+        """Periodically refresh drift, promotion, and position artifacts."""
+        if self._iteration % 60 != 0 or self._iteration == 0:
+            return
+        try:
+            self._refresh_position_snapshot()
+            self._refresh_portfolio_promotion()
+            self._logger.info("Periodic artifact refresh completed (iteration %d)", self._iteration)
+        except Exception as exc:
+            self._logger.error("Artifact refresh failed: %s", exc)
+
+    def _refresh_position_snapshot(self) -> None:
+        """Save current open positions to positions.json."""
+        snapshot_path = Path(self._config.runtime.position_snapshot_path)
+        positions = []
+        for wallet in self._wallets:
+            for symbol, pos in wallet.broker.positions.items():
+                positions.append({
+                    "wallet": wallet.name,
+                    "symbol": symbol,
+                    "qty": pos.qty,
+                    "entry_price": pos.entry_price,
+                    "side": "long",
+                })
+        payload = {
+            "generated_at": datetime.now(UTC).isoformat(),
+            "count": len(positions),
+            "positions": positions,
+        }
+        snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+        snapshot_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    def _refresh_portfolio_promotion(self) -> None:
+        """Refresh portfolio-level promotion gate artifact."""
+        from crypto_trader.operator.promotion import PortfolioPromotionGate
+        gate = PortfolioPromotionGate()
+        decision = gate.evaluate_from_checkpoint(
+            checkpoint_path=self._config.runtime.runtime_checkpoint_path,
+            journal_path=self._config.runtime.strategy_run_journal_path,
+        )
+        promo_path = Path(self._config.runtime.promotion_gate_path)
+        gate.save(decision, promo_path)
 
     def _save_heartbeat(self, artifacts_dir: Path) -> None:
         heartbeat = {
