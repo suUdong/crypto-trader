@@ -84,6 +84,40 @@ class TestBacktestAllStrategies(unittest.TestCase):
         self.assertIn("strategy", parsed)
         self.assertEqual(parsed["strategy"], "momentum")
 
+    def test_backtest_all_export_metrics_include_expected_value_recovery_and_tail(self) -> None:
+        candles = _build_candles(120)
+        strat_config = StrategyConfig(adx_threshold=0.0, volume_filter_mult=0.0)
+        strategy = create_strategy("momentum", strat_config, RegimeConfig())
+        rm = RiskManager(RiskConfig(atr_stop_multiplier=0.0))
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=rm,
+            config=BacktestConfig(),
+            symbol="KRW-BTC",
+        )
+        result = engine.run(candles)
+
+        from crypto_trader.backtest.grid_wf import _approx_sharpe
+
+        export_row = {
+            "strategy": "momentum",
+            "return_pct": result.total_return_pct * 100,
+            "sharpe": _approx_sharpe(result.equity_curve),
+            "max_drawdown_pct": result.max_drawdown * 100,
+            "trade_count": len(result.trade_log),
+            "expected_value_per_trade": result.expected_value_per_trade,
+            "recovery_factor": result.recovery_factor,
+            "tail_ratio": result.tail_ratio,
+        }
+
+        payload = json.loads(json.dumps(export_row))
+        self.assertIn("expected_value_per_trade", payload)
+        self.assertIn("recovery_factor", payload)
+        self.assertIn("tail_ratio", payload)
+        self.assertIsInstance(payload["expected_value_per_trade"], float)
+        self.assertIsInstance(payload["recovery_factor"], float)
+        self.assertIsInstance(payload["tail_ratio"], float)
+
 
 if __name__ == "__main__":
     unittest.main()
