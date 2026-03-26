@@ -60,6 +60,7 @@ def main() -> None:
             "performance-report",
             "micro-live-check",
             "rebalance-capital",
+            "walk-forward",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -77,6 +78,12 @@ def main() -> None:
         type=int,
         default=0,
         help="Time window in hours for PnL report filtering (e.g. 72 for 3-day report)",
+    )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=90,
+        help="Number of days for walk-forward validation (default: 90)",
     )
     args = parser.parse_args()
 
@@ -285,6 +292,82 @@ def main() -> None:
         print(f"  TOML wallets:\n")
         print(allocator.to_toml_wallets(result.allocations))
         print(f"\n  Report saved to {report_path}")
+        return
+
+    if args.command == "walk-forward":
+        from crypto_trader.backtest.walk_forward import WalkForwardValidator
+
+        strategy_type = args.strategy
+        days = args.days
+        symbols = config.trading.symbols
+
+        # Fetch candles
+        candles_map: dict[str, list] = {}
+        for sym in symbols:
+            try:
+                c = market_data.get_ohlcv(sym, interval=config.trading.interval, count=days * 24)
+                if c and len(c) >= 100:
+                    candles_map[sym] = c
+            except Exception as e:
+                print(f"  Skipping {sym}: {e}")
+
+        if not candles_map:
+            print("No candle data available for walk-forward validation.")
+            return
+
+        validator = WalkForwardValidator(
+            backtest_config=config.backtest,
+            risk_config=config.risk,
+            n_folds=3,
+            train_pct=0.7,
+        )
+
+        print(f"\n{'='*60}")
+        print(f"  WALK-FORWARD VALIDATION — {strategy_type} ({days}d)")
+        print(f"{'='*60}")
+
+        all_passed = True
+        for sym, candles in candles_map.items():
+            def _factory(s=sym, cs=candles):
+                from unittest.mock import MagicMock
+                strat = create_strategy(strategy_type, config.strategy, config.regime)
+                if strategy_type == "kimchi_premium":
+                    # Simulate premium using MA deviation
+                    if len(cs) >= 50:
+                        closes = [c.close for c in cs]
+                        ma50 = sum(closes[-50:]) / 50.0
+                        if ma50 > 0:
+                            deviation = (closes[-1] - ma50) / ma50
+                            strat._cached_premium = deviation
+                            strat._binance = MagicMock()
+                            strat._fx = MagicMock()
+                            strat._binance.get_btc_usdt_price.return_value = None
+                            strat._fx.get_usd_krw_rate.return_value = None
+                return strat
+
+            report = validator.validate(
+                strategy_factory=_factory,
+                candles=candles,
+                symbol=sym,
+                strategy_name=strategy_type,
+            )
+
+            summary = report.summary()
+            status = "PASS" if report.passed else "FAIL"
+            all_passed = all_passed and report.passed
+
+            print(f"\n  {sym}:")
+            print(f"    Folds: {summary['total_folds']}")
+            print(f"    Avg Train Return: {summary['avg_train_return_pct']:+.3f}%")
+            print(f"    Avg Test Return:  {summary['avg_test_return_pct']:+.3f}%")
+            print(f"    Efficiency Ratio: {summary['avg_efficiency_ratio']:.3f}")
+            print(f"    OOS Win Rate:     {summary['oos_win_rate']:.1%}")
+            print(f"    Status:           [{status}]")
+
+        print(f"\n{'='*60}")
+        overall = "PASS" if all_passed else "FAIL"
+        print(f"  Overall: [{overall}]")
+        print(f"{'='*60}\n")
         return
 
     if args.command == "run-multi":

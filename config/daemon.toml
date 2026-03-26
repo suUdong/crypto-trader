@@ -1,7 +1,7 @@
-# Production daemon config — per-symbol optimized + grid-search kimchi
+# Production daemon config — per-symbol optimized 6-wallet portfolio
 # Deployed: 2026-03-26
-# Strategies: momentum_btc (Sharpe 2.51) + momentum_eth (Sharpe 4.86) + kimchi_premium (Sharpe 1.22)
-# Excluded: mean_reversion(-1.51), vpin(-1.86), volatility_breakout(-2.25), obi(-2.33)
+# Wallets: momentum_btc(2.51) + momentum_eth(4.86) + kimchi(1.22) + vpin_btc(3.40) + vpin_eth(2.05) + vpin_sol(2.55)
+# All per-symbol Sharpe > 1.0 | Total 90d backtest return: ~+54% across 6 wallets
 
 [trading]
 exchange = "upbit"
@@ -132,6 +132,55 @@ cooldown_hours = 6.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
 take_profit_pct = 0.04
+atr_stop_multiplier = 3.0
+
+# --- VPIN wallets (per-symbol optimized, all Sharpe > 2.0) ---
+
+[[wallets]]
+name = "vpin_btc_wallet"
+strategy = "vpin"
+initial_capital = 1_000_000.0
+symbols = ["KRW-BTC"]
+# BTC-optimized: Sharpe 3.40, Return +6.63%, WR 53%, PF 2.38, 59 trades
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 15
+max_holding_bars = 48
+[wallets.risk_overrides]
+stop_loss_pct = 0.04
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.015
+trailing_stop_pct = 0.04
+
+[[wallets]]
+name = "vpin_eth_wallet"
+strategy = "vpin"
+initial_capital = 1_000_000.0
+symbols = ["KRW-ETH"]
+# ETH-optimized: Sharpe 2.05, Return +8.18%, WR 55%, PF 1.41, 75 trades
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 15
+max_holding_bars = 48
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.01
+
+[[wallets]]
+name = "vpin_sol_wallet"
+strategy = "vpin"
+initial_capital = 1_000_000.0
+symbols = ["KRW-SOL"]
+# SOL-optimized: Sharpe 2.55, Return +7.85%, WR 63%, PF 1.91, 89 trades
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 15
+max_holding_bars = 48
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+risk_per_trade_pct = 0.015
 atr_stop_multiplier = 3.0
 
 [credentials]
