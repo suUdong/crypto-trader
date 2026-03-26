@@ -189,9 +189,28 @@ def grid_search(
     strategy_type: str,
     candles_by_symbol: dict[str, list[Candle]],
     top_n: int = 5,
+    regime_filter: str | None = None,
 ) -> list[GridCandidate]:
     """Run grid search across param combinations, return top-N by Sharpe."""
     import itertools
+
+    if regime_filter:
+        from crypto_trader.strategy.regime import RegimeDetector
+        from crypto_trader.config import RegimeConfig
+        detector = RegimeDetector(RegimeConfig())
+        filtered_map: dict[str, list[Candle]] = {}
+        for sym, candles in candles_by_symbol.items():
+            # Keep candles where detected regime matches filter
+            filtered: list[Candle] = []
+            for i in range(30, len(candles)):
+                window = candles[max(0, i-30):i+1]
+                if len(window) >= 10:
+                    analysis = detector.analyze(window)
+                    if analysis.regime.value == regime_filter:
+                        filtered.append(candles[i])
+            if len(filtered) >= 50:
+                filtered_map[sym] = filtered
+        candles_by_symbol = filtered_map if filtered_map else candles_by_symbol
 
     grid = PARAM_GRIDS.get(strategy_type, {})
     if not grid:
@@ -322,12 +341,13 @@ def run_grid_wf(
     top_n: int = 5,
     backtest_config: BacktestConfig | None = None,
     risk_config: RiskConfig | None = None,
+    regime_filter: str | None = None,
 ) -> GridWFSummary:
     """Full pipeline: grid search -> walk-forward validation on top candidates."""
     bc = backtest_config or BacktestConfig()
     rc = risk_config or RiskConfig()
 
-    candidates = grid_search(strategy_type, candles_by_symbol, top_n=top_n)
+    candidates = grid_search(strategy_type, candles_by_symbol, top_n=top_n, regime_filter=regime_filter)
 
     results: list[GridWFResult] = []
     for candidate in candidates:

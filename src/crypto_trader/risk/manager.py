@@ -18,6 +18,7 @@ class RiskManager:
         self._atr_stop_multiplier = atr_stop_multiplier
         self._current_atr: float = 0.0
         self.min_entry_confidence: float = config.min_entry_confidence
+        self._peak_equity: float = 0.0
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -67,21 +68,29 @@ class RiskManager:
     ) -> float:
         if equity <= 0 or price <= 0:
             return 0.0
+        if equity > self._peak_equity:
+            self._peak_equity = equity
         kelly = self.kelly_fraction()
         if kelly is not None and kelly > 0:
             risk_budget = equity * kelly
             quantity = risk_budget / price
             quantity *= macro_multiplier
             max_affordable = equity / price
-            return max(0.0, min(quantity, max_affordable))
-        risk_budget = equity * self._config.risk_per_trade_pct
-        stop_distance = price * self._config.stop_loss_pct
-        if stop_distance <= 0:
-            return 0.0
-        quantity = risk_budget / stop_distance
-        quantity *= macro_multiplier
-        max_affordable = equity / price
-        return max(0.0, min(quantity, max_affordable))
+            base_quantity = max(0.0, min(quantity, max_affordable))
+        else:
+            risk_budget = equity * self._config.risk_per_trade_pct
+            stop_distance = price * self._config.stop_loss_pct
+            if stop_distance <= 0:
+                return 0.0
+            quantity = risk_budget / stop_distance
+            quantity *= macro_multiplier
+            max_affordable = equity / price
+            base_quantity = max(0.0, min(quantity, max_affordable))
+        drawdown_pct = (self._peak_equity - equity) / self._peak_equity if self._peak_equity > 0 else 0.0
+        max_daily_loss_pct = self._config.max_daily_loss_pct
+        scale = 1.0 - (drawdown_pct / max_daily_loss_pct) * self._config.drawdown_reduction_pct if max_daily_loss_pct > 0 else 1.0
+        scale = max(0.1, min(scale, 1.0))
+        return base_quantity * scale
 
     def can_open(self, active_positions: int, realized_pnl: float, starting_equity: float) -> bool:
         if active_positions >= self._config.max_concurrent_positions:

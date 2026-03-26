@@ -99,6 +99,7 @@ def main() -> None:
         help="Number of top grid search candidates to validate (default: 5)",
     )
     parser.add_argument("--wallet", default=None, help="Target wallet name for apply-params")
+    parser.add_argument("--regime", choices=["bull", "bear", "sideways"], default=None, help="Filter candles by market regime for grid-wf")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -129,6 +130,21 @@ def main() -> None:
             f"win_rate={backtest_result.win_rate:.2%} "
             f"max_drawdown={backtest_result.max_drawdown:.2%}"
         )
+        # Export equity curve
+        import json
+        artifacts_dir = Path("artifacts")
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        curve_data = {
+            "strategy": args.strategy,
+            "symbol": config.trading.symbol,
+            "initial_capital": config.backtest.initial_capital,
+            "final_equity": backtest_result.final_equity,
+            "total_return_pct": backtest_result.total_return_pct,
+            "equity_curve": backtest_result.equity_curve,
+        }
+        curve_path = artifacts_dir / f"equity-curve-{args.strategy}.json"
+        curve_path.write_text(json.dumps(curve_data, indent=2), encoding="utf-8")
+        print(f"equity_curve saved to {curve_path} ({len(backtest_result.equity_curve)} points)")
         return
 
     if args.command == "regime-report":
@@ -467,6 +483,7 @@ def main() -> None:
             top_n=top_n,
             backtest_config=config.backtest,
             risk_config=config.risk,
+            regime_filter=args.regime,
         )
 
         print(f"\n  Candidates tested: {summary.candidates_tested}")

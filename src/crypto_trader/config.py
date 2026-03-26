@@ -72,6 +72,7 @@ class RiskConfig:
     max_daily_loss_pct: float = 0.05
     max_concurrent_positions: int = 1
     min_entry_confidence: float = 0.6
+    drawdown_reduction_pct: float = 0.5
 
 
 @dataclass(slots=True)

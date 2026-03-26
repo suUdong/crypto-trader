@@ -85,6 +85,23 @@ class TestGridSearch(unittest.TestCase):
         for c in candidates:
             self.assertEqual(c.strategy_type, "consensus")
 
+    def test_regime_filter_none_same_as_default(self) -> None:
+        candles = _build_candles(_trending_with_pullbacks(300))
+        candles_map = {"KRW-BTC": candles}
+        candidates_default = grid_search("momentum", candles_map, top_n=3)
+        candidates_none = grid_search("momentum", candles_map, top_n=3, regime_filter=None)
+        self.assertEqual(len(candidates_default), len(candidates_none))
+
+    def test_regime_filter_returns_valid_candidates(self) -> None:
+        candles = _build_candles(_trending_with_pullbacks(300))
+        candles_map = {"KRW-BTC": candles}
+        # Should not crash; may return fewer candidates or same
+        candidates = grid_search("momentum", candles_map, top_n=3, regime_filter="bull")
+        self.assertIsInstance(candidates, list)
+        for c in candidates:
+            self.assertEqual(c.strategy_type, "momentum")
+            self.assertIsInstance(c.avg_sharpe, float)
+
 
 class TestValidateWithWalkForward(unittest.TestCase):
     def test_validates_candidate(self) -> None:
