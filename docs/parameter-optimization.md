@@ -41,6 +41,7 @@ The selected winner per strategy is ordered by:
 
 ## Current Outcome
 
+- Revalidated baseline leader: `momentum` (`+1.40%`, `496` trades)
 - In-sample leader by Sharpe: `momentum` (`1.34`)
 - In-sample leader by return: `kimchi_premium` (`+5.29%`)
 - Walk-forward outcome: all `7` optimized candidates failed the out-of-sample gate
@@ -61,6 +62,7 @@ That means `config/optimized.toml` is the current research output, while
 - Research backtest: `python -m crypto_trader.cli backtest --config config/optimized.toml --strategy momentum`
 - Multi-wallet paper run: `python -m crypto_trader.cli run-multi --config config/optimized.toml`
 - Validation review: see [walk-forward-results.md](/home/wdsr88/workspace/crypto-trader/docs/walk-forward-results.md)
+- Cross-stage comparison: see [strategy-performance-comparison.md](/home/wdsr88/workspace/crypto-trader/docs/strategy-performance-comparison.md)
 
 Do not promote `config/optimized.toml` to validated deployment automatically from this run.
 
@@ -72,3 +74,4 @@ Do not promote `config/optimized.toml` to validated deployment automatically fro
 - Walk-forward JSON: `artifacts/walk-forward-90d/fixed-params-summary.json`
 - Optimization summary: [backtest-grid-results.md](/home/wdsr88/workspace/crypto-trader/docs/backtest-grid-results.md)
 - Walk-forward summary: [walk-forward-results.md](/home/wdsr88/workspace/crypto-trader/docs/walk-forward-results.md)
+- Strategy comparison summary: [strategy-performance-comparison.md](/home/wdsr88/workspace/crypto-trader/docs/strategy-performance-comparison.md)

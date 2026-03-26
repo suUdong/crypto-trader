@@ -20,9 +20,10 @@ walk-forward pass summarized in [walk-forward-results.md](/home/wdsr88/workspace
 
 ## Headline Outcome
 
-- Baseline coverage: `28` runs, `1687` total trades, all `7` strategies generated trades
+- Baseline coverage: `28` runs, `1699` total trades, all `7` strategies generated trades
 - Best tuned strategy by average Sharpe: `momentum` at `1.34`
 - Best tuned strategy by average return: `kimchi_premium` at `+5.29%`
+- Revalidated baseline leader: `momentum` at `+1.40%` average return with `496` trades
 - `config/optimized.toml` now contains runnable wallet blocks for all 7 tuned strategies
 
 ## Tuned Ranking
@@ -41,17 +42,18 @@ walk-forward pass summarized in [walk-forward-results.md](/home/wdsr88/workspace
 
 | Strategy | Avg Return | Avg MDD | Avg WR | Avg PF | Trades |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| momentum | +1.58% | 3.83% | 45.7% | 1.15 | 488 |
-| vpin | -0.53% | 4.58% | 51.3% | 0.94 | 235 |
-| composite | +0.10% | 0.17% | 25.0% | 0.77 | 6 |
-| obi | -2.30% | 4.60% | 42.6% | 0.75 | 290 |
-| kimchi_premium | -3.43% | 6.55% | 50.7% | 0.68 | 166 |
-| volatility_breakout | -4.73% | 6.07% | 25.9% | 0.58 | 420 |
-| mean_reversion | -5.21% | 6.05% | 44.4% | 0.33 | 82 |
+| momentum | +1.40% | 3.84% | 45.8% | 1.14 | 496 |
+| composite | +0.38% | 0.87% | 39.6% | 1.57 | 22 |
+| vpin | -0.62% | 4.62% | 50.8% | 0.93 | 239 |
+| volatility_breakout | -2.18% | 4.90% | 30.2% | 0.80 | 395 |
+| obi | -2.32% | 4.61% | 43.1% | 0.74 | 293 |
+| kimchi_premium | -4.20% | 6.93% | 51.3% | 0.67 | 197 |
+| mean_reversion | -5.42% | 5.96% | 26.8% | 0.20 | 57 |
 
 ## Deployment Note
 
 - In-sample tuning improved `momentum` and `kimchi_premium`, but fixed-parameter walk-forward validation rejected all 7 optimized candidates.
+- The baseline section above was revalidated on the current worktree; tuned and walk-forward sections still reflect the latest stored optimization artifacts.
 - `config/optimized.toml` is useful for controlled paper experiments, not for automatic promotion to validated deployment.
 - `config/validated.toml` now explicitly records a failed validation state instead of carrying forward stale parameters.
 
@@ -62,3 +64,4 @@ walk-forward pass summarized in [walk-forward-results.md](/home/wdsr88/workspace
 - Optimized config: `config/optimized.toml`
 - Walk-forward JSON: `artifacts/walk-forward-90d/fixed-params-summary.json`
 - Walk-forward report: [walk-forward-results.md](/home/wdsr88/workspace/crypto-trader/docs/walk-forward-results.md)
+- Cross-stage comparison: [strategy-performance-comparison.md](/home/wdsr88/workspace/crypto-trader/docs/strategy-performance-comparison.md)
