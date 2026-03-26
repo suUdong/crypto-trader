@@ -221,6 +221,10 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
         "momentum_lookback": [10, 15, 20],
         "max_holding_bars": [36, 48],
     },
+    "ema_crossover": {
+        "rsi_period": [14, 18],
+        "max_holding_bars": [24, 36, 48],
+    },
     "consensus": {
         "momentum_lookback": [10, 15, 20],
         "rsi_period": [14, 18],

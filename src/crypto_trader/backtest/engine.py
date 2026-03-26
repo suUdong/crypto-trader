@@ -235,6 +235,7 @@ class BacktestEngine:
         # Sharpe ratio: annualized from equity curve periodic returns
         sharpe = _sharpe_ratio(equity_curve)
         sortino = _sortino_ratio(equity_curve)
+        calmar = _calmar_ratio(equity_curve)
 
         return BacktestResult(
             initial_capital=self._config.initial_capital,
@@ -255,6 +256,7 @@ class BacktestEngine:
             tail_ratio=tail,
             sharpe_ratio=sharpe,
             sortino_ratio=sortino,
+            calmar_ratio=calmar,
         )
 
 
@@ -303,6 +305,21 @@ def _sortino_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) 
     if downside_std == 0:
         return 0.0
     return (mean_ret / downside_std) * (periods_per_year ** 0.5)
+
+
+def _calmar_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:
+    """Annualized Calmar ratio: annualized return / max drawdown."""
+    if len(equity_curve) < 3:
+        return 0.0
+    total_return = (equity_curve[-1] / equity_curve[0]) - 1.0
+    n_periods = len(equity_curve) - 1
+    if n_periods <= 0:
+        return 0.0
+    annualized_return = total_return * (periods_per_year / n_periods)
+    mdd = _max_drawdown(equity_curve)
+    if mdd <= 0:
+        return float("inf") if annualized_return > 0 else 0.0
+    return annualized_return / mdd
 
 
 def _max_drawdown(equity_curve: list[float]) -> float:

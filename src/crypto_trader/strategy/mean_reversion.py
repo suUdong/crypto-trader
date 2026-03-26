@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import bollinger_bands, rsi
+from crypto_trader.strategy.indicators import bollinger_bands, macd, rsi
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -33,11 +33,23 @@ class MeanReversionStrategy:
             closes[:-1], effective.bollinger_window, effective.bollinger_stddev
         )
         rsi_value = rsi(closes, effective.rsi_period)
+
+        # MACD confirmation (optional, needs 35+ candles)
+        macd_bullish = False
+        macd_hist_val = 0.0
+        if len(closes) >= 35:
+            try:
+                _, _, macd_hist_val = macd(closes)
+                macd_bullish = macd_hist_val > 0
+            except ValueError:
+                pass
+
         indicators = {
             "upper_band": upper_band,
             "middle_band": middle_band,
             "lower_band": lower_band,
             "rsi": rsi_value,
+            "macd_histogram": macd_hist_val,
         }
         context = {"market_regime": regime.value, "strategy": "mean_reversion"}
 
@@ -48,10 +60,13 @@ class MeanReversionStrategy:
             # RSI confirmation: require RSI below oversold_floor + 10 to avoid false bottoms
             rsi_entry_limit = effective.rsi_oversold_floor + 10.0
             if near_lower_band and rsi_value <= rsi_entry_limit:
+                base_conf = min(1.0, 0.5 + (middle_band - latest_close) / max(1.0, middle_band))
+                if macd_bullish:
+                    base_conf = min(1.0, base_conf + 0.1)
                 return Signal(
                     action=SignalAction.BUY,
                     reason="bollinger_mean_reversion",
-                    confidence=min(1.0, 0.5 + (middle_band - latest_close) / max(1.0, middle_band)),
+                    confidence=base_conf,
                     indicators=indicators,
                     context=context,
                 )
