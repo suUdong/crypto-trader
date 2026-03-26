@@ -71,17 +71,19 @@ def rsi(values: list[float], period: int) -> float:
     return 100.0 - (100.0 / (1.0 + relative_strength))
 
 
-def stochastic_rsi(values: list[float], rsi_period: int = 14, stoch_period: int = 14) -> float:
-    """Stochastic RSI: normalizes RSI into 0-100 range over stoch_period.
-
-    StochRSI = (RSI - min(RSI, stoch_period)) / (max(RSI, stoch_period) - min(RSI, stoch_period)) * 100
-    More sensitive than RSI for detecting overbought/oversold.
-    """
+def stochastic_rsi(
+    values: list[float],
+    rsi_period: int = 14,
+    stoch_period: int = 14,
+) -> float:
+    """Normalize recent RSI readings into a 0-100 oscillator."""
     min_len = rsi_period + stoch_period + 1
     if len(values) < min_len:
-        raise ValueError(f"Need at least {min_len} values for Stochastic RSI, got {len(values)}")
+        raise ValueError(
+            f"Need at least {min_len} values for Stochastic RSI, got {len(values)}"
+        )
 
-    rsi_values = []
+    rsi_values: list[float] = []
     for i in range(stoch_period + 1):
         idx = len(values) - stoch_period + i
         if idx > rsi_period:
@@ -102,7 +104,12 @@ def true_range(high: float, low: float, prev_close: float) -> float:
     return max(high - low, abs(high - prev_close), abs(low - prev_close))
 
 
-def average_true_range(highs: list[float], lows: list[float], closes: list[float], period: int) -> float:
+def average_true_range(
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    period: int,
+) -> float:
     """Average True Range over the given period."""
     if len(closes) <= period:
         raise ValueError("Not enough values for ATR")
@@ -229,7 +236,7 @@ def macd(
         raise ValueError(f"Need at least {min_len} values for MACD, got {len(closes)}")
     ema_fast = _ema(closes, fast_period)
     ema_slow = _ema(closes, slow_period)
-    macd_line_series = [f - s for f, s in zip(ema_fast, ema_slow)]
+    macd_line_series = [f - s for f, s in zip(ema_fast, ema_slow, strict=True)]
     signal_series = _ema(macd_line_series, signal_period)
     ml = macd_line_series[-1]
     sl = signal_series[-1]
@@ -296,7 +303,10 @@ def noise_ratio(closes: list[float], lookback: int) -> float:
     if len(closes) <= lookback:
         raise ValueError("Not enough values for noise_ratio")
     net_move = abs(closes[-1] - closes[-lookback - 1])
-    gross_move = sum(abs(closes[i] - closes[i - 1]) for i in range(len(closes) - lookback, len(closes)))
+    gross_move = sum(
+        abs(closes[i] - closes[i - 1])
+        for i in range(len(closes) - lookback, len(closes))
+    )
     if gross_move == 0:
         return 1.0
     return 1.0 - (net_move / gross_move)

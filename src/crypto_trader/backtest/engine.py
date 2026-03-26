@@ -224,7 +224,11 @@ class BacktestEngine:
 
         # Recovery factor: net profit / max drawdown
         net_profit = final_equity - self._config.initial_capital
-        recovery = net_profit / (max_drawdown * self._config.initial_capital) if max_drawdown > 0 else 0.0
+        recovery = (
+            net_profit / (max_drawdown * self._config.initial_capital)
+            if max_drawdown > 0
+            else 0.0
+        )
 
         # Tail ratio: 95th percentile gain / abs(5th percentile loss)
         pnl_pcts = sorted([t.pnl_pct for t in trades])
@@ -241,7 +245,11 @@ class BacktestEngine:
         sharpe = _sharpe_ratio(equity_curve)
         sortino = _sortino_ratio(equity_curve)
         calmar = _calmar_ratio(equity_curve)
-        rar = total_return_pct / max_drawdown if max_drawdown > 0 else (float("inf") if total_return_pct > 0 else 0.0)
+        rar = (
+            total_return_pct / max_drawdown
+            if max_drawdown > 0
+            else (float("inf") if total_return_pct > 0 else 0.0)
+        )
 
         return BacktestResult(
             initial_capital=self._config.initial_capital,
@@ -286,7 +294,7 @@ def _sharpe_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -
     std_ret = variance ** 0.5
     if std_ret == 0:
         return 0.0
-    return (mean_ret / std_ret) * (periods_per_year ** 0.5)
+    return float((mean_ret / std_ret) * (periods_per_year ** 0.5))
 
 
 def _sortino_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:
@@ -311,7 +319,7 @@ def _sortino_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) 
     downside_std = downside_variance ** 0.5
     if downside_std == 0:
         return 0.0
-    return (mean_ret / downside_std) * (periods_per_year ** 0.5)
+    return float((mean_ret / downside_std) * (periods_per_year ** 0.5))
 
 
 def _calmar_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:

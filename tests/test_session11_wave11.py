@@ -4,13 +4,13 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timedelta
 
+from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import BacktestConfig, RiskConfig, StrategyConfig
-from crypto_trader.models import Candle
+from crypto_trader.models import Candle, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
 from crypto_trader.strategy.indicators import stochastic_rsi
-from crypto_trader.backtest.engine import BacktestEngine
 
 
 def _candles(closes: list[float]) -> list[Candle]:
@@ -75,6 +75,34 @@ class TestEMACrossoverStochRSI(unittest.TestCase):
         strategy = EMACrossoverStrategy(StrategyConfig(rsi_period=5))
         signal = strategy.evaluate(candles)
         self.assertAlmostEqual(signal.indicators.get("stoch_rsi", 50.0), 50.0)
+
+    def test_entry_helper_uses_stoch_rsi_threshold(self) -> None:
+        """Cross-up entries should be blocked when StochRSI is already extreme."""
+        strategy = EMACrossoverStrategy(
+            StrategyConfig(rsi_period=5, rsi_overbought=90.0),
+        )
+
+        buy_signal = strategy._evaluate_entry(
+            cross_up=True,
+            spread=0.01,
+            rsi_value=55.0,
+            stoch_rsi_value=40.0,
+            macd_bullish=False,
+            indicators={},
+            context={"strategy": "ema_crossover"},
+        )
+        self.assertEqual(buy_signal.action, SignalAction.BUY)
+
+        hold_signal = strategy._evaluate_entry(
+            cross_up=True,
+            spread=0.01,
+            rsi_value=55.0,
+            stoch_rsi_value=95.0,
+            macd_bullish=False,
+            indicators={},
+            context={"strategy": "ema_crossover"},
+        )
+        self.assertEqual(hold_signal.action, SignalAction.HOLD)
 
 
 # ---------- Trade frequency limiter ----------

@@ -24,6 +24,7 @@ class RiskManager:
         self._bars_since_last_loss: int | None = None  # None = no recent loss
         self._consecutive_losses: int = 0
         self._consecutive_wins: int = 0
+        self._paused: bool = False
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -91,7 +92,7 @@ class RiskManager:
             return False  # all winners, don't pause
         pf = gross_profit / gross_loss
         # Hysteresis: pause at 0.7, resume at 0.8
-        if hasattr(self, '_paused') and self._paused:
+        if self._paused:
             self._paused = pf < 0.8
         else:
             self._paused = pf < 0.7
@@ -160,9 +161,19 @@ class RiskManager:
             quantity *= macro_multiplier
             max_affordable = equity / price
             base_quantity = max(0.0, min(quantity, max_affordable))
-        drawdown_pct = (self._peak_equity - equity) / self._peak_equity if self._peak_equity > 0 else 0.0
+        drawdown_pct = (
+            (self._peak_equity - equity) / self._peak_equity
+            if self._peak_equity > 0
+            else 0.0
+        )
         max_daily_loss_pct = self._config.max_daily_loss_pct
-        scale = 1.0 - (drawdown_pct / max_daily_loss_pct) * self._config.drawdown_reduction_pct if max_daily_loss_pct > 0 else 1.0
+        scale = (
+            1.0
+            - (drawdown_pct / max_daily_loss_pct)
+            * self._config.drawdown_reduction_pct
+            if max_daily_loss_pct > 0
+            else 1.0
+        )
         scale = max(0.1, min(scale, 1.0))
         # Win-streak boost: +15% after 3+ consecutive wins (max 1.3x)
         streak_mult = 1.0

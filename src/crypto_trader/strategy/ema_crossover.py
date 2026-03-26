@@ -85,7 +85,13 @@ class EMACrossoverStrategy:
             )
 
         return self._evaluate_entry(
-            cross_up, spread, rsi_value, macd_bullish, indicators, context,
+            cross_up,
+            spread,
+            rsi_value,
+            stoch_rsi_val,
+            macd_bullish,
+            indicators,
+            context,
         )
 
     def _evaluate_entry(
@@ -93,12 +99,17 @@ class EMACrossoverStrategy:
         cross_up: bool,
         spread: float,
         rsi_value: float,
+        stoch_rsi_value: float,
         macd_bullish: bool,
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
         # Entry: EMA crossover + RSI not overbought + StochRSI not extreme
-        if cross_up and rsi_value < self._config.rsi_overbought and stoch_rsi_val < 80:
+        if (
+            cross_up
+            and rsi_value < self._config.rsi_overbought
+            and stoch_rsi_value < 80.0
+        ):
             base_conf = min(1.0, 0.5 + abs(spread) * 50)
             if macd_bullish:
                 base_conf = min(1.0, base_conf + 0.1)
@@ -111,7 +122,11 @@ class EMACrossoverStrategy:
             )
 
         # Also enter on strong uptrend (fast well above slow) with RSI confirmation
-        if spread > 0.005 and self._config.rsi_oversold_floor <= rsi_value <= 60.0:
+        if (
+            spread > 0.005
+            and self._config.rsi_oversold_floor <= rsi_value <= 60.0
+            and stoch_rsi_value < 80.0
+        ):
             base_conf = min(1.0, 0.4 + spread * 30)
             if macd_bullish:
                 base_conf = min(1.0, base_conf + 0.1)
