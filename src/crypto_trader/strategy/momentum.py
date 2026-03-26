@@ -7,6 +7,7 @@ from crypto_trader.strategy.indicators import (
     average_directional_index,
     macd,
     momentum,
+    noise_ratio,
     obv_slope,
     rolling_vwap,
     rsi,

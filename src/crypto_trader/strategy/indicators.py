@@ -322,6 +322,29 @@ def vwap(
     return tp_vol_sum / total_vol
 
 
+def keltner_channels(
+    highs: list[float], lows: list[float], closes: list[float],
+    ema_period: int = 20, atr_period: int = 14, atr_multiplier: float = 1.5,
+) -> tuple[float, float, float]:
+    """Keltner Channels: EMA +/- ATR * multiplier.
+
+    Returns (upper, middle, lower).
+    Middle = EMA(close, ema_period)
+    Upper = middle + ATR * multiplier
+    Lower = middle - ATR * multiplier
+
+    Complementary to Bollinger Bands — KB uses ATR (volatility) vs BB's stddev.
+    Breakout above upper = strong trend, below lower = reversal candidate.
+    """
+    min_len = max(ema_period, atr_period + 1)
+    if len(closes) < min_len:
+        raise ValueError(f"Need at least {min_len} values for Keltner Channels")
+    middle = _ema(closes, ema_period)[-1]
+    atr_val = average_true_range(highs, lows, closes, atr_period)
+    band = atr_val * atr_multiplier
+    return middle + band, middle, middle - band
+
+
 def rolling_vwap(
     highs: list[float], lows: list[float], closes: list[float],
     volumes: list[float], window: int = 20,

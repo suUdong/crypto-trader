@@ -231,6 +231,7 @@ class BacktestEngine:
         else:
             profit_factor = 0.0
         max_drawdown = _max_drawdown(equity_curve)
+        max_dd_duration = _max_drawdown_duration(equity_curve)
         total_return_pct = (final_equity / self._config.initial_capital) - 1.0
 
         # Streak analysis
@@ -355,6 +356,7 @@ class BacktestEngine:
             low_confidence_win_rate=lc_wr,
             exit_reason_counts=exit_counts,
             exit_reason_avg_pnl=exit_avg_pnl,
+            max_drawdown_duration_bars=max_dd_duration,
             regime_breakdown=regime_breakdown,
         )
 
@@ -429,3 +431,20 @@ def _max_drawdown(equity_curve: list[float]) -> float:
         drawdown = 0.0 if peak == 0 else (peak - equity) / peak
         max_drawdown = max(max_drawdown, drawdown)
     return max_drawdown
+
+
+def _max_drawdown_duration(equity_curve: list[float]) -> int:
+    """Max number of bars spent in drawdown before recovering to a new peak."""
+    if len(equity_curve) < 2:
+        return 0
+    peak = equity_curve[0]
+    bars_in_dd = 0
+    max_dd_bars = 0
+    for equity in equity_curve[1:]:
+        if equity >= peak:
+            peak = equity
+            max_dd_bars = max(max_dd_bars, bars_in_dd)
+            bars_in_dd = 0
+        else:
+            bars_in_dd += 1
+    return max(max_dd_bars, bars_in_dd)

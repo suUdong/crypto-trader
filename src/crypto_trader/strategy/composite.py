@@ -8,6 +8,7 @@ from crypto_trader.strategy.indicators import (
     bollinger_bands,
     macd,
     momentum,
+    noise_ratio,
     obv_slope,
     rolling_vwap,
     rsi,
