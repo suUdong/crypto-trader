@@ -38,6 +38,18 @@ class TestCorrelationGuard(unittest.TestCase):
         exposure = self.guard.get_cluster_exposure(positions)
         self.assertEqual(len(exposure["major_crypto"]), 3)
 
+    def test_get_cluster_exposure_deduplicates_wallets(self) -> None:
+        """One wallet with multiple symbols in same cluster counts as 1."""
+        positions = [
+            ("kimchi", "KRW-BTC"),
+            ("kimchi", "KRW-ETH"),
+            ("kimchi", "KRW-SOL"),
+            ("kimchi", "KRW-XRP"),
+        ]
+        exposure = self.guard.get_cluster_exposure(positions)
+        self.assertEqual(len(exposure["major_crypto"]), 1)
+        self.assertEqual(exposure["major_crypto"], ["kimchi"])
+
     def test_custom_clusters(self) -> None:
         guard = CorrelationGuard(
             max_cluster_exposure=1,
@@ -47,9 +59,9 @@ class TestCorrelationGuard(unittest.TestCase):
         result = guard.check_entry("KRW-SOL", "vpin_sol", exposure)
         self.assertFalse(result.allowed)
 
-    def test_default_max_exposure_is_four(self) -> None:
+    def test_default_max_exposure_is_six(self) -> None:
         guard = CorrelationGuard()
-        self.assertEqual(guard._max_cluster_exposure, 4)
+        self.assertEqual(guard._max_cluster_exposure, 6)
 
 
 if __name__ == "__main__":

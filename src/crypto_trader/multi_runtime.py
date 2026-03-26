@@ -101,7 +101,7 @@ class MultiSymbolRuntime:
         self._wallet_health = WalletHealthMonitor(snapshot_path)
         self._last_health_check: float = 0.0
         self._health_check_interval = 86400  # 24h
-        self._correlation_guard = CorrelationGuard(max_cluster_exposure=4)
+        self._correlation_guard = CorrelationGuard(max_cluster_exposure=6)
         self._slippage_monitor = SlippageMonitor(
             expected_slippage_pct=config.backtest.slippage_pct,
         )

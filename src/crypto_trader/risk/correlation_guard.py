@@ -28,7 +28,7 @@ class CorrelationGuard:
 
     def __init__(
         self,
-        max_cluster_exposure: int = 4,
+        max_cluster_exposure: int = 6,
         clusters: dict[str, list[str]] | None = None,
     ) -> None:
         self._max_cluster_exposure = max_cluster_exposure
@@ -94,8 +94,12 @@ class CorrelationGuard:
             Map of cluster_name -> list of wallet names
         """
         exposure: dict[str, list[str]] = {}
+        seen: dict[str, set[str]] = {}
         for wallet_name, symbol in wallets_with_positions:
             cluster = self._symbol_to_cluster.get(symbol)
             if cluster is not None:
-                exposure.setdefault(cluster, []).append(wallet_name)
+                cluster_seen = seen.setdefault(cluster, set())
+                if wallet_name not in cluster_seen:
+                    cluster_seen.add(wallet_name)
+                    exposure.setdefault(cluster, []).append(wallet_name)
         return exposure
