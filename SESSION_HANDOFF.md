@@ -3,28 +3,24 @@
 Date: 2026-03-26 (FIRE Session #8)
 Branch: `master`
 
-## What Landed This Session (#8) — 3 Fixes, 8 Tests
+## What Landed This Session (#8) — 7 Commits, 27 New Tests
 
-### Fix 1: Config Loading Bug (Critical)
-- `load_config()` silently ignored `adx_period`, `adx_threshold`, `volume_filter_mult` (StrategyConfig) and `partial_tp_pct`, `cooldown_bars` (RiskConfig) from TOML
-- All Session #7 features were using dataclass defaults instead of user config values
-- Also added `min_confidence_sum` to consensus strategy's allowed override fields
+### Wave 1: Critical Bug Fix + Config Activation
+- **Config loading bug** (Critical): `load_config()` silently ignored `adx_period`, `adx_threshold`, `volume_filter_mult`, `partial_tp_pct`, `cooldown_bars` from TOML — all Session #7 features were using defaults
+- **Capital rebalancing**: Winners get 60%+ of capital (momentum 2M, kimchi 1.5M, consensus 1.5M), losers reduced (obi 200K, vpin 300K)
+- **Consensus wallet added**: `sub_strategies=["momentum", "kimchi_premium"]`, `min_confidence_sum=1.2`
+- **All S7 features enabled**: ADX, volume filter, cooldown, partial TP per wallet
 
-### Fix 2: Capital Rebalancing & Feature Activation
-- Updated `optimized.toml` to enable all Session #7 features per wallet
-- Capital rebalanced by Sharpe ratio:
-  - **Winners**: momentum 2M (26.7%), kimchi 1.5M (20%), consensus 1.5M (20%), composite 1M (13.3%)
-  - **Losers**: mean_reversion 500K (6.7%), vbreak 500K (6.7%), vpin 300K (4%), obi 200K (2.7%)
-- Added consensus wallet with `sub_strategies=["momentum", "kimchi_premium"]`, `min_confidence_sum=1.2`
-- Enabled volume_filter_mult=1.2 on momentum and volatility_breakout
-- Enabled ADX filter on all trend-following strategies
-- Cooldown increased to 5 bars on losing strategies
+### Wave 2: Risk Protection Stack
+- **Regime weights** for volatility_breakout (0.3x bear) and consensus (0.5x bear)
+- **Circuit breaker**: Force-closes all positions when wallet daily loss limit hit
+- **Winner concurrency**: momentum/kimchi/consensus get `max_concurrent_positions=2`
+- **Configurable kill switch**: 15% portfolio DD, 5% daily loss, 5 consecutive losses — now in TOML
+- **Telegram alert** on kill switch trigger
 
-### Fix 3: Regime Weights for New Strategies
-- `volatility_breakout` and `consensus` were missing from `STRATEGY_REGIME_WEIGHTS`
-- Both defaulted to 1.0x in all regimes — no bear market protection
-- Now: vbreak 0.3x in bear (false breakout risk), consensus 0.5x in bear
-- Bull: vbreak 1.3x, consensus 1.2x
+### Wave 3: Adaptive Strategy Management
+- **Auto-pause**: Wallets with rolling PF < 0.7 over last 20 trades skip entries until PF > 0.8 (hysteresis)
+- **Rolling correlation indicator**: Pearson correlation over sliding window (for future diversification)
 
 ## Previous Session Deliverables (Still Active)
 
@@ -39,25 +35,39 @@ Branch: `master`
 
 ```
 src/crypto_trader/
-  config.py             # FIXED: now loads adx_period, adx_threshold, volume_filter_mult,
-                        #        partial_tp_pct, cooldown_bars from TOML
+  config.py             # FIXED: loads all S7 fields from TOML
+                        # + KillSwitchCfg dataclass, loaded from [kill_switch] section
                         # + min_confidence_sum in consensus extra override fields
   macro/
     adapter.py          # + volatility_breakout and consensus in STRATEGY_REGIME_WEIGHTS
+  risk/
+    manager.py          # + should_force_exit() circuit breaker
+                        # + is_auto_paused property (rolling PF check)
+  wallet.py             # + circuit breaker force-exit in run_once
+                        # + auto-pause gate on entry
+  multi_runtime.py      # + KillSwitchConfig from AppConfig
+                        # + Telegram notification on kill switch trigger
+  strategy/
+    indicators.py       # + rolling_correlation()
 
 config/
-  optimized.toml        # Session #8: 8 wallets, capital rebalanced, all S7 features enabled
+  optimized.toml        # 8 wallets, capital rebalanced, S7 features enabled
+                        # + [kill_switch] section
+                        # + max_concurrent_positions=2 for winners
 
-tests/ (+8 new tests)
-  test_config.py              # +4 tests: S7 field loading, optimized.toml integration
+tests/ (+27 new tests)
+  test_config.py              # +6 tests: S7 fields, kill switch config, optimized.toml
   test_regime_weights.py      # +4 tests: vbreak/consensus regime weights
+  test_circuit_breaker.py     # +5 tests: daily loss force-exit
+  test_rolling_correlation.py # +6 tests: Pearson correlation indicator
+  test_auto_pause.py          # +6 tests: rolling PF auto-pause
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` -> **597 passed, 3 skipped, 0 failures**
-- +8 new tests this session across 3 commits
-- 3 commits pushed to master
+- `pytest tests/ -q` -> **616 passed, 3 skipped, 0 failures**
+- +27 new tests this session across 7 commits
+- 7 commits pushed to master
 
 ## Current Gaps / Risks
 
@@ -65,16 +75,16 @@ tests/ (+8 new tests)
 2. **No closed trades yet** — strategies waiting for entry signals
 3. Kimchi premium uses simulated premium — live may diverge
 4. Telegram not live-verified
-5. **Consensus wallet untested in production** — paper trade first
-6. **Losing strategies still active** — consider disabling if no improvement after 7-day paper run
+5. **Auto-pause needs live validation** — ensure hysteresis works in practice
+6. **Consensus wallet untested in production** — paper trade first
 
 ## Recommended Next Moves
 
 1. **Restart daemon** with updated config (all 8 wallets + new features)
 2. **Run `backtest-all`** to compare all strategies with new config
 3. **Run regime-aware grid-wf** for momentum and volatility_breakout with new params
-4. **Monitor partial TP + trailing** in paper trading
+4. **Monitor auto-pause** behavior in paper trading logs
 5. **Automate snapshots** — cron `crypto-trader snapshot` every 6h
 6. **Telegram bot setup** for daily PnL alerts
 7. **Paper trading 7 days** -> micro-live gate by Apr 2
-8. **Kill underperformers** — if vpin/obi still negative after 7 days, remove wallets
+8. **Auto-disable** — remove obi/vpin wallets if still negative after 7 days
