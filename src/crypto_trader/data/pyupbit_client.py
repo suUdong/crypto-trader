@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from importlib import import_module
 from typing import Any
 
@@ -43,5 +43,9 @@ def _load_pyupbit() -> Any:
 
 def _to_datetime(value: Any) -> datetime:
     if isinstance(value, datetime):
-        return value
-    return datetime.fromisoformat(str(value))
+        dt = value
+    else:
+        dt = datetime.fromisoformat(str(value))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt

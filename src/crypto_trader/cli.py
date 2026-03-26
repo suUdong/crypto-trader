@@ -15,13 +15,14 @@ from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
+from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.artifact_health import summarize_artifact_health
 from crypto_trader.operator.gate_progress import generate_gate_progress_report
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.performance_report import generate_performance_report
 from crypto_trader.operator.pnl_report import PnLReportGenerator
-from crypto_trader.operator.promotion import MicroLiveCriteria, PortfolioPromotionGate
+from crypto_trader.operator.promotion import MicroLiveCriteria, PortfolioPromotionGate, PromotionGate
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
@@ -73,6 +74,7 @@ def main() -> None:
             "grid-wf-all",
             "strategy-dashboard",
             "refresh-artifacts",
+            "sync-artifacts",
             "portfolio-gate",
             "gate-progress",
         ],
@@ -1258,6 +1260,43 @@ def main() -> None:
         )
         print(f"  gate-progress    : {gate_progress_path}")
         print("\nAll artifacts refreshed.")
+        return
+
+    if args.command == "sync-artifacts":
+        print("=== Syncing Artifacts (offline, no API) ===")
+        baseline_store = BacktestBaselineStore(config.runtime.backtest_baseline_path)
+        baseline = baseline_store.load()
+        if baseline is None:
+            print("ERROR: No backtest-baseline.json found. Run backtest first.")
+            return
+        journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
+        recent_runs = journal.load_recent()
+        drift_gen = DriftReportGenerator(config.drift)
+        drift_report = drift_gen.generate(
+            symbol=config.trading.symbol,
+            backtest_baseline=baseline,
+            recent_runs=recent_runs,
+        )
+        drift_gen.save(drift_report, config.runtime.drift_report_path)
+        print(f"  drift-report     : {drift_report.status.value} (baseline return={baseline.total_return_pct:.4%})")
+        gate = PromotionGate()
+        decision = gate.evaluate(
+            symbol=config.trading.symbol,
+            backtest_baseline=baseline,
+            drift_report=drift_report,
+            latest_run=recent_runs[-1] if recent_runs else None,
+        )
+        gate.save(decision, config.runtime.promotion_gate_path)
+        print(f"  promotion-gate   : {decision.status.value}")
+        portfolio_gate = PortfolioPromotionGate()
+        portfolio_decision = portfolio_gate.evaluate_from_checkpoint(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            journal_path=config.runtime.strategy_run_journal_path,
+        )
+        portfolio_path = Path(config.runtime.promotion_gate_path).parent / "portfolio-gate.json"
+        portfolio_gate.save(portfolio_decision, portfolio_path)
+        print(f"  portfolio-gate   : {portfolio_decision.status.value}")
+        print("\nArtifacts synced from existing baseline (no market data needed).")
         return
 
     if args.command == "portfolio-gate":
