@@ -1,73 +1,104 @@
 # Daemon Performance Report
 
-**Generated**: 2026-03-26 15:35 KST (2026-03-26 06:35 UTC)
-**Scope**: Current paper-trading daemon state from `artifacts/`
-**Authoritative sources**: `artifacts/runtime-checkpoint.json`, `artifacts/daemon-heartbeat.json`, `artifacts/kill-switch.json`, `artifacts/daemon.log`
+**Generated**: 2026-03-26 17:59 KST (2026-03-26 08:59 UTC)
+**Scope**: `artifacts/` snapshot analysis for the latest daemon state plus the most recent observed log session
+**Primary sources**: `artifacts/runtime-checkpoint.json`, `artifacts/daemon-heartbeat.json`, `artifacts/daemon.log`, `artifacts/kill-switch.json`
 
 ## Executive Summary
 
-As of 2026-03-26 15:35 KST, the active daemon is running under PID `2892270` and reached iteration `43` with a 60-second polling cadence. Current portfolio equity is **5,998,790 KRW**, or **-1,210 KRW (-0.020%)** versus the 6,000,000 KRW paper baseline.
+The latest snapshot in `artifacts/` shows a **3-wallet BTC/ETH paper-trading setup** with total equity of **2,999,568.01 KRW**, or **-431.99 KRW (-0.014%)** versus the 3,000,000 KRW paper baseline.
 
-The only strategy carrying live exposure is **kimchi_premium**, which holds one open position and accounts for the entire unrealized loss. **momentum** and **vpin** are flat with no open positions and no realized PnL. No kill switch condition is active.
+All realized loss is concentrated in **momentum**. `mean_reversion` and `composite` are flat, and the latest checkpoint shows **no open positions**. Operationally, the daemon artifact set is inconsistent: the newest checkpoint describes a 3-wallet session, while the newest observable `daemon.log` session ended earlier on 2026-03-26 16:36 KST after running a broader multi-wallet configuration. This means the repo has enough evidence to assess directionally, but not enough artifact consistency to claim a single uninterrupted production narrative.
 
-## Artifact Assessment
+## Latest Snapshot At 17:59 KST
 
-The artifact directory contains mixed snapshots from different daemon sessions. The report below uses the newest live checkpoint and treats older reports as stale reference material rather than current truth.
-
-| Artifact | Timestamp | Use in this report | Notes |
-|---------|-----------|--------------------|-------|
-| `runtime-checkpoint.json` | 2026-03-26 06:35 UTC | Primary | Latest per-wallet equity, cash, open positions, and trade counts |
-| `daemon-heartbeat.json` | 2026-03-26 06:35 UTC | Primary | Confirms daemon liveness, PID, iteration, and uptime |
-| `kill-switch.json` | live snapshot | Primary | Confirms drawdown guardrails are not triggered |
-| `daemon.log` | rolling through 2026-03-26 15:33 KST+ | Secondary | Confirms one filled kimchi buy and ongoing hold/cooldown behavior |
-| `paper-trades.jsonl` | repeated `2025-01-02` entries | Excluded from current PnL | Contains stale fixture-like momentum trades that do not match the current wallet set |
-| `pnl-report.json` | 2026-03-26 05:41 UTC | Stale | Only reflects 3 wallets and understates current portfolio size |
-| `daily-performance.json` | 2026-03-26 03:44 UTC | Stale | Earlier snapshot with 1,000,000 KRW equity only |
-| `positions.json` | 2026-03-26 03:44 UTC | Stale | Does not reflect the current kimchi position |
-| `drift-report.json` / `regime-report.json` / `promotion-gate.json` | 2026-03-24 21:49 UTC | Historical context only | Older single-session operator artifacts |
-
-## Portfolio PnL
+Source of truth for this section:
+- `artifacts/runtime-checkpoint.json`
+- `artifacts/daemon-heartbeat.json`
 
 | Metric | Value |
 |-------|-------|
-| Initial capital | 6,000,000 KRW |
-| Current equity | 5,998,790 KRW |
-| Mark-to-market PnL | **-1,210 KRW** |
-| Portfolio return | **-0.020%** |
-| Realized PnL | 0 KRW |
-| Open positions | 1 |
-| Closed trades | 0 |
+| Snapshot time | 2026-03-26 17:59:03 KST |
+| PID | `3495008` |
+| Iteration | `3` |
+| Symbols | KRW-BTC, KRW-ETH |
+| Wallet count | 3 |
+| Total equity | 2,999,568.01 KRW |
+| Net PnL | **-431.99 KRW** |
+| Portfolio return | **-0.014%** |
+| Realized PnL | **-431.99 KRW** |
+| Open positions | 0 |
+| Closed trades | 2 |
 
-## Strategy PnL Summary
+## Strategy Breakdown
 
-| Strategy | Wallets | Initial Capital | Equity | PnL | Return | Realized PnL | Open Positions | Closed Trades | Status |
-|----------|---------|-----------------|--------|-----|--------|--------------|----------------|---------------|------|
-| momentum | 2 | 2,000,000 KRW | 2,000,000 KRW | 0 KRW | 0.000% | 0 KRW | 0 | 0 | Flat |
-| vpin | 3 | 3,000,000 KRW | 3,000,000 KRW | 0 KRW | 0.000% | 0 KRW | 0 | 0 | Flat |
-| kimchi_premium | 1 | 1,000,000 KRW | 998,790 KRW | **-1,210 KRW** | **-0.121%** | 0 KRW | 1 | 0 | Only active exposure |
-| **Portfolio** | **6** | **6,000,000 KRW** | **5,998,790 KRW** | **-1,210 KRW** | **-0.020%** | **0 KRW** | **1** | **0** | |
+| Wallet | Strategy | Equity | Realized PnL | Trades | Open Positions | Status |
+|-------|----------|--------|-------------|--------|----------------|--------|
+| `momentum_wallet` | Momentum | 999,568.01 KRW | **-431.99 KRW** | 2 | 0 | Only strategy with realized activity |
+| `mean_reversion_wallet` | Mean Reversion | 1,000,000.00 KRW | 0 KRW | 0 | 0 | Idle |
+| `composite_wallet` | Composite | 1,000,000.00 KRW | 0 KRW | 0 | 0 | Idle |
+| **Portfolio** | | **2,999,568.01 KRW** | **-431.99 KRW** | **2** | **0** | |
 
-## Daemon Behavior
+Interpretation:
+- The current loss is small in absolute terms and comes entirely from `momentum`.
+- The latest snapshot is effectively flat from a portfolio-risk perspective.
+- The more important issue is inactivity: 2 of 3 wallets are idle, and there is no open exposure to learn from at the snapshot time.
 
-- `daemon-heartbeat.json` shows the daemon alive at 2026-03-26 06:35 UTC with `iteration=43` and `uptime_seconds=2606.2`.
-- `daemon.log` records a filled kimchi premium BTC buy at **2026-03-26 13:12:13 KST** with fill price **106,012,980 KRW**, which matches the single open position visible in the latest checkpoint.
-- Since that fill, the log shows repeated `position_open_waiting` on `KRW-BTC` and `cooldown_active` on the remaining kimchi symbols, indicating the strategy is in hold/cooldown management rather than adding new exposure.
-- No closed trades are visible in the latest checkpoint, so all PnL is currently unrealized mark-to-market.
+## Observed Session History From `daemon.log`
 
-## Risk And Operations
+`artifacts/daemon.log` remains the best operational trail for what actually ran before the latest snapshot was written.
 
-| Metric | Value | Limit | Status |
-|-------|-------|-------|--------|
-| Portfolio drawdown | 0.0178% | 5.0% | OK |
-| Daily loss | 0.0143% | 3.0% | OK |
-| Consecutive losses | 0 | 15 | OK |
-| Kill switch | `false` | must remain `false` | OK |
+| Metric | Value |
+|-------|-------|
+| Log-covered runtime starts | 5 |
+| Log-covered runtime stops | 5 |
+| Last stop observed | 2026-03-26 16:36:05 KST |
+| Longest visible run tail | 98 iterations |
+| Filled orders in log | 5 |
+| Filled buys | 5 |
+| Filled sells | 0 |
+| Filled orders by wallet | `kimchi_premium_wallet` only |
 
-The active loss is immaterial from a portfolio-risk perspective. The practical issue is not drawdown but inactivity: five of six wallets are idle and one wallet carries all current risk.
+Signal behavior in the most recent log set:
+- `entry_conditions_not_met`: 1,428 holds
+- `cooldown_active`: 565 holds
+- `position_open_waiting`: 184 holds
+- `below_ma_filter`: 176 holds
+
+Key observations from the log:
+- The log shows repeated session restarts on 2026-03-26 rather than one long stable daemon stretch.
+- Every recorded filled order belongs to `kimchi_premium_wallet`; there are **no filled sells** in the visible log.
+- `mean_reversion_wallet` repeatedly emitted `buy` signals for XRP, but those signals do not appear with `order=filled` in the log excerpted set. That warrants follow-up because signal generation and execution evidence are not aligned.
+
+## Artifact Reliability Assessment
+
+The `artifacts/` directory contains mixed outputs from multiple daemon configurations and timestamps. This report uses each file only for the scope it can actually support.
+
+| Artifact | Timestamp | Use | Assessment |
+|---------|-----------|-----|------------|
+| `runtime-checkpoint.json` | 2026-03-26 17:59 KST | Latest portfolio snapshot | Primary for current balances and trade counts |
+| `daemon-heartbeat.json` | 2026-03-26 17:59 KST | Latest liveness marker | Primary, but metadata quality is weak because `uptime_seconds=0.0` and `poll_interval_seconds=0` despite `iteration=3` |
+| `daemon.log` | through 2026-03-26 16:36 KST | Session history | Primary for observed runtime behavior before the latest snapshot |
+| `kill-switch.json` | live snapshot | Risk guardrail status | Safe to use; `triggered=false` |
+| `performance-dashboard.md` | 2026-03-26 14:04 KST | Historical reference only | Stale and configuration-misaligned with the latest checkpoint |
+| `pnl-report.json` / `pnl-report.md` | 2026-03-26 14:41 / 14:41 KST | Historical reference only | Stale wallet set; should not be treated as current |
+| `daily-performance.json` / `positions.json` | 2026-03-26 12:44 KST | Historical reference only | Earlier single-wallet style snapshot, not current truth |
+| `paper-trades.jsonl` / archive | repeated `2025-01-02` rows | Excluded from live performance | Fixture-like momentum data, not trustworthy as current daemon evidence |
+
+## Risk Status
+
+`artifacts/kill-switch.json` shows:
+- `triggered=false`
+- `consecutive_losses=0`
+- portfolio drawdown and daily loss effectively near zero
+
+Conclusion:
+- No active risk breach is visible.
+- The present concern is not drawdown. It is **artifact coherence** and **strategy inactivity**.
 
 ## Conclusions
 
-1. The daemon is operational and healthy, but current performance is effectively flat with a small unrealized loss.
-2. Current strategy-level PnL is concentrated entirely in `kimchi_premium`; `momentum` and `vpin` have not contributed any PnL in the latest live snapshot.
-3. Older generated reports in `artifacts/` should not be treated as current because they are materially stale and represent different wallet sets or earlier sessions.
-4. For the next report cycle, `runtime-checkpoint.json` should remain the source of truth unless the snapshot/export pipeline is updated to regenerate `pnl-report.json` and `positions.json` on every daemon tick.
+1. The newest snapshot is mildly negative but operationally low risk: **-431.99 KRW realized, no open positions, no kill-switch breach**.
+2. The latest portfolio state and the latest daemon log do **not** describe the same configuration. Snapshot artifacts point to a 3-wallet BTC/ETH setup, while the latest full log trail shows broader multi-wallet sessions ending earlier the same day.
+3. The current artifact pipeline is not reliable enough for automated executive reporting without a freshness gate.
+4. The next reporting improvement should be to stamp every generated artifact with the same session id, config path, wallet set, and snapshot time so `runtime-checkpoint`, `heartbeat`, `pnl-report`, and dashboard outputs stay consistent.
