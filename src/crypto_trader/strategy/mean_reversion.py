@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, chaikin_money_flow, keltner_channels, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma
+from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, chaikin_money_flow, keltner_channels, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma, williams_percent_r
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -140,6 +140,16 @@ class MeanReversionStrategy:
         except ValueError:
             pass
 
+        # Williams %R: oversold confirmation
+        wpr_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            wpr_value = williams_percent_r(highs, lows, closes)
+            indicators["williams_r"] = wpr_value
+        except ValueError:
+            pass
+
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
@@ -203,6 +213,9 @@ class MeanReversionStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Keltner lower: price below KC lower confirms deep dip (good for MR)
                 if kc_lower is not None and latest_close < kc_lower:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # Williams %R oversold confirmation (< -80 = deeply oversold)
+                if wpr_value is not None and wpr_value < -80.0:
                     base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,

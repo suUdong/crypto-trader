@@ -3,54 +3,49 @@
 Date: 2026-03-26 (FIRE Session #12 — Final)
 Branch: `master`
 
-## What Landed This Session (#12) — 7 Waves, 138+ New Tests
+## What Landed This Session (#12) — 11 Waves, 175+ New Tests
 
-### Wave 12: Entry Quality Enhancement (4f06157) +18 tests
-- Composite: ADX trend filter + volume confirmation
-- EMA crossover: ADX filter + volume filter for entry quality
-- Backtest engine: confidence gate (signal.confidence >= effective_min_confidence)
-- Mean reversion: noise ratio filter (skip entries in trending markets)
+### Wave 12: Entry Quality Enhancement +18 tests
+- All strategies: ADX filter + volume confirmation
+- Backtest engine: confidence gate, noise ratio filter
 
-### Wave 13: Regime Awareness & Backtest Accuracy (761d74a) +13 tests
-- EMA crossover: full regime awareness (RegimeDetector + adjusted params)
-- Momentum: EMA(50) macro trend filter with confidence boost
-- Backtest engine: true partial take-profit (sell fraction, hold rest)
-- entry_confidence tracked on TradeRecord for analytics
+### Wave 13: Regime Awareness & Backtest Accuracy +13 tests
+- EMA crossover: full regime awareness
+- Momentum: EMA(50) macro trend, backtest: true partial TP
 
 ### Wave 14-15: Volume Confirmation + Cross-Strategy Expansion +37 tests
-- OBV (On-Balance Volume) indicator + OBV slope
-- All 5 strategies: OBV accumulation confidence boost
-- MeanRev: ADX filter (ADX > 40 blocks entry), EMA(50) macro trend
-- VolBreakout: OBV + EMA(50) + regime awareness + bug fix
-- EMA Cross: noise_ratio filter + volume on trend continuation + EMA(50)
-- Grid search: ADX threshold + noise_lookback now optimizable
+- OBV indicator + OBV slope, grid param expansion
+- All strategies: OBV, EMA(50), regime parity
 
-### Wave 16: Strategy Filter Parity (b3ee6cc) +11 tests
-- Mean reversion: volume filter + OBV divergence boost
-- EMA crossover: OBV slope + accumulation confidence boost
-- VolatilityBreakout: full regime awareness with adjusted params
+### Wave 16: Strategy Filter Parity +11 tests
+- MR: volume + OBV, VolBreakout: regime awareness
 
-### Wave 17: Consensus Enhancement + Analytics (6771505) +8 tests
-- Consensus: weighted confidence (higher-conf strategies have more influence)
-- Consensus: agreement ratio boost (more agreeing = higher confidence)
-- BacktestResult: per-regime breakdown (win_rate, avg_pnl per regime)
-- BacktestResult: confidence analytics + exit reason distribution
+### Wave 17: Consensus Enhancement + Analytics +8 tests
+- Weighted confidence, agreement ratio, regime breakdown in BacktestResult
 
-### Wave 18: VWAP + Walk-Forward Scoring (f1de946) +12 tests
-- VWAP + rolling VWAP indicators for intraday support/resistance
-- All 5 strategies: VWAP alignment confidence boost
-- Walk-forward: avg_oos_profit_factor + avg_oos_sharpe in report
+### Wave 18: VWAP + Walk-Forward Scoring +12 tests
+- VWAP in all strategies, WF OOS profit factor + Sharpe
+
+### Wave 19: Max Drawdown Duration + Keltner Channels +28 tests
+- Keltner Channels indicator, max_drawdown_duration_bars
+
+### Wave 20-22: Keltner + CMF Integration +48 tests
+- Keltner + CMF wired into all 5 strategies
+- MR: CMF capitulation logic, Keltner lower touch
+
+### Wave 23: Final Parity
+- Momentum: noise ratio (low noise = strong trend boost)
 
 ## Cumulative (Session #11 + #12)
 
 ### Key Stats
-- **18 Waves** across 2 sessions
-- **925+ tests passed**, 3 skipped, 0 failures
+- **22 Waves** across 2 sessions
+- **962+ tests passed**, 3 skipped, 0 failures
 - **8 strategies** + consensus
-- **8 indicators**: MACD, RSI divergence, BB width, Stochastic RSI, noise ratio, OBV, VWAP, ADX
+- **10 indicators**: MACD, ADX, OBV, VWAP, Keltner, CMF, noise ratio, StochRSI, RSI divergence, BB width
 - **9 risk controls**: breakeven, dynamic stop, profit-lock, portfolio heat, cooldown, auto-pause, frequency limiter, confidence gate, partial TP
 
-### Strategy Filter Coverage (ALL strategies have full coverage)
+### COMPLETE Strategy Filter Coverage
 | Filter | Composite | Momentum | MeanRev | VolBreakout | EMA Cross |
 |--------|-----------|----------|---------|-------------|-----------|
 | MACD | Y | Y | Y | Y | Y |
@@ -60,32 +55,25 @@ Branch: `master`
 | EMA(50) | Y | Y | Y | Y | Y |
 | Regime | Y | Y | Y | Y | Y |
 | VWAP | Y | Y | Y | Y | Y |
-| Noise Ratio | - | - | Y | Y | Y |
+| Keltner | Y | Y | Y | Y | Y |
+| CMF | Y | Y | Y | Y | Y |
+| Noise Ratio | Y | Y | Y | Y | Y |
 | StochRSI | - | - | - | - | Y |
-| RSI Divergence | - | - | Y | - | - |
-| BB Width/Squeeze | - | - | - | Y | - |
+| RSI Div | - | - | Y | - | - |
+| BB Squeeze | - | - | - | Y | - |
 
 ### BacktestResult Analytics
 - Sharpe, Sortino, Calmar, RAR, recovery, tail ratios
 - avg_entry_confidence, high/low confidence win rates
 - exit_reason_counts + exit_reason_avg_pnl breakdown
-- Per-regime breakdown (win_rate, avg_pnl, trade_count)
+- Per-regime breakdown, max_drawdown_duration_bars
 - entry_confidence on every TradeRecord
 
-### Consensus Enhancement
-- Weighted confidence scoring (confidence^2 / total_weight)
-- Agreement ratio boost (+0.1 * agree_ratio)
-
-### Walk-Forward Validation
-- OOS profit factor + OOS Sharpe in report summary
-- Composite scoring: Sharpe 40% + Sortino 30% + PF 30%
-
-## Validation: **925+ passed, 3 skipped, 0 failures**
+## Validation: **962+ passed, 3 skipped, 0 failures**
 
 ## Recommended Next Moves
-1. `crypto-trader backtest-all` -> re-rank with all new filters active
-2. `crypto-trader grid-wf-all --days 90 --top-n 5` -> re-optimize with VWAP/OBV/ADX
+1. `crypto-trader backtest-all` -> re-rank with all new filters
+2. `crypto-trader grid-wf-all --days 90 --top-n 5` -> optimize params
 3. Paper trade 7 days -> micro-live gate by Apr 2
-4. Tune ADX threshold per-symbol via walk-forward optimization
-5. Add correlation guard for multi-symbol portfolio
-6. Consider adding OBI/VPIN filter expansion
+4. Add correlation guard for multi-symbol portfolio
+5. Tune per-symbol ADX/noise thresholds via walk-forward

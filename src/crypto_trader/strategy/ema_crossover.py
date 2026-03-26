@@ -15,6 +15,7 @@ from crypto_trader.strategy.indicators import (
     rsi,
     stochastic_rsi,
     volume_sma,
+    williams_percent_r,
 )
 from crypto_trader.strategy.regime import RegimeDetector
 
@@ -120,6 +121,15 @@ class EMACrossoverStrategy:
             nr_value = noise_ratio(closes, effective.noise_lookback)
         except ValueError:
             pass
+
+        # Williams %R
+        wpr_value: float | None = None
+        try:
+            wpr_value = williams_percent_r(highs_list, lows_list, closes)
+        except ValueError:
+            pass
+        if wpr_value is not None:
+            indicators["williams_r"] = wpr_value
 
         # VWAP: price above VWAP = bullish bias for trend-following
         vwap_value: float | None = None

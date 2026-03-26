@@ -433,3 +433,23 @@ def chaikin_money_flow(
     if vol_sum == 0:
         return 0.0
     return mfv_sum / vol_sum
+
+
+def williams_percent_r(
+    highs: list[float], lows: list[float], closes: list[float], period: int = 14,
+) -> float:
+    """Williams %R: momentum oscillator measuring overbought/oversold levels.
+
+    %R = (highest_high - close) / (highest_high - lowest_low) * -100
+    Range: -100 to 0
+    Above -20: overbought
+    Below -80: oversold
+    """
+    if len(highs) < period or len(lows) < period or len(closes) < period:
+        raise ValueError(f"Need at least {period} values for Williams %R")
+    highest = max(highs[-period:])
+    lowest = min(lows[-period:])
+    hl_range = highest - lowest
+    if hl_range == 0:
+        return -50.0
+    return ((highest - closes[-1]) / hl_range) * -100.0
