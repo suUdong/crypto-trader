@@ -298,6 +298,40 @@ def rsi_divergence(
     return bullish, bearish
 
 
+def vwap(
+    highs: list[float], lows: list[float], closes: list[float], volumes: list[float],
+) -> float:
+    """Volume Weighted Average Price over the given bars.
+
+    VWAP = sum(typical_price * volume) / sum(volume)
+    Typical price = (high + low + close) / 3
+
+    Price above VWAP = bullish bias, below = bearish bias.
+    """
+    if len(highs) != len(lows) or len(highs) != len(closes) or len(highs) != len(volumes):
+        raise ValueError("All input lists must be the same length")
+    if not highs:
+        raise ValueError("Empty input for VWAP")
+    total_vol = sum(volumes)
+    if total_vol <= 0:
+        return closes[-1] if closes else 0.0
+    tp_vol_sum = sum(
+        ((h + l + c) / 3.0) * v
+        for h, l, c, v in zip(highs, lows, closes, volumes)
+    )
+    return tp_vol_sum / total_vol
+
+
+def rolling_vwap(
+    highs: list[float], lows: list[float], closes: list[float],
+    volumes: list[float], window: int = 20,
+) -> float:
+    """Rolling VWAP over the last `window` bars."""
+    if len(highs) < window:
+        raise ValueError(f"Need at least {window} bars for rolling VWAP")
+    return vwap(highs[-window:], lows[-window:], closes[-window:], volumes[-window:])
+
+
 def on_balance_volume(closes: list[float], volumes: list[float]) -> list[float]:
     """On-Balance Volume: cumulative volume that tracks price direction.
 

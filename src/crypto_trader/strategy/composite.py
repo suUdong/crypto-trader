@@ -9,6 +9,7 @@ from crypto_trader.strategy.indicators import (
     macd,
     momentum,
     obv_slope,
+    rolling_vwap,
     rsi,
     volume_sma,
 )
@@ -108,6 +109,16 @@ class CompositeStrategy:
         except ValueError:
             pass
 
+        # VWAP: price above VWAP = bullish bias
+        vwap_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            vwap_value = rolling_vwap(highs, lows, closes, [c.volume for c in candles], window=20)
+            indicators["vwap"] = vwap_value
+        except ValueError:
+            pass
+
         if position is None:
             entry_ready = (
                 momentum_value >= effective.momentum_entry_threshold
@@ -151,6 +162,9 @@ class CompositeStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # OBV accumulation boosts confidence
                 if obv_trend is not None and obv_trend > 0.3:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # VWAP alignment: price above VWAP confirms bullish bias
+                if vwap_value is not None and latest_close > vwap_value:
                     base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,

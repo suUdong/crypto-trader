@@ -8,6 +8,7 @@ from crypto_trader.strategy.indicators import (
     macd,
     momentum,
     obv_slope,
+    rolling_vwap,
     rsi,
     volume_sma,
 )
@@ -75,6 +76,16 @@ class MomentumStrategy:
         except ValueError:
             pass
 
+        # VWAP: price above VWAP = bullish bias
+        vwap_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            vwap_value = rolling_vwap(highs, lows, closes, volumes_list, window=20)
+            indicators["vwap"] = vwap_value
+        except ValueError:
+            pass
+
         # Multi-timeframe trend: EMA(50) as macro trend filter
         macro_trend_up = False
         if len(closes) >= 50:
@@ -129,6 +140,9 @@ class MomentumStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # OBV accumulation boosts confidence
                 if obv_trend is not None and obv_trend > 0.3:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # VWAP alignment: price above VWAP confirms bullish bias
+                if vwap_value is not None and closes[-1] > vwap_value:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Volume confirmation: high volume (>2x avg) boosts confidence
                 volumes = [c.volume for c in candles]
