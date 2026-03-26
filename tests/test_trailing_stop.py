@@ -71,7 +71,7 @@ class TestTrailingStop(unittest.TestCase):
     def test_trailing_stop_before_fixed_tp(self) -> None:
         """Trailing stop can trigger before fixed take-profit."""
         rm = RiskManager(
-            RiskConfig(stop_loss_pct=0.10, take_profit_pct=0.50),
+            RiskConfig(stop_loss_pct=0.10, take_profit_pct=0.50, partial_tp_pct=0.0),
             trailing_stop_pct=0.03,
         )
         pos = _pos(entry_price=100.0)

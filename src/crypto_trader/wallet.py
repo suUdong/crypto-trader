@@ -142,16 +142,31 @@ class StrategyWallet:
                 should_sell = signal.action is SignalAction.SELL or exit_reason is not None
                 if should_sell:
                     now = candles[-1].timestamp
+                    # Partial take-profit: sell only a fraction, mark position
+                    if exit_reason == "partial_take_profit":
+                        sell_qty = position.quantity * self.risk_manager._config.partial_tp_pct
+                        sell_qty = max(sell_qty, 1e-8)  # floor
+                    else:
+                        sell_qty = position.quantity
                     order = self.broker.submit_order(
                         OrderRequest(
                             symbol=symbol,
                             side=OrderSide.SELL,
-                            quantity=position.quantity,
+                            quantity=sell_qty,
                             requested_at=now,
                             reason=exit_reason or signal.reason,
                         ),
                         latest_price,
                     )
+                    # Mark partial TP taken so it doesn't re-trigger
+                    if (
+                        exit_reason == "partial_take_profit"
+                        and order is not None
+                        and order.status == "filled"
+                    ):
+                        remaining_pos = self.broker.positions.get(symbol)
+                        if remaining_pos is not None:
+                            remaining_pos.partial_tp_taken = True
                     if (
                         order is not None
                         and order.status == "filled"

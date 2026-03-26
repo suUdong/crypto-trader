@@ -136,6 +136,14 @@ class RiskManager:
             take_profit_price = position.entry_price * (1.0 + self._config.take_profit_pct)
             if price <= stop_loss_price:
                 return "stop_loss"
+
+            # Partial take-profit: sell a fraction at halfway to TP target
+            partial_tp_pct = self._config.partial_tp_pct
+            if partial_tp_pct > 0:
+                half_tp_price = position.entry_price * (1.0 + self._config.take_profit_pct * 0.5)
+                if price >= half_tp_price and not position.partial_tp_taken:
+                    return "partial_take_profit"
+
             if price >= take_profit_price:
                 return "take_profit"
 

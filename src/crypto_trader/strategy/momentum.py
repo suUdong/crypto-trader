@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import momentum, rsi
+from crypto_trader.strategy.indicators import average_directional_index, momentum, rsi
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -24,16 +24,44 @@ class MomentumStrategy:
             )
 
         closes = [c.close for c in candles]
+        highs = [c.high for c in candles]
+        lows = [c.low for c in candles]
         momentum_value = momentum(closes, effective.momentum_lookback)
         rsi_value = rsi(closes, effective.rsi_period)
         indicators = {"momentum": momentum_value, "rsi": rsi_value}
         context = {"market_regime": regime.value, "strategy": "momentum"}
 
+        # ADX trend strength filter
+        adx_value: float | None = None
+        try:
+            adx_value = average_directional_index(highs, lows, closes, effective.adx_period)
+            indicators["adx"] = adx_value
+        except ValueError:
+            pass
+
         if position is None:
+            # Adaptive RSI ceiling: strong momentum widens the acceptable RSI range.
+            # When base ceiling < 80 and momentum exceeds entry threshold, widen
+            # up to 80 so strong-trend entries aren't blocked by narrow RSI window.
+            rsi_ceiling = effective.rsi_recovery_ceiling
+            if rsi_ceiling < 80.0 and momentum_value > effective.momentum_entry_threshold:
+                excess = momentum_value - effective.momentum_entry_threshold
+                rsi_ceiling = min(80.0, rsi_ceiling + excess * 1000.0)
+            indicators["rsi_ceiling"] = rsi_ceiling
+
             if (
                 momentum_value >= effective.momentum_entry_threshold
-                and effective.rsi_oversold_floor <= rsi_value <= effective.rsi_recovery_ceiling
+                and effective.rsi_oversold_floor <= rsi_value <= rsi_ceiling
             ):
+                # ADX filter: skip entry in choppy/trendless markets
+                if adx_value is not None and adx_value < effective.adx_threshold:
+                    return Signal(
+                        action=SignalAction.HOLD,
+                        reason="adx_too_weak",
+                        confidence=0.2,
+                        indicators=indicators,
+                        context=context,
+                    )
                 return Signal(
                     action=SignalAction.BUY,
                     reason="momentum_rsi_alignment",

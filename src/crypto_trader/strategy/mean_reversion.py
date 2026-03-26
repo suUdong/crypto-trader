@@ -45,7 +45,9 @@ class MeanReversionStrategy:
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
         if position is None:
-            if near_lower_band and rsi_value <= effective.rsi_recovery_ceiling:
+            # RSI confirmation: require RSI below oversold_floor + 10 to avoid false bottoms
+            rsi_entry_limit = effective.rsi_oversold_floor + 10.0
+            if near_lower_band and rsi_value <= rsi_entry_limit:
                 return Signal(
                     action=SignalAction.BUY,
                     reason="bollinger_mean_reversion",

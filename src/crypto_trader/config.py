@@ -33,7 +33,7 @@ class StrategyConfig:
     momentum_entry_threshold: float = 0.005
     momentum_exit_threshold: float = -0.01
     bollinger_window: int = 20
-    bollinger_stddev: float = 1.8
+    bollinger_stddev: float = 1.5
     rsi_period: int = 14
     rsi_oversold_floor: float = 20.0
     rsi_recovery_ceiling: float = 60.0
@@ -42,6 +42,8 @@ class StrategyConfig:
     noise_lookback: int = 20
     ma_filter_period: int = 20
     max_holding_bars: int = 48
+    adx_period: int = 14
+    adx_threshold: float = 20.0
 
 
 @dataclass(slots=True)
@@ -73,6 +75,7 @@ class RiskConfig:
     max_concurrent_positions: int = 1
     min_entry_confidence: float = 0.6
     drawdown_reduction_pct: float = 0.5
+    partial_tp_pct: float = 0.5
 
 
 @dataclass(slots=True)

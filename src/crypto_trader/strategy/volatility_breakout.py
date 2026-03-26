@@ -3,6 +3,7 @@ from __future__ import annotations
 from crypto_trader.config import StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
+    average_directional_index,
     noise_ratio,
     simple_moving_average,
 )
@@ -64,16 +65,27 @@ class VolatilityBreakoutStrategy:
         ma = simple_moving_average(closes, self._ma_filter_period)
         indicators["ma_filter"] = ma
 
+        # ADX trend strength filter
+        adx_value: float | None = None
+        try:
+            highs = [c.high for c in candles]
+            lows = [c.low for c in candles]
+            adx_value = average_directional_index(highs, lows, closes, self._config.adx_period)
+            indicators["adx"] = adx_value
+        except ValueError:
+            pass
+
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, indicators, context)
+        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, indicators, context)
 
     def _evaluate_entry(
         self,
         current_price: float,
         breakout_level: float,
         ma: float,
+        adx_value: float | None,
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
@@ -88,6 +100,15 @@ class VolatilityBreakoutStrategy:
             )
 
         if current_price >= breakout_level:
+            # ADX filter: skip entry in choppy/trendless markets
+            if adx_value is not None and adx_value < self._config.adx_threshold:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="adx_too_weak",
+                    confidence=0.2,
+                    indicators=indicators,
+                    context=context,
+                )
             # Confidence based on how far above breakout level
             excess = (current_price - breakout_level) / breakout_level if breakout_level > 0 else 0
             confidence = min(1.0, 0.6 + excess * 10)

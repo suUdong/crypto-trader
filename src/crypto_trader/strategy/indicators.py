@@ -73,6 +73,70 @@ def average_true_range(highs: list[float], lows: list[float], closes: list[float
     return sum(tr_values) / period
 
 
+def average_directional_index(
+    highs: list[float], lows: list[float], closes: list[float], period: int = 14,
+) -> float:
+    """Average Directional Index (ADX) — measures trend strength (0-100).
+
+    ADX < 20: weak/no trend (choppy market)
+    ADX 20-40: developing trend
+    ADX > 40: strong trend
+    """
+    n = len(closes)
+    if n < period + 2 or len(highs) < n or len(lows) < n:
+        raise ValueError("Not enough values for ADX")
+
+    # Compute +DM, -DM, TR series
+    plus_dm: list[float] = []
+    minus_dm: list[float] = []
+    tr_list: list[float] = []
+
+    for i in range(1, n):
+        up_move = highs[i] - highs[i - 1]
+        down_move = lows[i - 1] - lows[i]
+        plus_dm.append(up_move if up_move > down_move and up_move > 0 else 0.0)
+        minus_dm.append(down_move if down_move > up_move and down_move > 0 else 0.0)
+        tr_list.append(true_range(highs[i], lows[i], closes[i - 1]))
+
+    if len(tr_list) < period:
+        raise ValueError("Not enough values for ADX")
+
+    # Wilder smoothing for first period
+    smoothed_plus_dm = sum(plus_dm[:period])
+    smoothed_minus_dm = sum(minus_dm[:period])
+    smoothed_tr = sum(tr_list[:period])
+
+    dx_values: list[float] = []
+
+    for i in range(period, len(tr_list)):
+        smoothed_plus_dm = smoothed_plus_dm - (smoothed_plus_dm / period) + plus_dm[i]
+        smoothed_minus_dm = smoothed_minus_dm - (smoothed_minus_dm / period) + minus_dm[i]
+        smoothed_tr = smoothed_tr - (smoothed_tr / period) + tr_list[i]
+
+        if smoothed_tr == 0:
+            dx_values.append(0.0)
+            continue
+
+        plus_di = 100.0 * smoothed_plus_dm / smoothed_tr
+        minus_di = 100.0 * smoothed_minus_dm / smoothed_tr
+        di_sum = plus_di + minus_di
+        if di_sum == 0:
+            dx_values.append(0.0)
+        else:
+            dx_values.append(100.0 * abs(plus_di - minus_di) / di_sum)
+
+    if len(dx_values) < period:
+        # Not enough DX values for full ADX smoothing, return average of what we have
+        return sum(dx_values) / len(dx_values) if dx_values else 0.0
+
+    # ADX = Wilder-smoothed DX
+    adx = sum(dx_values[:period]) / period
+    for i in range(period, len(dx_values)):
+        adx = (adx * (period - 1) + dx_values[i]) / period
+
+    return adx
+
+
 def noise_ratio(closes: list[float], lookback: int) -> float:
     """Noise ratio: 1 - |net_move| / sum(|bar_moves|). Lower = stronger trend."""
     if len(closes) <= lookback:

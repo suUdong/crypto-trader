@@ -65,6 +65,7 @@ class Position:
     entry_index: int | None = None
     entry_fee_paid: float = 0.0
     high_watermark: float = 0.0
+    partial_tp_taken: bool = False
 
     def __post_init__(self) -> None:
         if self.high_watermark <= 0:

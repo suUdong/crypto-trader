@@ -1,32 +1,22 @@
 # Session Handoff
 
-Date: 2026-03-26 (FIRE Session #6)
+Date: 2026-03-26 (FIRE Session #7)
 Branch: `master`
 
-## What Landed This Session (#6) — 13 User Stories
+## What Landed This Session (#7) — 4 User Stories
 
-### Wave 1: Grid-WF Tooling (US-010 to US-013)
-- **US-010**: Consensus strategy added to `PARAM_GRIDS` — `grid-wf --strategy consensus` works
-- **US-011**: `GridWFSummary.to_dict()` + JSON export to `artifacts/grid-wf-{strategy}-{date}.json`
-- **US-012**: `snapshot` CLI — one-step pnl-report + snapshot accumulation
-- **US-013**: `correlation` CLI — pairwise BUY signal phi-coefficient matrix
-
-### Wave 2: Validation & Automation (US-014 to US-016)
-- **US-014**: Multi-symbol WF validation — aggregates folds across ALL symbols, majority-pass gate
-- **US-015**: `apply-params` CLI — reads grid-wf JSON, shows param diff, writes sidecar
-- **US-016**: SESSION_HANDOFF updated
-
-### Wave 3: Risk & Backtest (US-017 to US-019)
-- **US-017**: Drawdown-based position sizing — linear reduction during DD, 10% floor
-- **US-018**: Regime-aware grid search — `--regime bull/bear/sideways` filters candles
-- **US-019**: Backtest equity curve export to `artifacts/equity-curve-{strategy}.json`
-
-### Wave 4: Profitability (US-020 to US-022)
-- **US-020**: Adaptive entry confidence — `effective_min_confidence` adjusts ±0.1 based on win rate
-- **US-021**: Profit factor scoring — grid search ranks by `Sharpe*0.7 + PF*0.3` composite
-- **US-022**: Consecutive loss kill switch — triggers after 5 losses (was 15), resets on win
+### Wave 1: Profitability & Signal Quality (US-023 to US-026)
+- **US-023**: Adaptive RSI ceiling — strong momentum widens RSI ceiling from 60 toward 80, fixing the RSI conflict that blocked valid entries
+- **US-024**: Partial take-profit (scale-out) — sells 50% of position at half the TP target, lets remainder ride to full TP or trailing stop
+- **US-025**: Widened mean reversion Bollinger (1.8→1.5 stddev default) + RSI confirmation filter (oversold_floor+10) to avoid false bottoms
+- **US-026**: ADX trend strength filter — blocks momentum & volatility breakout entries when ADX < 20 (choppy/trendless market)
 
 ## Previous Session Deliverables (Still Active)
+
+### Session #6: Risk & Backtest Tooling (13 stories)
+- Drawdown sizing, regime-aware grid search, equity curve export
+- Adaptive confidence, profit factor scoring, consecutive loss kill switch
+- Grid-WF JSON export, snapshot CLI, signal correlation, apply-params CLI
 
 ### Session #5: Grid-WF + Consensus + Daemon Expansion
 - `grid-wf` CLI, `ConsensusStrategy`, 3 new daemon wallets (9 total)
@@ -44,34 +34,30 @@ Branch: `master`
 
 ```
 src/crypto_trader/
-  cli.py                # + snapshot, correlation, apply-params commands
-                        # + grid-wf JSON export, equity curve export, --regime flag
-  config.py             # + drawdown_reduction_pct in RiskConfig
-  wallet.py             # effective_min_confidence for entry gate
+  config.py             # + adx_period, adx_threshold in StrategyConfig
+                        # + partial_tp_pct in RiskConfig
+                        # bollinger_stddev default 1.8→1.5
+  strategy/
+    momentum.py         # + adaptive RSI ceiling, + ADX trend filter
+    volatility_breakout.py  # + ADX trend filter
+    mean_reversion.py   # + RSI confirmation filter (oversold_floor+10)
+    indicators.py       # + average_directional_index() ADX indicator
   risk/
-    manager.py          # + drawdown sizing, adaptive confidence, peak equity tracking
-    kill_switch.py      # + 5-loss consecutive trigger (was 15)
-  backtest/
-    grid_wf.py          # + consensus PARAM_GRIDS, to_dict(), multi-symbol WF
-                        # + profit_factor scoring, regime_filter
-    correlation.py      # NEW: signal_correlation() phi coefficient matrix
+    manager.py          # + partial_take_profit exit reason
+  wallet.py             # + partial TP sell logic (50% of position)
+  models.py             # + partial_tp_taken field on Position
 
 tests/
-  test_grid_wf.py             # 19 tests
-  test_correlation.py         # 10 tests
-  test_snapshot_cli.py        # 5 tests
-  test_apply_params.py        # 8 tests
-  test_drawdown_sizing.py     # 5 tests
-  test_equity_curve_export.py # 5 tests
-  test_adaptive_confidence.py # 8 tests
-  test_kill_switch_consecutive.py # 4 tests
+  test_adaptive_rsi_ceiling.py    # 4 tests
+  test_partial_take_profit.py     # 5 tests
+  test_adx_indicator.py           # 8 tests
+  test_mean_reversion_rsi_filter.py # 4 tests
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` → **539 passed, 3 skipped, 0 failures**
-- 4 commits pushed to master
-- +55 new tests this session
+- `pytest tests/ -q` → **560 passed, 3 skipped, 0 failures**
+- +21 new tests this session
 
 ## Daemon 72-Hour Performance (2026-03-26)
 
@@ -91,13 +77,14 @@ tests/
 
 1. **3 new wallets not deployed** — daemon restart needed
 2. **No closed trades yet** — strategies waiting for entry signals in sideways market
-3. **Momentum RSI conflict** — entry requires RSI 20-60 but strong momentum pushes RSI > 60; grid-wf can now find better thresholds with regime-aware search
+3. ~~Momentum RSI conflict~~ **FIXED** — adaptive RSI ceiling now widens for strong momentum
 4. Kimchi premium uses simulated premium — live may diverge
 5. Telegram not live-verified (no bot token)
+6. **ADX filter may reduce signal frequency** — monitor after deployment, tune adx_threshold if needed
 
 ## Recommended Next Moves
 
-1. **Restart daemon** — deploy all 9 wallets with updated config
+1. **Restart daemon** — deploy all 9 wallets with updated config (includes new filters)
 2. **Run regime-aware grid-wf** — `crypto-trader grid-wf --strategy momentum --days 90 --regime sideways`
 3. **Apply optimized params** — `crypto-trader apply-params --strategy momentum`
 4. **Check correlation** — `crypto-trader correlation` to verify diversification
@@ -105,4 +92,5 @@ tests/
 6. **Automate snapshots** — cron `crypto-trader snapshot` every 6h
 7. **Monitor paper trading** 7 days → micro-live gate by Apr 2
 8. **Telegram bot setup** for daily PnL alerts
-9. **Capital rebalance** after first closed trades
+9. **Tune ADX threshold** — if too few signals, lower from 20 to 15
+10. **Tune partial TP ratio** — experiment with 0.3-0.7 range via grid-wf

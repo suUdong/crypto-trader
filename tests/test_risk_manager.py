@@ -26,7 +26,7 @@ class RiskManagerTests(unittest.TestCase):
         )
 
     def test_exit_reason_prefers_risk_limits(self) -> None:
-        manager = RiskManager(RiskConfig(stop_loss_pct=0.02, take_profit_pct=0.04))
+        manager = RiskManager(RiskConfig(stop_loss_pct=0.02, take_profit_pct=0.04, partial_tp_pct=0.0))
         position = Position(
             symbol="KRW-BTC",
             quantity=1.0,
