@@ -170,6 +170,21 @@ class RiskManager:
             streak_mult = min(1.3, 1.0 + 0.05 * self._consecutive_wins)
         return base_quantity * scale * streak_mult
 
+    def portfolio_heat(
+        self, open_positions: list[tuple[float, float]], equity: float,
+    ) -> float:
+        """Total portfolio heat: sum of (position_value * stop_loss_pct) / equity.
+
+        Each tuple is (entry_price, quantity).
+        """
+        if equity <= 0:
+            return 0.0
+        total_risk = sum(
+            entry * qty * self.effective_stop_loss_pct
+            for entry, qty in open_positions
+        )
+        return total_risk / equity
+
     def can_open(self, active_positions: int, realized_pnl: float, starting_equity: float) -> bool:
         if active_positions >= self._config.max_concurrent_positions:
             return False

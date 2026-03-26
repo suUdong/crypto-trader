@@ -21,6 +21,7 @@ class TestDaemonHeartbeat(unittest.TestCase):
         config.runtime.daemon_mode = False
         config.runtime.poll_interval_seconds = 60
         config.runtime.runtime_checkpoint_path = f"{artifacts_dir}/runtime-checkpoint.json"
+        config.source_config_path = "config/test-daemon.toml"
 
         wallet = MagicMock()
         wallet.name = "test_wallet"
@@ -46,6 +47,7 @@ class TestDaemonHeartbeat(unittest.TestCase):
             market_data=market_data,
             config=config,
         )
+        runtime._config_path = "config/test-daemon.toml"
         return runtime
 
     def test_heartbeat_written_on_checkpoint(self) -> None:
@@ -64,8 +66,15 @@ class TestDaemonHeartbeat(unittest.TestCase):
             self.assertIn("iteration", data)
             self.assertIn("uptime_seconds", data)
             self.assertIn("poll_interval_seconds", data)
+            self.assertIn("session_id", data)
+            self.assertIn("config_path", data)
+            self.assertIn("wallet_names", data)
+            self.assertIn("symbols", data)
             self.assertEqual(data["iteration"], 1)
             self.assertEqual(data["poll_interval_seconds"], 60)
+            self.assertEqual(data["config_path"], "config/test-daemon.toml")
+            self.assertEqual(data["wallet_names"], ["test_wallet"])
+            self.assertEqual(data["symbols"], ["KRW-BTC"])
             self.assertIsInstance(data["pid"], int)
             self.assertGreaterEqual(data["uptime_seconds"], 0)
 

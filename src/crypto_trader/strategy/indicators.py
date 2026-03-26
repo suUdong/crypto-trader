@@ -197,6 +197,61 @@ def macd(
     return ml, sl, ml - sl
 
 
+def rsi_divergence(
+    closes: list[float], rsi_period: int = 14, lookback: int = 20,
+) -> tuple[bool, bool]:
+    """Detect RSI divergence over the last `lookback` bars.
+
+    Returns (bullish_divergence, bearish_divergence).
+    - Bullish: price makes lower low but RSI makes higher low
+    - Bearish: price makes higher high but RSI makes lower high
+    """
+    min_len = rsi_period + lookback + 1
+    if len(closes) < min_len:
+        return False, False
+
+    # Compute RSI for the lookback window
+    rsi_values = []
+    for i in range(lookback + 1):
+        idx = len(closes) - lookback + i
+        if idx > rsi_period:
+            rsi_values.append(rsi(closes[:idx], rsi_period))
+        else:
+            rsi_values.append(50.0)
+
+    price_window = closes[-lookback - 1:]
+
+    # Find local lows and highs (simple: compare with neighbors)
+    price_lows: list[tuple[int, float]] = []
+    price_highs: list[tuple[int, float]] = []
+    rsi_at: list[float] = rsi_values
+
+    for i in range(1, len(price_window) - 1):
+        if price_window[i] <= price_window[i - 1] and price_window[i] <= price_window[i + 1]:
+            price_lows.append((i, price_window[i]))
+        if price_window[i] >= price_window[i - 1] and price_window[i] >= price_window[i + 1]:
+            price_highs.append((i, price_window[i]))
+
+    bullish = False
+    bearish = False
+
+    # Bullish divergence: last two lows — price lower, RSI higher
+    if len(price_lows) >= 2:
+        prev_low = price_lows[-2]
+        curr_low = price_lows[-1]
+        if curr_low[1] < prev_low[1] and rsi_at[curr_low[0]] > rsi_at[prev_low[0]]:
+            bullish = True
+
+    # Bearish divergence: last two highs — price higher, RSI lower
+    if len(price_highs) >= 2:
+        prev_high = price_highs[-2]
+        curr_high = price_highs[-1]
+        if curr_high[1] > prev_high[1] and rsi_at[curr_high[0]] < rsi_at[prev_high[0]]:
+            bearish = True
+
+    return bullish, bearish
+
+
 def noise_ratio(closes: list[float], lookback: int) -> float:
     """Noise ratio: 1 - |net_move| / sum(|bar_moves|). Lower = stronger trend."""
     if len(closes) <= lookback:
