@@ -4,15 +4,16 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from pathlib import Path
 
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 
 
 class PnLReportTests(unittest.TestCase):
-    def _create_checkpoint(self, tmp_dir: str) -> Path:
+    def _create_checkpoint(self, tmp_dir: str, *, generated_at: str | None = None) -> Path:
         checkpoint = {
-            "generated_at": "2026-03-25T10:00:00+00:00",
+            "generated_at": generated_at or datetime.now(UTC).isoformat(),
             "iteration": 100,
             "session_id": "session-abc",
             "config_path": "config/test.toml",
@@ -53,12 +54,13 @@ class PnLReportTests(unittest.TestCase):
         self,
         tmp_dir: str,
         *,
+        generated_at: str | None = None,
         session_id: str = "session-abc",
         wallet_names: list[str] | None = None,
         symbols: list[str] | None = None,
     ) -> Path:
         heartbeat = {
-            "last_heartbeat": "2026-03-25T10:00:05+00:00",
+            "last_heartbeat": generated_at or datetime.now(UTC).isoformat(),
             "pid": 1234,
             "iteration": 100,
             "uptime_seconds": 60.0,
@@ -84,12 +86,15 @@ class PnLReportTests(unittest.TestCase):
     def test_to_markdown_contains_sections(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cp = self._create_checkpoint(tmp)
+            self._create_heartbeat(tmp)
             gen = PnLReportGenerator()
             report = gen.generate_from_checkpoint(cp)
             md = gen.to_markdown(report)
             self.assertIn("Portfolio Summary", md)
             self.assertIn("Per-Wallet Breakdown", md)
             self.assertIn("mean_reversion", md)
+            self.assertIn("Freshness Status", md)
+            self.assertIn("Artifact Health", md)
 
     def test_save_creates_md_and_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -172,3 +177,4 @@ class PnLReportTests(unittest.TestCase):
             data = json.loads(out.with_suffix(".json").read_text())
             self.assertIn("artifact_context", data)
             self.assertEqual(data["artifact_context"]["consistency_status"], "consistent")
+            self.assertEqual(data["artifact_context"]["freshness_status"], "fresh")

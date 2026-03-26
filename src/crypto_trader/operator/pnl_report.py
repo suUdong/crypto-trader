@@ -224,6 +224,14 @@ class PnLReportGenerator:
 
     def to_markdown(self, report: PortfolioPnLReport) -> str:
         """Convert PnL report to markdown format."""
+        health = None
+        try:
+            from crypto_trader.operator.artifact_health import summarize_artifact_health
+
+            health = summarize_artifact_health(report)
+        except Exception:
+            health = None
+
         lines = [
             f"# PnL Report ({report.period.title()})",
             "",
@@ -262,6 +270,16 @@ class PnLReportGenerator:
             "| Wallet | Strategy | Return% | Equity | Realized | Trades | Win% | PF | Sharpe |",
             "|--------|----------|---------|--------|----------|--------|------|-----|--------|",
         ]
+
+        if health is not None:
+            lines[lines.index("## Per-Wallet Breakdown"):lines.index("## Per-Wallet Breakdown")] = [
+                f"| Checkpoint Age | {health['checkpoint_age_display']} ({health['checkpoint_freshness']}) |",
+                f"| Heartbeat Age | {health['heartbeat_age_display']} ({health['heartbeat_freshness']}) |",
+                f"| Freshness Status | {health['freshness_status']} |",
+                f"| Freshness Reason | {health['freshness_reason']} |",
+                f"| Artifact Health | {'healthy' if health['healthy'] else 'warning'} |",
+                "",
+            ]
 
         for s in sorted(report.strategies, key=lambda x: x.total_return_pct, reverse=True):
             pf = f"{s.profit_factor:.2f}" if s.profit_factor < 1000 else "inf"
