@@ -6,10 +6,41 @@ import streamlit as st
 
 MOBILE_CSS = """
 <style>
+/* ── Import Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── CSS Custom Properties ── */
+:root {
+    --bg-card: rgba(255, 255, 255, 0.04);
+    --bg-card-hover: rgba(255, 255, 255, 0.07);
+    --border-card: rgba(255, 255, 255, 0.08);
+    --border-card-hover: rgba(255, 255, 255, 0.16);
+    --text-primary: #f3f4f6;
+    --text-muted: #9ca3af;
+    --text-secondary: #6b7280;
+    --green: #4ade80;
+    --green-bg: #0d5f2c;
+    --red: #f87171;
+    --red-bg: #7f1d1d;
+    --yellow: #fbbf24;
+    --yellow-bg: #5c4d1a;
+    --blue: #60a5fa;
+    --bg-app: #0e1117;
+    --font-body: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
 /* ── Base Reset ── */
 html, body, [data-testid="stAppViewContainer"] {
+    font-family: var(--font-body) !important;
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
+}
+
+/* ── Monospace for numbers ── */
+[data-testid="stMetricValue"] {
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── Centered Layout ── */
@@ -32,6 +63,7 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex-wrap: nowrap;
+    position: relative;
 }
 [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {
     display: none;
@@ -41,20 +73,35 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     padding: 0.5rem 0.75rem !important;
     font-size: 0.875rem !important;
     white-space: nowrap;
+    transition: color 0.15s ease;
+}
+
+/* ── Tab Content Transition ── */
+[data-testid="stTabContent"] {
+    animation: fadeIn 0.2s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Metric Cards ── */
 [data-testid="stMetric"] {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
     border-radius: 12px;
     padding: 1rem;
     min-width: 0;
     overflow: hidden;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+[data-testid="stMetric"]:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-card-hover);
 }
 [data-testid="stMetricLabel"] {
     font-size: 0.8125rem !important;
-    color: #888 !important;
+    color: var(--text-muted) !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -83,9 +130,9 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
-.regime-bull { background: #0d5f2c; color: #4ade80; }
-.regime-sideways { background: #5c4d1a; color: #fbbf24; }
-.regime-bear { background: #7f1d1d; color: #f87171; }
+.regime-bull { background: var(--green-bg); color: var(--green); }
+.regime-sideways { background: var(--yellow-bg); color: var(--yellow); }
+.regime-bear { background: var(--red-bg); color: var(--red); }
 
 .status-badge {
     display: inline-block;
@@ -94,20 +141,45 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     font-size: 0.8125rem;
     font-weight: 600;
 }
-.status-ok { background: #0d5f2c; color: #4ade80; }
-.status-warn { background: #5c4d1a; color: #fbbf24; }
-.status-fail { background: #7f1d1d; color: #f87171; }
+.status-ok { background: var(--green-bg); color: var(--green); }
+.status-warn { background: var(--yellow-bg); color: var(--yellow); }
+.status-fail { background: var(--red-bg); color: var(--red); }
 
 /* ── Signal Colors ── */
-.signal-buy { color: #4ade80; font-weight: 600; }
-.signal-sell { color: #f87171; font-weight: 600; }
-.signal-hold { color: #9ca3af; }
+.signal-buy { color: var(--green); font-weight: 600; }
+.signal-sell { color: var(--red); font-weight: 600; }
+.signal-hold { color: var(--text-muted); }
 
 /* ── Signal timeline compact on mobile ── */
 .signal-row {
-    padding: 0.5rem 0;
-    line-height: 1.5;
+    padding: 0.625rem 0;
+    line-height: 1.6;
     font-size: 0.9375rem;
+    border-bottom: 1px solid var(--border-card);
+}
+.signal-row:last-child {
+    border-bottom: none;
+}
+.signal-container {
+    max-height: 65vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Confidence Bar ── */
+.conf-track {
+    display: inline-block;
+    width: 3rem;
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+}
+.conf-fill {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
 }
 
 /* ── DataFrames: horizontal scroll, compact font ── */
@@ -123,51 +195,48 @@ button, [role="tab"], .stSelectbox, .stButton > button {
 
 /* ── Position cards: full-width on mobile ── */
 .position-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
     border-radius: 10px;
     padding: 0.75rem 1rem;
     margin-bottom: 0.5rem;
     line-height: 1.6;
     font-size: 0.9375rem;
+    transition: border-color 0.2s ease;
+}
+.position-card:hover {
+    border-color: var(--border-card-hover);
 }
 
-/* ── Responsive Breakpoints ── */
-
-/* Galaxy Z Fold7 커버 (375px) */
-@media (max-width: 375px) {
-    .block-container {
-        max-width: 100% !important;
-        padding: 0.375rem !important;
-    }
-    [data-testid="stTabs"] [role="tab"] {
-        padding: 0.375rem 0.4rem !important;
-        font-size: 0.6875rem !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1rem !important;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 0.6875rem !important;
-    }
-    [data-testid="stMetricDelta"] {
-        font-size: 0.625rem !important;
-    }
-    /* 컬럼 스택 (3컬럼 → 1컬럼) */
-    [data-testid="stHorizontalBlock"] {
-        flex-direction: column !important;
-        gap: 0.5rem !important;
-    }
-    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
-        width: 100% !important;
-        min-width: 100% !important;
-    }
-    .signal-row { font-size: 0.8125rem; }
-    h2, h3 { font-size: 1.1rem !important; }
-    h4 { font-size: 0.9375rem !important; }
+/* ── Login Card ── */
+.login-container {
+    max-width: 380px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+.login-brand {
+    text-align: center;
+    padding: 3rem 1rem 1.5rem;
+}
+.login-brand h2 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+}
+.login-brand p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
 }
 
-/* Mobile 일반 < 600px */
+/* ── Header Layout ── */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+/* ── Responsive: Mobile < 600px (base) ── */
 @media (max-width: 599px) {
     .block-container {
         max-width: 100% !important;
@@ -183,7 +252,7 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     [data-testid="stMetricDelta"] {
         font-size: 0.6875rem !important;
     }
-    /* 3컬럼 → 1컬럼 스택 */
+    /* 3 cols → 1 col stack */
     [data-testid="stHorizontalBlock"] {
         flex-direction: column !important;
         gap: 0.5rem !important;
@@ -197,13 +266,36 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     }
 }
 
-/* Galaxy Z Fold7 내부 (600px) / 태블릿 600-768px */
+/* ── Galaxy Z Fold7 cover (≤375px) ── */
+@media (max-width: 375px) {
+    .block-container {
+        padding: 0.375rem !important;
+    }
+    [data-testid="stTabs"] [role="tab"] {
+        padding: 0.375rem 0.4rem !important;
+        font-size: 0.6875rem !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.6875rem !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: 0.625rem !important;
+    }
+    .signal-row { font-size: 0.8125rem; }
+    h2, h3 { font-size: 1.1rem !important; }
+    h4 { font-size: 0.9375rem !important; }
+}
+
+/* ── Tablet 600-768px ── */
 @media (min-width: 600px) and (max-width: 768px) {
     .block-container {
         max-width: 100% !important;
         padding: 0.75rem !important;
     }
-    /* 3컬럼 → 2컬럼 */
+    /* 3 cols → 2 cols */
     [data-testid="stHorizontalBlock"] {
         flex-wrap: wrap !important;
     }
@@ -216,7 +308,7 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     }
 }
 
-/* 태블릿 768-960px */
+/* ── Tablet 768-960px ── */
 @media (min-width: 769px) and (max-width: 959px) {
     .block-container {
         max-width: 720px !important;
@@ -225,7 +317,7 @@ button, [role="tab"], .stSelectbox, .stButton > button {
     }
 }
 
-/* Desktop 960px+ */
+/* ── Desktop 960px+ ── */
 @media (min-width: 960px) {
     .block-container {
         max-width: 960px !important;
