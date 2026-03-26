@@ -81,6 +81,24 @@ class WalkForwardReport:
         return self.oos_profitable_folds / len(self.folds)
 
     @property
+    def avg_oos_profit_factor(self) -> float:
+        """Average OOS profit factor across folds."""
+        pfs = [f.test_result.profit_factor for f in self.folds if f.test_result.trade_log]
+        if not pfs:
+            return 0.0
+        # Cap inf values at 10.0 for averaging
+        capped = [min(pf, 10.0) for pf in pfs]
+        return sum(capped) / len(capped)
+
+    @property
+    def avg_oos_sharpe(self) -> float:
+        """Average OOS Sharpe ratio across folds."""
+        sharpes = [f.test_result.sharpe_ratio for f in self.folds if f.test_result.trade_log]
+        if not sharpes:
+            return 0.0
+        return sum(sharpes) / len(sharpes)
+
+    @property
     def passed(self) -> bool:
         """Strategy passes walk-forward if:
         - OOS avg return > 0
@@ -101,6 +119,8 @@ class WalkForwardReport:
             "avg_train_return_pct": round(self.avg_train_return_pct, 3),
             "avg_test_return_pct": round(self.avg_test_return_pct, 3),
             "avg_efficiency_ratio": round(self.avg_efficiency_ratio, 3),
+            "avg_oos_profit_factor": round(self.avg_oos_profit_factor, 3),
+            "avg_oos_sharpe": round(self.avg_oos_sharpe, 3),
             "oos_win_rate": round(self.oos_win_rate, 3),
             "passed": self.passed,
         }
