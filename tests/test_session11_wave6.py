@@ -53,12 +53,12 @@ class TestConsensusEMACrossover(unittest.TestCase):
 class TestWinStreakBoost(unittest.TestCase):
     def test_no_boost_under_3_wins(self) -> None:
         """Position size should be normal with < 3 consecutive wins."""
-        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03))
+        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03, max_position_pct=1.0))
         risk.record_trade(0.02)
         risk.record_trade(0.03)
         size_2wins = risk.size_position(100_000.0, 50_000.0)
 
-        risk2 = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03))
+        risk2 = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03, max_position_pct=1.0))
         size_0wins = risk2.size_position(100_000.0, 50_000.0)
 
         # Should be equal (no streak boost yet)
@@ -66,7 +66,7 @@ class TestWinStreakBoost(unittest.TestCase):
 
     def test_boost_after_3_wins(self) -> None:
         """Position size should increase after 3+ consecutive wins."""
-        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03))
+        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03, max_position_pct=1.0))
         base_size = risk.size_position(100_000.0, 50_000.0)
 
         risk.record_trade(0.02)
@@ -78,7 +78,7 @@ class TestWinStreakBoost(unittest.TestCase):
 
     def test_boost_capped_at_1_3x(self) -> None:
         """Win-streak boost should not exceed 1.3x."""
-        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03))
+        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03, max_position_pct=1.0))
         base_size = risk.size_position(100_000.0, 50_000.0)
 
         # 10 consecutive wins
@@ -92,7 +92,7 @@ class TestWinStreakBoost(unittest.TestCase):
 
     def test_boost_resets_on_loss(self) -> None:
         """Losing trade should reset win streak and remove boost."""
-        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03))
+        risk = RiskManager(RiskConfig(risk_per_trade_pct=0.01, stop_loss_pct=0.03, max_position_pct=1.0))
         for _ in range(5):
             risk.record_trade(0.02)
         boosted = risk.size_position(100_000.0, 50_000.0)

@@ -14,4 +14,7 @@ logs/
 artifacts/
 .omc/
 .omx/
+.memsearch/
+.memsearch.toml
+.openchrome/
 *.egg-info/

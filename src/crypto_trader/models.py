@@ -317,7 +317,7 @@ class PortfolioPromotionDecision:
     profitable_wallets: int
     total_trades: int
     paper_days: int
-    per_wallet: dict[str, dict]  # wallet_name -> {equity, pnl, trades, return_pct}
+    per_wallet: dict[str, dict[str, float | int]]
 
 
 @dataclass(slots=True)

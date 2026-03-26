@@ -1,7 +1,10 @@
 """Consensus strategy: only enters when multiple sub-strategies agree."""
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from crypto_trader.models import Candle, Position, Signal, SignalAction
+from crypto_trader.strategy.evaluator import evaluate_strategy
 
 
 class ConsensusStrategy:
@@ -14,20 +17,26 @@ class ConsensusStrategy:
 
     def __init__(
         self,
-        strategies: list[object],
+        strategies: Sequence[object],
         min_agree: int = 2,
         min_confidence_sum: float = 0.0,
     ) -> None:
         if not strategies:
             raise ValueError("ConsensusStrategy requires at least one sub-strategy")
-        self._strategies = strategies
+        self._strategies = list(strategies)
         self._min_agree = max(1, min(min_agree, len(strategies)))
         self._min_confidence_sum = min_confidence_sum
 
-    def evaluate(self, candles: list[Candle], position: Position | None = None, *, symbol: str = "") -> Signal:
+    def evaluate(
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal:
         signals: list[Signal] = []
         for strategy in self._strategies:
-            sig = strategy.evaluate(candles, position, symbol=symbol)
+            sig = evaluate_strategy(strategy, candles, position, symbol=symbol)
             signals.append(sig)
 
         context = {

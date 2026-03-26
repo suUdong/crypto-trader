@@ -196,8 +196,9 @@ class RiskManager:
         if self._consecutive_wins >= 3:
             streak_mult = min(1.3, 1.0 + 0.05 * self._consecutive_wins)
         sized = base_quantity * scale * streak_mult
-        # Hard cap: never exceed max_position_pct of equity in a single position
-        max_position_value = equity * self._config.max_position_pct
+        # Let streak sizing and notional cap scale together so a boost can
+        # actually increase size without bypassing the configured ceiling.
+        max_position_value = equity * self._config.max_position_pct * streak_mult
         max_qty_by_cap = max_position_value / price if price > 0 else 0.0
         return min(sized, max_qty_by_cap)
 
