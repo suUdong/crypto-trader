@@ -100,6 +100,17 @@ class MomentumStrategy:
                 base_conf = min(1.0, 0.5 + abs(momentum_value))
                 if macd_bullish:
                     base_conf = min(1.0, base_conf + 0.1)
+                # Volume confirmation: high volume (>2x avg) boosts confidence
+                volumes = [c.volume for c in candles]
+                try:
+                    vol_avg = volume_sma(volumes, min(20, len(volumes)))
+                    vol_ratio = volumes[-1] / vol_avg if vol_avg > 0 else 1.0
+                    if "volume_ratio" not in indicators:
+                        indicators["volume_ratio"] = vol_ratio
+                    if vol_ratio >= 2.0:
+                        base_conf = min(1.0, base_conf + 0.1)
+                except ValueError:
+                    pass
                 return Signal(
                     action=SignalAction.BUY,
                     reason="momentum_rsi_alignment",
