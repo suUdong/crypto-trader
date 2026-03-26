@@ -170,6 +170,16 @@ class BacktestEngine:
             profit_factor = 0.0
         max_drawdown = _max_drawdown(equity_curve)
         total_return_pct = (final_equity / self._config.initial_capital) - 1.0
+
+        max_consec = 0
+        current_consec = 0
+        for trade in trades:
+            if trade.pnl < 0:
+                current_consec += 1
+                max_consec = max(max_consec, current_consec)
+            else:
+                current_consec = 0
+
         return BacktestResult(
             initial_capital=self._config.initial_capital,
             final_equity=final_equity,
@@ -179,6 +189,7 @@ class BacktestEngine:
             max_drawdown=max_drawdown,
             trade_log=trades,
             equity_curve=equity_curve,
+            max_consecutive_losses=max_consec,
         )
 
 

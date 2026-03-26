@@ -508,14 +508,16 @@ def main() -> None:
         print(f"\n  Candidates tested: {summary.candidates_tested}")
         print(f"  Candidates validated (WF pass): {summary.candidates_validated}")
 
-        print(f"\n  {'Rank':<5} {'Sharpe':>8} {'Return%':>9} {'Trades':>7} {'WF':>6} {'EffR':>7} {'OOS WR':>7}")
-        print(f"  {'-'*50}")
+        print(f"\n  {'Rank':<5} {'Sharpe':>8} {'Sortino':>8} {'Return%':>9} {'Trades':>7} {'WF':>6} {'EffR':>7} {'OOS WR':>7}")
+        print(f"  {'-'*58}")
         for i, r in enumerate(summary.results, 1):
             wf_status = "PASS" if r.validated else "FAIL"
             eff_r = r.wf_report.avg_efficiency_ratio
             oos_wr = r.wf_report.oos_win_rate
+            sortino_val = r.candidate.avg_sortino if r.candidate.avg_sortino != float("inf") else 999.0
             print(
                 f"  #{i:<4} {r.candidate.avg_sharpe:>7.2f} "
+                f"{sortino_val:>7.2f} "
                 f"{r.candidate.avg_return_pct:>+8.2f}% "
                 f"{r.candidate.total_trades:>7} "
                 f"[{wf_status}] "
@@ -672,16 +674,16 @@ def main() -> None:
 
         all_strategies = [
             "momentum", "mean_reversion", "vpin", "volatility_breakout",
-            "kimchi_premium", "consensus",
+            "kimchi_premium", "obi", "consensus",
         ]
         symbols = config.trading.symbols
         results_list: list[dict] = []
 
-        print(f"\n{'='*70}")
+        print(f"\n{'='*90}")
         print(f"  BACKTEST-ALL: {len(all_strategies)} strategies x {len(symbols)} symbols")
-        print(f"{'='*70}")
-        print(f"\n  {'Strategy':<22} {'Return%':>9} {'Sharpe':>8} {'MDD%':>7} {'WinR%':>7} {'Trades':>7}")
-        print(f"  {'-'*62}")
+        print(f"{'='*90}")
+        print(f"\n  {'Strategy':<22} {'Return%':>9} {'Sharpe':>8} {'Sortino':>8} {'PF':>6} {'MDD%':>7} {'WinR%':>7} {'Trades':>7} {'MCL':>4}")
+        print(f"  {'-'*80}")
 
         for strat_name in all_strategies:
             try:
@@ -702,25 +704,32 @@ def main() -> None:
                     print(f"  {strat_name:<22} {'(insufficient data)':>40}")
                     continue
                 bt_result = engine.run(candles)
-                from crypto_trader.backtest.grid_wf import _approx_sharpe
+                from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino
                 sharpe = _approx_sharpe(bt_result.equity_curve)
+                sortino = _approx_sortino(bt_result.equity_curve)
                 row = {
                     "strategy": strat_name,
                     "symbol": symbols[0],
                     "return_pct": round(bt_result.total_return_pct * 100, 3),
                     "sharpe": round(sharpe, 3),
+                    "sortino": round(sortino, 3) if sortino != float("inf") else 999.0,
+                    "profit_factor": round(bt_result.profit_factor, 3) if bt_result.profit_factor != float("inf") else 999.0,
                     "max_drawdown_pct": round(bt_result.max_drawdown * 100, 3),
                     "win_rate_pct": round(bt_result.win_rate * 100, 1),
                     "trade_count": len(bt_result.trade_log),
                     "final_equity": round(bt_result.final_equity, 2),
+                    "max_consecutive_losses": bt_result.max_consecutive_losses,
                 }
                 results_list.append(row)
                 print(
                     f"  {strat_name:<22} {row['return_pct']:>+8.2f}% "
                     f"{row['sharpe']:>7.2f} "
+                    f"{row['sortino']:>7.2f} "
+                    f"{row['profit_factor']:>5.2f} "
                     f"{row['max_drawdown_pct']:>6.2f}% "
                     f"{row['win_rate_pct']:>6.1f}% "
-                    f"{row['trade_count']:>7}"
+                    f"{row['trade_count']:>7} "
+                    f"{row['max_consecutive_losses']:>4}"
                 )
             except Exception as exc:
                 print(f"  {strat_name:<22} ERROR: {exc}")

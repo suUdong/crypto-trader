@@ -24,6 +24,7 @@ class GridCandidate:
     avg_return_pct: float
     total_trades: int
     avg_profit_factor: float = 1.0
+    avg_sortino: float = 0.0
 
 
 @dataclass(slots=True)
@@ -58,6 +59,7 @@ class GridWFSummary:
                 {
                     "params": r.candidate.params,
                     "avg_sharpe": r.candidate.avg_sharpe,
+                    "avg_sortino": r.candidate.avg_sortino,
                     "avg_return_pct": r.candidate.avg_return_pct,
                     "total_trades": r.candidate.total_trades,
                     "avg_profit_factor": r.candidate.avg_profit_factor,
@@ -92,13 +94,34 @@ def _approx_sharpe(equity_curve: list[float]) -> float:
     return (mean_r / std_r) * (8760**0.5)
 
 
+def _approx_sortino(equity_curve: list[float]) -> float:
+    """Sortino ratio: penalizes only downside deviation (better for crypto)."""
+    if len(equity_curve) < 3:
+        return 0.0
+    returns = [
+        (equity_curve[i] - equity_curve[i - 1]) / max(1.0, equity_curve[i - 1])
+        for i in range(1, len(equity_curve))
+    ]
+    if not returns:
+        return 0.0
+    mean_r = sum(returns) / len(returns)
+    downside = [r for r in returns if r < 0]
+    if not downside:
+        return 0.0 if mean_r <= 0 else float("inf")
+    downside_variance = sum(r**2 for r in downside) / len(returns)
+    downside_std = downside_variance**0.5
+    if downside_std == 0:
+        return 0.0
+    return (mean_r / downside_std) * (8760**0.5)
+
+
 # Minimal param grids for quick in-CLI search
 PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     "momentum": {
         "momentum_lookback": [10, 15, 20],
-        "momentum_entry_threshold": [0.003, 0.005, 0.008],
+        "momentum_entry_threshold": [0.002, 0.004, 0.006, 0.008, 0.01],
         "rsi_period": [14, 18],
-        "max_holding_bars": [36, 48],
+        "max_holding_bars": [24, 36, 48],
     },
     "mean_reversion": {
         "bollinger_window": [15, 20, 25],
@@ -112,8 +135,8 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
         "max_holding_bars": [36, 48],
     },
     "volatility_breakout": {
-        "k_base": [0.3, 0.5, 0.7],
-        "noise_lookback": [10, 20],
+        "k_base": [0.2, 0.4, 0.6, 0.8],
+        "noise_lookback": [5, 10, 15, 20],
         "ma_filter_period": [10, 20],
         "max_holding_bars": [24, 36, 48],
     },
@@ -136,6 +159,7 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     "consensus": {
         "momentum_lookback": [10, 15, 20],
         "rsi_period": [14, 18],
+        "min_agree": [2, 3],
         "max_holding_bars": [36, 48],
     },
 }
@@ -182,16 +206,19 @@ def _run_backtest_with_params(
     )
     result = engine.run(candles)
     sharpe = _approx_sharpe(result.equity_curve)
+    sortino = _approx_sortino(result.equity_curve)
     gross_profit = sum(t.pnl for t in result.trade_log if t.pnl > 0)
     gross_loss = abs(sum(t.pnl for t in result.trade_log if t.pnl < 0))
     profit_factor = gross_profit / gross_loss if gross_loss > 0 else 0.0
     return {
         "return_pct": result.total_return_pct * 100,
         "sharpe": sharpe,
+        "sortino": sortino,
         "mdd_pct": result.max_drawdown * 100,
         "win_rate": result.win_rate * 100,
         "trade_count": len(result.trade_log),
         "profit_factor": profit_factor,
+        "max_consecutive_losses": result.max_consecutive_losses,
     }
 
 
@@ -229,11 +256,12 @@ def grid_search(
     param_names = list(grid.keys())
     combos = list(itertools.product(*grid.values()))
 
-    scored: list[tuple[dict[str, Any], float, float, int, float]] = []
+    scored: list[tuple[dict[str, Any], float, float, int, float, float]] = []
 
     for combo in combos:
         params = dict(zip(param_names, combo, strict=True))
         sharpes: list[float] = []
+        sortinos: list[float] = []
         returns: list[float] = []
         profit_factors: list[float] = []
         trades = 0
@@ -242,6 +270,7 @@ def grid_search(
             try:
                 result = _run_backtest_with_params(strategy_type, params, candles, symbol)
                 sharpes.append(result["sharpe"])
+                sortinos.append(result["sortino"])
                 returns.append(result["return_pct"])
                 profit_factors.append(result["profit_factor"])
                 trades += int(result["trade_count"])
@@ -251,9 +280,10 @@ def grid_search(
 
         if sharpes:
             avg_sharpe = sum(sharpes) / len(sharpes)
+            avg_sortino = sum(s for s in sortinos if s != float("inf")) / max(1, len([s for s in sortinos if s != float("inf")]))
             avg_return = sum(returns) / len(returns)
             avg_profit_factor = sum(profit_factors) / len(profit_factors)
-            scored.append((params, avg_sharpe, avg_return, trades, avg_profit_factor))
+            scored.append((params, avg_sharpe, avg_return, trades, avg_profit_factor, avg_sortino))
 
     scored.sort(key=lambda x: x[1] * 0.7 + x[4] * 0.3, reverse=True)
     return [
@@ -264,8 +294,9 @@ def grid_search(
             avg_return_pct=ret,
             total_trades=trades,
             avg_profit_factor=pf,
+            avg_sortino=sortino,
         )
-        for params, sharpe, ret, trades, pf in scored[:top_n]
+        for params, sharpe, ret, trades, pf, sortino in scored[:top_n]
     ]
 
 
