@@ -49,11 +49,6 @@ def render_login(
         default_token: Fallback token when env var is not set.
         session_key: Key in st.session_state to store auth flag.
     """
-    st.set_page_config(
-        page_title="Login",
-        page_icon="🔒",
-        layout="centered",
-    )
     st.markdown(
         '<div style="text-align:center; padding:2rem 1rem;">'
         '<h1 style="font-size:3rem;">🔒</h1>'

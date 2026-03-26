@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 try:
@@ -17,6 +18,10 @@ except ImportError:
 
 
 _skip = unittest.skipIf(not _HAS_STREAMLIT, "streamlit not installed")
+
+
+def _read_source(path: str) -> str:
+    return Path(path).read_text(encoding="utf-8")
 
 
 @_skip
@@ -80,6 +85,7 @@ class TestDataLoaders(unittest.TestCase):
         checkpoint = {"iteration": 5, "wallet_states": {}}
         path.write_text(json.dumps(checkpoint))
         result = data_mod.load_checkpoint()
+        assert result is not None
         self.assertEqual(result["iteration"], 5)
 
     def test_load_positions(self) -> None:
@@ -87,6 +93,7 @@ class TestDataLoaders(unittest.TestCase):
         pos = {"positions": [], "open_position_count": 0}
         path.write_text(json.dumps(pos))
         result = data_mod.load_positions()
+        assert result is not None
         self.assertEqual(result["open_position_count"], 0)
 
     def test_load_health(self) -> None:
@@ -94,6 +101,7 @@ class TestDataLoaders(unittest.TestCase):
         health = {"success": True, "last_signal": "hold"}
         path.write_text(json.dumps(health))
         result = data_mod.load_health()
+        assert result is not None
         self.assertTrue(result["success"])
 
     def test_load_regime_report(self) -> None:
@@ -101,6 +109,7 @@ class TestDataLoaders(unittest.TestCase):
         regime = {"market_regime": "bull", "short_return_pct": 0.05}
         path.write_text(json.dumps(regime))
         result = data_mod.load_regime_report()
+        assert result is not None
         self.assertEqual(result["market_regime"], "bull")
 
     def test_load_strategy_runs(self) -> None:
@@ -117,6 +126,7 @@ class TestDataLoaders(unittest.TestCase):
         }
         path.write_text(json.dumps(hb))
         result = data_mod.load_daemon_heartbeat()
+        assert result is not None
         self.assertEqual(result["pid"], 1234)
         self.assertEqual(result["iteration"], 5)
 
@@ -141,29 +151,48 @@ class TestAuth(unittest.TestCase):
     """Test session-based password authentication."""
 
     @patch("dashboard.auth.st")
-    def test_auth_not_authenticated_by_default(self, mock_st: object) -> None:
+    def test_auth_not_authenticated_by_default(self, mock_st: Any) -> None:
         mock_st.session_state = {}
         self.assertFalse(check_auth())
 
     @patch("dashboard.auth.st")
-    def test_auth_authenticated_when_session_flag_set(self, mock_st: object) -> None:
+    def test_auth_authenticated_when_session_flag_set(self, mock_st: Any) -> None:
         mock_st.session_state = {"dashboard_authenticated": True}
         self.assertTrue(check_auth())
 
     @patch("dashboard.auth.st")
-    def test_auth_false_when_session_flag_false(self, mock_st: object) -> None:
+    def test_auth_false_when_session_flag_false(self, mock_st: Any) -> None:
         mock_st.session_state = {"dashboard_authenticated": False}
         self.assertFalse(check_auth())
 
     @patch("dashboard.auth.st")
-    def test_auth_custom_session_key(self, mock_st: object) -> None:
+    def test_auth_custom_session_key(self, mock_st: Any) -> None:
         mock_st.session_state = {"y2i_auth": True}
         self.assertTrue(check_auth(session_key="y2i_auth"))
 
     @patch("dashboard.auth.st")
-    def test_auth_custom_session_key_missing(self, mock_st: object) -> None:
+    def test_auth_custom_session_key_missing(self, mock_st: Any) -> None:
         mock_st.session_state = {}
         self.assertFalse(check_auth(session_key="y2i_auth"))
+
+    def test_render_login_does_not_own_page_config(self) -> None:
+        source = _read_source("dashboard/auth.py")
+        self.assertNotIn("st.set_page_config", source)
+
+
+class TestDashboardEntrypoint(unittest.TestCase):
+    """Guard startup compatibility for local Streamlit and Cloud."""
+
+    def test_app_uses_cross_version_timezone_utc(self) -> None:
+        source = _read_source("dashboard/app.py")
+        self.assertIn("from datetime import datetime, timezone", source)
+        self.assertIn("_UTC = timezone.utc", source)
+        self.assertNotIn("from datetime import UTC, datetime", source)
+        self.assertIn("datetime.now(_UTC)", source)
+
+    def test_app_sets_page_config_before_auth_gate(self) -> None:
+        source = _read_source("dashboard/app.py")
+        self.assertLess(source.index("st.set_page_config"), source.index("if not check_auth():"))
 
 
 if __name__ == "__main__":

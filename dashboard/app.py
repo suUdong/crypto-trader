@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Ensure the repo root is on sys.path so that 'dashboard' resolves as a package
@@ -12,7 +12,7 @@ _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
-import plotly.graph_objects as go  # noqa: E402
+import plotly.graph_objects as go  # type: ignore[import-untyped]  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from dashboard.auth import check_auth, render_login  # noqa: E402
@@ -31,10 +31,7 @@ from dashboard.data import (  # noqa: E402
 )
 from dashboard.styles import inject_css  # noqa: E402
 
-# ── Auth Gate ──────────────────────────────────────────────
-if not check_auth():
-    render_login()
-    st.stop()
+_UTC = timezone.utc  # noqa: UP017
 
 # ── Page Config ────────────────────────────────────────────
 st.set_page_config(
@@ -44,6 +41,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 inject_css()
+
+# ── Auth Gate ──────────────────────────────────────────────
+if not check_auth():
+    render_login()
+    st.stop()
 
 # ── Header ─────────────────────────────────────────────────
 st.markdown("## 📊 Crypto Trader Dashboard")
@@ -71,7 +73,7 @@ with tab_trading:
         stale_threshold = poll_interval * 2
         try:
             hb_time = datetime.fromisoformat(hb_time_str)
-            age_seconds = (datetime.now(UTC) - hb_time).total_seconds()
+            age_seconds = (datetime.now(_UTC) - hb_time).total_seconds()
         except (ValueError, TypeError):
             age_seconds = float("inf")
 
@@ -431,5 +433,5 @@ with tab_perf:
 
 # ── Footer ─────────────────────────────────────────────────
 st.divider()
-now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+now = datetime.now(_UTC).strftime("%Y-%m-%d %H:%M UTC")
 st.caption(f"마지막 새로고침: {now}")

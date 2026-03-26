@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 
@@ -14,7 +14,7 @@ def _load_json(filename: str) -> dict[str, Any] | None:
     if not path.exists():
         return None
     with open(path) as f:
-        return json.load(f)
+        return cast(dict[str, Any], json.load(f))
 
 
 def _load_jsonl(filename: str) -> list[dict[str, Any]]:
