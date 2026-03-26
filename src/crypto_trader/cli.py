@@ -66,6 +66,7 @@ def main() -> None:
             "snapshot",
             "correlation",
             "apply-params",
+            "backtest-all",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -645,6 +646,81 @@ def main() -> None:
         print(f"\n  Params saved to {sidecar_path}")
         print(f"  To apply: manually update [wallets.strategy_overrides] in {config_path}")
         print(f"{'='*60}\n")
+        return
+
+    if args.command == "backtest-all":
+        import json
+        from datetime import date
+
+        all_strategies = [
+            "momentum", "mean_reversion", "vpin", "volatility_breakout",
+            "kimchi_premium", "consensus",
+        ]
+        symbols = config.trading.symbols
+        results_list: list[dict] = []
+
+        print(f"\n{'='*70}")
+        print(f"  BACKTEST-ALL: {len(all_strategies)} strategies x {len(symbols)} symbols")
+        print(f"{'='*70}")
+        print(f"\n  {'Strategy':<22} {'Return%':>9} {'Sharpe':>8} {'MDD%':>7} {'WinR%':>7} {'Trades':>7}")
+        print(f"  {'-'*62}")
+
+        for strat_name in all_strategies:
+            try:
+                bt_strategy = create_strategy(strat_name, config.strategy, config.regime)
+                bt_risk = _build_risk_manager(config)
+                engine = BacktestEngine(
+                    strategy=bt_strategy,
+                    risk_manager=bt_risk,
+                    config=config.backtest,
+                    symbol=symbols[0],
+                )
+                candles = market_data.get_ohlcv(
+                    symbols[0],
+                    interval=config.trading.interval,
+                    count=config.trading.candle_count,
+                )
+                if not candles or len(candles) < 50:
+                    print(f"  {strat_name:<22} {'(insufficient data)':>40}")
+                    continue
+                bt_result = engine.run(candles)
+                from crypto_trader.backtest.grid_wf import _approx_sharpe
+                sharpe = _approx_sharpe(bt_result.equity_curve)
+                row = {
+                    "strategy": strat_name,
+                    "symbol": symbols[0],
+                    "return_pct": round(bt_result.total_return_pct * 100, 3),
+                    "sharpe": round(sharpe, 3),
+                    "max_drawdown_pct": round(bt_result.max_drawdown * 100, 3),
+                    "win_rate_pct": round(bt_result.win_rate * 100, 1),
+                    "trade_count": len(bt_result.trade_log),
+                    "final_equity": round(bt_result.final_equity, 2),
+                }
+                results_list.append(row)
+                print(
+                    f"  {strat_name:<22} {row['return_pct']:>+8.2f}% "
+                    f"{row['sharpe']:>7.2f} "
+                    f"{row['max_drawdown_pct']:>6.2f}% "
+                    f"{row['win_rate_pct']:>6.1f}% "
+                    f"{row['trade_count']:>7}"
+                )
+            except Exception as exc:
+                print(f"  {strat_name:<22} ERROR: {exc}")
+
+        print(f"\n{'='*70}\n")
+
+        # Save results
+        artifacts_dir = Path("artifacts")
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        export = {
+            "date": date.today().isoformat(),
+            "symbol": symbols[0],
+            "candle_count": config.trading.candle_count,
+            "results": results_list,
+        }
+        export_path = artifacts_dir / f"backtest-all-{date.today().isoformat()}.json"
+        export_path.write_text(json.dumps(export, indent=2), encoding="utf-8")
+        print(f"  Results saved to {export_path}")
         return
 
     if args.command == "run-multi":

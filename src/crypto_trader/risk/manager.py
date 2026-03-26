@@ -159,8 +159,12 @@ class RiskManager:
                 return "take_profit"
 
         # Trailing stop: exit when price drops trailing_pct below high watermark
-        if self._trailing_stop_pct > 0 and position.high_watermark > position.entry_price:
-            trailing_stop_price = position.high_watermark * (1.0 - self._trailing_stop_pct)
+        # After partial TP, auto-activate trailing stop at 2% if not already set
+        effective_trailing = self._trailing_stop_pct
+        if position.partial_tp_taken and effective_trailing <= 0:
+            effective_trailing = 0.02  # 2% trailing after partial TP
+        if effective_trailing > 0 and position.high_watermark > position.entry_price:
+            trailing_stop_price = position.high_watermark * (1.0 - effective_trailing)
             if price <= trailing_stop_price:
                 return "trailing_stop"
 
