@@ -6,6 +6,7 @@ import logging
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +27,12 @@ from dashboard.data import (  # noqa: E402
     load_drift_report,
     load_health,
     load_kill_switch,
+    load_paper_trades,
     load_pnl_report,
     load_positions,
     load_promotion_gate,
     load_regime_report,
+    load_signal_summary,
     load_strategy_runs,
     regime_kr,
     strategy_kr,
@@ -115,8 +118,8 @@ else:
     )
 
 # ── 탭 내비게이션 ─────────────────────────────────────────
-tab_trading, tab_wallets, tab_signals, tab_regime, tab_operator, tab_perf = st.tabs(
-    ["현황", "전략", "시그널", "국면", "운영", "성과"]
+tab_trading, tab_wallets, tab_signals, tab_sig_analysis, tab_trades, tab_regime, tab_operator, tab_health, tab_perf = st.tabs(
+    ["현황", "전략", "시그널", "시그널분석", "체결현황", "국면", "운영", "시스템", "성과"]
 )
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -413,7 +416,196 @@ with tab_signals:
         st.markdown("".join(html_parts), unsafe_allow_html=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 탭 4: 시장국면 — Regime 상태
+# 탭 4: 시그널분석 — Hold 사유 분포 + 전략별 시그널 분포
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab_sig_analysis:
+    with st.spinner("데이터 로딩 중..."):
+        try:
+            sig_summary = load_signal_summary()
+        except Exception:
+            sig_summary = None
+            st.warning("시그널 요약 데이터를 불러오는 중 오류가 발생했습니다.")
+
+    if sig_summary is None or (not sig_summary.get("hold_reasons") and not sig_summary.get("by_wallet")):
+        st.info("시그널 분석 데이터가 없습니다.")
+    else:
+        # Hold 사유 분포 파이차트
+        hold_reasons = sig_summary.get("hold_reasons", {})
+        if hold_reasons:
+            st.markdown("#### Hold 사유 분포")
+            # Top 10 reasons, rest grouped as '기타'
+            sorted_reasons = sorted(hold_reasons.items(), key=lambda x: x[1], reverse=True)
+            top_reasons = sorted_reasons[:10]
+            other_count = sum(v for _, v in sorted_reasons[10:])
+            labels = [r for r, _ in top_reasons]
+            values = [v for _, v in top_reasons]
+            if other_count > 0:
+                labels.append("기타")
+                values.append(other_count)
+
+            fig_pie = go.Figure(data=[go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.4,
+                textinfo="label+percent",
+                textposition="outside",
+                marker=dict(colors=[
+                    "#f87171", "#fbbf24", "#4ade80", "#60a5fa", "#a78bfa",
+                    "#f472b6", "#34d399", "#fb923c", "#818cf8", "#e879f9",
+                    "#6b7280",
+                ]),
+            )])
+            fig_pie.update_layout(
+                template="plotly_dark",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=16, b=16),
+                height=350,
+                font=dict(size=11),
+                showlegend=False,
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+        # 전략별 시그널 분포 (stacked bar)
+        by_wallet = sig_summary.get("by_wallet", {})
+        if by_wallet:
+            st.markdown("#### 전략별 시그널 분포")
+            wallet_names = [strategy_kr(w) for w in by_wallet]
+            buys = [by_wallet[w]["buy"] for w in by_wallet]
+            sells = [by_wallet[w]["sell"] for w in by_wallet]
+            holds = [by_wallet[w]["hold"] for w in by_wallet]
+
+            fig_stack = go.Figure()
+            fig_stack.add_trace(go.Bar(name="매수", x=wallet_names, y=buys, marker_color="#4ade80"))
+            fig_stack.add_trace(go.Bar(name="매도", x=wallet_names, y=sells, marker_color="#f87171"))
+            fig_stack.add_trace(go.Bar(name="관망", x=wallet_names, y=holds, marker_color="#6b7280"))
+            fig_stack.update_layout(
+                barmode="stack",
+                template="plotly_dark",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=16, b=24),
+                height=280,
+                font=dict(size=11),
+                legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
+            )
+            st.plotly_chart(fig_stack, use_container_width=True)
+
+            # 전략별 매수율 + 평균 신뢰도 테이블
+            st.markdown("#### 전략별 매수율 / 평균 신뢰도")
+            for wallet_key, stats in by_wallet.items():
+                total = stats["total"]
+                buy_rate = (stats["buy"] / total * 100) if total > 0 else 0
+                avg_conf = stats["avg_conf"]
+                col1, col2, col3 = st.columns(3)
+                col1.metric(strategy_kr(wallet_key), f"{total}건")
+                col2.metric("매수율", f"{buy_rate:.1f}%")
+                col3.metric("평균 신뢰도", f"{avg_conf:.2f}")
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 탭 5: 체결현황 — 최근 24h 체결 + 전략별 승률
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab_trades:
+    with st.spinner("데이터 로딩 중..."):
+        try:
+            all_trades = load_paper_trades()
+        except Exception:
+            all_trades = None
+            st.warning("체결 데이터를 불러오는 중 오류가 발생했습니다.")
+
+    if not all_trades:
+        st.info("체결 데이터가 없습니다.")
+    else:
+        # Filter last 24h trades
+        now = datetime.now(_UTC)
+        cutoff = now - timedelta(hours=24)
+        recent_trades: list[dict[str, Any]] = []
+        for t in all_trades:
+            exit_str = t.get("exit_time", "")
+            if exit_str:
+                try:
+                    exit_time = datetime.fromisoformat(exit_str)
+                    if exit_time.tzinfo is None:
+                        exit_time = exit_time.replace(tzinfo=_UTC)
+                    if exit_time >= cutoff:
+                        recent_trades.append(t)
+                except (ValueError, TypeError):
+                    continue
+
+        st.markdown(f"#### 최근 24시간 체결 ({len(recent_trades)}건)")
+
+        if recent_trades:
+            # Trade table as HTML
+            html = ['<table style="width:100%;font-size:0.85rem;border-collapse:collapse;">']
+            html.append(
+                "<tr style='border-bottom:1px solid #374151;color:var(--text-secondary);'>"
+                "<th>시각</th><th>종목</th><th>전략</th>"
+                "<th>진입가</th><th>청산가</th><th>손익</th></tr>"
+            )
+            for t in reversed(recent_trades[-30:]):
+                exit_str = t.get("exit_time", "")[:16]
+                sym = t.get("symbol", "?")
+                wallet = t.get("wallet", "")
+                entry_p = t.get("entry_price", 0)
+                exit_p = t.get("exit_price", 0)
+                pnl = t.get("pnl", 0)
+                pnl_pct = t.get("pnl_pct", 0)
+                pnl_color = "#4ade80" if pnl >= 0 else "#f87171"
+                html.append(
+                    f"<tr style='border-bottom:1px solid #1f2937;'>"
+                    f"<td>{exit_str}</td>"
+                    f"<td>{symbol_kr(sym)}</td>"
+                    f"<td>{strategy_kr(wallet)}</td>"
+                    f"<td>₩{entry_p:,.0f}</td>"
+                    f"<td>₩{exit_p:,.0f}</td>"
+                    f"<td style='color:{pnl_color};'>{pnl_pct:+.2f}%</td>"
+                    f"</tr>"
+                )
+            html.append("</table>")
+            st.markdown("".join(html), unsafe_allow_html=True)
+        else:
+            st.info("최근 24시간 내 체결 내역이 없습니다.")
+
+        # 전략별 승률 (all trades)
+        st.markdown("#### 전략별 승률")
+        wallet_stats: dict[str, dict[str, int]] = {}
+        for t in all_trades:
+            w = t.get("wallet", "unknown")
+            if w not in wallet_stats:
+                wallet_stats[w] = {"wins": 0, "total": 0}
+            wallet_stats[w]["total"] += 1
+            if t.get("pnl", 0) > 0:
+                wallet_stats[w]["wins"] += 1
+
+        if wallet_stats:
+            w_names = [strategy_kr(w) for w in wallet_stats]
+            w_rates = [
+                (s["wins"] / s["total"] * 100) if s["total"] > 0 else 0
+                for s in wallet_stats.values()
+            ]
+            w_totals = [s["total"] for s in wallet_stats.values()]
+
+            fig_wr = go.Figure()
+            fig_wr.add_trace(go.Bar(
+                x=w_names, y=w_rates,
+                marker_color=["#4ade80" if r >= 50 else "#f87171" for r in w_rates],
+                text=[f"{r:.1f}% ({t}건)" for r, t in zip(w_rates, w_totals)],
+                textposition="outside",
+            ))
+            fig_wr.update_layout(
+                template="plotly_dark",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=16, b=24),
+                height=280,
+                font=dict(size=11),
+                yaxis_title="승률 (%)",
+                yaxis=dict(range=[0, 105]),
+            )
+            st.plotly_chart(fig_wr, use_container_width=True)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 탭 6: 시장국면 — Regime 상태
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_regime:
     with st.spinner("데이터 로딩 중..."):
@@ -554,7 +746,96 @@ with tab_operator:
         st.markdown(memo)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 탭 6: 성과 — 백테스트 기준선 + 일간 성과 + 가격 차트
+# 탭 8: 시스템 — 전략 활성/비활성 + 마지막 시그널 시각
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab_health:
+    with st.spinner("데이터 로딩 중..."):
+        try:
+            health_data = load_health()
+        except Exception:
+            health_data = None
+        try:
+            checkpoint_h = load_checkpoint()
+        except Exception:
+            checkpoint_h = None
+        try:
+            runs_h = load_strategy_runs()
+        except Exception:
+            runs_h = []
+
+    # Overall system status
+    st.markdown("#### 시스템 상태")
+    if heartbeat is not None and age_seconds <= stale_threshold:
+        st.markdown(
+            '<span class="status-badge status-ok">시스템 정상</span>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<span class="status-badge status-fail">시스템 이상</span>',
+            unsafe_allow_html=True,
+        )
+
+    # Per-strategy health cards
+    st.markdown("#### 전략별 상태")
+    wallet_states_h = checkpoint_h.get("wallet_states", {}) if checkpoint_h else {}
+
+    # Build last-signal-time per wallet from runs
+    last_signal_by_wallet: dict[str, str] = {}
+    for run in runs_h:
+        w = run.get("wallet_name", "")
+        ts = run.get("recorded_at", "")
+        if w and ts:
+            if w not in last_signal_by_wallet or ts > last_signal_by_wallet[w]:
+                last_signal_by_wallet[w] = ts
+
+    if not wallet_states_h:
+        st.info("전략 상태 정보가 없습니다.")
+    else:
+        cols_h = st.columns(min(len(wallet_states_h), 3))
+        for i, (wname, wstate) in enumerate(wallet_states_h.items()):
+            with cols_h[i % len(cols_h)]:
+                display_name = strategy_kr(wname)
+                trade_count = wstate.get("trade_count", 0)
+                equity = wstate.get("equity", 0)
+                open_pos = wstate.get("open_positions", 0)
+
+                # Determine active/inactive
+                last_ts = last_signal_by_wallet.get(wname, "")
+                is_active = False
+                time_ago_str = "기록 없음"
+                if last_ts:
+                    try:
+                        last_dt = datetime.fromisoformat(last_ts)
+                        if last_dt.tzinfo is None:
+                            last_dt = last_dt.replace(tzinfo=_UTC)
+                        delta = datetime.now(_UTC) - last_dt
+                        hours_ago = delta.total_seconds() / 3600
+                        is_active = hours_ago < 2
+                        if hours_ago < 1:
+                            time_ago_str = f"{int(delta.total_seconds() / 60)}분 전"
+                        elif hours_ago < 24:
+                            time_ago_str = f"{hours_ago:.1f}시간 전"
+                        else:
+                            time_ago_str = f"{int(hours_ago / 24)}일 전"
+                    except (ValueError, TypeError):
+                        pass
+
+                badge_cls = "status-ok" if is_active else "status-warn"
+                badge_text = "활성" if is_active else "비활성"
+
+                st.markdown(
+                    f'<div class="position-card">'
+                    f'<strong>{display_name}</strong> '
+                    f'<span class="status-badge {badge_cls}">{badge_text}</span><br>'
+                    f'마지막 시그널: {time_ago_str}<br>'
+                    f'자본: ₩{equity:,.0f} · 거래 {trade_count}건 · 포지션 {open_pos}개'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 탭 9: 성과 — 백테스트 기준선 + 일간 성과 + 가격 차트
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_perf:
     with st.spinner("데이터 로딩 중..."):

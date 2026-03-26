@@ -196,3 +196,52 @@ def load_kill_switch() -> dict[str, Any] | None:
 @st.cache_data(ttl=30)
 def load_pnl_report() -> dict[str, Any] | None:
     return _load_json("pnl-report.json")
+
+
+@st.cache_data(ttl=30)
+def load_paper_trades() -> list[dict[str, Any]]:
+    """Load closed paper trades from paper-trades.jsonl."""
+    return _load_jsonl("paper-trades.jsonl")
+
+
+@st.cache_data(ttl=30)
+def load_signal_summary() -> dict[str, Any]:
+    """Aggregate signal summary from strategy-runs.jsonl.
+
+    Returns dict with:
+      - hold_reasons: dict[str, int]  (reason -> count)
+      - by_wallet: dict[wallet, {buy, sell, hold, total, avg_conf}]
+    """
+    runs = _load_jsonl("strategy-runs.jsonl")
+    hold_reasons: dict[str, int] = {}
+    by_wallet: dict[str, dict[str, Any]] = {}
+
+    for run in runs:
+        action = run.get("signal_action", "hold")
+        reason = run.get("signal_reason", "unknown")
+        wallet = run.get("wallet_name", "unknown")
+        confidence = run.get("signal_confidence", 0.0)
+
+        # Per-wallet aggregation
+        if wallet not in by_wallet:
+            by_wallet[wallet] = {
+                "buy": 0, "sell": 0, "hold": 0,
+                "total": 0, "conf_sum": 0.0,
+            }
+        w = by_wallet[wallet]
+        w["total"] += 1
+        w["conf_sum"] += confidence
+        if action in ("buy", "sell", "hold"):
+            w[action] += 1
+
+        # Hold reason tally
+        if action == "hold":
+            hold_reasons[reason] = hold_reasons.get(reason, 0) + 1
+
+    # Compute avg confidence
+    for w in by_wallet.values():
+        total = w["total"]
+        w["avg_conf"] = w["conf_sum"] / total if total > 0 else 0.0
+        del w["conf_sum"]
+
+    return {"hold_reasons": hold_reasons, "by_wallet": by_wallet}

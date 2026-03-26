@@ -136,6 +136,86 @@ class TestDataLoaders(unittest.TestCase):
         self.assertEqual(result["pid"], 1234)
         self.assertEqual(result["iteration"], 5)
 
+    def test_load_paper_trades_missing(self) -> None:
+        result = data_mod.load_paper_trades()
+        self.assertEqual(result, [])
+
+    def test_load_paper_trades_valid(self) -> None:
+        path = Path(self.tmpdir) / "paper-trades.jsonl"
+        trades = [
+            json.dumps({
+                "symbol": "KRW-BTC", "entry_price": 50000000,
+                "exit_price": 51000000, "pnl": 100000, "pnl_pct": 2.0,
+                "wallet": "momentum_wallet",
+                "entry_time": "2026-03-27T01:00:00+00:00",
+                "exit_time": "2026-03-27T05:00:00+00:00",
+            }),
+            json.dumps({
+                "symbol": "KRW-ETH", "entry_price": 3000000,
+                "exit_price": 2900000, "pnl": -50000, "pnl_pct": -1.5,
+                "wallet": "mean_reversion_wallet",
+                "entry_time": "2026-03-27T02:00:00+00:00",
+                "exit_time": "2026-03-27T06:00:00+00:00",
+            }),
+        ]
+        path.write_text("\n".join(trades))
+        result = data_mod.load_paper_trades()
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["symbol"], "KRW-BTC")
+        self.assertEqual(result[1]["pnl"], -50000)
+
+    def test_load_signal_summary_empty(self) -> None:
+        result = data_mod.load_signal_summary()
+        self.assertEqual(result["hold_reasons"], {})
+        self.assertEqual(result["by_wallet"], {})
+
+    def test_load_signal_summary_aggregation(self) -> None:
+        path = Path(self.tmpdir) / "strategy-runs.jsonl"
+        runs = [
+            json.dumps({
+                "signal_action": "hold", "signal_reason": "below_ma_filter",
+                "wallet_name": "momentum_wallet", "signal_confidence": 0.3,
+            }),
+            json.dumps({
+                "signal_action": "hold", "signal_reason": "below_ma_filter",
+                "wallet_name": "momentum_wallet", "signal_confidence": 0.4,
+            }),
+            json.dumps({
+                "signal_action": "buy", "signal_reason": "momentum_strong",
+                "wallet_name": "momentum_wallet", "signal_confidence": 0.8,
+            }),
+            json.dumps({
+                "signal_action": "hold", "signal_reason": "cooldown_active",
+                "wallet_name": "vbreak_wallet", "signal_confidence": 0.2,
+            }),
+            json.dumps({
+                "signal_action": "sell", "signal_reason": "exit_trailing",
+                "wallet_name": "vbreak_wallet", "signal_confidence": 0.9,
+            }),
+        ]
+        path.write_text("\n".join(runs))
+        result = data_mod.load_signal_summary()
+
+        # Hold reasons
+        self.assertEqual(result["hold_reasons"]["below_ma_filter"], 2)
+        self.assertEqual(result["hold_reasons"]["cooldown_active"], 1)
+        self.assertNotIn("momentum_strong", result["hold_reasons"])
+
+        # By wallet
+        mom = result["by_wallet"]["momentum_wallet"]
+        self.assertEqual(mom["buy"], 1)
+        self.assertEqual(mom["sell"], 0)
+        self.assertEqual(mom["hold"], 2)
+        self.assertEqual(mom["total"], 3)
+        self.assertAlmostEqual(mom["avg_conf"], 0.5, places=2)
+
+        vb = result["by_wallet"]["vbreak_wallet"]
+        self.assertEqual(vb["buy"], 0)
+        self.assertEqual(vb["sell"], 1)
+        self.assertEqual(vb["hold"], 1)
+        self.assertEqual(vb["total"], 2)
+        self.assertAlmostEqual(vb["avg_conf"], 0.55, places=2)
+
     def test_all_loaders_return_none_when_empty(self) -> None:
         """All JSON loaders return None for missing files."""
         self.assertIsNone(data_mod.load_checkpoint())
@@ -150,6 +230,7 @@ class TestDataLoaders(unittest.TestCase):
         self.assertIsNone(data_mod.load_operator_report())
         self.assertIsNone(data_mod.load_daemon_heartbeat())
         self.assertEqual(data_mod.load_strategy_runs(), [])
+        self.assertEqual(data_mod.load_paper_trades(), [])
 
 
 @_skip
