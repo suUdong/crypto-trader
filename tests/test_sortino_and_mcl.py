@@ -221,6 +221,33 @@ class TestTradeMetrics(unittest.TestCase):
             self.assertIn(name, fields)
 
 
+class TestRecoveryAndTailRatio(unittest.TestCase):
+    def test_recovery_factor_field_exists(self) -> None:
+        from crypto_trader.models import BacktestResult
+        self.assertIn("recovery_factor", BacktestResult.__dataclass_fields__)
+
+    def test_tail_ratio_field_exists(self) -> None:
+        from crypto_trader.models import BacktestResult
+        self.assertIn("tail_ratio", BacktestResult.__dataclass_fields__)
+
+    def test_recovery_and_tail_calculated(self) -> None:
+        closes = [100.0] * 20
+        for _ in range(5):
+            closes.extend([95.0, 93.0, 91.0, 89.0, 92.0, 95.0, 98.0, 100.0])
+        candles = _build_candles(closes)
+        strategy = create_strategy(
+            "momentum",
+            StrategyConfig(momentum_lookback=3, momentum_entry_threshold=-0.5, adx_threshold=0.0, volume_filter_mult=0.0),
+            RegimeConfig(),
+        )
+        rm = RiskManager(RiskConfig(atr_stop_multiplier=0.0))
+        engine = BacktestEngine(strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC")
+        result = engine.run(candles)
+        self.assertIsInstance(result.recovery_factor, float)
+        self.assertIsInstance(result.tail_ratio, float)
+        self.assertGreaterEqual(result.tail_ratio, 0.0)
+
+
 class TestExpectedValue(unittest.TestCase):
     def test_ev_positive_for_winning_strategy(self) -> None:
         from crypto_trader.models import BacktestResult

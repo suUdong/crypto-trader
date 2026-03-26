@@ -712,6 +712,8 @@ def main() -> None:
                 sym_wrs: list[float] = []
                 sym_payoffs: list[float] = []
                 sym_evs: list[float] = []
+                sym_recoveries: list[float] = []
+                sym_tails: list[float] = []
                 sym_durations: list[float] = []
                 total_trades = 0
                 max_mcl = 0
@@ -742,6 +744,8 @@ def main() -> None:
                     sym_wrs.append(bt_result.win_rate * 100)
                     sym_payoffs.append(bt_result.payoff_ratio)
                     sym_evs.append(bt_result.expected_value_per_trade)
+                    sym_recoveries.append(bt_result.recovery_factor)
+                    sym_tails.append(bt_result.tail_ratio)
                     sym_durations.append(bt_result.avg_trade_duration_bars)
                     total_trades += len(bt_result.trade_log)
                     max_mcl = max(max_mcl, bt_result.max_consecutive_losses)
@@ -782,6 +786,8 @@ def main() -> None:
                     "max_trade_duration_bars": max_dur,
                     "payoff_ratio": round(sum(sym_payoffs) / n, 3) if sym_payoffs else 0.0,
                     "expected_value_per_trade": round(sum(sym_evs) / n, 2) if sym_evs else 0.0,
+                    "recovery_factor": round(sum(sym_recoveries) / n, 3) if sym_recoveries else 0.0,
+                    "tail_ratio": round(sum(sym_tails) / n, 3) if sym_tails else 0.0,
                     "kelly_fraction": round(kelly_fraction(sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0), 4),
                     "composite_score": round(composite, 3),
                 }
