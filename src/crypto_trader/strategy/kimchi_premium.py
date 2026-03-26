@@ -38,11 +38,11 @@ class KimchiPremiumStrategy:
         self._min_trade_interval_bars = min_trade_interval_bars
         self._min_confidence = min_confidence
         self._cooldown_hours = cooldown_hours
-        self._last_trade_bar: int | None = None
-        self._last_trade_time: datetime | None = None
+        self._last_trade_bar: dict[str, int] = {}
+        self._last_trade_time: dict[str, datetime] = {}
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None
+        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
     ) -> Signal:
         minimum = self._config.rsi_period + 1
         if len(candles) < minimum:
@@ -67,17 +67,19 @@ class KimchiPremiumStrategy:
 
         current_bar = len(candles) - 1
         current_time = candles[-1].timestamp
+        # Derive a cooldown key: prefer explicit symbol, fall back to price bucket
+        cooldown_key = symbol or str(round(upbit_price, -6))
 
         if position is not None:
             signal = self._evaluate_exit(
                 candles, position, premium, rsi_value, indicators, context
             )
             if signal.action is SignalAction.SELL:
-                self._last_trade_bar = current_bar
-                self._last_trade_time = current_time
+                self._last_trade_bar[cooldown_key] = current_bar
+                self._last_trade_time[cooldown_key] = current_time
             return signal
 
-        if self._is_cooldown_active(current_bar, current_time):
+        if self._is_cooldown_active(current_bar, current_time, cooldown_key):
             return Signal(
                 action=SignalAction.HOLD,
                 reason="cooldown_active",
@@ -96,19 +98,21 @@ class KimchiPremiumStrategy:
                     indicators=indicators,
                     context=context,
                 )
-            self._last_trade_bar = current_bar
-            self._last_trade_time = current_time
+            self._last_trade_bar[cooldown_key] = current_bar
+            self._last_trade_time[cooldown_key] = current_time
         return signal
 
-    def _is_cooldown_active(self, current_bar: int, current_time: datetime) -> bool:
-        """Check cooldown using both bar-based and time-based logic."""
-        if self._last_trade_time is not None:
-            elapsed = (current_time - self._last_trade_time).total_seconds() / 3600.0
+    def _is_cooldown_active(self, current_bar: int, current_time: datetime, cooldown_key: str = "") -> bool:
+        """Check cooldown using both bar-based and time-based logic (per-symbol)."""
+        last_time = self._last_trade_time.get(cooldown_key)
+        if last_time is not None:
+            elapsed = (current_time - last_time).total_seconds() / 3600.0
             if elapsed < self._cooldown_hours:
                 return True
             return False
-        if self._last_trade_bar is not None:
-            bars_since = current_bar - self._last_trade_bar
+        last_bar = self._last_trade_bar.get(cooldown_key)
+        if last_bar is not None:
+            bars_since = current_bar - last_bar
             if bars_since < self._min_trade_interval_bars:
                 return True
         return False

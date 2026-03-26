@@ -120,7 +120,11 @@ class StrategyWallet:
             self.risk_manager.update_atr_from_candles(candles)
             self.risk_manager.tick_cooldown()
             position = self.broker.positions.get(symbol)
-            signal = self.strategy.evaluate(candles, position)
+            # Pass symbol to strategies that support per-symbol context (e.g. kimchi cooldown)
+            if isinstance(self.strategy, KimchiPremiumStrategy):
+                signal = self.strategy.evaluate(candles, position, symbol=symbol)
+            else:
+                signal = self.strategy.evaluate(candles, position)
             latest_price = candles[-1].close
             order: OrderResult | None = None
 

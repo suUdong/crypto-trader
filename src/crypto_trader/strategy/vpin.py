@@ -101,6 +101,20 @@ class VPINStrategy:
                     context=context,
                 )
 
+        # Moderate VPIN zone: enter on strong momentum + RSI confirmation
+        mid_threshold = (self._vpin_low + self._vpin_high) / 2
+        if vpin_value <= mid_threshold:
+            strong_momentum = momentum_value >= self._vpin_momentum_threshold * 2
+            rsi_ok = self._vpin_rsi_floor <= rsi_value <= self._vpin_rsi_ceiling
+            if strong_momentum and rsi_ok:
+                return Signal(
+                    action=SignalAction.BUY,
+                    reason="vpin_moderate_momentum_entry",
+                    confidence=min(1.0, 0.4 + momentum_value * 10),
+                    indicators=indicators,
+                    context=context,
+                )
+
         return Signal(
             action=SignalAction.HOLD,
             reason="entry_conditions_not_met",
