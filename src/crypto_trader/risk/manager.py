@@ -22,6 +22,7 @@ class RiskManager:
         self._peak_equity: float = 0.0
         self._max_holding_bars: int = max_holding_bars
         self._bars_since_last_loss: int | None = None  # None = no recent loss
+        self._consecutive_losses: int = 0
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -44,13 +45,23 @@ class RiskManager:
         self._trade_history.append(pnl_pct)
         if pnl_pct < 0:
             self._bars_since_last_loss = 0
+            self._consecutive_losses += 1
         else:
             self._bars_since_last_loss = None
+            self._consecutive_losses = 0
 
     def tick_cooldown(self) -> None:
         """Advance the cooldown counter by one bar."""
         if self._bars_since_last_loss is not None:
             self._bars_since_last_loss += 1
+
+    @property
+    def effective_stop_loss_pct(self) -> float:
+        """Dynamic stop loss: tighten by 20% after 3+ consecutive losses."""
+        base = self._config.stop_loss_pct
+        if self._consecutive_losses >= 3:
+            return base * 0.8  # 20% tighter
+        return base
 
     @property
     def in_cooldown(self) -> bool:
@@ -195,8 +206,8 @@ class RiskManager:
             if price >= atr_tp_price:
                 return "atr_take_profit"
         else:
-            # Fixed percentage stops
-            stop_loss_price = position.entry_price * (1.0 - self._config.stop_loss_pct)
+            # Fixed percentage stops (tightened on losing streaks)
+            stop_loss_price = position.entry_price * (1.0 - self.effective_stop_loss_pct)
             take_profit_price = position.entry_price * (1.0 + self._config.take_profit_pct)
             if price <= stop_loss_price:
                 return "stop_loss"

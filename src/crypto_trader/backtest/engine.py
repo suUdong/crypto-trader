@@ -234,6 +234,7 @@ class BacktestEngine:
 
         # Sharpe ratio: annualized from equity curve periodic returns
         sharpe = _sharpe_ratio(equity_curve)
+        sortino = _sortino_ratio(equity_curve)
 
         return BacktestResult(
             initial_capital=self._config.initial_capital,
@@ -253,6 +254,7 @@ class BacktestEngine:
             recovery_factor=recovery,
             tail_ratio=tail,
             sharpe_ratio=sharpe,
+            sortino_ratio=sortino,
         )
 
 
@@ -276,6 +278,31 @@ def _sharpe_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -
     if std_ret == 0:
         return 0.0
     return (mean_ret / std_ret) * (periods_per_year ** 0.5)
+
+
+def _sortino_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:
+    """Annualized Sortino ratio from equity curve.
+
+    Like Sharpe but only penalizes downside volatility (negative returns).
+    """
+    if len(equity_curve) < 3:
+        return 0.0
+    returns = [
+        (equity_curve[i] - equity_curve[i - 1]) / equity_curve[i - 1]
+        for i in range(1, len(equity_curve))
+        if equity_curve[i - 1] > 0
+    ]
+    if len(returns) < 2:
+        return 0.0
+    mean_ret = sum(returns) / len(returns)
+    downside = [r for r in returns if r < 0]
+    if not downside:
+        return float("inf") if mean_ret > 0 else 0.0
+    downside_variance = sum(r ** 2 for r in downside) / len(returns)
+    downside_std = downside_variance ** 0.5
+    if downside_std == 0:
+        return 0.0
+    return (mean_ret / downside_std) * (periods_per_year ** 0.5)
 
 
 def _max_drawdown(equity_curve: list[float]) -> float:
