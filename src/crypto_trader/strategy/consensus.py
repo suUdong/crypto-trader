@@ -66,7 +66,15 @@ class ConsensusStrategy:
         )
 
         if meets_count and meets_confidence:
-            avg_confidence = sum(s.confidence for s in buy_signals) / len(buy_signals)
+            # Weighted confidence: higher-confidence strategies contribute more
+            total_weight = sum(s.confidence for s in buy_signals)
+            if total_weight > 0:
+                weighted_conf = sum(s.confidence ** 2 for s in buy_signals) / total_weight
+            else:
+                weighted_conf = 0.0
+            # Agreement ratio boost: more strategies agreeing = higher confidence
+            agree_ratio = len(buy_signals) / len(signals)
+            final_conf = min(1.0, weighted_conf + agree_ratio * 0.1)
             # Merge indicators from all agreeing strategies (prefix to avoid collision)
             merged_indicators: dict[str, float] = {}
             for idx, sig in enumerate(buy_signals):
@@ -74,11 +82,13 @@ class ConsensusStrategy:
                     prefix = sig.reason.split("_")[0] if sig.reason else f"s{idx}"
                     for k, v in sig.indicators.items():
                         merged_indicators[f"{prefix}_{k}"] = v
+            merged_indicators["agreement_ratio"] = agree_ratio
+            merged_indicators["weighted_confidence"] = weighted_conf
             reasons = [s.reason for s in buy_signals]
             return Signal(
                 action=SignalAction.BUY,
                 reason=f"consensus_agree:{'+'.join(reasons)}",
-                confidence=min(1.0, avg_confidence),
+                confidence=final_conf,
                 indicators=merged_indicators,
                 context=context,
             )

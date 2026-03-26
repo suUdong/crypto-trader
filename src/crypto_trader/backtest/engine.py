@@ -43,8 +43,10 @@ class BacktestEngine:
 
         entry_bar: int = 0
         entry_confidence: float = 0.0
+        entry_regime: str = "unknown"
         last_exit_bar: int = -10  # allow immediate first trade
         min_bars_between_trades: int = 2
+        trade_regimes: list[str] = []
 
         for index in range(len(candles)):
             window = candles[: index + 1]
@@ -95,6 +97,7 @@ class BacktestEngine:
                             )
                         )
                         self._risk_manager.record_trade(pnl_pct)
+                        trade_regimes.append(entry_regime)
                         open_position.quantity = keep_qty
                         open_position.entry_fee_paid *= (1.0 - partial_frac)
                         open_position.partial_tp_taken = True
@@ -132,6 +135,7 @@ class BacktestEngine:
                             )
                         )
                         self._risk_manager.record_trade(pnl_pct)
+                        trade_regimes.append(entry_regime)
                         last_exit_bar = index
                         open_position = None
 
@@ -165,6 +169,7 @@ class BacktestEngine:
                             cash -= total_cost
                             entry_bar = index
                             entry_confidence = signal.confidence
+                            entry_regime = signal.context.get("market_regime", "unknown")
                             open_position = Position(
                                 symbol=self._symbol,
                                 quantity=quantity,
@@ -211,6 +216,7 @@ class BacktestEngine:
                     entry_confidence=entry_confidence,
                 )
             )
+            trade_regimes.append(entry_regime)
             equity_curve[-1] = cash
 
         final_equity = cash
@@ -297,6 +303,21 @@ class BacktestEngine:
         hc_wr = sum(1 for t in high_conf if t.pnl > 0) / len(high_conf) if high_conf else 0.0
         lc_wr = sum(1 for t in low_conf if t.pnl > 0) / len(low_conf) if low_conf else 0.0
 
+        # Per-regime performance breakdown
+        regime_breakdown: dict[str, dict[str, float]] = {}
+        for i, t in enumerate(trades):
+            r = trade_regimes[i] if i < len(trade_regimes) else "unknown"
+            if r not in regime_breakdown:
+                regime_breakdown[r] = {"trade_count": 0, "wins": 0, "total_pnl": 0.0}
+            regime_breakdown[r]["trade_count"] += 1
+            regime_breakdown[r]["total_pnl"] += t.pnl
+            if t.pnl > 0:
+                regime_breakdown[r]["wins"] += 1
+        for r, stats in regime_breakdown.items():
+            cnt = stats["trade_count"]
+            stats["win_rate"] = stats["wins"] / cnt if cnt > 0 else 0.0
+            stats["avg_pnl"] = stats["total_pnl"] / cnt if cnt > 0 else 0.0
+
         # Exit reason distribution
         exit_counts: dict[str, int] = {}
         exit_pnl_sums: dict[str, float] = {}
@@ -334,6 +355,7 @@ class BacktestEngine:
             low_confidence_win_rate=lc_wr,
             exit_reason_counts=exit_counts,
             exit_reason_avg_pnl=exit_avg_pnl,
+            regime_breakdown=regime_breakdown,
         )
 
 

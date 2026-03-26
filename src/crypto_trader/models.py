@@ -221,6 +221,7 @@ class BacktestResult:
     low_confidence_win_rate: float = 0.0
     exit_reason_counts: dict[str, int] = field(default_factory=dict)
     exit_reason_avg_pnl: dict[str, float] = field(default_factory=dict)
+    regime_breakdown: dict[str, dict[str, float]] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
