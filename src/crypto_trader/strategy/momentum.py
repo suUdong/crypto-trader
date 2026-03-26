@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import average_directional_index, macd, momentum, rsi, volume_sma
+from crypto_trader.strategy.indicators import (
+    average_directional_index,
+    macd,
+    momentum,
+    rsi,
+    volume_sma,
+)
 from crypto_trader.strategy.regime import RegimeDetector
 
 
