@@ -14,6 +14,7 @@ from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient
 from crypto_trader.models import PipelineResult, RuntimeCheckpoint
+from crypto_trader.operator.paper_trading import PaperTradeJournal
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
 from crypto_trader.operator.pnl_report import PnLReportGenerator
@@ -68,6 +69,8 @@ class MultiSymbolRuntime:
         self._notifier = TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
         self._pnl_generator = PnLReportGenerator()
         self._last_pnl_notify: float = 0.0
+        self._trade_journal = PaperTradeJournal(config.runtime.paper_trade_journal_path)
+        self._journal_trade_counts: dict[str, int] = {w.name: 0 for w in wallets}
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -266,7 +269,18 @@ class MultiSymbolRuntime:
             wallet_states=wallet_states,
         )
         store.save(checkpoint)
+        self._persist_journal()
         self._save_heartbeat(Path(self._config.runtime.runtime_checkpoint_path).parent)
+
+    def _persist_journal(self) -> None:
+        """Append new closed trades from all wallets to the paper trade journal."""
+        for wallet in self._wallets:
+            current_count = len(wallet.broker.closed_trades)
+            prev_count = self._journal_trade_counts.get(wallet.name, 0)
+            if current_count > prev_count:
+                new_trades = wallet.broker.closed_trades[prev_count:current_count]
+                self._trade_journal.append_many(new_trades)
+                self._journal_trade_counts[wallet.name] = current_count
 
     def _maybe_send_pnl_notify(self) -> None:
         if time.time() - self._last_pnl_notify < self.PNL_NOTIFY_INTERVAL:

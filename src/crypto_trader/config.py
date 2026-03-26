@@ -68,6 +68,7 @@ class RiskConfig:
     atr_stop_multiplier: float = 0.0
     max_daily_loss_pct: float = 0.05
     max_concurrent_positions: int = 1
+    min_entry_confidence: float = 0.6
 
 
 @dataclass(slots=True)
@@ -323,6 +324,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 "max_concurrent_positions",
                 "CT_MAX_CONCURRENT_POSITIONS",
                 1,
+            )
+        ),
+        min_entry_confidence=float(
+            _read_value(
+                raw,
+                env,
+                "risk",
+                "min_entry_confidence",
+                "CT_MIN_ENTRY_CONFIDENCE",
+                0.6,
             )
         ),
     )

@@ -17,6 +17,7 @@ class RiskManager:
         self._trailing_stop_pct = trailing_stop_pct
         self._atr_stop_multiplier = atr_stop_multiplier
         self._current_atr: float = 0.0
+        self.min_entry_confidence: float = config.min_entry_confidence
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""

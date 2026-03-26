@@ -83,7 +83,7 @@ class StrategyWallet:
             latest_price = candles[-1].close
             order: OrderResult | None = None
 
-            if position is None and signal.action is SignalAction.BUY:
+            if position is None and signal.action is SignalAction.BUY and signal.confidence >= self.risk_manager.min_entry_confidence:
                 if self.risk_manager.can_open(
                     active_positions=len(self.broker.positions),
                     realized_pnl=self.broker.realized_pnl,

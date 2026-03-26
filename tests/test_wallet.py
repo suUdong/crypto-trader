@@ -122,6 +122,7 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
             take_profit_pct=0.06,
             max_daily_loss_pct=0.05,
             max_concurrent_positions=5,
+            min_entry_confidence=0.0,
         )
         risk_manager = RiskManager(risk_config)
         wallet_config = WalletConfig(
