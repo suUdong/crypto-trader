@@ -73,6 +73,7 @@ def main() -> None:
             "backtest-all",
             "grid-wf-all",
             "strategy-dashboard",
+            "signal-summary",
             "refresh-artifacts",
             "sync-artifacts",
             "portfolio-gate",
@@ -1217,6 +1218,76 @@ def main() -> None:
         report_path = config.runtime.strategy_report_path
         StrategyComparisonReport().save(report_text, report_path)
         print(report_text)
+        return
+
+    if args.command == "signal-summary":
+        import json as _json
+        from collections import Counter
+        journal_path = Path(config.runtime.strategy_run_journal_path)
+        if not journal_path.exists():
+            print("No strategy run journal found.")
+            return
+        lines = journal_path.read_text(encoding="utf-8").splitlines()
+        if not lines:
+            print("Journal is empty.")
+            return
+
+        reasons: Counter[str] = Counter()
+        by_wallet: dict[str, dict] = {}
+        total_records = 0
+
+        for line in lines:
+            try:
+                r = _json.loads(line)
+            except Exception:
+                continue
+            total_records += 1
+            wn = r.get("wallet_name", "unknown") or "unknown"
+            action = r.get("signal_action", "hold")
+            reason = r.get("signal_reason", "unknown")
+            conf = r.get("signal_confidence", 0.0)
+            reasons[reason] += 1
+            if wn not in by_wallet:
+                by_wallet[wn] = {"buy": 0, "sell": 0, "hold": 0, "total": 0, "conf_sum": 0.0}
+            by_wallet[wn][action] = by_wallet[wn].get(action, 0) + 1
+            by_wallet[wn]["total"] += 1
+            by_wallet[wn]["conf_sum"] += conf
+
+        print(f"=== Signal Summary ({total_records} records) ===\n")
+
+        print("--- Hold Reasons (top 15) ---")
+        for reason, count in reasons.most_common(15):
+            pct = count / total_records * 100
+            print(f"  {reason:40s} {count:5d} ({pct:5.1f}%)")
+
+        print("\n--- Per-Wallet Signal Distribution ---")
+        print(f"  {'Wallet':<30s} {'Buy':>5s} {'Sell':>5s} {'Hold':>5s} {'Total':>6s} {'AvgConf':>8s} {'BuyRate':>8s}")
+        print(f"  {'-'*68}")
+        for wn, stats in sorted(by_wallet.items()):
+            avg_conf = stats["conf_sum"] / stats["total"] if stats["total"] > 0 else 0
+            buy_rate = stats["buy"] / stats["total"] * 100 if stats["total"] > 0 else 0
+            print(
+                f"  {wn:<30s} {stats['buy']:5d} {stats['sell']:5d} {stats['hold']:5d} "
+                f"{stats['total']:6d} {avg_conf:8.2f} {buy_rate:7.1f}%"
+            )
+
+        # Actionable insights
+        print("\n--- Actionable Insights ---")
+        total_holds = sum(1 for r, _ in reasons.items() if r != "position_open_waiting")
+        if reasons.get("below_ma_filter", 0) > total_records * 0.1:
+            print("  [!] MA filter blocking >10% of signals — consider relaxing ma_filter_period in sideways")
+        if reasons.get("adx_too_weak", 0) > total_records * 0.05:
+            print("  [!] ADX filter blocking >5% — consider lowering ADX threshold for sideways regime")
+        if reasons.get("cooldown_active", 0) > total_records * 0.15:
+            print("  [!] Cooldown blocking >15% — consider shorter cooldown_hours")
+        if reasons.get("entry_conditions_not_met", 0) > total_records * 0.4:
+            print("  [!] Generic entry block >40% — strategies may need looser sideways thresholds")
+        buy_total = sum(s["buy"] for s in by_wallet.values())
+        if buy_total == 0:
+            print("  [!] ZERO buy signals across all wallets — entry conditions too strict")
+        elif buy_total < 5:
+            print(f"  [!] Only {buy_total} buy signals — entry frequency very low")
+
         return
 
     if args.command == "refresh-artifacts":

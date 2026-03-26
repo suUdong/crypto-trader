@@ -11,18 +11,19 @@ interval = "minute60"
 candle_count = 200
 paper_trading = true
 
-# Global strategy params — tuned for momentum (walk-forward fold 2)
+# Global strategy params — tuned for trade frequency + profitability balance
 [strategy]
 momentum_lookback = 15
-momentum_entry_threshold = 0.008
+momentum_entry_threshold = 0.003
 momentum_exit_threshold = -0.01
 bollinger_window = 20
 bollinger_stddev = 1.8
 rsi_period = 18
 rsi_oversold_floor = 20.0
-rsi_recovery_ceiling = 60.0
-rsi_overbought = 65.0
+rsi_recovery_ceiling = 70.0
+rsi_overbought = 70.0
 max_holding_bars = 36
+adx_threshold = 15.0
 
 [regime]
 short_lookback = 10
@@ -47,7 +48,7 @@ max_daily_loss_pct = 0.05
 max_concurrent_positions = 4
 trailing_stop_pct = 0.0
 atr_stop_multiplier = 0.0
-min_entry_confidence = 0.5
+min_entry_confidence = 0.35
 
 [backtest]
 initial_capital = 1000000.0
@@ -88,7 +89,7 @@ symbols = ["KRW-BTC"]
 # BTC-optimized: Sharpe 2.51, Return +1.82%, WR 56.9%, PF 1.68, 51 trades
 [wallets.strategy_overrides]
 momentum_lookback = 20
-momentum_entry_threshold = 0.005
+momentum_entry_threshold = 0.003
 rsi_period = 18
 rsi_overbought = 70.0
 max_holding_bars = 48
@@ -105,7 +106,7 @@ symbols = ["KRW-ETH"]
 # ETH-optimized: Sharpe 4.86, Return +15.14%, WR 53.9%, PF 3.22, 76 trades
 [wallets.strategy_overrides]
 momentum_lookback = 15
-momentum_entry_threshold = 0.005
+momentum_entry_threshold = 0.003
 rsi_period = 14
 rsi_overbought = 70.0
 max_holding_bars = 48
@@ -128,7 +129,7 @@ rsi_overbought = 75.0
 max_holding_bars = 24
 min_trade_interval_bars = 24
 min_confidence = 0.5
-cooldown_hours = 24.0
+cooldown_hours = 12.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
 take_profit_pct = 0.04
@@ -148,7 +149,7 @@ momentum_lookback = 15
 max_holding_bars = 48
 vpin_low_threshold = 0.50
 vpin_high_threshold = 0.75
-vpin_momentum_threshold = 0.005
+vpin_momentum_threshold = 0.003
 vpin_rsi_ceiling = 75.0
 vpin_rsi_floor = 25.0
 bucket_count = 20
@@ -170,7 +171,7 @@ momentum_lookback = 15
 max_holding_bars = 48
 vpin_low_threshold = 0.50
 vpin_high_threshold = 0.75
-vpin_momentum_threshold = 0.005
+vpin_momentum_threshold = 0.003
 vpin_rsi_ceiling = 75.0
 vpin_rsi_floor = 25.0
 bucket_count = 20
@@ -191,7 +192,7 @@ momentum_lookback = 15
 max_holding_bars = 48
 vpin_low_threshold = 0.50
 vpin_high_threshold = 0.75
-vpin_momentum_threshold = 0.005
+vpin_momentum_threshold = 0.003
 vpin_rsi_ceiling = 75.0
 vpin_rsi_floor = 25.0
 bucket_count = 20
@@ -210,7 +211,7 @@ initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
 # BTC volatility breakout with tight k for trend-following
 [wallets.strategy_overrides]
-k_base = 0.5
+k_base = 0.4
 noise_lookback = 20
 ma_filter_period = 20
 max_holding_bars = 36
