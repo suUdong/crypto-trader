@@ -218,7 +218,7 @@ class TestGridWFSummaryToDict(unittest.TestCase):
         summary = self._make_summary(validated=True)
         r = summary.to_dict()["results"][0]
         for key in ("params", "avg_sharpe", "avg_return_pct", "total_trades",
-                    "validated", "wf_avg_efficiency_ratio", "wf_oos_win_rate"):
+                    "avg_profit_factor", "validated", "wf_avg_efficiency_ratio", "wf_oos_win_rate"):
             self.assertIn(key, r)
 
     def test_to_dict_best_validated_none_when_no_pass(self) -> None:
@@ -238,6 +238,63 @@ class TestGridWFSummaryToDict(unittest.TestCase):
         summary = self._make_summary(validated=True)
         # Should not raise
         json.dumps(summary.to_dict())
+
+
+class TestProfitFactor(unittest.TestCase):
+    def test_grid_candidate_has_avg_profit_factor(self) -> None:
+        candidate = GridCandidate(
+            strategy_type="momentum",
+            params={"momentum_lookback": 15},
+            avg_sharpe=1.0,
+            avg_return_pct=5.0,
+            total_trades=10,
+        )
+        self.assertEqual(candidate.avg_profit_factor, 1.0)
+
+        candidate_explicit = GridCandidate(
+            strategy_type="momentum",
+            params={"momentum_lookback": 15},
+            avg_sharpe=1.0,
+            avg_return_pct=5.0,
+            total_trades=10,
+            avg_profit_factor=2.5,
+        )
+        self.assertEqual(candidate_explicit.avg_profit_factor, 2.5)
+
+    def test_grid_search_includes_profit_factor(self) -> None:
+        candles = _build_candles(_trending_with_pullbacks(300))
+        candidates = grid_search("momentum", {"KRW-BTC": candles}, top_n=3)
+        self.assertGreater(len(candidates), 0)
+        for c in candidates:
+            self.assertIsInstance(c.avg_profit_factor, float)
+            self.assertGreaterEqual(c.avg_profit_factor, 0.0)
+
+    def test_to_dict_includes_profit_factor(self) -> None:
+        from unittest.mock import MagicMock
+
+        candidate = GridCandidate(
+            strategy_type="momentum",
+            params={"momentum_lookback": 15, "rsi_period": 14},
+            avg_sharpe=1.2,
+            avg_return_pct=5.0,
+            total_trades=30,
+            avg_profit_factor=1.8,
+        )
+        wf_report = MagicMock()
+        wf_report.avg_efficiency_ratio = 0.6
+        wf_report.oos_win_rate = 0.67
+        result = GridWFResult(candidate=candidate, wf_report=wf_report, validated=True)
+        summary = GridWFSummary(
+            strategy_type="momentum",
+            candidates_tested=1,
+            candidates_validated=1,
+            results=[result],
+        )
+        d = summary.to_dict()
+        self.assertIn("avg_profit_factor", d["results"][0])
+        self.assertEqual(d["results"][0]["avg_profit_factor"], 1.8)
+        self.assertIn("avg_profit_factor", d["best_validated"])
+        self.assertEqual(d["best_validated"]["avg_profit_factor"], 1.8)
 
 
 if __name__ == "__main__":

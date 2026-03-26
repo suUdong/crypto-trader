@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class KillSwitchConfig:
     max_portfolio_drawdown_pct: float = 0.05
     max_daily_loss_pct: float = 0.03
-    max_consecutive_losses: int = 15
+    max_consecutive_losses: int = 5
     max_strategy_drawdown_pct: float = 0.08
     cooldown_minutes: int = 60
 
@@ -113,8 +113,8 @@ class KillSwitch:
 
             if self._state.consecutive_losses >= self._config.max_consecutive_losses:
                 self._trigger(
-                    f"Consecutive losses ({self._state.consecutive_losses}) "
-                    f"reached limit ({self._config.max_consecutive_losses})"
+                    f"max_consecutive_losses_exceeded: {self._state.consecutive_losses} consecutive losses "
+                    f"(limit {self._config.max_consecutive_losses})"
                 )
                 return self._state
 

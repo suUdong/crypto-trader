@@ -39,7 +39,7 @@ class KillSwitchTests(unittest.TestCase):
             current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
         )
         self.assertTrue(state.triggered)
-        self.assertIn("Consecutive", state.trigger_reason)
+        self.assertIn("max_consecutive_losses_exceeded", state.trigger_reason)
 
     def test_consecutive_losses_reset_on_win(self) -> None:
         ks = KillSwitch(KillSwitchConfig(max_consecutive_losses=3))

@@ -40,6 +40,23 @@ class RiskManager:
         """Record a completed trade's return percentage for Kelly calculation."""
         self._trade_history.append(pnl_pct)
 
+    @property
+    def effective_min_confidence(self) -> float:
+        """Adaptive confidence: lowers bar when winning, raises when losing."""
+        base = self.min_entry_confidence
+        if len(self._trade_history) < 5:
+            return base
+        recent = self._trade_history[-20:]
+        wins = sum(1 for t in recent if t > 0)
+        win_rate = wins / len(recent)
+        if win_rate > 0.6:
+            adjusted = base - 0.1
+        elif win_rate < 0.4:
+            adjusted = base + 0.1
+        else:
+            adjusted = base
+        return max(0.3, min(0.9, adjusted))
+
     def kelly_fraction(self, min_trades: int = 10) -> float | None:
         """Compute half-Kelly fraction from trade history.
 

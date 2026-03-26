@@ -23,6 +23,7 @@ class GridCandidate:
     avg_sharpe: float
     avg_return_pct: float
     total_trades: int
+    avg_profit_factor: float = 1.0
 
 
 @dataclass(slots=True)
@@ -59,6 +60,7 @@ class GridWFSummary:
                     "avg_sharpe": r.candidate.avg_sharpe,
                     "avg_return_pct": r.candidate.avg_return_pct,
                     "total_trades": r.candidate.total_trades,
+                    "avg_profit_factor": r.candidate.avg_profit_factor,
                     "validated": r.validated,
                     "wf_avg_efficiency_ratio": r.wf_report.avg_efficiency_ratio,
                     "wf_oos_win_rate": r.wf_report.oos_win_rate,
@@ -68,6 +70,7 @@ class GridWFSummary:
             "best_validated": None if not self.best_validated else {
                 "params": self.best_validated.candidate.params,
                 "avg_sharpe": self.best_validated.candidate.avg_sharpe,
+                "avg_profit_factor": self.best_validated.candidate.avg_profit_factor,
             },
         }
 
@@ -176,12 +179,16 @@ def _run_backtest_with_params(
     )
     result = engine.run(candles)
     sharpe = _approx_sharpe(result.equity_curve)
+    gross_profit = sum(t.pnl for t in result.trade_log if t.pnl > 0)
+    gross_loss = abs(sum(t.pnl for t in result.trade_log if t.pnl < 0))
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else 0.0
     return {
         "return_pct": result.total_return_pct * 100,
         "sharpe": sharpe,
         "mdd_pct": result.max_drawdown * 100,
         "win_rate": result.win_rate * 100,
         "trade_count": len(result.trade_log),
+        "profit_factor": profit_factor,
     }
 
 
@@ -219,12 +226,13 @@ def grid_search(
     param_names = list(grid.keys())
     combos = list(itertools.product(*grid.values()))
 
-    scored: list[tuple[dict[str, Any], float, float, int]] = []
+    scored: list[tuple[dict[str, Any], float, float, int, float]] = []
 
     for combo in combos:
         params = dict(zip(param_names, combo, strict=True))
         sharpes: list[float] = []
         returns: list[float] = []
+        profit_factors: list[float] = []
         trades = 0
 
         for symbol, candles in candles_by_symbol.items():
@@ -232,6 +240,7 @@ def grid_search(
                 result = _run_backtest_with_params(strategy_type, params, candles, symbol)
                 sharpes.append(result["sharpe"])
                 returns.append(result["return_pct"])
+                profit_factors.append(result["profit_factor"])
                 trades += int(result["trade_count"])
             except Exception as exc:
                 _logger.debug("grid combo failed for %s/%s: %s", strategy_type, symbol, exc)
@@ -240,9 +249,10 @@ def grid_search(
         if sharpes:
             avg_sharpe = sum(sharpes) / len(sharpes)
             avg_return = sum(returns) / len(returns)
-            scored.append((params, avg_sharpe, avg_return, trades))
+            avg_profit_factor = sum(profit_factors) / len(profit_factors)
+            scored.append((params, avg_sharpe, avg_return, trades, avg_profit_factor))
 
-    scored.sort(key=lambda x: x[1], reverse=True)
+    scored.sort(key=lambda x: x[1] * 0.7 + x[4] * 0.3, reverse=True)
     return [
         GridCandidate(
             strategy_type=strategy_type,
@@ -250,8 +260,9 @@ def grid_search(
             avg_sharpe=sharpe,
             avg_return_pct=ret,
             total_trades=trades,
+            avg_profit_factor=pf,
         )
-        for params, sharpe, ret, trades in scored[:top_n]
+        for params, sharpe, ret, trades, pf in scored[:top_n]
     ]
 
 

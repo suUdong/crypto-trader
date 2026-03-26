@@ -114,7 +114,7 @@ class StrategyWallet:
             if (
                 position is None
                 and signal.action is SignalAction.BUY
-                and signal.confidence >= self.risk_manager.min_entry_confidence
+                and signal.confidence >= self.risk_manager.effective_min_confidence
             ):
                 if self.risk_manager.can_open(
                     active_positions=len(self.broker.positions),
