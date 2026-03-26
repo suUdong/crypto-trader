@@ -160,6 +160,43 @@ def rolling_correlation(series_a: list[float], series_b: list[float], window: in
     return cov / (std_a * std_b)
 
 
+def _ema(values: list[float], period: int) -> list[float]:
+    """Exponential moving average. Returns list same length as input (NaN-free)."""
+    if not values or period <= 0:
+        return []
+    alpha = 2.0 / (period + 1)
+    result = [values[0]]
+    for i in range(1, len(values)):
+        result.append(alpha * values[i] + (1.0 - alpha) * result[-1])
+    return result
+
+
+def macd(
+    closes: list[float],
+    fast_period: int = 12,
+    slow_period: int = 26,
+    signal_period: int = 9,
+) -> tuple[float, float, float]:
+    """MACD indicator: (macd_line, signal_line, histogram).
+
+    macd_line = EMA(fast) - EMA(slow)
+    signal_line = EMA(macd_line, signal_period)
+    histogram = macd_line - signal_line
+
+    Raises ValueError if not enough data (need at least slow_period + signal_period).
+    """
+    min_len = slow_period + signal_period
+    if len(closes) < min_len:
+        raise ValueError(f"Need at least {min_len} values for MACD, got {len(closes)}")
+    ema_fast = _ema(closes, fast_period)
+    ema_slow = _ema(closes, slow_period)
+    macd_line_series = [f - s for f, s in zip(ema_fast, ema_slow)]
+    signal_series = _ema(macd_line_series, signal_period)
+    ml = macd_line_series[-1]
+    sl = signal_series[-1]
+    return ml, sl, ml - sl
+
+
 def noise_ratio(closes: list[float], lookback: int) -> float:
     """Noise ratio: 1 - |net_move| / sum(|bar_moves|). Lower = stronger trend."""
     if len(closes) <= lookback:

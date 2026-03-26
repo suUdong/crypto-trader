@@ -41,6 +41,8 @@ class BacktestEngine:
         open_position: Position | None = None
         realized_pnl = 0.0
 
+        entry_bar: int = 0
+
         for index in range(len(candles)):
             window = candles[: index + 1]
             current = window[-1]
@@ -49,8 +51,13 @@ class BacktestEngine:
             if index >= 15:
                 self._risk_manager.update_atr_from_candles(window)
 
+            self._risk_manager.tick_cooldown()
+
             if open_position is not None:
-                exit_reason = self._risk_manager.exit_reason(open_position, market_price)
+                holding_bars = index - entry_bar
+                exit_reason = self._risk_manager.exit_reason(
+                    open_position, market_price, holding_bars=holding_bars,
+                )
                 signal = self._strategy.evaluate(window, open_position)
                 if exit_reason is None and signal.action is SignalAction.SELL:
                     exit_reason = signal.reason
@@ -97,7 +104,12 @@ class BacktestEngine:
                     realized_pnl=realized_pnl,
                     starting_equity=self._config.initial_capital,
                 )
-                if can_open and signal.action is SignalAction.BUY:
+                if (
+                    can_open
+                    and not self._risk_manager.in_cooldown
+                    and not self._risk_manager.is_auto_paused
+                    and signal.action is SignalAction.BUY
+                ):
                     fill_price = market_price * (1.0 + self._config.slippage_pct)
                     regime_mult = 1.0
                     if self._regime_aware and self._regime_detector is not None and index >= 31:
@@ -110,6 +122,7 @@ class BacktestEngine:
                         total_cost = gross + fee
                         if total_cost <= cash:
                             cash -= total_cost
+                            entry_bar = index
                             open_position = Position(
                                 symbol=self._symbol,
                                 quantity=quantity,
@@ -219,6 +232,9 @@ class BacktestEngine:
         else:
             tail = 0.0
 
+        # Sharpe ratio: annualized from equity curve periodic returns
+        sharpe = _sharpe_ratio(equity_curve)
+
         return BacktestResult(
             initial_capital=self._config.initial_capital,
             final_equity=final_equity,
@@ -236,7 +252,30 @@ class BacktestEngine:
             expected_value_per_trade=ev_per_trade,
             recovery_factor=recovery,
             tail_ratio=tail,
+            sharpe_ratio=sharpe,
         )
+
+
+def _sharpe_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:
+    """Annualized Sharpe ratio from equity curve.
+
+    Assumes hourly bars (8760 hours/year). Uses excess returns (rf=0 for crypto).
+    """
+    if len(equity_curve) < 3:
+        return 0.0
+    returns = [
+        (equity_curve[i] - equity_curve[i - 1]) / equity_curve[i - 1]
+        for i in range(1, len(equity_curve))
+        if equity_curve[i - 1] > 0
+    ]
+    if len(returns) < 2:
+        return 0.0
+    mean_ret = sum(returns) / len(returns)
+    variance = sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)
+    std_ret = variance ** 0.5
+    if std_ret == 0:
+        return 0.0
+    return (mean_ret / std_ret) * (periods_per_year ** 0.5)
 
 
 def _max_drawdown(equity_curve: list[float]) -> float:

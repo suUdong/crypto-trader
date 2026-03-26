@@ -674,6 +674,7 @@ def main() -> None:
         import json
         from datetime import date
         from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino, _approx_calmar, kelly_fraction, bootstrap_return_ci
+        from crypto_trader.strategy.regime import RegimeDetector, MarketRegime
 
         all_strategies = [
             "momentum", "mean_reversion", "vpin", "volatility_breakout",
@@ -721,6 +722,8 @@ def main() -> None:
                 max_mcl = 0
                 max_mcw = 0
                 max_dur = 0
+                regime_wins: dict[str, int] = {"bull": 0, "sideways": 0, "bear": 0}
+                regime_totals: dict[str, int] = {"bull": 0, "sideways": 0, "bear": 0}
 
                 for sym, candles in candles_map.items():
                     bt_strategy = create_strategy(strat_name, config.strategy, config.regime)
@@ -754,6 +757,22 @@ def main() -> None:
                     max_mcl = max(max_mcl, bt_result.max_consecutive_losses)
                     max_mcw = max(max_mcw, bt_result.max_consecutive_wins)
                     max_dur = max(max_dur, bt_result.max_trade_duration_bars)
+
+                    # Regime breakdown per trade
+                    regime_det = RegimeDetector(config.regime)
+                    for trade in bt_result.trade_log:
+                        # Find entry index in candle list
+                        entry_idx = None
+                        for ci, c in enumerate(candles):
+                            if c.timestamp >= trade.entry_time:
+                                entry_idx = ci
+                                break
+                        if entry_idx is not None and entry_idx >= 31:
+                            r = regime_det.detect(candles[:entry_idx + 1])
+                            rkey = r.value
+                            regime_totals[rkey] = regime_totals.get(rkey, 0) + 1
+                            if trade.pnl > 0:
+                                regime_wins[rkey] = regime_wins.get(rkey, 0) + 1
 
                 n = len(sym_returns)
                 if n == 0:
@@ -791,6 +810,12 @@ def main() -> None:
                     "expected_value_per_trade": round(sum(sym_evs) / n, 2) if sym_evs else 0.0,
                     "recovery_factor": round(sum(sym_recoveries) / n, 3) if sym_recoveries else 0.0,
                     "tail_ratio": round(sum(sym_tails) / n, 3) if sym_tails else 0.0,
+                    "regime_bull_wr": round(regime_wins.get("bull", 0) / max(1, regime_totals.get("bull", 0)) * 100, 1),
+                    "regime_sideways_wr": round(regime_wins.get("sideways", 0) / max(1, regime_totals.get("sideways", 0)) * 100, 1),
+                    "regime_bear_wr": round(regime_wins.get("bear", 0) / max(1, regime_totals.get("bear", 0)) * 100, 1),
+                    "regime_bull_n": regime_totals.get("bull", 0),
+                    "regime_sideways_n": regime_totals.get("sideways", 0),
+                    "regime_bear_n": regime_totals.get("bear", 0),
                     "return_ci_5": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[0] * 100, 3) if all_trade_returns else 0.0,
                     "return_ci_95": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[1] * 100, 3) if all_trade_returns else 0.0,
                     "kelly_fraction": round(kelly_fraction(sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0), 4),

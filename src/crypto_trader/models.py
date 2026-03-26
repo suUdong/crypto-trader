@@ -208,6 +208,7 @@ class BacktestResult:
     expected_value_per_trade: float = 0.0
     recovery_factor: float = 0.0
     tail_ratio: float = 0.0
+    sharpe_ratio: float = 0.0
 
 
 @dataclass(slots=True)
