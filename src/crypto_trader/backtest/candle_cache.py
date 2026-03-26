@@ -5,6 +5,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from importlib import import_module
 from pathlib import Path
+from typing import Any
 
 from crypto_trader.models import Candle
 
@@ -86,7 +87,7 @@ def load_candle_cache(
     return candles
 
 
-def _load_pyupbit():
+def _load_pyupbit() -> Any:
     try:
         return import_module("pyupbit")
     except ModuleNotFoundError as exc:
