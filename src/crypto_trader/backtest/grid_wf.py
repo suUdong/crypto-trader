@@ -94,6 +94,27 @@ def _approx_sharpe(equity_curve: list[float]) -> float:
     return (mean_r / std_r) * (8760**0.5)
 
 
+def _approx_calmar(equity_curve: list[float]) -> float:
+    """Calmar ratio: annualized return / max drawdown."""
+    if len(equity_curve) < 3:
+        return 0.0
+    total_return = (equity_curve[-1] / max(1.0, equity_curve[0])) - 1.0
+    peak = equity_curve[0]
+    max_dd = 0.0
+    for eq in equity_curve:
+        peak = max(peak, eq)
+        dd = (peak - eq) / peak if peak > 0 else 0.0
+        max_dd = max(max_dd, dd)
+    if max_dd == 0:
+        return 0.0 if total_return <= 0 else float("inf")
+    # Annualize assuming hourly candles
+    periods = len(equity_curve) - 1
+    if periods <= 0:
+        return 0.0
+    annual_return = total_return * (8760 / periods)
+    return annual_return / max_dd
+
+
 def _approx_sortino(equity_curve: list[float]) -> float:
     """Sortino ratio: penalizes only downside deviation (better for crypto)."""
     if len(equity_curve) < 3:
@@ -207,6 +228,7 @@ def _run_backtest_with_params(
     result = engine.run(candles)
     sharpe = _approx_sharpe(result.equity_curve)
     sortino = _approx_sortino(result.equity_curve)
+    calmar = _approx_calmar(result.equity_curve)
     gross_profit = sum(t.pnl for t in result.trade_log if t.pnl > 0)
     gross_loss = abs(sum(t.pnl for t in result.trade_log if t.pnl < 0))
     profit_factor = gross_profit / gross_loss if gross_loss > 0 else 0.0
@@ -214,6 +236,7 @@ def _run_backtest_with_params(
         "return_pct": result.total_return_pct * 100,
         "sharpe": sharpe,
         "sortino": sortino,
+        "calmar": calmar,
         "mdd_pct": result.max_drawdown * 100,
         "win_rate": result.win_rate * 100,
         "trade_count": len(result.trade_log),

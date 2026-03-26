@@ -1,11 +1,11 @@
-"""Tests for Sortino ratio and max_consecutive_losses metrics."""
+"""Tests for Sortino ratio, Calmar ratio, and max_consecutive_losses metrics."""
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.backtest.engine import BacktestEngine
-from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino
+from crypto_trader.backtest.grid_wf import _approx_calmar, _approx_sharpe, _approx_sortino
 from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
 from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
@@ -66,6 +66,28 @@ class TestApproxSortino(unittest.TestCase):
         sortino = _approx_sortino(curve)
         # Sortino penalizes only downside, so should be >= Sharpe
         self.assertGreaterEqual(sortino, sharpe)
+
+
+class TestApproxCalmar(unittest.TestCase):
+    def test_calmar_returns_zero_for_short_curve(self) -> None:
+        self.assertEqual(_approx_calmar([100.0, 101.0]), 0.0)
+
+    def test_calmar_positive_for_profitable_strategy(self) -> None:
+        curve = [100.0 + i * 0.5 for i in range(100)]
+        # Add a dip to create drawdown
+        curve[50] = curve[49] - 5.0
+        result = _approx_calmar(curve)
+        self.assertGreater(result, 0.0)
+
+    def test_calmar_negative_for_losing_strategy(self) -> None:
+        curve = [100.0 - i * 0.3 for i in range(100)]
+        result = _approx_calmar(curve)
+        self.assertLess(result, 0.0)
+
+    def test_calmar_inf_when_no_drawdown(self) -> None:
+        curve = [100.0 + i for i in range(10)]
+        result = _approx_calmar(curve)
+        self.assertEqual(result, float("inf"))
 
 
 class TestMaxConsecutiveLosses(unittest.TestCase):

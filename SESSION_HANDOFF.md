@@ -1,32 +1,41 @@
 # Session Handoff
 
-Date: 2026-03-26 (FIRE Session #9)
+Date: 2026-03-26 (FIRE Session #10)
 Branch: `master`
 
-## What Landed This Session (#9) — 3 Features, 13 New Tests
+## What Landed This Session (#10) — 5 Features, 13 New Tests
 
-### Auto-Disable Losing Wallets
-- **WalletHealthMonitor** (`risk/wallet_health.py`): Reads PnL snapshot history, checks per-wallet return over configurable window (default 7 days)
-- Wallets with negative return for 7+ consecutive days are auto-disabled
-- MultiSymbolRuntime skips disabled wallets during tick processing
-- Telegram notification when a wallet is auto-disabled
-- Re-enables automatically when wallet returns to positive
-- State persisted to `artifacts/wallet-health.json` across daemon restarts
+### Sortino Ratio
+- `_approx_sortino()` in `grid_wf.py`: penalizes only downside deviation (better for crypto)
+- Integrated into grid-wf output, backtest-all output, and GridCandidate dataclass
+- 6 unit tests covering edge cases (empty, uptrend, downtrend, no-downside, asymmetric)
 
-### Enhanced Daily PnL Telegram Alerts
-- Per-wallet breakdown: return%, trade count, win rate, profit factor
-- Portfolio-level Sharpe ratio and total equity in header
-- `[DISABLED]` and `[PAUSED]` status indicators per wallet
-- Wallets sorted by return% descending (winners first)
+### Calmar Ratio
+- `_approx_calmar()` in `grid_wf.py`: annualized return / max drawdown
+- Integrated into backtest-all CLI output and JSON export
+- 4 unit tests
 
-### Snapshot Automation (Cron-Friendly CLI)
-- `--output-dir` flag for custom artifact path
-- JSON summary on stdout for cron/scripting consumption
-- Proper exit codes: 0 on success, 1 on failure
-- Error JSON output on failure for monitoring integration
+### Max Consecutive Losses (Kill Switch Calibration)
+- New `max_consecutive_losses` field on `BacktestResult` dataclass
+- Calculated in `BacktestEngine.run()` from trade log
+- Displayed in backtest-all output (MCL column)
+- 3 unit tests
+
+### Multi-Symbol backtest-all
+- `backtest-all` now aggregates across ALL configured symbols (was symbols[0] only)
+- Per-strategy averages for return, Sharpe, Sortino, Calmar, PF, win rate
+- Max drawdown and MCL use worst-case across symbols
+- JSON export includes `symbols` array and `symbols_tested` per strategy
+
+### Expanded Grid-WF Parameter Grids
+- momentum: 5 entry thresholds [0.002..0.01], 3 holding bars
+- volatility_breakout: 4 k_base [0.2..0.8], 4 noise_lookback [5..20]
+- consensus: min_agree [2, 3] variants
+- backtest-all includes `obi` strategy (was missing)
 
 ## Previous Session Deliverables (Still Active)
 
+### Session #9: Auto-Disable Losing Wallets, Enhanced PnL Alerts, Snapshot Automation (3 features, 13 tests)
 ### Session #8: Risk Protection + Adaptive Management (7 commits, 27 tests)
 ### Session #7: Signal Quality + Risk Management (12 stories, 4 waves)
 ### Session #6: Risk & Backtest Tooling (13 stories)
@@ -39,33 +48,30 @@ Branch: `master`
 
 ```
 src/crypto_trader/
-  cli.py                # + --output-dir flag, JSON stdout, exit codes for snapshot
-                        # + json import
-  multi_runtime.py      # + WalletHealthMonitor integration
-                        # + _maybe_check_wallet_health() method
-                        # + Enhanced _maybe_send_pnl_notify() with per-wallet breakdown
-                        # + Disabled wallet skip in _run_tick()
-  risk/
-    wallet_health.py    # NEW: WalletHealthMonitor, WalletHealthConfig, WalletHealthStatus
-                        # Reads pnl-snapshots.jsonl, auto-disables persistent losers
-                        # State persistence to wallet-health.json
+  cli.py                # + multi-symbol backtest-all, Calmar/Sortino/MCL columns
+                        # + obi added to all_strategies
+                        # + _approx_calmar import
+  models.py             # + max_consecutive_losses field on BacktestResult
+  backtest/
+    engine.py           # + max consecutive losses calculation in run()
+    grid_wf.py          # + _approx_sortino(), _approx_calmar()
+                        # + avg_sortino on GridCandidate
+                        # + Expanded PARAM_GRIDS (momentum, volatility_breakout, consensus)
+                        # + Sortino/Calmar in _run_backtest_with_params return
 
 tests/ (+13 new tests)
-  test_wallet_health.py         # +8 tests: disable, recover, persistence, skip
-  test_enhanced_pnl_notify.py   # +5 tests: format, disabled/paused status, sorting
-  test_snapshot_cli.py          # +5 tests: output dir, JSON format, history append (replaced)
-  test_telegram_pnl.py          # Updated: assertions match new notification format
+  test_sortino_and_mcl.py  # +6 Sortino, +4 Calmar, +3 MCL tests
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` -> **629 passed, 3 skipped, 0 failures**
+- `pytest tests/ -q` -> **645 passed, 3 skipped, 0 failures**
 - +13 new tests this session
-- All Session #8 tests still passing
+- All previous session tests still passing
 
 ## Current Gaps / Risks
 
-1. **Daemon restart needed** — new wallet health monitor not live until restart
+1. **Daemon restart needed** — new metrics not live until restart
 2. **No closed trades yet** — strategies waiting for entry signals
 3. Kimchi premium uses simulated premium — live may diverge
 4. Telegram not live-verified
@@ -74,11 +80,11 @@ tests/ (+13 new tests)
 
 ## Recommended Next Moves
 
-1. **Restart daemon** with updated config
-2. **Set up cron** for `crypto-trader snapshot --output-dir artifacts/` every 6h
-3. **Run `backtest-all`** to compare all strategies with new config
-4. **Run regime-aware grid-wf** for momentum and volatility_breakout
-5. **Monitor auto-disable** — check wallet-health.json after 7 days
-6. **Paper trading 7 days** -> micro-live gate by Apr 2
-7. **Telegram bot setup** — configure bot_token and chat_id in TOML
-8. **Strategy optimization** — grid-wf for underperforming wallets
+1. **Run `backtest-all`** with multi-symbol aggregation to rank all 7 strategies
+2. **Run `grid-wf`** for momentum and volatility_breakout with expanded grids
+3. **Set up cron** for `crypto-trader snapshot --output-dir artifacts/` every 6h
+4. **Monitor auto-disable** — check wallet-health.json after 7 days
+5. **Paper trading 7 days** -> micro-live gate by Apr 2
+6. **Telegram bot setup** — configure bot_token and chat_id in TOML
+7. **Strategy optimization** — use Calmar + Sortino to pick optimal params
+8. **Kill switch calibration** — use MCL from backtest-all to set max_consecutive_losses threshold

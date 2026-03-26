@@ -671,6 +671,7 @@ def main() -> None:
     if args.command == "backtest-all":
         import json
         from datetime import date
+        from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino, _approx_calmar
 
         all_strategies = [
             "momentum", "mean_reversion", "vpin", "volatility_breakout",
@@ -679,52 +680,87 @@ def main() -> None:
         symbols = config.trading.symbols
         results_list: list[dict] = []
 
+        # Fetch candles for all symbols
+        candles_map: dict[str, list] = {}
+        for sym in symbols:
+            try:
+                c = market_data.get_ohlcv(sym, interval=config.trading.interval, count=config.trading.candle_count)
+                if c and len(c) >= 50:
+                    candles_map[sym] = c
+            except Exception as e:
+                print(f"  Skipping {sym}: {e}")
+
+        if not candles_map:
+            print("No candle data available for backtest-all.")
+            return
+
         print(f"\n{'='*90}")
-        print(f"  BACKTEST-ALL: {len(all_strategies)} strategies x {len(symbols)} symbols")
+        print(f"  BACKTEST-ALL: {len(all_strategies)} strategies x {len(candles_map)} symbols")
         print(f"{'='*90}")
-        print(f"\n  {'Strategy':<22} {'Return%':>9} {'Sharpe':>8} {'Sortino':>8} {'PF':>6} {'MDD%':>7} {'WinR%':>7} {'Trades':>7} {'MCL':>4}")
-        print(f"  {'-'*80}")
+        print(f"\n  {'Strategy':<22} {'Return%':>9} {'Sharpe':>8} {'Sortino':>8} {'Calmar':>8} {'PF':>6} {'MDD%':>7} {'WinR%':>7} {'Trades':>7} {'MCL':>4}")
+        print(f"  {'-'*88}")
 
         for strat_name in all_strategies:
             try:
-                bt_strategy = create_strategy(strat_name, config.strategy, config.regime)
-                bt_risk = _build_risk_manager(config)
-                engine = BacktestEngine(
-                    strategy=bt_strategy,
-                    risk_manager=bt_risk,
-                    config=config.backtest,
-                    symbol=symbols[0],
-                )
-                candles = market_data.get_ohlcv(
-                    symbols[0],
-                    interval=config.trading.interval,
-                    count=config.trading.candle_count,
-                )
-                if not candles or len(candles) < 50:
-                    print(f"  {strat_name:<22} {'(insufficient data)':>40}")
+                sym_returns: list[float] = []
+                sym_sharpes: list[float] = []
+                sym_sortinos: list[float] = []
+                sym_calmars: list[float] = []
+                sym_pfs: list[float] = []
+                sym_mdds: list[float] = []
+                sym_wrs: list[float] = []
+                total_trades = 0
+                max_mcl = 0
+
+                for sym, candles in candles_map.items():
+                    bt_strategy = create_strategy(strat_name, config.strategy, config.regime)
+                    bt_risk = _build_risk_manager(config)
+                    engine = BacktestEngine(
+                        strategy=bt_strategy,
+                        risk_manager=bt_risk,
+                        config=config.backtest,
+                        symbol=sym,
+                    )
+                    bt_result = engine.run(candles)
+                    sharpe = _approx_sharpe(bt_result.equity_curve)
+                    sortino = _approx_sortino(bt_result.equity_curve)
+                    calmar = _approx_calmar(bt_result.equity_curve)
+
+                    sym_returns.append(bt_result.total_return_pct * 100)
+                    sym_sharpes.append(sharpe)
+                    sym_sortinos.append(sortino if sortino != float("inf") else 0.0)
+                    sym_calmars.append(calmar if calmar != float("inf") else 0.0)
+                    pf = bt_result.profit_factor if bt_result.profit_factor != float("inf") else 0.0
+                    sym_pfs.append(pf)
+                    sym_mdds.append(bt_result.max_drawdown * 100)
+                    sym_wrs.append(bt_result.win_rate * 100)
+                    total_trades += len(bt_result.trade_log)
+                    max_mcl = max(max_mcl, bt_result.max_consecutive_losses)
+
+                n = len(sym_returns)
+                if n == 0:
+                    print(f"  {strat_name:<22} {'(no valid results)':>40}")
                     continue
-                bt_result = engine.run(candles)
-                from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino
-                sharpe = _approx_sharpe(bt_result.equity_curve)
-                sortino = _approx_sortino(bt_result.equity_curve)
+
                 row = {
                     "strategy": strat_name,
-                    "symbol": symbols[0],
-                    "return_pct": round(bt_result.total_return_pct * 100, 3),
-                    "sharpe": round(sharpe, 3),
-                    "sortino": round(sortino, 3) if sortino != float("inf") else 999.0,
-                    "profit_factor": round(bt_result.profit_factor, 3) if bt_result.profit_factor != float("inf") else 999.0,
-                    "max_drawdown_pct": round(bt_result.max_drawdown * 100, 3),
-                    "win_rate_pct": round(bt_result.win_rate * 100, 1),
-                    "trade_count": len(bt_result.trade_log),
-                    "final_equity": round(bt_result.final_equity, 2),
-                    "max_consecutive_losses": bt_result.max_consecutive_losses,
+                    "symbols_tested": n,
+                    "return_pct": round(sum(sym_returns) / n, 3),
+                    "sharpe": round(sum(sym_sharpes) / n, 3),
+                    "sortino": round(sum(sym_sortinos) / n, 3),
+                    "calmar": round(sum(sym_calmars) / n, 3),
+                    "profit_factor": round(sum(sym_pfs) / n, 3),
+                    "max_drawdown_pct": round(max(sym_mdds), 3),
+                    "win_rate_pct": round(sum(sym_wrs) / n, 1),
+                    "trade_count": total_trades,
+                    "max_consecutive_losses": max_mcl,
                 }
                 results_list.append(row)
                 print(
                     f"  {strat_name:<22} {row['return_pct']:>+8.2f}% "
                     f"{row['sharpe']:>7.2f} "
                     f"{row['sortino']:>7.2f} "
+                    f"{row['calmar']:>7.2f} "
                     f"{row['profit_factor']:>5.2f} "
                     f"{row['max_drawdown_pct']:>6.2f}% "
                     f"{row['win_rate_pct']:>6.1f}% "
@@ -734,14 +770,14 @@ def main() -> None:
             except Exception as exc:
                 print(f"  {strat_name:<22} ERROR: {exc}")
 
-        print(f"\n{'='*70}\n")
+        print(f"\n{'='*90}\n")
 
         # Save results
         artifacts_dir = Path("artifacts")
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         export = {
             "date": date.today().isoformat(),
-            "symbol": symbols[0],
+            "symbols": list(candles_map.keys()),
             "candle_count": config.trading.candle_count,
             "results": results_list,
         }
