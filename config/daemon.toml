@@ -1,6 +1,6 @@
-# Production daemon config — walk-forward validated + grid-search optimized
+# Production daemon config — per-symbol optimized + grid-search kimchi
 # Deployed: 2026-03-26
-# Strategies: momentum (Sharpe 1.91 WF) + kimchi_premium (Sharpe 1.22 GS)
+# Strategies: momentum_btc (Sharpe 2.51) + momentum_eth (Sharpe 4.86) + kimchi_premium (Sharpe 1.22)
 # Excluded: mean_reversion(-1.51), vpin(-1.86), volatility_breakout(-2.25), obi(-2.33)
 
 [trading]
@@ -78,14 +78,42 @@ promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
 strategy_report_path = "artifacts/strategy-report.md"
 
-# --- Wallets (positive Sharpe only) ---
+# --- Wallets (per-symbol optimized) ---
 
 [[wallets]]
-name = "momentum_wallet"
+name = "momentum_btc_wallet"
 strategy = "momentum"
 initial_capital = 1_000_000.0
-symbols = ["KRW-BTC", "KRW-ETH"]
-# BTC +1.37% ETH +7.05% — XRP/SOL excluded (negative returns in 90d backtest)
+symbols = ["KRW-BTC"]
+# BTC-optimized: Sharpe 2.51, Return +1.82%, WR 56.9%, PF 1.68, 51 trades
+[wallets.strategy_overrides]
+momentum_lookback = 20
+momentum_entry_threshold = 0.005
+rsi_period = 18
+rsi_overbought = 70.0
+max_holding_bars = 48
+[wallets.risk_overrides]
+stop_loss_pct = 0.04
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.005
+
+[[wallets]]
+name = "momentum_eth_wallet"
+strategy = "momentum"
+initial_capital = 1_000_000.0
+symbols = ["KRW-ETH"]
+# ETH-optimized: Sharpe 4.86, Return +15.14%, WR 53.9%, PF 3.22, 76 trades
+[wallets.strategy_overrides]
+momentum_lookback = 15
+momentum_entry_threshold = 0.005
+rsi_period = 14
+rsi_overbought = 70.0
+max_holding_bars = 48
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+risk_per_trade_pct = 0.015
+atr_stop_multiplier = 3.0
 
 [[wallets]]
 name = "kimchi_premium_wallet"
