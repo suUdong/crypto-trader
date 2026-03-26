@@ -5,6 +5,7 @@ from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
+    keltner_channels,
     macd,
     momentum,
     noise_ratio,
@@ -77,6 +78,14 @@ class MomentumStrategy:
         except ValueError:
             pass
 
+        # Keltner Channels
+        kc_upper: float | None = None
+        try:
+            kc_upper, _, _ = keltner_channels(highs, lows, closes)
+            indicators["keltner_upper"] = kc_upper
+        except ValueError:
+            pass
+
         # VWAP: price above VWAP = bullish bias
         vwap_value: float | None = None
         try:
@@ -144,6 +153,9 @@ class MomentumStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # VWAP alignment: price above VWAP confirms bullish bias
                 if vwap_value is not None and closes[-1] > vwap_value:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # Keltner breakout: price above upper Keltner = strong momentum
+                if kc_upper is not None and closes[-1] > kc_upper:
                     base_conf = min(1.0, base_conf + 0.05)
                 # Volume confirmation: high volume (>2x avg) boosts confidence
                 volumes = [c.volume for c in candles]

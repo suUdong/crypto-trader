@@ -6,6 +6,7 @@ from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
     bollinger_bands,
+    keltner_channels,
     macd,
     momentum,
     noise_ratio,
@@ -110,6 +111,26 @@ class CompositeStrategy:
         except ValueError:
             pass
 
+        # Keltner Channels for trend/volatility context
+        kc_upper: float | None = None
+        kc_lower: float | None = None
+        try:
+            highs_kc = [c.high for c in candles]
+            lows_kc = [c.low for c in candles]
+            kc_upper, kc_mid, kc_lower = keltner_channels(highs_kc, lows_kc, closes)
+            indicators["keltner_upper"] = kc_upper
+            indicators["keltner_lower"] = kc_lower
+        except ValueError:
+            pass
+
+        # Noise ratio: high = choppy, low = trending
+        nr_value: float | None = None
+        try:
+            nr_value = noise_ratio(closes, effective.noise_lookback)
+            indicators["noise_ratio"] = nr_value
+        except ValueError:
+            pass
+
         # VWAP: price above VWAP = bullish bias
         vwap_value: float | None = None
         try:
@@ -166,6 +187,9 @@ class CompositeStrategy:
                     base_conf = min(1.0, base_conf + 0.05)
                 # VWAP alignment: price above VWAP confirms bullish bias
                 if vwap_value is not None and latest_close > vwap_value:
+                    base_conf = min(1.0, base_conf + 0.05)
+                # Keltner lower touch: deep below Keltner = strong reversal
+                if kc_lower is not None and latest_close <= kc_lower:
                     base_conf = min(1.0, base_conf + 0.05)
                 return Signal(
                     action=SignalAction.BUY,
