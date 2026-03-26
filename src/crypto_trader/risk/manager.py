@@ -254,4 +254,11 @@ class RiskManager:
             if price <= trailing_stop_price:
                 return "trailing_stop"
 
+        # Profit-lock trailing: after 3%+ gain with no trailing stop configured,
+        # activate tight 1.5% trailing from watermark to lock profits
+        if effective_trailing <= 0 and watermark_gain >= 0.03:
+            profit_lock_price = position.high_watermark * (1.0 - 0.015)
+            if price <= profit_lock_price:
+                return "profit_lock_trailing"
+
         return None

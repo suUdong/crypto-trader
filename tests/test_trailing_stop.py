@@ -88,8 +88,9 @@ class TestTrailingStop(unittest.TestCase):
         pos = _pos(entry_price=100.0)
         rm.exit_reason(pos, 120.0)  # watermark = 120
         reason = rm.exit_reason(pos, 115.0)
-        # No trailing stop (disabled), no fixed SL/TP hit
-        self.assertIsNone(reason)
+        # No explicit trailing stop, but profit_lock_trailing fires (3%+ gain, 1.5% trail)
+        # 120 * 0.985 = 118.2, price 115 < 118.2 → profit_lock_trailing
+        self.assertEqual(reason, "profit_lock_trailing")
 
 
 class TestATRBasedStops(unittest.TestCase):

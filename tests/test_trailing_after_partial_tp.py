@@ -47,7 +47,8 @@ class TestTrailingAfterPartialTP(unittest.TestCase):
 
         rm.exit_reason(pos, 115.0)  # watermark = 115
         reason = rm.exit_reason(pos, 112.0)  # 2.6% pullback
-        self.assertIsNone(reason)
+        # profit_lock_trailing fires: 15% gain, 1.5% trail from 115 = 113.275, 112 < 113.275
+        self.assertEqual(reason, "profit_lock_trailing")
 
     def test_explicit_trailing_overrides_auto(self) -> None:
         """If trailing_stop_pct already set, it's used instead of auto 2%."""

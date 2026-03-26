@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import bollinger_bands, macd, rsi
+from crypto_trader.strategy.indicators import bollinger_bands, macd, rsi, rsi_divergence
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -44,12 +44,22 @@ class MeanReversionStrategy:
             except ValueError:
                 pass
 
+        # RSI divergence detection
+        bullish_div = False
+        bearish_div = False
+        try:
+            bullish_div, bearish_div = rsi_divergence(closes, effective.rsi_period, lookback=20)
+        except (ValueError, IndexError):
+            pass
+
         indicators = {
             "upper_band": upper_band,
             "middle_band": middle_band,
             "lower_band": lower_band,
             "rsi": rsi_value,
             "macd_histogram": macd_hist_val,
+            "rsi_bullish_divergence": 1.0 if bullish_div else 0.0,
+            "rsi_bearish_divergence": 1.0 if bearish_div else 0.0,
         }
         context = {"market_regime": regime.value, "strategy": "mean_reversion"}
 
@@ -63,6 +73,8 @@ class MeanReversionStrategy:
                 base_conf = min(1.0, 0.5 + (middle_band - latest_close) / max(1.0, middle_band))
                 if macd_bullish:
                     base_conf = min(1.0, base_conf + 0.1)
+                if bullish_div:
+                    base_conf = min(1.0, base_conf + 0.15)
                 return Signal(
                     action=SignalAction.BUY,
                     reason="bollinger_mean_reversion",
@@ -102,6 +114,14 @@ class MeanReversionStrategy:
                 action=SignalAction.SELL,
                 reason="mean_reversion_target",
                 confidence=0.7,
+                indicators=indicators,
+                context=context,
+            )
+        if bearish_div:
+            return Signal(
+                action=SignalAction.SELL,
+                reason="rsi_bearish_divergence",
+                confidence=0.75,
                 indicators=indicators,
                 context=context,
             )
