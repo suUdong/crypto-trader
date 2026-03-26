@@ -48,6 +48,29 @@ class GridWFSummary:
             return None
         return max(validated, key=lambda r: r.candidate.avg_sharpe)
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "strategy_type": self.strategy_type,
+            "candidates_tested": self.candidates_tested,
+            "candidates_validated": self.candidates_validated,
+            "results": [
+                {
+                    "params": r.candidate.params,
+                    "avg_sharpe": r.candidate.avg_sharpe,
+                    "avg_return_pct": r.candidate.avg_return_pct,
+                    "total_trades": r.candidate.total_trades,
+                    "validated": r.validated,
+                    "wf_avg_efficiency_ratio": r.wf_report.avg_efficiency_ratio,
+                    "wf_oos_win_rate": r.wf_report.oos_win_rate,
+                }
+                for r in self.results
+            ],
+            "best_validated": None if not self.best_validated else {
+                "params": self.best_validated.candidate.params,
+                "avg_sharpe": self.best_validated.candidate.avg_sharpe,
+            },
+        }
+
 
 def _approx_sharpe(equity_curve: list[float]) -> float:
     if len(equity_curve) < 3:
@@ -105,6 +128,11 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     "obi": {
         "rsi_period": [14, 18],
         "momentum_lookback": [10, 15, 20],
+        "max_holding_bars": [36, 48],
+    },
+    "consensus": {
+        "momentum_lookback": [10, 15, 20],
+        "rsi_period": [14, 18],
         "max_holding_bars": [36, 48],
     },
 }

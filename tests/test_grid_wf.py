@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 
 from crypto_trader.backtest.grid_wf import (
     GridCandidate,
+    GridWFResult,
+    GridWFSummary,
     grid_search,
     run_grid_wf,
     validate_with_walk_forward,
@@ -75,6 +77,14 @@ class TestGridSearch(unittest.TestCase):
         candidates = grid_search("nonexistent", {"KRW-BTC": candles}, top_n=3)
         self.assertEqual(len(candidates), 0)
 
+    def test_returns_candidates_for_consensus(self) -> None:
+        candles = _build_candles(_trending_with_pullbacks(300))
+        candles_map = {"KRW-BTC": candles}
+        candidates = grid_search("consensus", candles_map, top_n=3)
+        self.assertGreater(len(candidates), 0)
+        for c in candidates:
+            self.assertEqual(c.strategy_type, "consensus")
+
 
 class TestValidateWithWalkForward(unittest.TestCase):
     def test_validates_candidate(self) -> None:
@@ -120,6 +130,72 @@ class TestRunGridWF(unittest.TestCase):
             top_n=2,
         )
         self.assertGreater(summary.candidates_tested, 0)
+
+
+class TestGridWFSummaryToDict(unittest.TestCase):
+    def _make_summary(self, validated: bool) -> GridWFSummary:
+        from unittest.mock import MagicMock
+
+        candidate = GridCandidate(
+            strategy_type="momentum",
+            params={"momentum_lookback": 15, "rsi_period": 14},
+            avg_sharpe=1.2,
+            avg_return_pct=5.0,
+            total_trades=30,
+        )
+        wf_report = MagicMock()
+        wf_report.avg_efficiency_ratio = 0.6
+        wf_report.oos_win_rate = 0.67
+        result = GridWFResult(candidate=candidate, wf_report=wf_report, validated=validated)
+        return GridWFSummary(
+            strategy_type="momentum",
+            candidates_tested=3,
+            candidates_validated=1 if validated else 0,
+            results=[result],
+        )
+
+    def test_to_dict_keys(self) -> None:
+        summary = self._make_summary(validated=True)
+        d = summary.to_dict()
+        self.assertIn("strategy_type", d)
+        self.assertIn("candidates_tested", d)
+        self.assertIn("candidates_validated", d)
+        self.assertIn("results", d)
+        self.assertIn("best_validated", d)
+
+    def test_to_dict_values(self) -> None:
+        summary = self._make_summary(validated=True)
+        d = summary.to_dict()
+        self.assertEqual(d["strategy_type"], "momentum")
+        self.assertEqual(d["candidates_tested"], 3)
+        self.assertEqual(d["candidates_validated"], 1)
+        self.assertIsInstance(d["results"], list)
+        self.assertEqual(len(d["results"]), 1)
+
+    def test_to_dict_result_keys(self) -> None:
+        summary = self._make_summary(validated=True)
+        r = summary.to_dict()["results"][0]
+        for key in ("params", "avg_sharpe", "avg_return_pct", "total_trades",
+                    "validated", "wf_avg_efficiency_ratio", "wf_oos_win_rate"):
+            self.assertIn(key, r)
+
+    def test_to_dict_best_validated_none_when_no_pass(self) -> None:
+        summary = self._make_summary(validated=False)
+        d = summary.to_dict()
+        self.assertIsNone(d["best_validated"])
+
+    def test_to_dict_best_validated_present_when_pass(self) -> None:
+        summary = self._make_summary(validated=True)
+        d = summary.to_dict()
+        self.assertIsNotNone(d["best_validated"])
+        self.assertIn("params", d["best_validated"])
+        self.assertIn("avg_sharpe", d["best_validated"])
+
+    def test_to_dict_is_json_serializable(self) -> None:
+        import json
+        summary = self._make_summary(validated=True)
+        # Should not raise
+        json.dumps(summary.to_dict())
 
 
 if __name__ == "__main__":

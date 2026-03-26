@@ -63,6 +63,8 @@ def main() -> None:
             "rebalance-capital",
             "walk-forward",
             "grid-wf",
+            "snapshot",
+            "correlation",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -287,6 +289,29 @@ def main() -> None:
         print(f"{'='*80}\n")
         return
 
+    if args.command == "snapshot":
+        from crypto_trader.operator.pnl_report import PnLSnapshotStore
+        generator = PnLReportGenerator()
+        period = f"{args.hours}h" if args.hours > 0 else "daily"
+        report = generator.generate_from_checkpoint(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            trade_journal_path=config.runtime.paper_trade_journal_path,
+            period=period,
+            hours=args.hours,
+        )
+        # Save markdown report
+        output_path = "artifacts/pnl-report.md"
+        generator.save(report, output_path)
+        # Append to snapshot history
+        snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
+        store = PnLSnapshotStore(snapshot_path)
+        store.append(report)
+        # Print summary
+        print(f"Equity: {report.total_equity:,.0f} | Return: {report.portfolio_return_pct:+.3f}% | Trades: {report.total_trades}")
+        print(f"Snapshot saved to {snapshot_path}")
+        print(f"Report saved to {output_path}")
+        return
+
     if args.command == "performance-report":
         output_path = config.runtime.performance_report_path
         content = generate_performance_report(
@@ -470,6 +495,56 @@ def main() -> None:
             print("\n  No candidates passed walk-forward validation.")
 
         print(f"\n{'='*60}\n")
+
+        # Save results to JSON
+        import json
+        from datetime import date
+        artifacts_dir = Path("artifacts")
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        export_path = artifacts_dir / f"grid-wf-{strategy_type}-{date.today().isoformat()}.json"
+        export_path.write_text(json.dumps(summary.to_dict(), indent=2), encoding="utf-8")
+        print(f"  Results saved to {export_path}")
+        return
+
+    if args.command == "correlation":
+        from crypto_trader.backtest.correlation import signal_correlation
+
+        strategy_types = ["momentum", "mean_reversion", "vpin", "volatility_breakout"]
+        strategies = [create_strategy(s, config.strategy, config.regime) for s in strategy_types]
+
+        # Fetch candles for primary symbol
+        candles = market_data.get_ohlcv(
+            config.trading.symbol,
+            interval=config.trading.interval,
+            count=config.trading.candle_count,
+        )
+
+        if not candles or len(candles) < 50:
+            print("Not enough candle data for correlation analysis.")
+            return
+
+        corr = signal_correlation(strategies, candles, strategy_types)
+
+        print(f"\n{'='*60}")
+        print("  STRATEGY SIGNAL CORRELATION MATRIX")
+        print(f"{'='*60}\n")
+
+        # Print header
+        header = f"  {'':>20}" + "".join(f"{s:>14}" for s in strategy_types)
+        print(header)
+        print(f"  {'-'*(20 + 14*len(strategy_types))}")
+
+        for sa in strategy_types:
+            row = f"  {sa:>20}"
+            for sb in strategy_types:
+                key = (sa, sb) if (sa, sb) in corr else (sb, sa)
+                val = corr.get(key, 0.0)
+                row += f"{val:>13.3f} "
+            print(row)
+
+        print(f"\n  Correlation > 0.7 = highly redundant (consider removing one)")
+        print(f"  Correlation < 0.3 = good diversification")
+        print(f"{'='*60}\n")
         return
 
     if args.command == "run-multi":
