@@ -63,6 +63,15 @@ class MeanReversionStrategy:
         }
         context = {"market_regime": regime.value, "strategy": "mean_reversion"}
 
+        # Band distance scoring: how far below lower band (deeper = better entry)
+        band_width = upper_band - lower_band
+        if band_width > 0:
+            band_distance = (lower_band - latest_close) / band_width
+            indicators["band_distance"] = max(0.0, band_distance)
+        else:
+            band_distance = 0.0
+            indicators["band_distance"] = 0.0
+
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
@@ -75,6 +84,9 @@ class MeanReversionStrategy:
                     base_conf = min(1.0, base_conf + 0.1)
                 if bullish_div:
                     base_conf = min(1.0, base_conf + 0.15)
+                # Deeper dip below lower band = higher confidence
+                if band_distance > 0:
+                    base_conf = min(1.0, base_conf + band_distance * 0.3)
                 return Signal(
                     action=SignalAction.BUY,
                     reason="bollinger_mean_reversion",
@@ -98,6 +110,16 @@ class MeanReversionStrategy:
                 action=SignalAction.SELL,
                 reason="max_holding_period",
                 confidence=1.0,
+                indicators=indicators,
+                context=context,
+            )
+        # Middle band target: take profit when price reaches middle band with decent profit
+        pnl_pct = (latest_close - position.entry_price) / position.entry_price
+        if latest_close >= middle_band * 0.99 and latest_close < upper_band and pnl_pct >= 0.02:
+            return Signal(
+                action=SignalAction.SELL,
+                reason="middle_band_target",
+                confidence=0.65,
                 indicators=indicators,
                 context=context,
             )

@@ -59,6 +59,22 @@ class RiskManager:
         if self._bars_since_last_loss is not None:
             self._bars_since_last_loss += 1
 
+    def rolling_win_rate(self, window: int = 20) -> float | None:
+        """Rolling win rate over the last N trades. None if insufficient data."""
+        if len(self._trade_history) < 5:
+            return None
+        recent = self._trade_history[-window:]
+        wins = sum(1 for t in recent if t > 0)
+        return wins / len(recent)
+
+    @property
+    def is_decaying(self) -> bool:
+        """True when rolling win rate drops below 35% — strategy losing edge."""
+        wr = self.rolling_win_rate()
+        if wr is None:
+            return False
+        return wr < 0.35
+
     @property
     def effective_stop_loss_pct(self) -> float:
         """Dynamic stop loss: tighten by 20% after 3+ consecutive losses."""
