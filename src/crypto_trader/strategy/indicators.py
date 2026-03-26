@@ -29,6 +29,19 @@ def bollinger_bands(
     return middle + deviation, middle, middle - deviation
 
 
+def bollinger_band_width(
+    values: list[float], window: int, stddev_multiplier: float,
+) -> float:
+    """Bollinger Band Width: (upper - lower) / middle.
+
+    Low width indicates a squeeze (low volatility), often preceding a breakout.
+    """
+    upper, middle, lower = bollinger_bands(values, window, stddev_multiplier)
+    if middle == 0:
+        return 0.0
+    return (upper - lower) / middle
+
+
 def momentum(values: list[float], lookback: int) -> float:
     if len(values) <= lookback:
         raise ValueError("Not enough values for momentum")

@@ -4,6 +4,7 @@ from crypto_trader.config import StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     average_directional_index,
+    bollinger_band_width,
     macd,
     noise_ratio,
     simple_moving_average,
@@ -77,6 +78,17 @@ class VolatilityBreakoutStrategy:
         except ValueError:
             pass
 
+        # Bollinger Band width (squeeze detection)
+        bb_w = 0.0
+        squeeze = False
+        try:
+            bb_w = bollinger_band_width(closes, 20, 2.0)
+            indicators["bb_width"] = bb_w
+            # Squeeze: width below 0.04 (tight bands = breakout imminent)
+            squeeze = bb_w < 0.04
+        except ValueError:
+            pass
+
         # MACD confirmation
         macd_bullish = False
         macd_hist_val = 0.0
@@ -104,7 +116,7 @@ class VolatilityBreakoutStrategy:
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, indicators, context)
+        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, macd_bullish, squeeze, indicators, context)
 
     def _evaluate_entry(
         self,
@@ -114,6 +126,7 @@ class VolatilityBreakoutStrategy:
         adx_value: float | None,
         volume_ok: bool,
         macd_bullish: bool,
+        squeeze: bool,
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
@@ -150,6 +163,8 @@ class VolatilityBreakoutStrategy:
             excess = (current_price - breakout_level) / breakout_level if breakout_level > 0 else 0
             confidence = min(1.0, 0.6 + excess * 10)
             if macd_bullish:
+                confidence = min(1.0, confidence + 0.1)
+            if squeeze:
                 confidence = min(1.0, confidence + 0.1)
             return Signal(
                 action=SignalAction.BUY,

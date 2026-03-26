@@ -236,6 +236,7 @@ class BacktestEngine:
         sharpe = _sharpe_ratio(equity_curve)
         sortino = _sortino_ratio(equity_curve)
         calmar = _calmar_ratio(equity_curve)
+        rar = total_return_pct / max_drawdown if max_drawdown > 0 else (float("inf") if total_return_pct > 0 else 0.0)
 
         return BacktestResult(
             initial_capital=self._config.initial_capital,
@@ -257,6 +258,7 @@ class BacktestEngine:
             sharpe_ratio=sharpe,
             sortino_ratio=sortino,
             calmar_ratio=calmar,
+            risk_adjusted_return=rar,
         )
 
 
