@@ -186,6 +186,19 @@ class PnLReportGenerator:
                 f"{s.sharpe_ratio:.2f} |"
             )
 
+        lines.extend([
+            "",
+            "## Cumulative Realized PnL",
+            "",
+            "| Strategy | Cumulative Realized PnL |",
+            "|----------|------------------------|",
+        ])
+        cumulative = 0.0
+        for s in sorted(report.strategies, key=lambda x: x.realized_pnl, reverse=True):
+            cumulative += s.realized_pnl
+            lines.append(f"| {s.strategy} | {cumulative:+,.0f} KRW |")
+        lines.append(f"| **Total** | **{report.total_realized_pnl:+,.0f} KRW** |")
+
         lines.extend(["", "*Auto-generated PnL report*"])
         return "\n".join(lines)
 
@@ -208,18 +221,20 @@ class PnLReportGenerator:
             "total_trades": report.total_trades,
             "total_realized_pnl": report.total_realized_pnl,
             "total_equity": report.total_equity,
-            "strategies": [
-                {
-                    "strategy": s.strategy,
-                    "return_pct": s.total_return_pct,
-                    "realized_pnl": s.realized_pnl,
-                    "trade_count": s.trade_count,
-                    "win_rate": s.win_rate,
-                    "sharpe": s.sharpe_ratio,
-                }
-                for s in report.strategies
-            ],
+            "strategies": [],
         }
+        cumulative = 0.0
+        for s in sorted(report.strategies, key=lambda x: x.realized_pnl, reverse=True):
+            cumulative += s.realized_pnl
+            json_data["strategies"].append({
+                "strategy": s.strategy,
+                "return_pct": s.total_return_pct,
+                "realized_pnl": s.realized_pnl,
+                "cumulative_realized_pnl": cumulative,
+                "trade_count": s.trade_count,
+                "win_rate": s.win_rate,
+                "sharpe": s.sharpe_ratio,
+            })
         json_path.write_text(json.dumps(json_data, indent=2), encoding="utf-8")
 
     def _empty_report(self, period: str) -> PortfolioPnLReport:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 import unittest
@@ -94,6 +95,118 @@ class TestCandleCache(unittest.TestCase):
             loaded = load_candle_cache(tmpdir, "KRW-BTC", "minute60", 90)
 
         self.assertIsNone(loaded)
+
+    def test_load_normalizes_out_of_order_cache_with_duplicate_timestamps(self) -> None:
+        candles = [
+            Candle(
+                timestamp=datetime(2025, 1, 1) + timedelta(hours=index),
+                open=100.0 + index,
+                high=101.0 + index,
+                low=99.0 + index,
+                close=100.5 + index,
+                volume=1000.0 + index,
+            )
+            for index in range(24)
+        ]
+        malformed = []
+        for candle in candles[:12]:
+            malformed.append(
+                {
+                    "timestamp": candle.timestamp.isoformat(),
+                    "open": candle.open,
+                    "high": candle.high,
+                    "low": candle.low,
+                    "close": candle.close,
+                    "volume": candle.volume,
+                }
+            )
+        for candle in candles[10:]:
+            malformed.append(
+                {
+                    "timestamp": candle.timestamp.isoformat(),
+                    "open": candle.open,
+                    "high": candle.high,
+                    "low": candle.low,
+                    "close": candle.close,
+                    "volume": candle.volume,
+                }
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_path = Path(tmpdir) / "KRW_BTC-minute60-1d.json"
+            cache_path.write_text(
+                json.dumps(malformed, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            loaded = load_candle_cache(tmpdir, "KRW-BTC", "minute60", 1)
+            repaired = json.loads(cache_path.read_text(encoding="utf-8"))
+
+        assert loaded is not None
+        self.assertEqual(len(loaded), 24)
+        self.assertEqual(loaded[0].timestamp, candles[0].timestamp)
+        self.assertEqual(loaded[-1].timestamp, candles[-1].timestamp)
+        self.assertEqual(len(repaired), 24)
+        self.assertEqual(repaired[0]["timestamp"], candles[0].timestamp.isoformat())
+        self.assertEqual(repaired[-1]["timestamp"], candles[-1].timestamp.isoformat())
+
+    def test_fetch_uses_nine_hour_pagination_offset_to_avoid_batch_overlap(self) -> None:
+        candles = [
+            Candle(
+                timestamp=datetime(2025, 1, 1) + timedelta(hours=index),
+                open=100.0 + index,
+                high=101.0 + index,
+                low=99.0 + index,
+                close=100.5 + index,
+                volume=1000.0 + index,
+            )
+            for index in range(24 * 9)
+        ]
+        latest_batch = candles[-200:]
+        oldest_batch = candles[:-200]
+        expected_to = latest_batch[0].timestamp - timedelta(hours=9, seconds=1)
+
+        class FakeFrame:
+            def __init__(self, rows: list[Candle]) -> None:
+                self._rows = rows
+                self.empty = not rows
+
+            def iterrows(self):
+                for candle in self._rows:
+                    yield candle.timestamp, {
+                        "open": candle.open,
+                        "high": candle.high,
+                        "low": candle.low,
+                        "close": candle.close,
+                        "volume": candle.volume,
+                    }
+
+        class FakePyUpbit:
+            def __init__(self) -> None:
+                self.calls: list[datetime | None] = []
+
+            def get_ohlcv(self, symbol, interval="minute60", count=200, to=None):
+                self.calls.append(to)
+                if to is None:
+                    return FakeFrame(latest_batch)
+                if to == expected_to:
+                    return FakeFrame(oldest_batch)
+                return FakeFrame([])
+
+        fake_pyupbit = FakePyUpbit()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch(
+                "crypto_trader.backtest.candle_cache.import_module",
+                return_value=fake_pyupbit,
+            ):
+                fetched = fetch_upbit_candles("KRW-BTC", 9, cache_dir=tmpdir)
+            loaded = load_candle_cache(tmpdir, "KRW-BTC", "minute60", 9)
+
+        self.assertEqual(len(fetched), 24 * 9)
+        self.assertIsNotNone(loaded)
+        assert loaded is not None
+        self.assertEqual(len(loaded), 24 * 9)
+        self.assertEqual(fake_pyupbit.calls, [None, expected_to])
 
 
 if __name__ == "__main__":

@@ -81,6 +81,34 @@ class PnLReportTests(unittest.TestCase):
         self.assertEqual(report.total_trades, 0)
         self.assertEqual(len(report.strategies), 0)
 
+    def test_cumulative_realized_pnl_in_markdown(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cp = self._create_checkpoint(tmp)
+            gen = PnLReportGenerator()
+            report = gen.generate_from_checkpoint(cp)
+            md = gen.to_markdown(report)
+            self.assertIn("Cumulative Realized PnL", md)
+            # Should contain total realized PnL
+            self.assertIn("Total", md)
+
+    def test_cumulative_realized_pnl_in_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cp = self._create_checkpoint(tmp)
+            gen = PnLReportGenerator()
+            report = gen.generate_from_checkpoint(cp)
+            out = Path(tmp) / "report.md"
+            gen.save(report, out)
+            json_path = out.with_suffix(".json")
+            data = json.loads(json_path.read_text())
+            # Each strategy should have cumulative_realized_pnl
+            for s in data["strategies"]:
+                self.assertIn("cumulative_realized_pnl", s)
+            # Last cumulative should equal total
+            if data["strategies"]:
+                last_cumulative = data["strategies"][-1]["cumulative_realized_pnl"]
+                total = sum(s["realized_pnl"] for s in data["strategies"])
+                self.assertAlmostEqual(last_cumulative, total, places=2)
+
     def test_sharpe_positive_for_positive_return(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cp = self._create_checkpoint(tmp)

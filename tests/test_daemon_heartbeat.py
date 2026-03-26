@@ -69,6 +69,24 @@ class TestDaemonHeartbeat(unittest.TestCase):
             self.assertIsInstance(data["pid"], int)
             self.assertGreaterEqual(data["uptime_seconds"], 0)
 
+    def test_heartbeat_timestamp_is_valid_iso8601_utc(self) -> None:
+        from datetime import datetime, timezone
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = self._make_runtime(tmpdir)
+            results = runtime._run_tick(["KRW-BTC"])
+            runtime._save_checkpoint(results)
+
+            heartbeat_path = Path(tmpdir) / "daemon-heartbeat.json"
+            data = json.loads(heartbeat_path.read_text())
+
+            ts = data["last_heartbeat"]
+            # Must parse as ISO8601
+            parsed = datetime.fromisoformat(ts)
+            # Must be UTC (offset-aware with +00:00)
+            self.assertIsNotNone(parsed.tzinfo)
+            self.assertEqual(parsed.utcoffset().total_seconds(), 0)
+
     def test_heartbeat_updates_on_subsequent_ticks(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime = self._make_runtime(tmpdir)

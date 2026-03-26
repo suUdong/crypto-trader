@@ -9,6 +9,23 @@ from pathlib import Path
 from crypto_trader.models import Candle
 
 DEFAULT_CACHE_MAX_AGE_HOURS = 6
+UPBIT_PAGINATION_HOURS = 9
+
+
+def _normalize_candles(candles: list[Candle], expected_count: int | None = None) -> list[Candle]:
+    """Sort candles and collapse duplicate timestamps.
+
+    Upbit batch pagination can overlap at batch boundaries. Keeping the latest
+    candle per timestamp gives a stable, cacheable series for later reuse.
+    """
+    deduped: dict[datetime, Candle] = {}
+    for candle in candles:
+        deduped[candle.timestamp] = candle
+
+    normalized = [deduped[timestamp] for timestamp in sorted(deduped)]
+    if expected_count is not None and len(normalized) > expected_count:
+        normalized = normalized[-expected_count:]
+    return normalized
 
 
 def _cache_path(cache_dir: str | None, symbol: str, interval: str, days: int) -> Path | None:
@@ -50,9 +67,22 @@ def load_candle_cache(
         )
         for item in payload
     ]
-    timestamps = [candle.timestamp for candle in candles]
-    if timestamps != sorted(timestamps) or len(set(timestamps)) != len(timestamps):
+    candles = _normalize_candles(candles, expected_count=expected_count)
+    if len(candles) < expected_count:
         return None
+    serialized = [
+        {
+            "timestamp": candle.timestamp.isoformat(),
+            "open": candle.open,
+            "high": candle.high,
+            "low": candle.low,
+            "close": candle.close,
+            "volume": candle.volume,
+        }
+        for candle in candles
+    ]
+    if payload != serialized:
+        path.write_text(json.dumps(serialized, indent=2, ensure_ascii=False), encoding="utf-8")
     return candles
 
 
@@ -131,12 +161,16 @@ def fetch_upbit_candles(
         if not batch:
             break
 
-        to_dt = batch[0].timestamp - timedelta(seconds=1)
+        # pyupbit interprets naive `to` values on a UTC boundary while the
+        # returned candle timestamps are effectively KST-aligned. Without the
+        # 9-hour offset, each batch overlaps and the final cache misses data.
+        to_dt = batch[0].timestamp - timedelta(hours=UPBIT_PAGINATION_HOURS, seconds=1)
         all_candles = batch + all_candles
         if len(batch) < batch_size:
             break
         time.sleep(0.15)
 
-    if len(all_candles) >= total_needed:
-        save_candle_cache(cache_dir, symbol, interval, days, all_candles)
-    return all_candles
+    normalized = _normalize_candles(all_candles, expected_count=total_needed)
+    if len(normalized) >= total_needed:
+        save_candle_cache(cache_dir, symbol, interval, days, normalized)
+    return normalized
