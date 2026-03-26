@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, keltner_channels, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma
+from crypto_trader.strategy.indicators import _ema, average_directional_index, bollinger_bands, chaikin_money_flow, keltner_channels, macd, noise_ratio, obv_slope, rolling_vwap, rsi, rsi_divergence, volume_sma
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -181,6 +181,17 @@ class MeanReversionStrategy:
                 # OBV divergence boost: price at lower band but OBV rising = accumulation
                 if obv_trend is not None and obv_trend > 0.3:
                     base_conf = min(1.0, base_conf + 0.1)
+                # CMF buying pressure: positive CMF confirms accumulation
+                try:
+                    cmf_val = chaikin_money_flow(
+                        [c.high for c in candles], [c.low for c in candles],
+                        closes, [c.volume for c in candles],
+                    )
+                    indicators["cmf"] = cmf_val
+                    if cmf_val > 0.05:
+                        base_conf = min(1.0, base_conf + 0.05)
+                except ValueError:
+                    pass
                 # EMA(50) macro: price below EMA(50) confirms extended dip (good for MR)
                 if ema50_value is not None and latest_close < ema50_value:
                     base_conf = min(1.0, base_conf + 0.05)

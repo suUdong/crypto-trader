@@ -6,6 +6,7 @@ from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
+    chaikin_money_flow,
     keltner_channels,
     macd,
     noise_ratio,
@@ -100,6 +101,17 @@ class EMACrossoverStrategy:
         try:
             volumes = [c.volume for c in candles]
             obv_trend = obv_slope(closes, volumes, lookback=10)
+        except ValueError:
+            pass
+
+        # Chaikin Money Flow
+        cmf_value: float | None = None
+        try:
+            cmf_value = chaikin_money_flow(
+                [c.high for c in candles], [c.low for c in candles],
+                closes, volumes,
+            )
+            indicators["cmf"] = cmf_value
         except ValueError:
             pass
 

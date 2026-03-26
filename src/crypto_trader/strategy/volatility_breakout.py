@@ -6,6 +6,7 @@ from crypto_trader.strategy.indicators import (
     _ema,
     average_directional_index,
     bollinger_band_width,
+    chaikin_money_flow,
     keltner_channels,
     macd,
     noise_ratio,
@@ -128,6 +129,14 @@ class VolatilityBreakoutStrategy:
         try:
             obv_trend = obv_slope(closes, volumes, lookback=10)
             indicators["obv_slope"] = obv_trend
+        except ValueError:
+            pass
+
+        # Chaikin Money Flow
+        cmf_value: float | None = None
+        try:
+            cmf_value = chaikin_money_flow(highs, lows, closes, volumes)
+            indicators["cmf"] = cmf_value
         except ValueError:
             pass
 
