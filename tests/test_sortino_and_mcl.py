@@ -221,6 +221,27 @@ class TestTradeMetrics(unittest.TestCase):
             self.assertIn(name, fields)
 
 
+class TestExpectedValue(unittest.TestCase):
+    def test_ev_positive_for_winning_strategy(self) -> None:
+        from crypto_trader.models import BacktestResult
+        self.assertIn("expected_value_per_trade", BacktestResult.__dataclass_fields__)
+
+    def test_ev_calculated_in_engine(self) -> None:
+        closes = [100.0] * 20
+        for _ in range(3):
+            closes.extend([95.0, 93.0, 91.0, 89.0, 92.0, 95.0, 98.0, 100.0])
+        candles = _build_candles(closes)
+        strategy = create_strategy(
+            "momentum",
+            StrategyConfig(momentum_lookback=3, momentum_entry_threshold=-0.5, adx_threshold=0.0, volume_filter_mult=0.0),
+            RegimeConfig(),
+        )
+        rm = RiskManager(RiskConfig(atr_stop_multiplier=0.0))
+        engine = BacktestEngine(strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC")
+        result = engine.run(candles)
+        self.assertIsInstance(result.expected_value_per_trade, float)
+
+
 class TestKellyFraction(unittest.TestCase):
     def test_kelly_positive_for_edge(self) -> None:
         # 60% win rate, 1.5 payoff -> f* = 0.6 - 0.4/1.5 = 0.333

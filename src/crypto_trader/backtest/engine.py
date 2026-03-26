@@ -201,6 +201,9 @@ class BacktestEngine:
         avg_loss = sum(losses) / len(losses) if losses else 0.0
         payoff = avg_win / avg_loss if avg_loss > 0 else 0.0
 
+        # Expected value per trade: EV = (win_rate * avg_win) - ((1-win_rate) * avg_loss)
+        ev_per_trade = (win_rate * avg_win) - ((1.0 - win_rate) * avg_loss) if trades else 0.0
+
         return BacktestResult(
             initial_capital=self._config.initial_capital,
             final_equity=final_equity,
@@ -215,6 +218,7 @@ class BacktestEngine:
             avg_trade_duration_bars=avg_duration,
             max_trade_duration_bars=max_duration,
             payoff_ratio=payoff,
+            expected_value_per_trade=ev_per_trade,
         )
 
 

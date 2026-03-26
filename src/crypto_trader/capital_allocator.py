@@ -22,10 +22,14 @@ class StrategyPerformance:
     win_rate: float
     equity: float
     initial_capital: float
+    composite_score_override: float | None = None
 
     @property
     def score(self) -> float:
-        """Composite score: Sharpe * (1 - MDD_fraction), floored at 0."""
+        """Composite score: uses override from backtest-all if available,
+        otherwise falls back to Sharpe * (1 - MDD_fraction), floored at 0."""
+        if self.composite_score_override is not None:
+            return max(0.0, self.composite_score_override)
         mdd_frac = min(self.mdd_pct / 100.0, 1.0)
         raw = self.sharpe * (1.0 - mdd_frac)
         return max(0.0, raw)
@@ -199,6 +203,36 @@ class CapitalAllocator:
 
         # Scale back to pool
         return {s: w * pool for s, w in weights.items()}
+
+    @staticmethod
+    def from_backtest_all(backtest_all_path: str | Path) -> list[StrategyPerformance]:
+        """Load strategy performances from a backtest-all JSON export.
+
+        Uses composite_score, kelly_fraction, and EV from the richer backtest-all output.
+        """
+        bp = Path(backtest_all_path)
+        if not bp.exists():
+            return []
+
+        data = json.loads(bp.read_text(encoding="utf-8"))
+        results = data.get("results", [])
+
+        performances = []
+        for r in results:
+            performances.append(
+                StrategyPerformance(
+                    strategy=r["strategy"],
+                    return_pct=r.get("return_pct", 0.0),
+                    sharpe=r.get("sharpe", 0.0),
+                    mdd_pct=r.get("max_drawdown_pct", 0.0),
+                    trade_count=r.get("trade_count", 0),
+                    win_rate=r.get("win_rate_pct", 0.0) / 100.0,
+                    equity=0.0,
+                    initial_capital=0.0,
+                    composite_score_override=r.get("composite_score"),
+                )
+            )
+        return performances
 
     @staticmethod
     def from_checkpoint(checkpoint_path: str | Path) -> list[StrategyPerformance]:

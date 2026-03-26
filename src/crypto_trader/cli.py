@@ -68,6 +68,7 @@ def main() -> None:
             "correlation",
             "apply-params",
             "backtest-all",
+            "grid-wf-all",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -710,6 +711,7 @@ def main() -> None:
                 sym_mdds: list[float] = []
                 sym_wrs: list[float] = []
                 sym_payoffs: list[float] = []
+                sym_evs: list[float] = []
                 sym_durations: list[float] = []
                 total_trades = 0
                 max_mcl = 0
@@ -739,6 +741,7 @@ def main() -> None:
                     sym_mdds.append(bt_result.max_drawdown * 100)
                     sym_wrs.append(bt_result.win_rate * 100)
                     sym_payoffs.append(bt_result.payoff_ratio)
+                    sym_evs.append(bt_result.expected_value_per_trade)
                     sym_durations.append(bt_result.avg_trade_duration_bars)
                     total_trades += len(bt_result.trade_log)
                     max_mcl = max(max_mcl, bt_result.max_consecutive_losses)
@@ -778,6 +781,7 @@ def main() -> None:
                     "avg_trade_duration_bars": round(sum(sym_durations) / n, 1) if sym_durations else 0.0,
                     "max_trade_duration_bars": max_dur,
                     "payoff_ratio": round(sum(sym_payoffs) / n, 3) if sym_payoffs else 0.0,
+                    "expected_value_per_trade": round(sum(sym_evs) / n, 2) if sym_evs else 0.0,
                     "kelly_fraction": round(kelly_fraction(sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0), 4),
                     "composite_score": round(composite, 3),
                 }
@@ -831,6 +835,100 @@ def main() -> None:
         export_path = artifacts_dir / f"backtest-all-{date.today().isoformat()}.json"
         export_path.write_text(json.dumps(export, indent=2), encoding="utf-8")
         print(f"  Results saved to {export_path}")
+        return
+
+    if args.command == "grid-wf-all":
+        import json
+        from datetime import date
+        from crypto_trader.backtest.grid_wf import run_grid_wf, kelly_fraction, _approx_sortino
+
+        grid_strategies = [
+            "momentum", "mean_reversion", "vpin", "volatility_breakout",
+            "obi", "consensus",
+        ]
+        days = args.days
+        top_n = args.top_n
+        symbols = config.trading.symbols
+
+        # Fetch candles once for all strategies
+        candles_map_gw: dict[str, list] = {}
+        for sym in symbols:
+            try:
+                c = market_data.get_ohlcv(sym, interval=config.trading.interval, count=days * 24)
+                if c and len(c) >= 100:
+                    candles_map_gw[sym] = c
+            except Exception as e:
+                print(f"  Skipping {sym}: {e}")
+
+        if not candles_map_gw:
+            print("No candle data available for grid-wf-all.")
+            return
+
+        print(f"\n{'='*70}")
+        print(f"  GRID-WF-ALL: {len(grid_strategies)} strategies ({days}d, top-{top_n})")
+        print(f"{'='*70}")
+
+        all_summaries: list[dict] = []
+
+        for strat_name in grid_strategies:
+            try:
+                print(f"\n  --- {strat_name} ---")
+                summary = run_grid_wf(
+                    strategy_type=strat_name,
+                    candles_by_symbol=candles_map_gw,
+                    top_n=top_n,
+                    backtest_config=config.backtest,
+                    risk_config=config.risk,
+                    regime_filter=args.regime,
+                )
+
+                print(f"  Tested: {summary.candidates_tested}  Validated: {summary.candidates_validated}")
+
+                best = summary.best_validated
+                if best:
+                    print(f"  BEST: Sharpe={best.candidate.avg_sharpe:.2f} "
+                          f"Sortino={best.candidate.avg_sortino:.2f} "
+                          f"Return={best.candidate.avg_return_pct:+.2f}%")
+                    print(f"  Params: {best.candidate.params}")
+                else:
+                    print("  No validated candidate.")
+
+                summary_dict = summary.to_dict()
+                summary_dict["strategy"] = strat_name
+                all_summaries.append(summary_dict)
+            except Exception as exc:
+                print(f"  {strat_name}: ERROR — {exc}")
+
+        # Combined summary
+        print(f"\n{'='*70}")
+        print("  GRID-WF-ALL SUMMARY")
+        print(f"{'='*70}")
+        print(f"\n  {'Strategy':<22} {'Validated':>9} {'Best Sharpe':>12} {'Best Sortino':>13} {'Best Return':>12}")
+        print(f"  {'-'*70}")
+        for s in all_summaries:
+            bv = s.get("best_validated")
+            if bv:
+                print(f"  {s['strategy']:<22} {s['candidates_validated']:>9} "
+                      f"{bv['avg_sharpe']:>11.2f} {bv.get('avg_sortino', 0):>12.2f} "
+                      f"{bv['avg_return_pct']:>+11.2f}%")
+            else:
+                print(f"  {s['strategy']:<22} {s['candidates_validated']:>9} {'—':>12} {'—':>13} {'—':>12}")
+
+        print(f"\n{'='*70}\n")
+
+        # Save combined results
+        artifacts_dir = Path("artifacts")
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        export_gw = {
+            "date": date.today().isoformat(),
+            "days": days,
+            "top_n": top_n,
+            "symbols": list(candles_map_gw.keys()),
+            "strategies": all_summaries,
+        }
+        export_path_gw = artifacts_dir / f"grid-wf-all-{date.today().isoformat()}.json"
+        export_path_gw.write_text(json.dumps(export_gw, indent=2), encoding="utf-8")
+        print(f"  Results saved to {export_path_gw}")
         return
 
     if args.command == "run-multi":
