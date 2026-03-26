@@ -1,8 +1,11 @@
 """Grid search + walk-forward combo: find best params then validate OOS."""
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
+
+_logger = logging.getLogger(__name__)
 
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.backtest.walk_forward import WalkForwardReport, WalkForwardValidator
@@ -183,7 +186,8 @@ def grid_search(
                 sharpes.append(result["sharpe"])
                 returns.append(result["return_pct"])
                 trades += int(result["trade_count"])
-            except Exception:
+            except Exception as exc:
+                _logger.debug("grid combo failed for %s/%s: %s", strategy_type, symbol, exc)
                 continue
 
         if sharpes:

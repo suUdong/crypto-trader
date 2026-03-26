@@ -58,11 +58,13 @@ class ConsensusStrategy:
 
         if len(buy_signals) >= self._min_agree:
             avg_confidence = sum(s.confidence for s in buy_signals) / len(buy_signals)
-            # Merge indicators from all agreeing strategies
+            # Merge indicators from all agreeing strategies (prefix to avoid collision)
             merged_indicators: dict[str, float] = {}
-            for sig in buy_signals:
+            for idx, sig in enumerate(buy_signals):
                 if sig.indicators:
-                    merged_indicators.update(sig.indicators)
+                    prefix = sig.reason.split("_")[0] if sig.reason else f"s{idx}"
+                    for k, v in sig.indicators.items():
+                        merged_indicators[f"{prefix}_{k}"] = v
             reasons = [s.reason for s in buy_signals]
             return Signal(
                 action=SignalAction.BUY,
