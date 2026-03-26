@@ -13,3 +13,5 @@ __pycache__/
 logs/
 artifacts/
 .omc/
+.omx/
+*.egg-info/
