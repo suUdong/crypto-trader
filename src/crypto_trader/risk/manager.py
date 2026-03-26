@@ -11,6 +11,7 @@ class RiskManager:
         config: RiskConfig,
         trailing_stop_pct: float = 0.0,
         atr_stop_multiplier: float = 0.0,
+        max_holding_bars: int = 48,
     ) -> None:
         self._config = config
         self._trade_history: list[float] = []
@@ -19,6 +20,7 @@ class RiskManager:
         self._current_atr: float = 0.0
         self.min_entry_confidence: float = config.min_entry_confidence
         self._peak_equity: float = 0.0
+        self._max_holding_bars: int = max_holding_bars
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -117,9 +119,18 @@ class RiskManager:
         loss_limit = starting_equity * self._config.max_daily_loss_pct
         return realized_pnl > -loss_limit
 
-    def exit_reason(self, position: Position, price: float) -> str | None:
+    def exit_reason(
+        self, position: Position, price: float, holding_bars: int = 0,
+    ) -> str | None:
         # Update high watermark for trailing stop
         position.update_watermark(price)
+
+        # Time-decay exit: close underwater positions held > 75% of max bars
+        if holding_bars > 0 and self._max_holding_bars > 0:
+            bar_ratio = holding_bars / self._max_holding_bars
+            pnl_pct = (price - position.entry_price) / position.entry_price
+            if bar_ratio >= 0.75 and pnl_pct < 0:
+                return "time_decay_exit"
 
         # ATR-based dynamic stops (if ATR available and multiplier set)
         if self._atr_stop_multiplier > 0 and self._current_atr > 0:

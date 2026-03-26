@@ -137,6 +137,13 @@ def average_directional_index(
     return adx
 
 
+def volume_sma(volumes: list[float], window: int) -> float:
+    """Simple moving average of volume over the last `window` bars."""
+    if len(volumes) < window:
+        raise ValueError("Not enough values for volume SMA")
+    return sum(volumes[-window:]) / window
+
+
 def noise_ratio(closes: list[float], lookback: int) -> float:
     """Noise ratio: 1 - |net_move| / sum(|bar_moves|). Lower = stronger trend."""
     if len(closes) <= lookback:

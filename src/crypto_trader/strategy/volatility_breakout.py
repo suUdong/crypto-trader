@@ -6,6 +6,7 @@ from crypto_trader.strategy.indicators import (
     average_directional_index,
     noise_ratio,
     simple_moving_average,
+    volume_sma,
 )
 
 
@@ -75,10 +76,23 @@ class VolatilityBreakoutStrategy:
         except ValueError:
             pass
 
+        # Volume filter: compute ratio before entry check
+        volume_ok = True
+        vol_mult = self._config.volume_filter_mult
+        if vol_mult > 0:
+            volumes = [c.volume for c in candles]
+            try:
+                vol_avg = volume_sma(volumes, min(20, len(volumes)))
+                indicators["volume_ratio"] = volumes[-1] / vol_avg if vol_avg > 0 else 0.0
+                if volumes[-1] < vol_avg * vol_mult:
+                    volume_ok = False
+            except ValueError:
+                pass
+
         if position is not None:
             return self._evaluate_exit(candles, position, current_price, indicators, context)
 
-        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, indicators, context)
+        return self._evaluate_entry(current_price, breakout_level, ma, adx_value, volume_ok, indicators, context)
 
     def _evaluate_entry(
         self,
@@ -86,6 +100,7 @@ class VolatilityBreakoutStrategy:
         breakout_level: float,
         ma: float,
         adx_value: float | None,
+        volume_ok: bool,
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
@@ -105,6 +120,15 @@ class VolatilityBreakoutStrategy:
                 return Signal(
                     action=SignalAction.HOLD,
                     reason="adx_too_weak",
+                    confidence=0.2,
+                    indicators=indicators,
+                    context=context,
+                )
+            # Volume filter
+            if not volume_ok:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="volume_too_low",
                     confidence=0.2,
                     indicators=indicators,
                     context=context,

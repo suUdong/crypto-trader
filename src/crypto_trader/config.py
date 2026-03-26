@@ -44,6 +44,7 @@ class StrategyConfig:
     max_holding_bars: int = 48
     adx_period: int = 14
     adx_threshold: float = 20.0
+    volume_filter_mult: float = 0.0
 
 
 @dataclass(slots=True)
@@ -70,7 +71,7 @@ class RiskConfig:
     stop_loss_pct: float = 0.03
     take_profit_pct: float = 0.06
     trailing_stop_pct: float = 0.0
-    atr_stop_multiplier: float = 0.0
+    atr_stop_multiplier: float = 2.0
     max_daily_loss_pct: float = 0.05
     max_concurrent_positions: int = 1
     min_entry_confidence: float = 0.6

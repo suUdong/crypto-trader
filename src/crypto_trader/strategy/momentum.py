@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import average_directional_index, momentum, rsi
+from crypto_trader.strategy.indicators import average_directional_index, momentum, rsi, volume_sma
 from crypto_trader.strategy.regime import RegimeDetector
 
 
@@ -62,6 +62,22 @@ class MomentumStrategy:
                         indicators=indicators,
                         context=context,
                     )
+                # Volume filter: require above-average volume for entry
+                if effective.volume_filter_mult > 0:
+                    volumes = [c.volume for c in candles]
+                    try:
+                        vol_avg = volume_sma(volumes, min(20, len(volumes)))
+                        indicators["volume_ratio"] = volumes[-1] / vol_avg if vol_avg > 0 else 0.0
+                        if volumes[-1] < vol_avg * effective.volume_filter_mult:
+                            return Signal(
+                                action=SignalAction.HOLD,
+                                reason="volume_too_low",
+                                confidence=0.2,
+                                indicators=indicators,
+                                context=context,
+                            )
+                    except ValueError:
+                        pass
                 return Signal(
                     action=SignalAction.BUY,
                     reason="momentum_rsi_alignment",

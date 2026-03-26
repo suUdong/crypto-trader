@@ -138,7 +138,13 @@ class StrategyWallet:
                             candle_index=len(candles) - 1,
                         )
             elif position is not None:
-                exit_reason = self.risk_manager.exit_reason(position, latest_price)
+                holding_bars = (
+                    0 if position.entry_index is None
+                    else len(candles) - position.entry_index - 1
+                )
+                exit_reason = self.risk_manager.exit_reason(
+                    position, latest_price, holding_bars=holding_bars,
+                )
                 should_sell = signal.action is SignalAction.SELL or exit_reason is not None
                 if should_sell:
                     now = candles[-1].timestamp

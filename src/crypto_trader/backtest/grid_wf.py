@@ -169,7 +169,10 @@ def _run_backtest_with_params(
             strategy._fx.get_usd_krw_rate.return_value = None
 
     risk_config = RiskConfig()
-    risk_manager = RiskManager(risk_config)
+    risk_manager = RiskManager(
+        risk_config,
+        atr_stop_multiplier=risk_config.atr_stop_multiplier,
+    )
     backtest_config = BacktestConfig(
         initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005,
     )
