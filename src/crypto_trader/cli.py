@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from crypto_trader.backtest.baseline import BacktestBaselineStore, build_baseline
+from crypto_trader.capital_allocator import CapitalAllocator
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import load_config
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
@@ -58,12 +59,16 @@ def main() -> None:
             "pnl-report",
             "performance-report",
             "micro-live-check",
+            "rebalance-capital",
         ],
     )
     parser.add_argument("--config", default=None)
     parser.add_argument(
         "--strategy",
-        choices=["momentum", "mean_reversion", "composite"],
+        choices=[
+            "momentum", "mean_reversion", "composite",
+            "kimchi_premium", "obi", "vpin", "volatility_breakout",
+        ],
         default="composite",
         help="Strategy type for backtest (default: composite)",
     )
@@ -249,6 +254,29 @@ def main() -> None:
             status = "PASS" if ready or reason.startswith("All micro-live") else "FAIL"
             print(f"[{status}] {reason}")
         print("READY" if ready else "NOT READY")
+        return
+
+    if args.command == "rebalance-capital":
+        allocator = CapitalAllocator()
+        performances = allocator.from_checkpoint(config.runtime.runtime_checkpoint_path)
+        if not performances:
+            print("No checkpoint data found. Run the daemon first to collect performance data.")
+            return
+        total_capital = sum(p.initial_capital for p in performances)
+        result = allocator.allocate(performances, total_capital)
+        report_path = "artifacts/capital-allocation.json"
+        allocator.save_report(result, report_path)
+        print(f"\n{'='*60}")
+        print("  CAPITAL REBALANCE — Concentrate on Top Performers")
+        print(f"{'='*60}")
+        print(f"\n  {'Rank':<5} {'Strategy':<22} {'Score':>7} {'Weight':>8} {'Capital':>14}")
+        print(f"  {'-'*58}")
+        for a in result.allocations:
+            print(f"  #{a.rank:<4} {a.strategy:<22} {a.score:>6.3f} {a.weight:>7.1%} {a.capital:>13,.0f}")
+        print(f"\n  Concentration (HHI): {result.concentration_ratio:.4f}")
+        print(f"  TOML wallets:\n")
+        print(allocator.to_toml_wallets(result.allocations))
+        print(f"\n  Report saved to {report_path}")
         return
 
     if args.command == "run-multi":

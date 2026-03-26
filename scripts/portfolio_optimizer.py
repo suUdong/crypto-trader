@@ -24,7 +24,7 @@ from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from crypto_trader.wallet import create_strategy  # noqa: E402
 
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
-STRATEGIES = ["momentum", "mean_reversion", "obi", "vpin"]
+STRATEGIES = ["momentum", "mean_reversion", "composite", "kimchi_premium", "obi", "vpin", "volatility_breakout"]
 INTERVAL = "minute60"
 
 
@@ -258,34 +258,28 @@ def main() -> None:
     print("  RECOMMENDED PORTFOLIO WEIGHTS")
     print(f"{'='*80}\n")
 
-    total_capital = 6_000_000
+    total_capital = len(STRATEGIES) * 1_000_000
     for strategy, weight in sorted(weights.items(), key=lambda x: x[1], reverse=True):
         alloc = total_capital * weight
         print(f"  {strategy:<16} {weight:>6.1%}  ({alloc:>12,.0f} KRW)")
 
-    # Add kimchi_premium and composite with minimum allocation
-    print(f"\n  {'kimchi_premium':<16} {'paused':>6}  (overtrading, needs Binance feed)")
-    print(f"  {'composite':<16} {'paused':>6}  (idle, too conservative)")
-
     # Save report
+    total_capital = len(STRATEGIES) * 1_000_000
     report_lines = [
         "# Portfolio Optimization Report",
         "",
         f"**Analysis Period**: {days} days",
         f"**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"**Total Capital**: {total_capital:,.0f} KRW",
         "",
         "## Recommended Weights",
         "",
-        "| Strategy | Weight | Allocation (6M KRW) |",
-        "|----------|--------|-------------------|",
+        "| Strategy | Weight | Allocation |",
+        "|----------|--------|------------|",
     ]
     for strategy, weight in sorted(weights.items(), key=lambda x: x[1], reverse=True):
         alloc = total_capital * weight
         report_lines.append(f"| {strategy} | {weight:.1%} | {alloc:,.0f} KRW |")
-    report_lines.extend([
-        "| kimchi_premium | paused | - |",
-        "| composite | paused | - |",
-    ])
 
     report_path = Path("artifacts/portfolio-optimization.md")
     report_path.parent.mkdir(parents=True, exist_ok=True)

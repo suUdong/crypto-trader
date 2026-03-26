@@ -98,6 +98,11 @@ name = "vpin_wallet"
 strategy = "vpin"
 initial_capital = 1000000.0
 
+[[wallets]]
+name = "volatility_breakout_wallet"
+strategy = "volatility_breakout"
+initial_capital = 1000000.0
+
 [credentials]
 upbit_access_key = ""
 upbit_secret_key = ""
