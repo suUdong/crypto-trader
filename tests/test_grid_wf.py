@@ -107,6 +107,31 @@ class TestValidateWithWalkForward(unittest.TestCase):
         self.assertIsInstance(result.validated, bool)
         self.assertGreater(result.wf_report.total_folds, 0)
 
+    def test_multi_symbol_folds_combined(self) -> None:
+        """WF report should contain folds from all symbols, not just one."""
+        candles_btc = _build_candles(_trending_with_pullbacks(400))
+        candles_eth = _build_candles(_sideways(400), start=datetime(2025, 2, 1))
+        candidate = GridCandidate(
+            strategy_type="momentum",
+            params={"momentum_lookback": 15, "momentum_entry_threshold": 0.005,
+                    "rsi_period": 14, "max_holding_bars": 48},
+            avg_sharpe=1.5,
+            avg_return_pct=3.0,
+            total_trades=20,
+        )
+        result = validate_with_walk_forward(
+            candidate,
+            {"KRW-BTC": candles_btc, "KRW-ETH": candles_eth},
+            BacktestConfig(),
+            RiskConfig(),
+            n_folds=3,
+        )
+        self.assertIsNotNone(result.wf_report)
+        self.assertIsInstance(result.validated, bool)
+        # Combined report should have folds from both symbols (2 symbols * 3 folds each = 6)
+        self.assertGreater(result.wf_report.total_folds, 3)
+        self.assertEqual(result.wf_report.symbol, "multi")
+
 
 class TestRunGridWF(unittest.TestCase):
     def test_full_pipeline_momentum(self) -> None:

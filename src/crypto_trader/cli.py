@@ -65,6 +65,7 @@ def main() -> None:
             "grid-wf",
             "snapshot",
             "correlation",
+            "apply-params",
         ],
     )
     parser.add_argument("--config", default=None)
@@ -97,6 +98,7 @@ def main() -> None:
         dest="top_n",
         help="Number of top grid search candidates to validate (default: 5)",
     )
+    parser.add_argument("--wallet", default=None, help="Target wallet name for apply-params")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -544,6 +546,87 @@ def main() -> None:
 
         print(f"\n  Correlation > 0.7 = highly redundant (consider removing one)")
         print(f"  Correlation < 0.3 = good diversification")
+        print(f"{'='*60}\n")
+        return
+
+    if args.command == "apply-params":
+        import json
+        import glob as globmod
+
+        # Find latest grid-wf JSON
+        strategy_type = args.strategy
+        pattern = f"artifacts/grid-wf-{strategy_type}-*.json"
+        files = sorted(globmod.glob(pattern))
+        if not files:
+            print(f"No grid-wf results found for {strategy_type}. Run grid-wf first.")
+            return
+
+        latest = files[-1]
+        data = json.loads(Path(latest).read_text(encoding="utf-8"))
+
+        best = data.get("best_validated")
+        if not best:
+            print(f"No validated candidate in {latest}.")
+            return
+
+        best_params = best["params"]
+        wallet_name = args.wallet
+
+        if not wallet_name:
+            # Auto-detect: find wallet matching strategy type
+            matching = [w for w in config.wallets if w.strategy == strategy_type]
+            if not matching:
+                print(f"No wallet with strategy={strategy_type}. Use --wallet to specify.")
+                return
+            wallet_name = matching[0].name
+
+        # Read daemon.toml and update
+        config_path = Path(args.config or "config/daemon.toml")
+        if not config_path.exists():
+            print(f"Config file not found: {config_path}")
+            return
+
+        toml_text = config_path.read_text(encoding="utf-8")
+
+        # Find the wallet section and show diff
+        print(f"\n{'='*60}")
+        print(f"  APPLY PARAMS: {strategy_type} -> {wallet_name}")
+        print(f"  Source: {latest}")
+        print(f"{'='*60}\n")
+
+        # Show what will change
+        target_wallet = None
+        for w in config.wallets:
+            if w.name == wallet_name:
+                target_wallet = w
+                break
+
+        if not target_wallet:
+            print(f"Wallet '{wallet_name}' not found in config.")
+            return
+
+        from crypto_trader.config import _STRATEGY_FIELD_NAMES
+        strategy_params = {k: v for k, v in best_params.items() if k in _STRATEGY_FIELD_NAMES}
+
+        print("  Parameter changes:")
+        for key, new_val in sorted(strategy_params.items()):
+            old_val = target_wallet.strategy_overrides.get(key, "(default)")
+            marker = " *" if str(old_val) != str(new_val) else ""
+            print(f"    {key}: {old_val} -> {new_val}{marker}")
+
+        # Write updated params as JSON sidecar (safer than modifying TOML directly)
+        output = {
+            "wallet": wallet_name,
+            "strategy": strategy_type,
+            "source": latest,
+            "params": strategy_params,
+            "best_sharpe": best["avg_sharpe"],
+        }
+        sidecar_path = Path("artifacts") / f"apply-params-{wallet_name}.json"
+        sidecar_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
+
+        print(f"\n  Params saved to {sidecar_path}")
+        print(f"  To apply: manually update [wallets.strategy_overrides] in {config_path}")
         print(f"{'='*60}\n")
         return
 

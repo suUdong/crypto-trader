@@ -243,7 +243,9 @@ def validate_with_walk_forward(
     risk_config: RiskConfig,
     n_folds: int = 3,
 ) -> GridWFResult:
-    """Validate a grid search candidate with walk-forward."""
+    """Validate a grid search candidate with walk-forward across ALL symbols."""
+    from crypto_trader.backtest.walk_forward import WalkForwardFold
+
     validator = WalkForwardValidator(
         backtest_config=backtest_config,
         risk_config=risk_config,
@@ -251,43 +253,66 @@ def validate_with_walk_forward(
         train_pct=0.7,
     )
 
-    # Pick the symbol with most candles for validation
-    best_symbol = max(candles_by_symbol, key=lambda s: len(candles_by_symbol[s]))
-    candles = candles_by_symbol[best_symbol]
-
     config_fields = set(StrategyConfig.__dataclass_fields__)
 
-    def _factory() -> object:
-        config_kwargs = {k: v for k, v in candidate.params.items() if k in config_fields}
-        strategy_config = StrategyConfig(**config_kwargs)
-        regime_config = RegimeConfig()
-        strategy = create_strategy(
-            candidate.strategy_type, strategy_config, regime_config, candidate.params,
-        )
-        if candidate.strategy_type == "kimchi_premium" and hasattr(strategy, "_cached_premium"):
-            from unittest.mock import MagicMock
-            if len(candles) >= 50:
-                closes = [c.close for c in candles]
-                ma50 = sum(closes[-50:]) / 50.0
-                if ma50 > 0:
-                    strategy._cached_premium = (closes[-1] - ma50) / ma50
-            strategy._binance = MagicMock()
-            strategy._fx = MagicMock()
-            strategy._binance.get_btc_usdt_price.return_value = None
-            strategy._fx.get_usd_krw_rate.return_value = None
-        return strategy
+    all_folds: list[WalkForwardFold] = []
+    symbols_passed = 0
+    symbols_tested = 0
 
-    report = validator.validate(
-        strategy_factory=_factory,
-        candles=candles,
-        symbol=best_symbol,
+    for symbol, candles in candles_by_symbol.items():
+        if len(candles) < 100:
+            continue
+
+        def _factory(sym: str = symbol, cndls: list[Candle] = candles) -> object:
+            config_kwargs = {k: v for k, v in candidate.params.items() if k in config_fields}
+            strategy_config = StrategyConfig(**config_kwargs)
+            regime_config = RegimeConfig()
+            strategy = create_strategy(
+                candidate.strategy_type, strategy_config, regime_config, candidate.params,
+            )
+            if candidate.strategy_type == "kimchi_premium" and hasattr(strategy, "_cached_premium"):
+                from unittest.mock import MagicMock
+                if len(cndls) >= 50:
+                    closes = [c.close for c in cndls]
+                    ma50 = sum(closes[-50:]) / 50.0
+                    if ma50 > 0:
+                        strategy._cached_premium = (closes[-1] - ma50) / ma50
+                strategy._binance = MagicMock()
+                strategy._fx = MagicMock()
+                strategy._binance.get_btc_usdt_price.return_value = None
+                strategy._fx.get_usd_krw_rate.return_value = None
+            return strategy
+
+        try:
+            report = validator.validate(
+                strategy_factory=_factory,
+                candles=candles,
+                symbol=symbol,
+                strategy_name=candidate.strategy_type,
+            )
+        except Exception as exc:
+            _logger.debug("walk-forward failed for %s/%s: %s", candidate.strategy_type, symbol, exc)
+            continue
+
+        if report.folds:
+            all_folds.extend(report.folds)
+            symbols_tested += 1
+            if report.passed:
+                symbols_passed += 1
+
+    combined_report = WalkForwardReport(
         strategy_name=candidate.strategy_type,
+        symbol="multi",
+        total_folds=len(all_folds),
+        folds=all_folds,
     )
+
+    majority_pass = symbols_tested > 0 and symbols_passed >= (symbols_tested / 2)
 
     return GridWFResult(
         candidate=candidate,
-        wf_report=report,
-        validated=report.passed,
+        wf_report=combined_report,
+        validated=combined_report.passed and majority_pass,
     )
 
 

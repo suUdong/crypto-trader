@@ -1,72 +1,83 @@
 # Session Handoff
 
-Date: 2026-03-26 (FIRE Session #5)
+Date: 2026-03-26 (FIRE Session #6)
 Branch: `master`
 
-## What Landed This Session
+## What Landed This Session (#6)
 
-### Grid-WF CLI Command (US-006)
-- `grid-wf` CLI command with `--strategy`, `--days`, `--top-n` flags
-- Runs parameter grid search across all param combinations, ranks by Sharpe
-- Validates top-N candidates with walk-forward (3-fold OOS validation)
-- Output: ranked table with Sharpe, return%, trades, WF pass/fail, efficiency ratio, OOS win rate
-- `GridWFSummary.best_validated` returns the top WF-passing candidate
-- 6 integration tests covering grid search, walk-forward validation, and full pipeline
+### Consensus Grid-WF Support (US-010)
+- Added "consensus" entry to `PARAM_GRIDS` in `grid_wf.py`
+- `grid-wf --strategy consensus` now runs grid search across momentum_lookback, rsi_period, max_holding_bars
+- Sub-strategies/min_agree are structural (not grid-tunable) — tuning affects shared StrategyConfig fields
 
-### Consensus Strategy (US-007)
-- `ConsensusStrategy` class — multi-strategy agreement filter
-- BUY only when >= `min_agree` sub-strategies signal BUY
-- SELL when any sub-strategy signals SELL (conservative exit)
-- Confidence = weighted average of agreeing strategies
-- Wired into `create_strategy('consensus', ...)` factory with `sub_strategies` and `min_agree` params
-- 9 tests covering entry logic, exit logic, edge cases, and factory integration
+### Grid-WF JSON Export (US-011)
+- `GridWFSummary.to_dict()` returns JSON-serializable dict with all candidate details
+- `grid-wf` CLI auto-saves results to `artifacts/grid-wf-{strategy}-{date}.json`
+- Enables historical tracking of parameter optimization runs
+- 6 new tests for to_dict() serialization
 
-### Daemon Config Expansion (US-008)
-- 3 new wallets added to `config/daemon.toml`:
-  - `vbreak_btc_wallet` — BTC volatility breakout (k=0.5, MA20 filter)
-  - `vbreak_eth_wallet` — ETH volatility breakout (k=0.3, wider stops)
-  - `consensus_btc_wallet` — momentum+vpin consensus (min_agree=2)
-- Portfolio expanded from 6 to 9 wallets
+### Snapshot CLI (US-012)
+- New `snapshot` CLI command combines pnl-report + snapshot accumulation in one step
+- Generates markdown report + appends JSONL history entry
+- One-liner output: `Equity: X | Return: X% | Trades: X`
+- 5 tests
+
+### Strategy Signal Correlation (US-013)
+- New `backtest/correlation.py` with `signal_correlation()` using phi coefficient
+- `correlation` CLI command prints pairwise BUY signal correlation matrix
+- Thresholds: >0.7 = redundant (wasted capital), <0.3 = good diversification
+- 10 tests
+
+### Multi-Symbol WF Validation (US-014)
+- `validate_with_walk_forward()` now validates across ALL symbols, not just best_symbol
+- Folds aggregated across symbols for combined efficiency ratio
+- `validated=True` requires majority of symbols to pass WF
+- Prevents single-symbol overfitting
+
+### Auto-Apply Best Params (US-015)
+- New `apply-params` CLI command reads latest grid-wf JSON export
+- Identifies best validated candidate and target wallet
+- Writes JSON sidecar to `artifacts/apply-params-{wallet}.json`
+- Shows before/after param diff for manual review
 
 ## Previous Session Deliverables (Still Active)
 
-### Walk-Forward CLI + PnL History (Session #4)
-- `walk-forward` CLI command, `pnl-history` command
-- `PnLSnapshotStore` JSONL accumulator
+### Session #5: Grid-WF + Consensus + Daemon Expansion
+- `grid-wf` CLI command, `ConsensusStrategy`, 3 new daemon wallets (9 total)
 
-### Per-Strategy PnL Tracking (Session #3)
+### Session #4: Walk-Forward CLI + PnL History
+- `walk-forward` CLI command, `pnl-history` command, `PnLSnapshotStore`
+
+### Session #3: Per-Strategy PnL Tracking
 - Per-wallet PnL breakdown, `--hours` time-range filtering
 
-### Per-Symbol Wallets (Session #2)
-- BTC (Sharpe 2.51) + ETH (Sharpe 4.86) momentum wallets
-- Kimchi premium wallet (Sharpe 1.22)
-- VPIN wallets: BTC (3.40), ETH (2.05), SOL (2.55)
+### Session #2: Per-Symbol Wallets
+- BTC (Sharpe 2.51) + ETH (Sharpe 4.86) momentum, Kimchi (1.22), VPIN: BTC (3.40), ETH (2.05), SOL (2.55)
 
 ## Architecture Updates
 
 ```
 src/crypto_trader/
-  cli.py                # + grid-wf command (--strategy, --days, --top-n)
-                        # + consensus strategy in choices
-  config.py             # + consensus in valid_strategies
-  wallet.py             # + ConsensusStrategy factory support
-  strategy/
-    consensus.py        # NEW: ConsensusStrategy (multi-strategy agreement)
+  cli.py                # + snapshot, correlation, apply-params commands
+                        # + grid-wf JSON export
   backtest/
-    grid_wf.py          # NEW: grid_search() + validate_with_walk_forward() + run_grid_wf()
+    grid_wf.py          # + consensus PARAM_GRIDS, to_dict(), multi-symbol WF
+    correlation.py      # NEW: signal_correlation() phi coefficient matrix
 
 config/
-  daemon.toml           # + vbreak_btc, vbreak_eth, consensus_btc wallets (9 total)
+  daemon.toml           # 9 wallets (unchanged this session)
 
 tests/
-  test_consensus_strategy.py  # 9 tests
-  test_grid_wf.py             # 6 tests
+  test_grid_wf.py       # 13+ tests (grid search, WF, to_dict, multi-symbol)
+  test_correlation.py   # 10 tests (phi coefficient, signal vectors)
+  test_snapshot_cli.py  # 5 tests (snapshot CLI integration)
+  test_apply_params.py  # tests (apply-params logic)
 ```
 
 ## Validation State
 
-- `pytest tests/ -q` → 484 passed, 0 failures
-- Config loads with all 9 wallets validated
+- `pytest tests/ -q` → 503 passed, 3 skipped, 0 failures
+- All new CLI commands wired and tested
 - Git push to master complete
 
 ## Daemon 72-Hour Performance (2026-03-26)
@@ -86,19 +97,19 @@ tests/
 ## Current Gaps / Risks
 
 1. 3 new wallets not yet live — daemon restart needed with updated daemon.toml
-2. Consensus strategy backtest not yet run on live data — need grid-wf validation
-3. Kimchi premium backtest uses simulated premium — live may diverge
-4. Sideways market → momentum signals rare (expected, backtest agrees)
-5. No closed trades yet — need time for first full trade cycle
-6. Telegram notifications not live-verified (no bot token)
+2. Kimchi premium backtest uses simulated premium — live may diverge
+3. Sideways market → momentum signals rare (expected, backtest agrees)
+4. No closed trades yet — need time for first full trade cycle
+5. Telegram notifications not live-verified (no bot token)
 
 ## Recommended Next Moves
 
-1. **Restart daemon** with updated `config/daemon.toml` to deploy new wallets
-2. **Run grid-wf on live data** — `crypto-trader grid-wf --strategy momentum --days 90 --top-n 5`
-3. **Run grid-wf for vpin** — `crypto-trader grid-wf --strategy vpin --days 90`
-4. **Monitor paper trading** for 7 days → micro-live gate by Apr 2
-5. **Backtest consensus strategy** — validate it outperforms individual strategies
-6. **Telegram bot setup** for daily PnL alerts
-7. **Capital rebalance** — after first closed trades, concentrate on top performers
-8. **PnL history accumulation** — run pnl-report periodically to build snapshot timeline
+1. **Restart daemon** with updated `config/daemon.toml` to deploy all 9 wallets
+2. **Run grid-wf optimization** — `crypto-trader grid-wf --strategy momentum --days 90 --top-n 5`
+3. **Run grid-wf for consensus** — `crypto-trader grid-wf --strategy consensus --days 90`
+4. **Run correlation check** — `crypto-trader correlation` to verify portfolio diversification
+5. **Apply best params** — `crypto-trader apply-params --strategy momentum --wallet momentum_btc_wallet`
+6. **Automate snapshots** — periodic `crypto-trader snapshot` for PnL history
+7. **Monitor paper trading** for 7 days → micro-live gate by Apr 2
+8. **Telegram bot setup** for daily PnL alerts
+9. **Capital rebalance** — after first closed trades, concentrate on top performers
