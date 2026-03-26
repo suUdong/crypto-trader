@@ -150,6 +150,16 @@ class VolatilityBreakoutStrategy:
                     indicators=indicators,
                     context=context,
                 )
+            # Noise filter: block entries in very choppy markets (noise > 0.8)
+            nr_val = indicators.get("noise_ratio", 0.0)
+            if nr_val > 0.8:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="noise_too_high",
+                    confidence=0.2,
+                    indicators=indicators,
+                    context=context,
+                )
             # Volume filter
             if not volume_ok:
                 return Signal(
