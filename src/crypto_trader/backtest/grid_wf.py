@@ -189,10 +189,10 @@ def _approx_sortino(equity_curve: list[float]) -> float:
 # Minimal param grids for quick in-CLI search
 PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     "momentum": {
-        "momentum_lookback": [10, 15, 20],
-        "momentum_entry_threshold": [0.002, 0.004, 0.006, 0.008, 0.01],
+        "momentum_lookback": [8, 12, 15, 20],
+        "momentum_entry_threshold": [0.001, 0.002, 0.004, 0.006, 0.008],
         "rsi_period": [14, 18],
-        "adx_threshold": [15.0, 20.0, 25.0],
+        "adx_threshold": [12.0, 18.0, 25.0],
         "max_holding_bars": [24, 36, 48],
     },
     "momentum_pullback": {
@@ -214,8 +214,10 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     },
     "vpin": {
         "rsi_period": [14, 18],
-        "momentum_lookback": [10, 15, 20],
-        "max_holding_bars": [36, 48],
+        "momentum_lookback": [8, 12, 15, 20],
+        "vpin_low_threshold": [0.35, 0.45, 0.55],
+        "vpin_momentum_threshold": [0.0005, 0.001, 0.003],
+        "max_holding_bars": [24, 36, 48],
     },
     "volatility_breakout": {
         "k_base": [0.2, 0.4, 0.6, 0.8],
@@ -234,7 +236,9 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     },
     "kimchi_premium": {
         "rsi_period": [14, 18],
-        "max_holding_bars": [24, 36],
+        "rsi_recovery_ceiling": [40.0, 50.0, 60.0],
+        "min_confidence": [0.3, 0.4, 0.5],
+        "max_holding_bars": [12, 24, 36],
     },
     "obi": {
         "rsi_period": [14, 18],

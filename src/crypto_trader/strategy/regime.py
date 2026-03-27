@@ -27,8 +27,10 @@ class RegimeAnalysis:
     is_weekend: bool = False
 
 
-def is_weekend_kst(dt: datetime) -> bool:
+def is_weekend_kst(dt: datetime | str) -> bool:
     """Check if datetime falls in weekend low-liquidity window (Sat 00:00 - Mon 09:00 KST)."""
+    if isinstance(dt, str):
+        dt = datetime.fromisoformat(dt)
     kst_time = (
         dt.astimezone(KST) if dt.tzinfo is not None else dt.replace(tzinfo=UTC).astimezone(KST)
     )

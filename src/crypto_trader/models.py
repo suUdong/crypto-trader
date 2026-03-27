@@ -46,6 +46,10 @@ class Candle:
     close: float
     volume: float
 
+    def __post_init__(self) -> None:
+        if isinstance(self.timestamp, str):
+            object.__setattr__(self, "timestamp", datetime.fromisoformat(self.timestamp))
+
 
 @dataclass(slots=True)
 class Signal:
