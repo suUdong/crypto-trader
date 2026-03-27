@@ -187,7 +187,15 @@ class StrategyWallet:
             signal = evaluate_strategy(self.strategy, candles, position, symbol=symbol)
             latest_price = candles[-1].close
             order: OrderResult | None = None
-            utc_hour = candles[-1].timestamp.hour if candles else None
+            utc_hour: int | None = None
+            if candles:
+                ts = candles[-1].timestamp
+                # Ensure we use UTC hour; fall back to raw hour if tz-naive
+                if ts.tzinfo is not None:
+                    from datetime import timezone as _tz
+                    utc_hour = ts.astimezone(_tz.utc).hour
+                else:
+                    utc_hour = ts.hour
             vol_ratio = self._volume_ratio(candles)
 
             if (

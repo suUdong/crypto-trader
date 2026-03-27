@@ -10,11 +10,11 @@ from __future__ import annotations
 
 # UTC hour -> position-size multiplier.
 # Derived from strategy-runs.jsonl signal analysis:
-#   UTC 22-23 (KST 07-08): 10.3-10.8% buy rate  -> 1.5x
-#   UTC 07-08 (KST 16-17): 3.2-4.7% buy rate     -> 1.3x
-#   UTC 01-02 (KST 10-11): 2.5-3.0% buy rate     -> 1.2x
-#   UTC 19    (KST 04):    3.1% buy rate           -> 1.2x
-#   UTC 06,10,12,14 (dead): 0% buy rate            -> 0.5x
+#   UTC 22-23 (KST 07-08): 10.3-10.8% buy rate  -> 1.5x (peak)
+#   UTC 07-08 (KST 16-17): 3.2-4.7% buy rate     -> 1.5x (peak)
+#   UTC 01-02 (KST 10-11): 2.5-3.0% buy rate     -> 1.2x (good)
+#   UTC 19    (KST 04):    3.1% buy rate           -> 1.2x (good)
+#   UTC 06,10,12,14 (dead): 0% buy rate            -> 0.5x (dead)
 #   All other hours: baseline                       -> 1.0x
 
 _PEAK_HOURS: frozenset[int] = frozenset({22, 23, 7, 8})
