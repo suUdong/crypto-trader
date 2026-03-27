@@ -125,6 +125,51 @@ class TestDataLoaders(unittest.TestCase):
         assert result is not None
         self.assertEqual(result["market_regime"], "bull")
 
+    def test_load_daily_performance_prefers_saved_daily_report(self) -> None:
+        (Path(self.tmpdir) / "daily-report.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "period": "daily",
+                    "period_hours": 24,
+                    "portfolio_trades": 4,
+                    "portfolio_win_rate": 0.75,
+                    "total_open_positions": 2,
+                    "total_equity": 2_100_000,
+                    "total_initial_capital": 2_000_000,
+                    "total_realized_pnl": 15_000,
+                    "portfolio_return_pct": 5.0,
+                    "portfolio_sharpe": 1.8,
+                    "portfolio_mdd_pct": 1.2,
+                    "wallets": [
+                        {"win_count": 3, "loss_count": 1},
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "daily-performance.json").write_text(
+            json.dumps({"trade_count": 99, "win_rate": 0.01}),
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_daily_performance()
+
+        assert result is not None
+        self.assertEqual(result["trade_count"], 4)
+        self.assertAlmostEqual(result["win_rate"], 0.75)
+        self.assertEqual(result["open_position_count"], 2)
+
+    def test_load_weekly_report(self) -> None:
+        path = Path(self.tmpdir) / "weekly-report.json"
+        path.write_text(json.dumps({"period": "weekly", "portfolio_trades": 12}), encoding="utf-8")
+
+        result = data_mod.load_weekly_report()
+
+        assert result is not None
+        self.assertEqual(result["period"], "weekly")
+        self.assertEqual(result["portfolio_trades"], 12)
+
     def test_load_strategy_runs(self) -> None:
         path = Path(self.tmpdir) / "strategy-runs.jsonl"
         path.write_text(json.dumps({"signal_action": "hold"}) + "\n")
@@ -1400,6 +1445,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
         fake_data.load_checkpoint = lambda: None
         fake_data.load_daemon_heartbeat = lambda: None
         fake_data.load_daily_performance = lambda: None
+        fake_data.load_daily_report = lambda: None
         fake_data.load_data_freshness = lambda: {"files": {}}
         fake_data.load_health = lambda: {}
         fake_data.load_macro_summary = lambda: None
@@ -1417,6 +1463,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
             }
         )
         fake_data.load_wallet_analytics = lambda: []
+        fake_data.load_weekly_report = lambda: None
         fake_data.regime_kr = lambda value: value
         fake_data.strategy_kr = lambda value: value
         fake_data.symbol_kr = lambda value: value

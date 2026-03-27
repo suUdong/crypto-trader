@@ -207,14 +207,14 @@ take_profit_pct = 0.04
         self.assertEqual(len(config.wallets), 8)
         names = {w.name for w in config.wallets}
         self.assertIn("momentum_wallet", names)
-        self.assertIn("consensus_wallet", names)
+        self.assertIn("bollinger_rsi_wallet", names)
         self.assertIn("kimchi_premium_wallet", names)
         # Verify new fields are parsed at global level
         self.assertEqual(config.strategy.adx_period, 14)
         self.assertEqual(config.strategy.adx_threshold, 20.0)
         self.assertEqual(config.risk.partial_tp_pct, 0.5)
         self.assertEqual(config.risk.cooldown_bars, 3)
-        self.assertEqual(config.risk.atr_stop_multiplier, 2.0)
+        self.assertEqual(config.risk.atr_stop_multiplier, 0.0)
 
     def test_optimized_toml_loads_kill_switch_config(self) -> None:
         config = load_config(ROOT / "config" / "optimized.toml", {})
@@ -232,15 +232,15 @@ take_profit_pct = 0.04
         self.assertEqual(config.kill_switch.max_portfolio_drawdown_pct, 0.20)
         self.assertEqual(config.kill_switch.max_consecutive_losses, 10)
 
-    def test_optimized_toml_consensus_wallet_has_extra_params(self) -> None:
+    def test_optimized_toml_bollinger_wallet_has_extra_params(self) -> None:
         config = load_config(ROOT / "config" / "optimized.toml", {})
-        consensus = [w for w in config.wallets if w.strategy == "consensus"][0]
-        self.assertEqual(consensus.strategy_overrides["min_agree"], 2)
-        self.assertEqual(consensus.strategy_overrides["min_confidence_sum"], 1.2)
+        bollinger = [w for w in config.wallets if w.strategy == "bollinger_rsi"][0]
         self.assertEqual(
-            consensus.strategy_overrides["sub_strategies"],
-            ["momentum", "kimchi_premium"],
+            bollinger.strategy_overrides["bollinger_window"],
+            14,
         )
+        self.assertEqual(bollinger.strategy_overrides["rsi_overbought"], 65.0)
+        self.assertEqual(bollinger.risk_overrides["stop_loss_pct"], 0.02)
 
     def test_consensus_wallet_accepts_weights_override(self) -> None:
         toml_content = """

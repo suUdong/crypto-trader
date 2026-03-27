@@ -199,6 +199,9 @@ class RuntimeCheckpoint:
     session_id: str = ""
     config_path: str = ""
     wallet_names: list[str] = field(default_factory=list)
+    correlation: dict[str, Any] = field(default_factory=dict)
+    portfolio_risk: dict[str, Any] = field(default_factory=dict)
+    capital_reallocation: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

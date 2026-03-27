@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import signal
 import socket
@@ -12,6 +13,7 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from zoneinfo import ZoneInfo
 
+from crypto_trader.capital_allocator import CapitalAllocator, StrategyPerformance
 from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
@@ -24,6 +26,10 @@ from crypto_trader.notifications.telegram import (
     NullNotifier,
     SlackNotifier,
     TelegramNotifier,
+)
+from crypto_trader.operator.automated_reporting import (
+    AutomatedReportGenerator,
+    build_legacy_daily_performance_summary,
 )
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradeJournal
@@ -44,6 +50,8 @@ class MultiSymbolRuntime:
     PNL_NOTIFY_INTERVAL = 86400  # 24 hours in seconds
     _FUTURE_ENTRY_GRACE = timedelta(minutes=5)
     _KST = ZoneInfo("Asia/Seoul")
+    _CORRELATION_LOOKBACK_BARS = 24
+    _REALLOCATION_MIN_TRANSFER = 50_000.0
 
     def __init__(
         self,
@@ -87,6 +95,7 @@ class MultiSymbolRuntime:
             # Only auto-load kill switch state for live trading
             self._kill_switch.load(self._kill_switch_path)
         self._total_starting_equity = sum(w.session_starting_equity for w in wallets)
+        self._portfolio_peak_equity = self._total_starting_equity
         self._prev_trade_count: dict[str, int] = {
             w.name: len(w.broker.closed_trades) for w in wallets
         }
@@ -129,7 +138,12 @@ class MultiSymbolRuntime:
         self._last_health_check: float = 0.0
         self._health_check_interval = 86400  # 24h
         self._notified_disabled_wallets: set[str] = set()
-        self._correlation_guard = CorrelationGuard(max_cluster_exposure=6)
+        self._correlation_guard = CorrelationGuard(
+            max_cluster_exposure=6,
+            max_correlation=0.85,
+            max_high_correlation_exposure=1,
+        )
+        self._capital_allocator = CapitalAllocator()
         self._slippage_monitor = SlippageMonitor(
             expected_slippage_pct=config.backtest.slippage_pct,
         )
@@ -154,6 +168,15 @@ class MultiSymbolRuntime:
         self._last_successful_results = 0
         self._last_failed_results = 0
         self._tick_errors: list[Exception] = []
+        self._latest_prices: dict[str, float] = {}
+        self._last_results: list[PipelineResult] = []
+        self._last_correlation_snapshot: dict[str, Any] = {}
+        self._last_portfolio_risk_state: dict[str, Any] = {}
+        self._last_capital_reallocation: dict[str, Any] = {
+            "transfer_count": 0,
+            "transfers": [],
+            "target_capital": {},
+        }
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -253,9 +276,15 @@ class MultiSymbolRuntime:
             self._begin_tick()
             tick_started = time.monotonic()
             self._maybe_check_wallet_health()
-            self._apply_kill_switch_penalty()
             tick_results = self._run_tick(symbols)
             self._check_kill_switch_after_tick(tick_results)
+            rebalance_prices = {
+                result.symbol: result.latest_price
+                for result in tick_results
+                if result.latest_price is not None
+            }
+            if rebalance_prices:
+                self._rebalance_idle_wallet_cash(rebalance_prices)
             self._save_checkpoint(tick_results)
             self._refresh_runtime_artifacts()
             self._maybe_refresh_artifacts()
@@ -298,51 +327,100 @@ class MultiSymbolRuntime:
             self._logger.error("Failed to fetch candles for %s: %s", first, exc)
             if self._is_recoverable_error(exc):
                 self._record_tick_error(exc)
+                candle_cache[first] = []
             else:
+                raise
+
+        for symbol in symbols:
+            if symbol == first:
+                continue
+            try:
+                candle_cache[symbol] = self._market_data.get_ohlcv(
+                    symbol=symbol,
+                    interval=self._config.trading.interval,
+                    count=self._config.trading.candle_count,
+                )
+            except Exception as exc:
+                self._logger.error("Failed to fetch candles for %s: %s", symbol, exc)
+                if self._is_recoverable_error(exc):
+                    self._record_tick_error(exc)
+                    candle_cache[symbol] = []
+                    continue
                 raise
 
         # Refresh macro/regime-aware multipliers after regime detection
         self._refresh_macro()
+        self._apply_kill_switch_penalty()
+
+        latest_prices = {
+            cached_symbol: symbol_candles[-1].close
+            for cached_symbol, symbol_candles in candle_cache.items()
+            if symbol_candles
+        }
+        portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
+        self._apply_portfolio_risk_penalty()
+        self._rebalance_idle_wallet_cash(latest_prices)
 
         for symbol in symbols:
-            if symbol not in candle_cache:
+            candles = candle_cache[symbol]
+            if not candles:
                 try:
-                    candle_cache[symbol] = self._market_data.get_ohlcv(
+                    candles = self._market_data.get_ohlcv(
                         symbol=symbol,
                         interval=self._config.trading.interval,
                         count=self._config.trading.candle_count,
                     )
+                    candle_cache[symbol] = candles
+                    if candles:
+                        latest_prices[symbol] = candles[-1].close
+                        portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
                 except Exception as exc:
-                    self._logger.error("Failed to fetch candles for %s: %s", symbol, exc)
+                    self._logger.error("Retry fetch failed for %s: %s", symbol, exc)
                     if self._is_recoverable_error(exc):
                         self._record_tick_error(exc)
                         continue
                     raise
-
-            candles = candle_cache[symbol]
-            if not candles:
-                continue
+                if not candles:
+                    continue
 
             for wallet in self._wallets:
                 if wallet.allowed_symbols and symbol not in wallet.allowed_symbols:
                     continue
                 if self._wallet_health.is_disabled(wallet.name):
                     continue
-                # Correlation guard: skip tick if no position and cluster is full
-                if not wallet.broker.positions:
+                if symbol not in wallet.broker.positions:
                     positions_list = [
                         (w.name, sym) for w in self._wallets for sym in w.broker.positions
                     ]
+                    correlation_snapshot = self._correlation_guard.build_snapshot(
+                        candle_cache,
+                        positions_list,
+                        lookback_bars=self._CORRELATION_LOOKBACK_BARS,
+                    )
+                    self._last_correlation_snapshot = correlation_snapshot.to_dict()
+                    if portfolio_risk["open_positions"] >= portfolio_risk["allowed_new_positions"]:
+                        self._logger.debug(
+                            "[%s] %s entry blocked by portfolio drawdown gate: %s/%s",
+                            wallet.name,
+                            symbol,
+                            portfolio_risk["open_positions"],
+                            portfolio_risk["allowed_new_positions"],
+                        )
+                        continue
                     cluster_exposure = self._correlation_guard.get_cluster_exposure(positions_list)
                     check = self._correlation_guard.check_entry(
-                        symbol, wallet.name, cluster_exposure
+                        symbol,
+                        wallet.name,
+                        cluster_exposure,
+                        correlation_snapshot=correlation_snapshot,
                     )
                     if not check.allowed:
                         self._logger.debug(
-                            "[%s] %s entry blocked by correlation guard: %s",
+                            "[%s] %s entry blocked by correlation guard: %s %s",
                             wallet.name,
                             symbol,
                             check.reason,
+                            ",".join(check.blocking_symbols),
                         )
                         continue
                 try:
@@ -359,6 +437,9 @@ class MultiSymbolRuntime:
                         continue
                     raise
                 results.append(result)
+                if result.latest_price is not None:
+                    latest_prices[result.symbol] = result.latest_price
+                portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
                 if result.error:
                     self._logger.error(result.message)
                     self._record_tick_error(RuntimeError(result.error))
@@ -561,6 +642,182 @@ class MultiSymbolRuntime:
                 penalty * 100,
             )
 
+    @staticmethod
+    def _coerce_numeric(value: Any, default: float) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _compute_portfolio_risk_state(self, latest_prices: dict[str, float]) -> dict[str, Any]:
+        total_equity = sum(wallet.broker.equity(latest_prices) for wallet in self._wallets)
+        open_positions = sum(len(wallet.broker.positions) for wallet in self._wallets)
+        if total_equity > self._portfolio_peak_equity:
+            self._portfolio_peak_equity = total_equity
+        drawdown_pct = 0.0
+        if self._portfolio_peak_equity > 0:
+            drawdown_pct = max(
+                0.0,
+                (self._portfolio_peak_equity - total_equity) / self._portfolio_peak_equity,
+            )
+        limit_pct = self._coerce_numeric(
+            getattr(self._config.kill_switch, "max_portfolio_drawdown_pct", None),
+            self._kill_switch._config.max_portfolio_drawdown_pct,
+        )
+        warn = self._coerce_numeric(
+            getattr(self._config.kill_switch, "warn_threshold_pct", None),
+            self._kill_switch._config.warn_threshold_pct,
+        )
+        reduce = self._coerce_numeric(
+            getattr(self._config.kill_switch, "reduce_threshold_pct", None),
+            self._kill_switch._config.reduce_threshold_pct,
+        )
+        reduce_factor = self._coerce_numeric(
+            getattr(self._config.kill_switch, "reduce_position_factor", None),
+            self._kill_switch._config.reduce_position_factor,
+        )
+        entry_size_penalty = 1.0
+        if limit_pct > 0 and drawdown_pct > 0:
+            ratio = min(1.0, drawdown_pct / limit_pct)
+            if ratio >= 1.0:
+                entry_size_penalty = 0.0
+            elif ratio >= reduce:
+                entry_size_penalty = reduce_factor
+            elif ratio >= warn:
+                interp = (ratio - warn) / max(1e-9, reduce - warn)
+                entry_size_penalty = 1.0 - interp * (1.0 - reduce_factor)
+        entry_size_penalty = min(
+            entry_size_penalty,
+            self._kill_switch.state.position_size_penalty,
+        )
+        max_concurrent_positions = max(
+            1,
+            int(
+                self._coerce_numeric(
+                    getattr(self._config.risk, "max_concurrent_positions", None),
+                    self._config.risk.max_concurrent_positions
+                    if isinstance(self._config.risk.max_concurrent_positions, (int, float))
+                    else 1,
+                )
+            ),
+        )
+        base_position_limit = len(self._wallets) * max_concurrent_positions
+        if limit_pct <= 0:
+            allowed_new_positions = base_position_limit
+        elif entry_size_penalty <= 0:
+            allowed_new_positions = 0
+        else:
+            allowed_new_positions = max(1, math.ceil(base_position_limit * entry_size_penalty))
+        state = {
+            "peak_equity": round(self._portfolio_peak_equity, 2),
+            "total_equity": round(total_equity, 2),
+            "drawdown_pct": round(drawdown_pct * 100, 2),
+            "entry_size_penalty": round(entry_size_penalty, 4),
+            "base_position_limit": base_position_limit,
+            "allowed_new_positions": allowed_new_positions,
+            "active_position_limit": allowed_new_positions,
+            "open_positions": open_positions,
+        }
+        self._last_portfolio_risk_state = state
+        return state
+
+    def _apply_portfolio_risk_penalty(self) -> None:
+        penalty = float(self._last_portfolio_risk_state.get("entry_size_penalty", 1.0) or 1.0)
+        if penalty >= 1.0:
+            return
+        for wallet in self._wallets:
+            wallet.set_macro_multiplier(wallet._macro_multiplier * penalty)
+        self._logger.warning(
+            "Portfolio drawdown penalty active: position sizes scaled by %.0f%%",
+            penalty * 100,
+        )
+
+    def _rebalance_idle_wallet_cash(self, latest_prices: dict[str, float]) -> None:
+        idle_wallets = [wallet for wallet in self._wallets if not wallet.broker.positions]
+        if len(idle_wallets) < 2:
+            self._last_capital_reallocation = {
+                "transfer_count": 0,
+                "transfers": [],
+                "target_capital": {},
+            }
+            return
+
+        performances = [
+            StrategyPerformance(
+                strategy=wallet.name,
+                strategy_type=wallet.strategy_type,
+                return_pct=(
+                    (
+                        (wallet.broker.equity(latest_prices) / wallet.session_starting_equity)
+                        - 1.0
+                    )
+                    * 100.0
+                    if wallet.session_starting_equity > 0
+                    else 0.0
+                ),
+                sharpe=max(
+                    -3.0,
+                    min(
+                        5.0,
+                        (
+                            wallet.broker.realized_pnl
+                            / max(wallet.session_starting_equity * 0.05, 1.0)
+                        ),
+                    ),
+                ),
+                mdd_pct=max(
+                    0.0,
+                    (
+                        (wallet.session_starting_equity - wallet.broker.equity(latest_prices))
+                        / wallet.session_starting_equity
+                        * 100.0
+                    )
+                    if wallet.session_starting_equity > 0
+                    else 0.0,
+                ),
+                trade_count=len(wallet.broker.closed_trades),
+                win_rate=(
+                    sum(1 for trade in wallet.broker.closed_trades if trade.pnl > 0)
+                    / len(wallet.broker.closed_trades)
+                    if wallet.broker.closed_trades
+                    else 0.0
+                ),
+                equity=wallet.broker.equity(latest_prices),
+                initial_capital=wallet.session_starting_equity,
+            )
+            for wallet in self._wallets
+        ]
+        total_capital = sum(performance.equity for performance in performances)
+        allocation = self._capital_allocator.allocate(performances, total_capital)
+        current_cash = {wallet.name: wallet.broker.cash for wallet in idle_wallets}
+        target_capital = {
+            item.strategy: item.capital
+            for item in allocation.allocations
+            if item.strategy in current_cash
+        }
+        transfers = CapitalAllocator.plan_transfers(
+            current_capital=current_cash,
+            target_capital=target_capital,
+            min_transfer=self._REALLOCATION_MIN_TRANSFER,
+        )
+        wallet_map = {wallet.name: wallet for wallet in self._wallets}
+        for transfer in transfers:
+            wallet_map[transfer.source].adjust_capital(-transfer.amount)
+            wallet_map[transfer.target].adjust_capital(transfer.amount)
+        self._last_capital_reallocation = {
+            "transfer_count": len(transfers),
+            "total_reallocated": round(sum(transfer.amount for transfer in transfers), 2),
+            "transfers": [
+                {
+                    "source": transfer.source,
+                    "target": transfer.target,
+                    "amount": transfer.amount,
+                }
+                for transfer in transfers
+            ],
+            "target_capital": {name: round(amount, 2) for name, amount in target_capital.items()},
+        }
+
     def _apply_regime_weights(self) -> None:
         """Apply regime-aware strategy weights without macro data."""
         weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
@@ -656,6 +913,7 @@ class MultiSymbolRuntime:
         self._last_results = results
 
         wallet_states = {}
+        target_capital = self._last_capital_reallocation.get("target_capital", {})
         for wallet in self._wallets:
             wallet_states[wallet.name] = {
                 "strategy_type": wallet.strategy_type,
@@ -665,6 +923,11 @@ class MultiSymbolRuntime:
                 "open_positions": len(wallet.broker.positions),
                 "equity": wallet.broker.equity(latest_prices),
                 "trade_count": len(wallet.broker.closed_trades),
+                "target_capital": target_capital.get(wallet.name),
+                "capital_gap": round(
+                    target_capital.get(wallet.name, wallet.broker.cash) - wallet.broker.cash,
+                    2,
+                ),
                 "positions": {
                     symbol: {
                         "symbol": pos.symbol,
@@ -689,6 +952,9 @@ class MultiSymbolRuntime:
             session_id=self._session_id,
             config_path=self._config_path,
             wallet_names=self._wallet_names,
+            correlation=self._last_correlation_snapshot,
+            portfolio_risk=self._last_portfolio_risk_state,
+            capital_reallocation=self._last_capital_reallocation,
         )
         store.save(checkpoint)
         self._persist_journal()
@@ -902,47 +1168,42 @@ class MultiSymbolRuntime:
         health_path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
 
     def _refresh_daily_performance(self) -> None:
-        """Write aggregated daily-performance.json from all wallets."""
-        latest_prices = getattr(self, "_latest_prices", {})
-
-        total_trades = 0
-        winning = 0
-        losing = 0
-        realized_pnl = 0.0
-        initial_capital = 0.0
-        total_equity = 0.0
-
-        for wallet in self._wallets:
-            trades = wallet.broker.closed_trades
-            total_trades += len(trades)
-            for t in trades:
-                if t.pnl > 0:
-                    winning += 1
-                else:
-                    losing += 1
-            realized_pnl += wallet.broker.realized_pnl
-            initial_capital += wallet.session_starting_equity
-            total_equity += wallet.broker.equity(latest_prices)
-
-        win_rate = winning / total_trades if total_trades > 0 else 0.0
-        realized_return_pct = (realized_pnl / initial_capital) if initial_capital > 0 else 0.0
-
-        report = {
-            "generated_at": datetime.now(UTC).isoformat(),
-            "trade_count": total_trades,
-            "winning_trade_count": winning,
-            "losing_trade_count": losing,
-            "realized_pnl": realized_pnl,
-            "realized_return_pct": realized_return_pct,
-            "win_rate": win_rate,
-            "open_position_count": sum(len(w.broker.positions) for w in self._wallets),
-            "mark_to_market_equity": total_equity,
-            "initial_capital": initial_capital,
-            "mode": "multi_symbol",
-        }
         perf_path = Path(self._config.runtime.daily_performance_path)
         perf_path.parent.mkdir(parents=True, exist_ok=True)
-        perf_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        generator = AutomatedReportGenerator()
+        daily_report_path = generator.default_output_path(
+            period="daily",
+            artifacts_dir=perf_path.parent,
+        )
+        weekly_report_path = generator.default_output_path(
+            period="weekly",
+            artifacts_dir=perf_path.parent,
+        )
+        daily_report = generator.generate(
+            checkpoint_path=self._config.runtime.runtime_checkpoint_path,
+            strategy_run_journal_path=self._config.runtime.strategy_run_journal_path,
+            trade_journal_path=self._config.runtime.paper_trade_journal_path,
+            period="daily",
+            hours=24,
+        )
+        weekly_report = generator.generate(
+            checkpoint_path=self._config.runtime.runtime_checkpoint_path,
+            strategy_run_journal_path=self._config.runtime.strategy_run_journal_path,
+            trade_journal_path=self._config.runtime.paper_trade_journal_path,
+            period="weekly",
+            hours=168,
+        )
+        generator.save(daily_report, daily_report_path)
+        generator.save(weekly_report, weekly_report_path)
+        legacy_summary = build_legacy_daily_performance_summary(
+            daily_report,
+            report_path=daily_report_path,
+            weekly_report_path=weekly_report_path,
+        )
+        perf_path.write_text(
+            json.dumps(legacy_summary, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
 
     def _save_heartbeat(self, artifacts_dir: Path) -> None:
         slip_stats = self._slippage_monitor.get_stats()
@@ -990,6 +1251,9 @@ class MultiSymbolRuntime:
                 ),
                 "daily_loss_pct": round(self._kill_switch.state.daily_loss_pct * 100, 2),
             },
+            "correlation": self._last_correlation_snapshot,
+            "portfolio_risk": self._last_portfolio_risk_state,
+            "capital_reallocation": self._last_capital_reallocation,
         }
         heartbeat_path = artifacts_dir / "daemon-heartbeat.json"
         heartbeat_path.write_text(json.dumps(heartbeat, indent=2), encoding="utf-8")

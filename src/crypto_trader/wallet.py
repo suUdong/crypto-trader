@@ -148,6 +148,15 @@ class StrategyWallet:
     def set_macro_multiplier(self, multiplier: float) -> None:
         self._macro_multiplier = multiplier
 
+    def adjust_capital(self, delta_cash: float) -> None:
+        if abs(delta_cash) <= 0:
+            return
+        if self.broker.cash + delta_cash < -1e-9:
+            raise ValueError(f"{self.name} cash would go negative after adjustment")
+        self.broker.cash += delta_cash
+        self.session_starting_equity = max(0.0, self.session_starting_equity + delta_cash)
+        self.risk_manager.adjust_capital_base(delta_cash)
+
     def _marked_equity(self, symbol: str, latest_price: float) -> float:
         prices = {
             open_symbol: (

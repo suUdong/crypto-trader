@@ -18,6 +18,10 @@ from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.notifications.alert_manager import TradeAlertManager
 from crypto_trader.notifications.telegram import NullNotifier, SlackNotifier, TelegramNotifier
 from crypto_trader.operator.artifact_health import summarize_artifact_health
+from crypto_trader.operator.automated_reporting import (
+    AutomatedReportGenerator,
+    build_legacy_daily_performance_summary,
+)
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.drift import DriftReportGenerator
 from crypto_trader.operator.gate_progress import generate_gate_progress_report
@@ -1521,11 +1525,9 @@ def main() -> None:
             f"{portfolio_decision.wallet_count} profitable)"
         )
         # 3. Position snapshot
-        import json as _json
-
         cp_path = Path(config.runtime.runtime_checkpoint_path)
         if cp_path.exists():
-            cp = _json.loads(cp_path.read_text(encoding="utf-8"))
+            cp = json.loads(cp_path.read_text(encoding="utf-8"))
             ws = cp.get("wallet_states", {})
             open_count = sum(v.get("open_positions", 0) for v in ws.values())
             print(f"  positions        : {open_count} open across {len(ws)} wallets")
@@ -1540,6 +1542,46 @@ def main() -> None:
             output_path=gate_progress_path,
         )
         print(f"  gate-progress    : {gate_progress_path}")
+        report_generator = AutomatedReportGenerator()
+        artifacts_dir = Path(config.runtime.daily_performance_path).parent
+        daily_report_path = report_generator.default_output_path(
+            period="daily",
+            artifacts_dir=artifacts_dir,
+        )
+        weekly_report_path = report_generator.default_output_path(
+            period="weekly",
+            artifacts_dir=artifacts_dir,
+        )
+        daily_report = report_generator.generate(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            strategy_run_journal_path=config.runtime.strategy_run_journal_path,
+            trade_journal_path=config.runtime.paper_trade_journal_path,
+            period="daily",
+            hours=24,
+        )
+        weekly_report = report_generator.generate(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            strategy_run_journal_path=config.runtime.strategy_run_journal_path,
+            trade_journal_path=config.runtime.paper_trade_journal_path,
+            period="weekly",
+            hours=168,
+        )
+        report_generator.save(daily_report, daily_report_path)
+        report_generator.save(weekly_report, weekly_report_path)
+        Path(config.runtime.daily_performance_path).write_text(
+            json.dumps(
+                build_legacy_daily_performance_summary(
+                    daily_report,
+                    report_path=daily_report_path,
+                    weekly_report_path=weekly_report_path,
+                ),
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        print(f"  daily-report     : {daily_report_path}")
+        print(f"  weekly-report    : {weekly_report_path}")
         print("\nAll artifacts refreshed.")
         return
 
@@ -1580,6 +1622,46 @@ def main() -> None:
         portfolio_path = Path(config.runtime.promotion_gate_path).parent / "portfolio-gate.json"
         portfolio_gate.save(portfolio_decision, portfolio_path)
         print(f"  portfolio-gate   : {portfolio_decision.status.value}")
+        report_generator = AutomatedReportGenerator()
+        artifacts_dir = Path(config.runtime.daily_performance_path).parent
+        daily_report_path = report_generator.default_output_path(
+            period="daily",
+            artifacts_dir=artifacts_dir,
+        )
+        weekly_report_path = report_generator.default_output_path(
+            period="weekly",
+            artifacts_dir=artifacts_dir,
+        )
+        daily_report = report_generator.generate(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            strategy_run_journal_path=config.runtime.strategy_run_journal_path,
+            trade_journal_path=config.runtime.paper_trade_journal_path,
+            period="daily",
+            hours=24,
+        )
+        weekly_report = report_generator.generate(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            strategy_run_journal_path=config.runtime.strategy_run_journal_path,
+            trade_journal_path=config.runtime.paper_trade_journal_path,
+            period="weekly",
+            hours=168,
+        )
+        report_generator.save(daily_report, daily_report_path)
+        report_generator.save(weekly_report, weekly_report_path)
+        Path(config.runtime.daily_performance_path).write_text(
+            json.dumps(
+                build_legacy_daily_performance_summary(
+                    daily_report,
+                    report_path=daily_report_path,
+                    weekly_report_path=weekly_report_path,
+                ),
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        print(f"  daily-report     : {daily_report_path}")
+        print(f"  weekly-report    : {weekly_report_path}")
         print("\nArtifacts synced from existing baseline (no market data needed).")
         return
 

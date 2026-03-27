@@ -45,6 +45,13 @@ class AllocationResult:
     concentration_ratio: float  # HHI-like: how concentrated the portfolio is
 
 
+@dataclass(slots=True, frozen=True)
+class CapitalTransfer:
+    source: str
+    target: str
+    amount: float
+
+
 @dataclass(slots=True)
 class StrategyAllocation:
     strategy: str
@@ -323,3 +330,51 @@ class CapitalAllocator:
             ],
         }
         target.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    @staticmethod
+    def plan_transfers(
+        current_capital: dict[str, float],
+        target_capital: dict[str, float],
+        *,
+        locked_strategies: set[str] | None = None,
+        min_transfer: float = 50_000.0,
+    ) -> list[CapitalTransfer]:
+        locked = locked_strategies or set()
+        transferable = (set(current_capital) & set(target_capital)) - locked
+        donors = {
+            strategy: max(0.0, current_capital[strategy] - target_capital[strategy])
+            for strategy in transferable
+        }
+        receivers = {
+            strategy: max(0.0, target_capital[strategy] - current_capital[strategy])
+            for strategy in transferable
+        }
+        donor_order = sorted(donors, key=lambda name: (-donors[name], name))
+        receiver_order = sorted(receivers, key=lambda name: (-receivers[name], name))
+
+        transfers: list[CapitalTransfer] = []
+        for donor in donor_order:
+            remaining_surplus = donors[donor]
+            if remaining_surplus < min_transfer:
+                continue
+            for receiver in receiver_order:
+                remaining_need = receivers[receiver]
+                if donor == receiver or remaining_need < min_transfer:
+                    continue
+                amount = min(remaining_surplus, remaining_need)
+                if amount < min_transfer:
+                    continue
+                rounded_amount = float(round(amount, 0))
+                transfers.append(
+                    CapitalTransfer(
+                        source=donor,
+                        target=receiver,
+                        amount=rounded_amount,
+                    )
+                )
+                donors[donor] -= rounded_amount
+                receivers[receiver] -= rounded_amount
+                remaining_surplus = donors[donor]
+                if remaining_surplus < min_transfer:
+                    break
+        return transfers

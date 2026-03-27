@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -23,6 +24,10 @@ def main() -> None:
     from crypto_trader.config import load_config
     from crypto_trader.monitoring.performance_reporter import PerformanceReporter
     from crypto_trader.notifications.telegram import TelegramNotifier
+    from crypto_trader.operator.automated_reporting import (
+        AutomatedReportGenerator,
+        build_legacy_daily_performance_summary,
+    )
 
     parser = argparse.ArgumentParser(description="Generate daily performance report")
     parser.add_argument(
@@ -38,6 +43,11 @@ def main() -> None:
     )
     parser.add_argument("--send", action="store_true", help="Send report via Telegram")
     parser.add_argument("--save", default=None, help="Save JSON report to this path")
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Save the markdown report to this path (JSON sidecar shares the same stem)",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -49,21 +59,46 @@ def main() -> None:
         trade_journal_path=trade_journal,
         strategy_journal_path=strategy_journal,
     )
+    generator = AutomatedReportGenerator()
 
     summary = reporter.generate(period=args.period, hours=args.hours)
+    report = generator.generate(
+        checkpoint_path=config.runtime.runtime_checkpoint_path,
+        strategy_run_journal_path=strategy_journal,
+        trade_journal_path=trade_journal,
+        period=args.period,
+        hours=args.hours,
+    )
     text = reporter.to_notification_text(summary)
+    artifacts_dir = Path(config.runtime.daily_performance_path).parent
+    output_path = (
+        Path(args.output)
+        if args.output
+        else generator.default_output_path(period=args.period, artifacts_dir=artifacts_dir)
+    )
+    generator.save(report, output_path)
 
     # Always print to stdout
-    print(text)
+    print(generator.to_markdown(report))
     print(
         f"\n--- Strategies: {len(summary.strategies)} | "
         f"Trades: {summary.portfolio_trades} | "
         f"Win rate: {summary.portfolio_win_rate:.1%} ---"
     )
+    print(f"\nReport saved to {output_path}")
 
     if args.save:
         reporter.save_json(summary, args.save)
         print(f"\nJSON saved to {args.save}")
+    elif args.period == "daily":
+        Path(config.runtime.daily_performance_path).write_text(
+            json.dumps(
+                build_legacy_daily_performance_summary(report, report_path=output_path),
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
 
     if args.send:
         if config.telegram.enabled:

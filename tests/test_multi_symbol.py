@@ -467,6 +467,59 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "bad parser state"):
             runtime.run()
 
+    def test_portfolio_risk_state_reduces_capacity_during_drawdown(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+        runtime._portfolio_peak_equity = runtime._total_starting_equity
+        wallets[0].broker.cash = 600_000.0
+
+        state = runtime._compute_portfolio_risk_state({"KRW-BTC": 100.0})
+
+        self.assertLess(state["entry_size_penalty"], 1.0)
+        self.assertLess(state["allowed_new_positions"], state["base_position_limit"])
+
+    def test_rebalance_idle_wallet_cash_moves_capital_and_updates_summary(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[
+                WalletConfig("leader_wallet", "momentum", 1_000_000.0),
+                WalletConfig("laggard_wallet", "mean_reversion", 1_000_000.0),
+            ],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        wallets[0].broker.cash = 1_500_000.0
+        wallets[0].broker.realized_pnl = 200_000.0
+        wallets[1].broker.cash = 500_000.0
+        wallets[1].broker.realized_pnl = -150_000.0
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+
+        runtime._rebalance_idle_wallet_cash({"KRW-BTC": 100.0})
+
+        self.assertGreater(runtime._last_capital_reallocation["transfer_count"], 0)
+        self.assertLess(wallets[0].broker.cash, 1_500_000.0)
+        self.assertGreater(wallets[1].broker.cash, 500_000.0)
+        self.assertEqual(
+            wallets[0].broker.cash + wallets[1].broker.cash,
+            2_000_000.0,
+        )
+
 
 class TestStrategyComparisonReport(unittest.TestCase):
     def test_report_contains_all_wallets(self) -> None:
@@ -549,6 +602,37 @@ class TestIntegrationMultiSymbolPaperTrading(unittest.TestCase):
 
 
 class TestMultiRuntimeArtifacts(unittest.TestCase):
+    def test_runtime_refreshes_daily_and_weekly_report_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts_dir = Path(temp_dir)
+            config = _make_config(
+                symbols=["KRW-BTC"],
+                wallets=[WalletConfig("momentum_btc_wallet", "momentum", 1_000_000.0)],
+                daemon_mode=False,
+                max_iterations=1,
+                poll_interval_seconds=0,
+            )
+            config.runtime.runtime_checkpoint_path = str(artifacts_dir / "runtime-checkpoint.json")
+            config.runtime.position_snapshot_path = str(artifacts_dir / "positions.json")
+            config.runtime.healthcheck_path = str(artifacts_dir / "health.json")
+            config.runtime.daily_performance_path = str(artifacts_dir / "daily-performance.json")
+            config.runtime.promotion_gate_path = str(artifacts_dir / "promotion-gate.json")
+            config.runtime.paper_trade_journal_path = str(artifacts_dir / "paper-trades.jsonl")
+            config.runtime.strategy_run_journal_path = str(artifacts_dir / "strategy-runs.jsonl")
+
+            runtime = MultiSymbolRuntime(
+                wallets=build_wallets(config),
+                market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 240)}),
+                config=config,
+            )
+
+            runtime.run()
+
+            self.assertTrue((artifacts_dir / "daily-report.md").exists())
+            self.assertTrue((artifacts_dir / "daily-report.json").exists())
+            self.assertTrue((artifacts_dir / "weekly-report.md").exists())
+            self.assertTrue((artifacts_dir / "weekly-report.json").exists())
+
     def test_first_iteration_refreshes_portfolio_gate_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts_dir = Path(temp_dir)
@@ -578,6 +662,47 @@ class TestMultiRuntimeArtifacts(unittest.TestCase):
             runtime.run()
 
             self.assertTrue((artifacts_dir / "promotion-gate.json").exists())
+
+    def test_checkpoint_and_heartbeat_include_portfolio_monitoring_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts_dir = Path(temp_dir)
+            config = _make_config(
+                symbols=["KRW-BTC", "KRW-ETH"],
+                wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+                daemon_mode=False,
+                max_iterations=1,
+                poll_interval_seconds=0,
+            )
+            config.runtime.runtime_checkpoint_path = str(artifacts_dir / "runtime-checkpoint.json")
+            config.runtime.position_snapshot_path = str(artifacts_dir / "positions.json")
+            config.runtime.healthcheck_path = str(artifacts_dir / "health.json")
+            config.runtime.daily_performance_path = str(artifacts_dir / "daily-performance.json")
+            config.runtime.promotion_gate_path = str(artifacts_dir / "promotion-gate.json")
+            config.runtime.paper_trade_journal_path = str(artifacts_dir / "paper-trades.jsonl")
+            config.runtime.strategy_run_journal_path = str(artifacts_dir / "strategy-runs.jsonl")
+
+            runtime = MultiSymbolRuntime(
+                wallets=build_wallets(config),
+                market_data=FakeMarketData(
+                    {
+                        "KRW-BTC": _build_candles([100.0, 101.0, 102.0, 103.0, 104.0, 105.0]),
+                        "KRW-ETH": _build_candles([50.0, 50.5, 51.0, 51.5, 52.0, 52.5]),
+                    }
+                ),
+                config=config,
+            )
+
+            runtime.run()
+
+            checkpoint = json.loads((artifacts_dir / "runtime-checkpoint.json").read_text())
+            heartbeat = json.loads((artifacts_dir / "daemon-heartbeat.json").read_text())
+
+            self.assertIn("correlation", checkpoint)
+            self.assertIn("portfolio_risk", checkpoint)
+            self.assertIn("capital_reallocation", checkpoint)
+            self.assertIn("correlation", heartbeat)
+            self.assertIn("portfolio_risk", heartbeat)
+            self.assertIn("capital_reallocation", heartbeat)
 
 
 if __name__ == "__main__":

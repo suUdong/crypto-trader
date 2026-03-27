@@ -10,6 +10,7 @@ import pytest
 from crypto_trader.capital_allocator import (
     AllocationResult,
     CapitalAllocator,
+    CapitalTransfer,
     StrategyAllocation,
     StrategyPerformance,
 )
@@ -300,6 +301,33 @@ class TestSaveReport:
         assert data["total_capital"] == 7_000_000
         assert len(data["allocations"]) == 2
         assert data["allocations"][0]["rank"] == 1
+
+
+class TestPlanTransfers:
+    def test_transfers_net_to_zero_and_respect_min_transfer(self):
+        transfers = CapitalAllocator.plan_transfers(
+            current_capital={"leader": 700_000, "laggard": 200_000, "neutral": 100_000},
+            target_capital={"leader": 400_000, "laggard": 350_000, "neutral": 250_000},
+            min_transfer=50_000,
+        )
+
+        assert transfers == [
+            CapitalTransfer(source="leader", target="laggard", amount=150_000),
+            CapitalTransfer(source="leader", target="neutral", amount=150_000),
+        ]
+        outgoing = sum(t.amount for t in transfers if t.source == "leader")
+        incoming = sum(t.amount for t in transfers if t.target in {"laggard", "neutral"})
+        assert outgoing == incoming == 300_000
+
+    def test_locked_wallets_are_skipped(self):
+        transfers = CapitalAllocator.plan_transfers(
+            current_capital={"leader": 700_000, "laggard": 200_000, "locked": 100_000},
+            target_capital={"leader": 400_000, "laggard": 250_000, "locked": 350_000},
+            locked_strategies={"locked"},
+            min_transfer=25_000,
+        )
+
+        assert transfers == [CapitalTransfer(source="leader", target="laggard", amount=50_000)]
 
 
 # ---------------------------------------------------------------------------

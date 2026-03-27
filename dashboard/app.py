@@ -18,10 +18,12 @@ if _repo_root not in sys.path:
 import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
+from dashboard.auth import require_auth  # noqa: E402
 from dashboard.data import (  # noqa: E402
     load_checkpoint,
     load_daemon_heartbeat,
     load_daily_performance,
+    load_daily_report,
     load_data_freshness,
     load_health,
     load_macro_summary,
@@ -30,11 +32,11 @@ from dashboard.data import (  # noqa: E402
     load_risk_overview,
     load_signal_history,
     load_wallet_analytics,
+    load_weekly_report,
     regime_kr,
     strategy_kr,
     symbol_kr,
 )
-from dashboard.auth import require_auth  # noqa: E402
 from dashboard.styles import COLORS, PALETTE, chart_layout, inject_css, pnl_color  # noqa: E402
 
 _UTC = timezone.utc  # noqa: UP017
@@ -243,6 +245,8 @@ def _render_overview(
     *,
     analytics: dict[str, Any],
     daily_performance: dict[str, Any] | None,
+    daily_report: dict[str, Any] | None,
+    weekly_report: dict[str, Any] | None,
     risk: dict[str, Any],
     macro: dict[str, Any] | None,
     promotion_gate: dict[str, Any] | None,
@@ -349,6 +353,8 @@ def _render_overview(
             if macro.get("fear_greed_index") is not None:
                 st.metric("Fear & Greed", f"{int(macro['fear_greed_index'])}")
 
+    _render_report_digest(daily_report=daily_report, weekly_report=weekly_report)
+
     st.markdown("#### 지갑 리더보드")
     leaderboard_rows = [
         {
@@ -366,6 +372,82 @@ def _render_overview(
         for wallet in wallets
     ]
     st.dataframe(leaderboard_rows, width="stretch", hide_index=True)
+
+
+def _render_report_digest(
+    *,
+    daily_report: dict[str, Any] | None,
+    weekly_report: dict[str, Any] | None,
+) -> None:
+    st.markdown("#### 자동 리포트")
+    if daily_report is None and weekly_report is None:
+        _empty("저장된 자동 리포트가 없습니다.")
+        return
+
+    report_columns = st.columns(2)
+    report_specs = [
+        ("일일", daily_report, report_columns[0]),
+        ("주간", weekly_report, report_columns[1]),
+    ]
+    for label, report, column in report_specs:
+        with column:
+            if report is None:
+                empty_panel = (
+                    f'<div class="dashboard-panel"><strong>{label} 리포트</strong><br>'
+                    "아직 생성되지 않았습니다.</div>"
+                )
+                st.markdown(
+                    empty_panel,
+                    unsafe_allow_html=True,
+                )
+                continue
+            generated_at = str(report.get("generated_at", ""))[:19] or "-"
+            report_return = _format_pct(float(report.get("portfolio_return_pct", 0.0) or 0.0))
+            report_sharpe = float(report.get("portfolio_sharpe", 0.0) or 0.0)
+            report_mdd = float(report.get("portfolio_mdd_pct", 0.0) or 0.0)
+            report_trades = int(report.get("portfolio_trades", 0) or 0)
+            report_win_rate = float(report.get("portfolio_win_rate", 0.0) or 0.0) * 100
+            report_open_positions = int(report.get("total_open_positions", 0) or 0)
+            st.markdown(
+                f"""
+                <div class="dashboard-panel">
+                    <strong>{label} 리포트</strong><br>
+                    생성시각 {generated_at}<br>
+                    수익률 <strong>{report_return}</strong> ·
+                    Sharpe <strong>{report_sharpe:.2f}</strong> ·
+                    MDD <strong>{report_mdd:.2f}%</strong><br>
+                    거래 <strong>{report_trades}</strong> ·
+                    승률 <strong>{report_win_rate:.1f}%</strong> ·
+                    오픈 포지션 <strong>{report_open_positions}</strong>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    if daily_report is None:
+        return
+
+    wallets = daily_report.get("wallets", [])
+    if not isinstance(wallets, list) or not wallets:
+        return
+    st.markdown("#### 일일 리포트 상위 지갑")
+    st.dataframe(
+        [
+            {
+                "지갑": str(wallet.get("wallet", "")),
+                "전략": strategy_kr(str(wallet.get("strategy", ""))),
+                "수익률": _format_pct(float(wallet.get("return_pct", 0.0) or 0.0)),
+                "Sharpe": f"{float(wallet.get('sharpe_ratio', 0.0) or 0.0):.2f}",
+                "MDD": f"{float(wallet.get('max_drawdown_pct', 0.0) or 0.0):.2f}%",
+                "오픈포지션": int(wallet.get("open_positions", 0) or 0),
+                "Equity": _format_krw(float(wallet.get("ending_equity", 0.0) or 0.0)),
+            }
+            for wallet in wallets[:8]
+            if isinstance(wallet, dict)
+        ],
+        width="stretch",
+        hide_index=True,
+    )
 
 
 def _render_portfolio_and_risk(
@@ -711,6 +793,8 @@ with st.spinner("데이터 로딩 중..."):
     research = load_momentum_pullback_research()
     signal_history = load_signal_history(limit=400)
     daily_performance = load_daily_performance()
+    daily_report = load_daily_report()
+    weekly_report = load_weekly_report()
     promotion_gate = load_promotion_gate()
     health = load_health()
 
@@ -734,6 +818,8 @@ with tab_overview:
     _render_overview(
         analytics=analytics,
         daily_performance=daily_performance,
+        daily_report=daily_report,
+        weekly_report=weekly_report,
         risk=risk,
         macro=macro,
         promotion_gate=promotion_gate,

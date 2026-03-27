@@ -8,7 +8,7 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 from urllib.error import HTTPError, URLError
 
 from crypto_trader.notifications.alert_manager import TradeAlertManager
@@ -136,13 +136,17 @@ class DaemonSupervisor:
     ) -> None:
         now = datetime.now(UTC).isoformat()
         previous = self._load_previous_health()
+        consecutive_failures = int(
+            cast(int | float | str, previous.get("consecutive_failures", 0) or 0)
+        ) + 1
+        failure_streak = int(cast(int | float | str, previous.get("failure_streak", 0) or 0)) + 1
         payload = {
             "updated_at": now,
             "success": False,
             "status": status,
             "degraded": True,
-            "consecutive_failures": int(previous.get("consecutive_failures", 0) or 0) + 1,
-            "failure_streak": int(previous.get("failure_streak", 0) or 0) + 1,
+            "consecutive_failures": consecutive_failures,
+            "failure_streak": failure_streak,
             "last_error": str(exc),
             "last_error_type": type(exc).__name__,
             "last_signal": previous.get("last_signal", "hold"),
@@ -175,7 +179,8 @@ class DaemonSupervisor:
         if not self._healthcheck_path.exists():
             return {}
         try:
-            return json.loads(self._healthcheck_path.read_text(encoding="utf-8"))
+            payload = json.loads(self._healthcheck_path.read_text(encoding="utf-8"))
+            return cast(dict[str, object], payload) if isinstance(payload, dict) else {}
         except Exception:
             return {}
 

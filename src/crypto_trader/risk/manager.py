@@ -65,6 +65,13 @@ class RiskManager:
         if self._bars_since_last_loss is not None:
             self._bars_since_last_loss += 1
 
+    def adjust_capital_base(self, delta_cash: float) -> None:
+        """Shift internal drawdown baseline when external capital is moved."""
+        if abs(delta_cash) <= 0:
+            return
+        if self._peak_equity > 0:
+            self._peak_equity = max(0.0, self._peak_equity + delta_cash)
+
     def rolling_win_rate(self, window: int = 20) -> float | None:
         """Rolling win rate over the last N trades. None if insufficient data."""
         if len(self._trade_history) < 5:

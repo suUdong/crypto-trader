@@ -1,6 +1,23 @@
 import unittest
+from datetime import datetime, timedelta
 
+from crypto_trader.models import Candle
 from crypto_trader.risk.correlation_guard import CorrelationGuard
+
+
+def _candles(closes: list[float]) -> list[Candle]:
+    start = datetime(2025, 1, 1)
+    return [
+        Candle(
+            timestamp=start + timedelta(hours=i),
+            open=price,
+            high=price * 1.01,
+            low=price * 0.99,
+            close=price,
+            volume=1_000.0 + i,
+        )
+        for i, price in enumerate(closes)
+    ]
 
 
 class TestCorrelationGuard(unittest.TestCase):
@@ -90,6 +107,51 @@ class TestCorrelationGuard(unittest.TestCase):
     def test_default_max_exposure_is_six(self) -> None:
         guard = CorrelationGuard()
         self.assertEqual(guard._max_cluster_exposure, 6)
+
+    def test_build_snapshot_tracks_high_correlation_pairs(self) -> None:
+        guard = CorrelationGuard(
+            max_cluster_exposure=3,
+            max_correlation=0.8,
+            max_high_correlation_exposure=1,
+        )
+        snapshot = guard.build_snapshot(
+            {
+                "KRW-BTC": _candles([100, 102, 101, 104, 103, 106]),
+                "KRW-ETH": _candles([50, 51, 50.5, 52, 51.5, 53]),
+                "KRW-XRP": _candles([20, 19, 20, 18, 19, 17]),
+            },
+            [("btc_wallet", "KRW-BTC")],
+        )
+
+        self.assertGreater(snapshot.correlation_for("KRW-BTC", "KRW-ETH"), 0.8)
+        self.assertIn(("KRW-BTC", "KRW-ETH"), snapshot.high_correlation_pairs)
+        self.assertNotIn(("KRW-BTC", "KRW-XRP"), snapshot.high_correlation_pairs)
+
+    def test_blocks_entry_when_highly_correlated_symbol_already_open(self) -> None:
+        guard = CorrelationGuard(
+            max_cluster_exposure=6,
+            max_correlation=0.8,
+            max_high_correlation_exposure=1,
+        )
+        snapshot = guard.build_snapshot(
+            {
+                "KRW-BTC": _candles([100, 102, 101, 104, 103, 106]),
+                "KRW-ETH": _candles([50, 51, 50.5, 52, 51.5, 53]),
+            },
+            [("btc_wallet", "KRW-BTC")],
+        )
+
+        result = guard.check_entry(
+            "KRW-ETH",
+            "eth_wallet",
+            {"major_crypto": ["btc_wallet"]},
+            correlation_snapshot=snapshot,
+        )
+
+        self.assertFalse(result.allowed)
+        self.assertIn("high_correlation", result.reason)
+        self.assertEqual(result.current_exposure, 1)
+        self.assertIn("KRW-BTC", result.blocking_symbols)
 
 
 if __name__ == "__main__":

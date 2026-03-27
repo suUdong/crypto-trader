@@ -39,6 +39,8 @@ def load_data_freshness() -> dict[str, Any]:
         "positions.json",
         "health.json",
         "daily-performance.json",
+        "daily-report.json",
+        "weekly-report.json",
         "regime-report.json",
         "paper-trades.jsonl",
     ]:
@@ -213,8 +215,12 @@ def _parse_dt(value: Any) -> datetime | None:
     return parsed.astimezone(UTC)
 
 
-def _is_future_timestamp(parsed: datetime | None) -> bool:
-    return parsed is not None and parsed > datetime.now(UTC) + _FUTURE_GRACE
+def _is_future_timestamp(
+    parsed: datetime | None,
+    reference_time: datetime | None = None,
+) -> bool:
+    baseline = reference_time or datetime.now(UTC)
+    return parsed is not None and parsed > baseline + _FUTURE_GRACE
 
 
 def _active_session_metadata(
@@ -234,15 +240,18 @@ def _active_session_metadata(
     session_id = str(heartbeat.get("session_id") or checkpoint.get("session_id") or "")
     session_start = None
     heartbeat_dt = _parse_dt(heartbeat.get("last_heartbeat"))
+    checkpoint_dt = _parse_dt(checkpoint.get("generated_at"))
     try:
         uptime_seconds = float(heartbeat.get("uptime_seconds", 0.0) or 0.0)
     except (TypeError, ValueError):
         uptime_seconds = 0.0
     if heartbeat_dt is not None:
         session_start = heartbeat_dt - timedelta(seconds=max(0.0, uptime_seconds))
+    reference_time = heartbeat_dt or checkpoint_dt
     return {
         "session_id": session_id,
         "session_start": session_start,
+        "reference_time": reference_time,
         "wallet_names": wallet_names,
     }
 
@@ -271,8 +280,9 @@ def _is_current_session_trade(
         return row_session_id == active_session_id
 
     session_start = cast(datetime | None, session_meta.get("session_start"))
+    reference_time = cast(datetime | None, session_meta.get("reference_time"))
     trade_dt = _trade_timestamp(trade)
-    if _is_future_timestamp(trade_dt):
+    if _is_future_timestamp(trade_dt, reference_time):
         return False
     if session_start is not None and trade_dt is not None:
         return trade_dt >= session_start
@@ -299,8 +309,9 @@ def _is_current_session_run(
         return row_session_id == active_session_id
 
     session_start = cast(datetime | None, session_meta.get("session_start"))
+    reference_time = cast(datetime | None, session_meta.get("reference_time"))
     run_dt = _parse_dt(run.get("recorded_at"))
-    if _is_future_timestamp(run_dt):
+    if _is_future_timestamp(run_dt, reference_time):
         return False
     if session_start is not None and run_dt is not None:
         return run_dt >= session_start
@@ -622,7 +633,20 @@ def load_backtest_baseline() -> dict[str, Any] | None:
 
 @st.cache_data(ttl=30)
 def load_daily_performance() -> dict[str, Any] | None:
+    report = load_daily_report()
+    if report is not None:
+        return _legacy_daily_performance_from_report(report)
     return _load_json("daily-performance.json")
+
+
+@st.cache_data(ttl=30)
+def load_daily_report() -> dict[str, Any] | None:
+    return _load_json("daily-report.json")
+
+
+@st.cache_data(ttl=30)
+def load_weekly_report() -> dict[str, Any] | None:
+    return _load_json("weekly-report.json")
 
 
 @st.cache_data(ttl=30)
@@ -860,6 +884,38 @@ def load_wallet_analytics() -> dict[str, Any]:
         portfolio_timeline.append({"timestamp": event_dt.isoformat(), "equity": equity})
 
     return {"wallets": wallets, "portfolio": portfolio, "timeline": portfolio_timeline}
+
+
+def _legacy_daily_performance_from_report(report: dict[str, Any]) -> dict[str, Any]:
+    wallets = report.get("wallets", [])
+    if not isinstance(wallets, list):
+        wallets = []
+    winning = sum(
+        int(wallet.get("win_count", 0) or 0) for wallet in wallets if isinstance(wallet, dict)
+    )
+    losing = sum(
+        int(wallet.get("loss_count", 0) or 0) for wallet in wallets if isinstance(wallet, dict)
+    )
+    total_initial = float(report.get("total_initial_capital", 0.0) or 0.0)
+    total_realized = float(report.get("total_realized_pnl", 0.0) or 0.0)
+    return {
+        "generated_at": report.get("generated_at"),
+        "period": report.get("period", "daily"),
+        "period_hours": int(report.get("period_hours", 24) or 24),
+        "trade_count": int(report.get("portfolio_trades", 0) or 0),
+        "winning_trade_count": winning,
+        "losing_trade_count": losing,
+        "realized_pnl": total_realized,
+        "realized_return_pct": (total_realized / total_initial) if total_initial > 0 else 0.0,
+        "win_rate": float(report.get("portfolio_win_rate", 0.0) or 0.0),
+        "open_position_count": int(report.get("total_open_positions", 0) or 0),
+        "mark_to_market_equity": float(report.get("total_equity", 0.0) or 0.0),
+        "initial_capital": total_initial,
+        "portfolio_return_pct": float(report.get("portfolio_return_pct", 0.0) or 0.0),
+        "portfolio_sharpe": float(report.get("portfolio_sharpe", 0.0) or 0.0),
+        "portfolio_mdd_pct": float(report.get("portfolio_mdd_pct", 0.0) or 0.0),
+        "mode": "multi_symbol",
+    }
 
 
 @st.cache_data(ttl=30)

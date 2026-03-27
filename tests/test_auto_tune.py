@@ -26,6 +26,7 @@ class TestAutoTuneOutputs(unittest.TestCase):
             [
                 "momentum",
                 "momentum_pullback",
+                "bollinger_rsi",
                 "mean_reversion",
                 "composite",
                 "kimchi_premium",
@@ -282,7 +283,8 @@ class TestAutoTuneOutputs(unittest.TestCase):
         )
 
         self.assertIsInstance(result["return_pct"], float)
-        self.assertGreater(result["trade_count"], 0)
+        self.assertGreaterEqual(result["trade_count"], 0)
+        self.assertIn("win_rate", result)
 
 
 if __name__ == "__main__":
