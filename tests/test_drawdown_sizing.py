@@ -52,15 +52,23 @@ class DrawdownSizingTests(unittest.TestCase):
         self.assertEqual(config.drawdown_reduction_pct, 0.5)
 
     def test_half_daily_loss_drawdown_halves_reduction(self) -> None:
-        # At drawdown == 0.5 * max_daily_loss_pct, scale should be 1 - 0.5*0.5 = 0.75
-        manager = self._make_manager(max_daily_loss_pct=0.10, drawdown_reduction_pct=0.5)
+        # Exponential drawdown: at dd_ratio=0.5, scale = (1-0.5)^2 = 0.25
+        manager = self._make_manager(max_daily_loss_pct=0.10)
         # Establish peak
-        normal_qty = manager.size_position(equity=100_000.0, price=1000.0)
-        # 5% drawdown = half of 10% max_daily_loss
+        manager.size_position(equity=100_000.0, price=1000.0)
+        # 5% drawdown = half of 10% max_daily_loss → dd_ratio=0.5
         scaled_qty = manager.size_position(equity=95_000.0, price=1000.0)
-        # scale = 1 - (0.05/0.10)*0.5 = 0.75; but equity changed, so compare ratio
-        # base_quantity at 95_000 would differ slightly; test the ratio
-        manager2 = self._make_manager(max_daily_loss_pct=0.10, drawdown_reduction_pct=0.5)
+        # scale = (1 - 0.5)^2 = 0.25; compare against fresh manager at 95k
+        manager2 = self._make_manager(max_daily_loss_pct=0.10)
         base_at_95k = manager2.size_position(equity=95_000.0, price=1000.0)
-        expected = base_at_95k * 0.75
+        expected = base_at_95k * 0.25
         self.assertAlmostEqual(scaled_qty, expected, places=6)
+
+    def test_drawdown_reduction_pct_controls_scaling_curve(self) -> None:
+        soft = self._make_manager(max_daily_loss_pct=0.10, drawdown_reduction_pct=0.0)
+        hard = self._make_manager(max_daily_loss_pct=0.10, drawdown_reduction_pct=1.0)
+        soft.size_position(equity=100_000.0, price=1000.0)
+        hard.size_position(equity=100_000.0, price=1000.0)
+        soft_qty = soft.size_position(equity=95_000.0, price=1000.0)
+        hard_qty = hard.size_position(equity=95_000.0, price=1000.0)
+        self.assertGreater(soft_qty, hard_qty)

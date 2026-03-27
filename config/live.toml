@@ -1,5 +1,7 @@
-# Live Trading Configuration (Micro-Live Phase)
+# Live Trading Configuration — Optimized Portfolio (2026-03-27)
 # WARNING: This config trades with REAL money. Review all settings carefully.
+# Source: 90d grid-search optimized, capital-weighted by Sharpe ratio
+# Total capital: 1,000,000 KRW (conservative for live)
 
 [trading]
 exchange = "upbit"
@@ -10,16 +12,17 @@ candle_count = 200
 paper_trading = false
 
 [strategy]
-momentum_lookback = 20
-momentum_entry_threshold = 0.005
+momentum_lookback = 12
+momentum_entry_threshold = 0.001
 momentum_exit_threshold = -0.01
 bollinger_window = 20
 bollinger_stddev = 1.8
 rsi_period = 14
 rsi_oversold_floor = 20.0
-rsi_recovery_ceiling = 60.0
-rsi_overbought = 70.0
-max_holding_bars = 48
+rsi_recovery_ceiling = 75.0
+rsi_overbought = 72.0
+max_holding_bars = 36
+adx_threshold = 20.0
 
 [regime]
 short_lookback = 10
@@ -36,12 +39,25 @@ sideways_error_rate_threshold = 0.20
 bear_error_rate_threshold = 0.10
 
 [risk]
-# Conservative risk for micro-live: 0.5% per trade, 2% daily loss limit
+# Tighter risk for real money: 0.5% per trade, 2% daily loss limit
 risk_per_trade_pct = 0.005
 stop_loss_pct = 0.03
 take_profit_pct = 0.06
 max_daily_loss_pct = 0.02
 max_concurrent_positions = 2
+trailing_stop_pct = 0.0
+atr_stop_multiplier = 2.0
+min_entry_confidence = 0.55
+partial_tp_pct = 0.5
+cooldown_bars = 4
+max_position_pct = 0.15
+
+[kill_switch]
+max_portfolio_drawdown_pct = 0.05
+max_daily_loss_pct = 0.02
+max_consecutive_losses = 3
+max_strategy_drawdown_pct = 0.04
+cooldown_minutes = 120
 
 [backtest]
 initial_capital = 1000000.0
@@ -72,27 +88,103 @@ promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
 strategy_report_path = "artifacts/strategy-report.md"
 
-[kill_switch]
-max_portfolio_drawdown_pct = 0.05
-max_daily_loss_pct = 0.03
-max_consecutive_losses = 5
-cooldown_minutes = 60
+# === Top 4 winners only for live trading ===
 
-# Micro-live: Start with top 3 strategies only, reduced capital
+# momentum_sol: Sharpe 2.23, flagship
 [[wallets]]
-name = "mean_reversion_wallet"
-strategy = "mean_reversion"
-initial_capital = 500000.0
-
-[[wallets]]
-name = "obi_wallet"
-strategy = "obi"
-initial_capital = 300000.0
-
-[[wallets]]
-name = "momentum_wallet"
+name = "momentum_sol_wallet"
 strategy = "momentum"
-initial_capital = 200000.0
+initial_capital = 350_000.0
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+momentum_lookback = 15
+momentum_entry_threshold = 0.002
+rsi_period = 14
+rsi_overbought = 72.0
+max_holding_bars = 36
+adx_threshold = 20.0
+volume_filter_mult = 1.2
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.008
+partial_tp_pct = 0.5
+max_concurrent_positions = 1
+
+# momentum_eth: Sharpe 1.64
+[[wallets]]
+name = "momentum_eth_wallet"
+strategy = "momentum"
+initial_capital = 250_000.0
+symbols = ["KRW-ETH"]
+[wallets.strategy_overrides]
+momentum_lookback = 15
+momentum_entry_threshold = 0.003
+rsi_period = 14
+rsi_overbought = 70.0
+max_holding_bars = 36
+adx_threshold = 15.0
+volume_filter_mult = 1.0
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+risk_per_trade_pct = 0.008
+atr_stop_multiplier = 3.0
+partial_tp_pct = 0.5
+max_concurrent_positions = 1
+
+# momentum_btc: Sharpe 1.03
+[[wallets]]
+name = "momentum_btc_wallet"
+strategy = "momentum"
+initial_capital = 200_000.0
+symbols = ["KRW-BTC"]
+[wallets.strategy_overrides]
+momentum_lookback = 12
+momentum_entry_threshold = 0.001
+rsi_period = 14
+rsi_overbought = 72.0
+max_holding_bars = 36
+adx_threshold = 20.0
+volume_filter_mult = 1.2
+[wallets.risk_overrides]
+stop_loss_pct = 0.04
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.005
+partial_tp_pct = 0.5
+max_concurrent_positions = 1
+
+# momentum_xrp: Sharpe 0.96
+[[wallets]]
+name = "momentum_xrp_wallet"
+strategy = "momentum"
+initial_capital = 200_000.0
+symbols = ["KRW-XRP"]
+[wallets.strategy_overrides]
+momentum_lookback = 12
+momentum_entry_threshold = 0.001
+rsi_period = 14
+rsi_overbought = 70.0
+max_holding_bars = 36
+adx_threshold = 15.0
+volume_filter_mult = 1.0
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.005
+partial_tp_pct = 0.5
+max_concurrent_positions = 1
+
+# === Capital Allocation (Live) ===
+# momentum_sol:  350,000 (35%) — Sharpe 2.23
+# momentum_eth:  250,000 (25%) — Sharpe 1.64
+# momentum_btc:  200,000 (20%) — Sharpe 1.03
+# momentum_xrp:  200,000 (20%) — Sharpe 0.96
+# TOTAL:       1,000,000
+#
+# Live strategy: momentum-only (highest Sharpe, best validated)
+# Diversified across 4 symbols with per-symbol optimized params
+# Tighter risk than paper: lower position size, higher confidence gate
 
 [credentials]
 # Set via environment variables CT_UPBIT_ACCESS_KEY and CT_UPBIT_SECRET_KEY

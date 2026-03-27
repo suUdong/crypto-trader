@@ -492,10 +492,8 @@ class TestBacktestKellyIntegration(unittest.TestCase):
             losses = [t for t in result.trade_log if t.pnl <= 0]
             kelly = risk_manager.kelly_fraction()
             if wins and losses:
-                # Mixed results: Kelly should return a number
                 self.assertIsNotNone(kelly)
             else:
-                # All wins or all losses: Kelly legitimately returns None
                 self.assertIsNone(kelly)
 
 

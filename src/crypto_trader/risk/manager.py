@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import math
+
 from crypto_trader.config import RiskConfig
 from crypto_trader.models import Candle, Position
 from crypto_trader.strategy.indicators import average_true_range
 
 
 class RiskManager:
+    _MIN_DRAWDOWN_SCALE = 0.1
+    _MAX_WIN_STREAK_MULT = 1.2
+    _MIN_LOSS_STREAK_MULT = 0.4
+
     def __init__(
         self,
         config: RiskConfig,
@@ -154,56 +160,112 @@ class RiskManager:
         half_kelly = kelly * 0.5
         return max(0.0, min(half_kelly, 0.25))
 
-    def size_position(
-        self, equity: float, price: float, macro_multiplier: float = 1.0,
+    def _base_position_quantity(
+        self,
+        equity: float,
+        price: float,
+        macro_multiplier: float,
     ) -> float:
-        if equity <= 0 or price <= 0:
-            return 0.0
-        if equity > self._peak_equity:
-            self._peak_equity = equity
         kelly = self.kelly_fraction()
         if kelly is not None and kelly > 0:
             risk_budget = equity * kelly
-            quantity = risk_budget / price
-            quantity *= macro_multiplier
-            max_affordable = equity / price
-            base_quantity = max(0.0, min(quantity, max_affordable))
+            quantity = (risk_budget / price) * macro_multiplier
         else:
             risk_budget = equity * self._config.risk_per_trade_pct
             stop_distance = price * self._config.stop_loss_pct
             if stop_distance <= 0:
                 return 0.0
-            quantity = risk_budget / stop_distance
-            quantity *= macro_multiplier
-            max_affordable = equity / price
-            base_quantity = max(0.0, min(quantity, max_affordable))
-        drawdown_pct = (
-            (self._peak_equity - equity) / self._peak_equity
-            if self._peak_equity > 0
-            else 0.0
-        )
+            quantity = (risk_budget / stop_distance) * macro_multiplier
+        max_affordable = equity / price
+        return max(0.0, min(quantity, max_affordable))
+
+    def _current_drawdown_pct(self, equity: float) -> float:
+        if self._peak_equity <= 0:
+            return 0.0
+        return max(0.0, (self._peak_equity - equity) / self._peak_equity)
+
+    def _drawdown_scale(self, equity: float) -> float:
+        drawdown_pct = self._current_drawdown_pct(equity)
         max_daily_loss_pct = self._config.max_daily_loss_pct
-        scale = (
-            1.0
-            - (drawdown_pct / max_daily_loss_pct)
-            * self._config.drawdown_reduction_pct
-            if max_daily_loss_pct > 0
-            else 1.0
-        )
-        scale = max(0.1, min(scale, 1.0))
-        # Win-streak boost: +15% after 3+ consecutive wins (max 1.3x)
-        streak_mult = 1.0
+        if max_daily_loss_pct <= 0 or drawdown_pct <= 0:
+            return 1.0
+        drawdown_ratio = min(1.0, drawdown_pct / max_daily_loss_pct)
+        exponent = 1.0 + (self._config.drawdown_reduction_pct * 2.0)
+        return max(self._MIN_DRAWDOWN_SCALE, (1.0 - drawdown_ratio) ** exponent)
+
+    def _streak_multiplier(self) -> float:
+        multiplier = 1.0
         if self._consecutive_wins >= 3:
-            streak_mult = min(1.3, 1.0 + 0.05 * self._consecutive_wins)
-        sized = base_quantity * scale * streak_mult
-        # Let streak sizing and notional cap scale together so a boost can
-        # actually increase size without bypassing the configured ceiling.
-        max_position_value = equity * self._config.max_position_pct * streak_mult
-        max_qty_by_cap = max_position_value / price if price > 0 else 0.0
+            multiplier = min(
+                self._MAX_WIN_STREAK_MULT,
+                1.0 + 0.04 * self._consecutive_wins,
+            )
+        if self._consecutive_losses >= 2:
+            multiplier *= max(
+                self._MIN_LOSS_STREAK_MULT,
+                1.0 - 0.15 * self._consecutive_losses,
+            )
+        return multiplier
+
+    def _loss_pressure_ratio(
+        self,
+        realized_pnl: float,
+        starting_equity: float,
+        current_equity: float | None = None,
+    ) -> float:
+        if starting_equity <= 0:
+            return 0.0
+        realized_loss_ratio = max(0.0, -realized_pnl / starting_equity)
+        if current_equity is None:
+            return realized_loss_ratio
+        mark_to_market_ratio = max(0.0, (starting_equity - current_equity) / starting_equity)
+        return max(realized_loss_ratio, mark_to_market_ratio)
+
+    def allowed_concurrent_positions(
+        self,
+        realized_pnl: float,
+        starting_equity: float,
+        current_equity: float | None = None,
+    ) -> int:
+        base_limit = self._config.max_concurrent_positions
+        if base_limit <= 0 or starting_equity <= 0:
+            return 0
+        max_daily_loss_pct = self._config.max_daily_loss_pct
+        if max_daily_loss_pct <= 0:
+            return base_limit
+        loss_pressure_ratio = self._loss_pressure_ratio(
+            realized_pnl,
+            starting_equity,
+            current_equity,
+        )
+        if loss_pressure_ratio >= max_daily_loss_pct:
+            return 0
+        if base_limit == 1:
+            return 1
+        remaining_capacity = 1.0 - min(1.0, loss_pressure_ratio / max_daily_loss_pct)
+        return max(1, math.ceil(base_limit * remaining_capacity))
+
+    def size_position(
+        self,
+        equity: float,
+        price: float,
+        macro_multiplier: float = 1.0,
+    ) -> float:
+        if equity <= 0 or price <= 0:
+            return 0.0
+        if equity > self._peak_equity:
+            self._peak_equity = equity
+        base_quantity = self._base_position_quantity(equity, price, macro_multiplier)
+        sized = base_quantity * self._drawdown_scale(equity) * self._streak_multiplier()
+        # Hard cap: max_position_pct is NEVER expanded by streak boost
+        max_position_value = equity * self._config.max_position_pct
+        max_qty_by_cap = max_position_value / price
         return min(sized, max_qty_by_cap)
 
     def portfolio_heat(
-        self, open_positions: list[tuple[float, float]], equity: float,
+        self,
+        open_positions: list[tuple[float, float]],
+        equity: float,
     ) -> float:
         """Total portfolio heat: sum of (position_value * stop_loss_pct) / equity.
 
@@ -212,42 +274,71 @@ class RiskManager:
         if equity <= 0:
             return 0.0
         total_risk = sum(
-            entry * qty * self.effective_stop_loss_pct
-            for entry, qty in open_positions
+            entry * qty * self.effective_stop_loss_pct for entry, qty in open_positions
         )
         return total_risk / equity
 
-    def can_open(self, active_positions: int, realized_pnl: float, starting_equity: float) -> bool:
-        if active_positions >= self._config.max_concurrent_positions:
-            return False
+    def can_open(
+        self,
+        active_positions: int,
+        realized_pnl: float,
+        starting_equity: float,
+        current_equity: float | None = None,
+    ) -> bool:
         if starting_equity <= 0:
             return False
-        loss_limit = starting_equity * self._config.max_daily_loss_pct
-        return realized_pnl > -loss_limit
+        allowed_positions = self.allowed_concurrent_positions(
+            realized_pnl,
+            starting_equity,
+            current_equity,
+        )
+        return active_positions < allowed_positions
 
-    def should_force_exit(self, realized_pnl: float, starting_equity: float) -> bool:
+    def should_force_exit(
+        self,
+        realized_pnl: float,
+        starting_equity: float,
+        current_equity: float | None = None,
+    ) -> bool:
         """Circuit breaker: force-close all positions when daily loss limit is hit."""
         if starting_equity <= 0:
             return False
-        loss_limit = starting_equity * self._config.max_daily_loss_pct
-        return realized_pnl <= -loss_limit
+        max_daily_loss_pct = self._config.max_daily_loss_pct
+        if max_daily_loss_pct <= 0:
+            return False
+        return (
+            self._loss_pressure_ratio(
+                realized_pnl,
+                starting_equity,
+                current_equity,
+            )
+            >= max_daily_loss_pct
+        )
 
     def exit_reason(
-        self, position: Position, price: float, holding_bars: int = 0,
+        self,
+        position: Position,
+        price: float,
+        holding_bars: int = 0,
     ) -> str | None:
         # Update high watermark for trailing stop
         position.update_watermark(price)
 
-        # Time-decay exit: close underwater positions held > 75% of max bars
+        pnl_pct = (price - position.entry_price) / position.entry_price
+
+        # Time-decay exit: graduated — close sooner if deeper underwater
         if holding_bars > 0 and self._max_holding_bars > 0:
             bar_ratio = holding_bars / self._max_holding_bars
-            pnl_pct = (price - position.entry_price) / position.entry_price
+            # At 60% of max bars: exit if loss > 1.5%
+            # At 75% of max bars: exit if any loss
+            if bar_ratio >= 0.60 and pnl_pct < -0.015:
+                return "time_decay_exit"
             if bar_ratio >= 0.75 and pnl_pct < 0:
                 return "time_decay_exit"
 
-        # Breakeven stop: if position ever gained >= 1.5% (watermark), stop at entry
+        # Breakeven stop: if position ever gained >= 1.2% (watermark), stop at entry
         watermark_gain = (position.high_watermark - position.entry_price) / position.entry_price
-        if watermark_gain >= 0.015 and price <= position.entry_price:
+        if watermark_gain >= 0.012 and price <= position.entry_price:
             return "breakeven_stop"
 
         # ATR-based dynamic stops (if ATR available and multiplier set)
