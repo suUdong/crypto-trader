@@ -283,6 +283,48 @@ class TestMomentumBacktest(unittest.TestCase):
         self.assertTrue(different)
 
 
+class TestMomentumPullbackBacktest(unittest.TestCase):
+    def test_trending_up_with_pullbacks_generates_trades(self) -> None:
+        candles = _build_candles(_trending_up_with_pullbacks(300))
+        result = _run_backtest(
+            "momentum_pullback",
+            candles,
+            momentum_lookback=10,
+            momentum_entry_threshold=0.003,
+            bollinger_window=15,
+            bollinger_stddev=1.5,
+            rsi_period=10,
+            rsi_recovery_ceiling=65.0,
+            adx_threshold=5.0,
+        )
+        self.assertGreater(result["trade_count"], 0)
+
+    def test_different_pullback_params_change_results(self) -> None:
+        candles = _build_candles(_trending_up_with_pullbacks(300))
+        r1 = _run_backtest(
+            "momentum_pullback",
+            candles,
+            momentum_lookback=10,
+            momentum_entry_threshold=0.003,
+            bollinger_window=15,
+            rsi_recovery_ceiling=65.0,
+            adx_threshold=5.0,
+        )
+        r2 = _run_backtest(
+            "momentum_pullback",
+            candles,
+            momentum_lookback=20,
+            momentum_entry_threshold=0.01,
+            bollinger_window=20,
+            rsi_recovery_ceiling=50.0,
+            adx_threshold=20.0,
+        )
+        different = (r1["trade_count"] != r2["trade_count"]) or (
+            r1["return_pct"] != r2["return_pct"]
+        )
+        self.assertTrue(different)
+
+
 class TestVPINBacktest(unittest.TestCase):
     def test_runs_without_error(self) -> None:
         candles = _build_candles(_sideways(300))
@@ -430,7 +472,7 @@ class TestBacktestKellyIntegration(unittest.TestCase):
             self.assertEqual(len(risk_manager._trade_history), len(result.trade_log))
 
     def test_kelly_available_after_enough_trades(self) -> None:
-        """After 10+ trades, Kelly fraction should be computable."""
+        """After 10+ trades with mixed wins/losses, Kelly fraction should be computable."""
         candles = _build_candles(_sideways(500, base=100_000.0, amplitude=8000.0))
         config = StrategyConfig(bollinger_window=15, bollinger_stddev=1.5, max_holding_bars=24)
         regime = RegimeConfig()
@@ -446,18 +488,24 @@ class TestBacktestKellyIntegration(unittest.TestCase):
         )
         result = engine.run(candles)
         if len(result.trade_log) >= 10:
+            wins = [t for t in result.trade_log if t.pnl > 0]
+            losses = [t for t in result.trade_log if t.pnl <= 0]
             kelly = risk_manager.kelly_fraction()
-            # Should return a number (possibly 0.0 but not None)
-            self.assertIsNotNone(kelly)
+            if wins and losses:
+                # Mixed results: Kelly should return a number
+                self.assertIsNotNone(kelly)
+            else:
+                # All wins or all losses: Kelly legitimately returns None
+                self.assertIsNone(kelly)
 
 
 class TestAllStrategiesCreateSuccessfully(unittest.TestCase):
-    """Verify all 6 strategy types + composite can be instantiated for backtest."""
+    """Verify primary strategy types can be instantiated for backtest."""
 
     def test_create_all_strategies(self) -> None:
         config = StrategyConfig()
         regime = RegimeConfig()
-        for name in ["momentum", "mean_reversion", "composite", "obi", "vpin"]:
+        for name in ["momentum", "momentum_pullback", "mean_reversion", "composite", "obi", "vpin"]:
             strategy = create_strategy(name, config, regime)
             self.assertIsNotNone(strategy)
             self.assertTrue(hasattr(strategy, "evaluate"))
@@ -492,6 +540,13 @@ class TestGridParamCoverage(unittest.TestCase):
 
         config_fields = set(StrategyConfig.__dataclass_fields__)
         for k in MOMENTUM_GRID:
+            self.assertIn(k, config_fields)
+
+    def test_momentum_pullback_grid_params_valid(self) -> None:
+        from scripts.grid_search import MOMENTUM_PULLBACK_GRID
+
+        config_fields = set(StrategyConfig.__dataclass_fields__)
+        for k in MOMENTUM_PULLBACK_GRID:
             self.assertIn(k, config_fields)
 
     def test_vpin_grid_params_valid(self) -> None:
@@ -529,6 +584,7 @@ class TestGridParamCoverage(unittest.TestCase):
         expected = {
             "mean_reversion",
             "momentum",
+            "momentum_pullback",
             "composite",
             "vpin",
             "obi",

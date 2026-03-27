@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
 
 from crypto_trader.backtest.walk_forward import WalkForwardValidator
-from crypto_trader.config import BacktestConfig, RiskConfig, StrategyConfig, RegimeConfig
+from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
 from crypto_trader.models import Candle
 from crypto_trader.wallet import create_strategy
 
@@ -86,7 +85,7 @@ class TestWalkForwardCLIIntegration(unittest.TestCase):
         self.assertEqual(summary["strategy"], "kimchi_premium")
 
     def test_walk_forward_all_strategy_types_run(self) -> None:
-        """Verify all 7 strategy types can be instantiated and run through walk-forward."""
+        """Verify supported strategy types can be instantiated and run through walk-forward."""
         candles = _make_candles(200)
         validator = WalkForwardValidator(
             backtest_config=BacktestConfig(),
@@ -97,7 +96,7 @@ class TestWalkForwardCLIIntegration(unittest.TestCase):
         strategy_config = StrategyConfig()
         regime_config = RegimeConfig()
         strategy_types = [
-            "momentum", "mean_reversion", "composite",
+            "momentum", "momentum_pullback", "mean_reversion", "composite",
             "obi", "vpin", "volatility_breakout",
         ]
 

@@ -31,6 +31,7 @@ from crypto_trader.strategy.evaluator import evaluate_strategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
+from crypto_trader.strategy.momentum_pullback import MomentumPullbackStrategy
 from crypto_trader.strategy.obi import OBIStrategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
@@ -56,6 +57,8 @@ def create_strategy(
     params = extra_params or {}
     if strategy_type == "momentum":
         return MomentumStrategy(strategy_config, regime_config)
+    if strategy_type == "momentum_pullback":
+        return MomentumPullbackStrategy(strategy_config, regime_config)
     if strategy_type == "mean_reversion":
         return MeanReversionStrategy(strategy_config, regime_config)
     if strategy_type == "kimchi_premium":

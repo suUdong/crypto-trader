@@ -84,7 +84,7 @@ def main() -> None:
     parser.add_argument(
         "--strategy",
         choices=[
-            "momentum", "mean_reversion", "composite",
+            "momentum", "momentum_pullback", "mean_reversion", "composite",
             "kimchi_premium", "obi", "vpin", "volatility_breakout", "ema_crossover",
             "consensus",
         ],
@@ -621,6 +621,7 @@ def main() -> None:
         from crypto_trader.backtest.correlation import signal_correlation
 
         strategy_types = ["momentum", "mean_reversion", "vpin", "volatility_breakout"]
+        strategy_types.insert(1, "momentum_pullback")
         strategies = [create_strategy(s, config.strategy, config.regime) for s in strategy_types]
 
         # Fetch candles for primary symbol
@@ -746,7 +747,7 @@ def main() -> None:
         from crypto_trader.strategy.regime import RegimeDetector, MarketRegime
 
         all_strategies = [
-            "momentum", "mean_reversion", "vpin", "volatility_breakout",
+            "momentum", "momentum_pullback", "mean_reversion", "vpin", "volatility_breakout",
             "kimchi_premium", "obi", "ema_crossover", "consensus",
         ]
         symbols = config.trading.symbols
@@ -999,7 +1000,7 @@ def main() -> None:
         from crypto_trader.backtest.grid_wf import run_grid_wf, kelly_fraction, _approx_sortino
 
         grid_strategies = [
-            "momentum", "mean_reversion", "vpin", "volatility_breakout",
+            "momentum", "momentum_pullback", "mean_reversion", "vpin", "volatility_breakout",
             "obi", "ema_crossover", "consensus",
         ]
         days = args.days

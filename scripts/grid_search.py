@@ -85,6 +85,17 @@ MOMENTUM_GRID = {
     "max_holding_bars": [36, 48, 60],
 }
 
+MOMENTUM_PULLBACK_GRID = {
+    "momentum_lookback": [10, 15, 20],
+    "momentum_entry_threshold": [0.003, 0.006],
+    "bollinger_window": [15, 20],
+    "bollinger_stddev": [1.5, 1.8],
+    "rsi_period": [10, 14],
+    "rsi_recovery_ceiling": [50.0, 60.0],
+    "adx_threshold": [15.0, 20.0],
+    "max_holding_bars": [24, 36],
+}
+
 VPIN_GRID = {
     "rsi_period": [10, 14],
     "momentum_lookback": [15, 20],
@@ -126,6 +137,7 @@ COMPOSITE_GRID = {
 STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
     "mean_reversion": MEAN_REVERSION_GRID,
     "momentum": MOMENTUM_GRID,
+    "momentum_pullback": MOMENTUM_PULLBACK_GRID,
     "composite": COMPOSITE_GRID,
     "vpin": VPIN_GRID,
     "obi": OBI_GRID,

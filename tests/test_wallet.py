@@ -23,6 +23,7 @@ from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
+from crypto_trader.strategy.momentum_pullback import MomentumPullbackStrategy
 from crypto_trader.wallet import StrategyWallet, build_wallets, create_strategy
 
 
@@ -101,6 +102,10 @@ class TestCreateStrategy(unittest.TestCase):
     def test_create_strategy_mean_reversion(self) -> None:
         strategy = create_strategy("mean_reversion", self.strategy_config, self.regime_config)
         self.assertIsInstance(strategy, MeanReversionStrategy)
+
+    def test_create_strategy_momentum_pullback(self) -> None:
+        strategy = create_strategy("momentum_pullback", self.strategy_config, self.regime_config)
+        self.assertIsInstance(strategy, MomentumPullbackStrategy)
 
     def test_create_strategy_composite_explicit(self) -> None:
         strategy = create_strategy("composite", self.strategy_config, self.regime_config)

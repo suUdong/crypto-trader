@@ -35,6 +35,7 @@ except ModuleNotFoundError:
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 STRATEGIES = [
     "momentum",
+    "momentum_pullback",
     "mean_reversion",
     "composite",
     "kimchi_premium",

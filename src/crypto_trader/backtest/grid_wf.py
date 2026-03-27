@@ -189,6 +189,16 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
         "adx_threshold": [15.0, 20.0, 25.0],
         "max_holding_bars": [24, 36, 48],
     },
+    "momentum_pullback": {
+        "momentum_lookback": [10, 15, 20],
+        "momentum_entry_threshold": [0.003, 0.006],
+        "bollinger_window": [15, 20],
+        "bollinger_stddev": [1.5, 1.8],
+        "rsi_period": [14, 18],
+        "rsi_recovery_ceiling": [50.0, 60.0],
+        "adx_threshold": [15.0, 20.0],
+        "max_holding_bars": [24, 36],
+    },
     "mean_reversion": {
         "bollinger_window": [15, 20, 25],
         "bollinger_stddev": [1.5, 1.8, 2.0],
