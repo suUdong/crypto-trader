@@ -12,6 +12,7 @@ _log = logging.getLogger(__name__)
 class TradeAlertManager:
     _ERROR_ALERT_COOLDOWN_SECONDS = 300
     _REJECTION_ALERT_COOLDOWN_SECONDS = 300
+    _DRAWDOWN_ALERT_COOLDOWN_SECONDS = 900
     _DAEMON_ALERT_COOLDOWN_SECONDS = 300
 
     def __init__(self, notifiers: Sequence[Notifier]) -> None:
@@ -21,6 +22,7 @@ class TradeAlertManager:
     def alert_trade(
         self,
         wallet_name: str,
+        strategy_name: str | None,
         symbol: str,
         side: str,
         quantity: float,
@@ -28,12 +30,38 @@ class TradeAlertManager:
         fee_paid: float,
         reason: str,
     ) -> None:
+        strategy_line = f"Strategy: {strategy_name}\n" if strategy_name else ""
         message = (
-            f"\U0001f514 TRADE | {wallet_name}\n"
-            f"{side.upper()} {symbol} qty={quantity} @ {fill_price:,.0f}\n"
-            f"Reason: {reason} | Fee: {fee_paid:,.0f} KRW"
+            f"\U0001f514 TRADE FILLED | {wallet_name}\n"
+            f"{strategy_line}"
+            f"{side.upper()} {symbol} @ {fill_price:,.0f}\n"
+            f"Qty: {quantity:.8f} | Reason: {reason}\n"
+            f"Fee: {fee_paid:,.0f} KRW"
         )
         self._send(message)
+
+    def alert_drawdown_warning(
+        self,
+        *,
+        metric: str,
+        stage: str,
+        current_pct: float,
+        limit_pct: float,
+        position_size_penalty: float,
+    ) -> None:
+        metric_label = "portfolio_drawdown" if metric == "portfolio_drawdown" else "daily_loss"
+        stage_label = "REDUCE" if stage == "reduce" else "WARNING"
+        message = (
+            f"\u26a0\ufe0f RISK {stage_label}\n"
+            f"Metric: {metric_label}\n"
+            f"Current: {current_pct:.2%} | Limit: {limit_pct:.2%}\n"
+            f"Position size: {position_size_penalty:.0%}"
+        )
+        self._send_with_cooldown(
+            f"drawdown:{metric}:{stage}",
+            message,
+            self._DRAWDOWN_ALERT_COOLDOWN_SECONDS,
+        )
 
     def alert_rejection(
         self,

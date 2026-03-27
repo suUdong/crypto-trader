@@ -41,7 +41,7 @@ from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.risk.correlation_guard import CorrelationGuard
-from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
+from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig, KillSwitchState
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.risk.slippage_monitor import SlippageMonitor
 from crypto_trader.risk.wallet_health import WalletHealthMonitor
@@ -137,6 +137,9 @@ class MultiSymbolRuntime:
         self._structured_logger = StructuredLogger()
         self._pnl_generator = PnLReportGenerator()
         self._last_pnl_notify: float = 0.0
+        self._daily_summary_state_path = (
+            Path(config.runtime.daily_performance_path).parent / "telegram-daily-summary-state.json"
+        )
         self._trade_journal = PaperTradeJournal(config.runtime.paper_trade_journal_path)
         self._journal_trade_counts: dict[str, int] = {w.name: 0 for w in wallets}
         self._strategy_run_journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
@@ -179,6 +182,7 @@ class MultiSymbolRuntime:
         self._last_results: list[PipelineResult] = []
         self._last_correlation_snapshot: dict[str, Any] = {}
         self._last_portfolio_risk_state: dict[str, Any] = {}
+        self._last_drawdown_alert_signature: str | None = None
         self._last_capital_reallocation: dict[str, Any] = {
             "transfer_count": 0,
             "transfers": [],
@@ -300,6 +304,7 @@ class MultiSymbolRuntime:
                 tick_results,
                 duration_seconds=time.monotonic() - tick_started,
             )
+            self._maybe_alert_runtime_status()
             self._save_heartbeat(Path(self._config.runtime.runtime_checkpoint_path).parent)
             self._refresh_health_snapshot()
             self._iteration += 1
@@ -492,6 +497,7 @@ class MultiSymbolRuntime:
                         )
                         self._alert_manager.alert_trade(
                             wallet_name=wallet.name,
+                            strategy_name=wallet.strategy_type,
                             symbol=symbol,
                             side=result.order.side.value,
                             quantity=result.order.quantity,
@@ -583,6 +589,7 @@ class MultiSymbolRuntime:
         self._kill_switch.save(self._kill_switch_path)
 
         if state.triggered:
+            self._last_drawdown_alert_signature = None
             self._logger.critical(
                 "KILL SWITCH TRIGGERED: %s — stopping after this tick",
                 state.trigger_reason,
@@ -604,6 +611,78 @@ class MultiSymbolRuntime:
                     "consecutive_losses": state.consecutive_losses,
                 },
             )
+            return
+
+        self._maybe_alert_drawdown_warning(state)
+
+    def _warning_stage(self, current_pct: float, limit_pct: float) -> str | None:
+        if limit_pct <= 0 or current_pct <= 0:
+            return None
+        ratio = current_pct / limit_pct
+        if ratio >= 1.0:
+            return None
+        if ratio >= self._config.kill_switch.reduce_threshold_pct:
+            return "reduce"
+        if ratio >= self._config.kill_switch.warn_threshold_pct:
+            return "warning"
+        return None
+
+    def _maybe_alert_drawdown_warning(self, state: KillSwitchState) -> None:
+        if state.triggered or not state.warning_active:
+            self._last_drawdown_alert_signature = None
+            return
+
+        candidates = [
+            (
+                "portfolio_drawdown",
+                state.portfolio_drawdown_pct,
+                self._config.kill_switch.max_portfolio_drawdown_pct,
+            ),
+            (
+                "daily_loss",
+                state.daily_loss_pct,
+                self._config.kill_switch.max_daily_loss_pct,
+            ),
+        ]
+        selected: tuple[str, str, float, float] | None = None
+        selected_ratio = -1.0
+        for metric, current_pct, limit_pct in candidates:
+            stage = self._warning_stage(current_pct, limit_pct)
+            if stage is None or limit_pct <= 0:
+                continue
+            ratio = current_pct / limit_pct
+            if ratio > selected_ratio:
+                selected = (metric, stage, current_pct, limit_pct)
+                selected_ratio = ratio
+
+        if selected is None:
+            self._last_drawdown_alert_signature = None
+            return
+
+        metric, stage, current_pct, limit_pct = selected
+        signature = f"{metric}:{stage}"
+        if signature == self._last_drawdown_alert_signature:
+            return
+
+        self._alert_manager.alert_drawdown_warning(
+            metric=metric,
+            stage=stage,
+            current_pct=current_pct,
+            limit_pct=limit_pct,
+            position_size_penalty=state.position_size_penalty,
+        )
+        self._last_drawdown_alert_signature = signature
+
+    def _maybe_alert_runtime_status(self) -> None:
+        if not self._last_tick_had_error or not self._last_error:
+            return
+        self._alert_manager.alert_daemon_status(
+            status="degraded",
+            error_message=self._last_error,
+            restart_count=self._restart_count,
+            next_retry_seconds=self._last_retry_delay_seconds,
+            auto_restart_enabled=bool(getattr(self._config.runtime, "auto_restart_enabled", True)),
+        )
 
     def _refresh_macro(self) -> None:
         weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
@@ -1013,44 +1092,77 @@ class MultiSymbolRuntime:
     def _maybe_send_pnl_notify(self) -> None:
         if time.time() - self._last_pnl_notify < self.PNL_NOTIFY_INTERVAL:
             return
+        today_key = datetime.now(self._KST).date().isoformat()
+        state = self._load_daily_summary_state()
+        if state.get("last_sent_date") == today_key:
+            return
         try:
             report = self._pnl_generator.generate_from_checkpoint(
                 self._config.runtime.runtime_checkpoint_path,
                 self._config.runtime.paper_trade_journal_path,
             )
-            disabled = self._wallet_health.get_disabled_wallets()
-            paused = [w.name for w in self._wallets if w.risk_manager.is_auto_paused]
-            lines = [
-                "[Crypto Trader] Daily PnL Report",
-                f"Equity: {report.total_equity:,.0f} KRW | "
-                f"Return: {report.portfolio_return_pct:+.2f}%",
-                f"Sharpe: {report.portfolio_sharpe:.2f} | "
-                f"Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
-                "---",
-            ]
-            for s in sorted(report.strategies, key=lambda x: x.total_return_pct, reverse=True):
-                status = ""
-                if s.wallet in disabled:
-                    status = " [DISABLED]"
-                elif s.wallet in paused:
-                    status = " [PAUSED]"
-                pf = f"{s.profit_factor:.1f}" if s.profit_factor < 1000 else "inf"
-                lines.append(
-                    f"{s.wallet}: {s.total_return_pct:+.2f}% | "
-                    f"{s.trade_count}t W:{s.win_rate:.0%} PF:{pf}{status}"
-                )
-            if disabled:
-                lines.append(f"---\nDisabled: {', '.join(disabled)}")
-            if paused:
-                lines.append(f"Paused: {', '.join(paused)}")
-            self._notifier.send_message("\n".join(lines))
+            self._notifier.send_message(self._build_daily_pnl_message(report))
             self._last_pnl_notify = time.time()
+            self._save_daily_summary_state(today_key, report.generated_at)
         except Exception as exc:
             self._logger.error("Failed to send PnL notification: %s", exc)
             if self._is_recoverable_error(exc):
                 self._record_tick_error(exc)
             else:
                 raise
+
+    def _build_daily_pnl_message(self, report: Any) -> str:
+        disabled = self._wallet_health.get_disabled_wallets()
+        paused = [w.name for w in self._wallets if w.risk_manager.is_auto_paused]
+        lines = [
+            "[Crypto Trader] Daily PnL Report",
+            f"Snapshot: {report.generated_at}",
+            f"Equity: {report.total_equity:,.0f} KRW | "
+            f"Return: {report.portfolio_return_pct:+.2f}%",
+            f"Sharpe: {report.portfolio_sharpe:.2f} | "
+            f"Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
+            "---",
+        ]
+        for strategy in sorted(report.strategies, key=lambda item: item.total_return_pct, reverse=True):
+            status = ""
+            if strategy.wallet in disabled:
+                status = " [DISABLED]"
+            elif strategy.wallet in paused:
+                status = " [PAUSED]"
+            pf = f"{strategy.profit_factor:.1f}" if strategy.profit_factor < 1000 else "inf"
+            lines.append(
+                f"{strategy.wallet}: {strategy.total_return_pct:+.2f}% | "
+                f"{strategy.trade_count}t W:{strategy.win_rate:.0%} PF:{pf}{status}"
+            )
+        if disabled:
+            lines.append(f"---\nDisabled: {', '.join(disabled)}")
+        if paused:
+            lines.append(f"Paused: {', '.join(paused)}")
+        return "\n".join(lines)
+
+    def _load_daily_summary_state(self) -> dict[str, Any]:
+        if not self._daily_summary_state_path.exists():
+            return {}
+        try:
+            payload = json.loads(self._daily_summary_state_path.read_text(encoding="utf-8"))
+            return payload if isinstance(payload, dict) else {}
+        except Exception:
+            return {}
+
+    def _save_daily_summary_state(self, last_sent_date: str, generated_at: str) -> None:
+        payload = {
+            "last_sent_date": last_sent_date,
+            "generated_at": generated_at,
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+        try:
+            self._daily_summary_state_path.parent.mkdir(parents=True, exist_ok=True)
+            self._daily_summary_state_path.write_text(
+                json.dumps(payload, indent=2),
+                encoding="utf-8",
+            )
+        except Exception as exc:
+            self._logger.warning("Failed to persist daily summary state: %s", exc)
 
     def _maybe_refresh_artifacts(self) -> None:
         """Periodically refresh heavier artifacts that do not need every tick."""

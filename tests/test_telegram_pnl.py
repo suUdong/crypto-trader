@@ -154,6 +154,26 @@ class TestThrottle24h(unittest.TestCase):
 
             self.assertEqual(call_count, 1)
 
+    def test_daily_summary_state_prevents_duplicate_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cp_path = str(Path(tmp) / "checkpoint.json")
+            _write_checkpoint(cp_path)
+            config = _make_config(checkpoint_path=cp_path)
+
+            first_runtime = _make_runtime(config)
+            first_runtime._last_pnl_notify = 0.0
+            first_runtime._notifier = NullNotifier()
+            with patch.object(first_runtime._notifier, "send_message") as first_send:
+                first_runtime._maybe_send_pnl_notify()
+            first_send.assert_called_once()
+
+            second_runtime = _make_runtime(config)
+            second_runtime._last_pnl_notify = 0.0
+            second_runtime._notifier = NullNotifier()
+            with patch.object(second_runtime._notifier, "send_message") as second_send:
+                second_runtime._maybe_send_pnl_notify()
+            second_send.assert_not_called()
+
 
 class TestNoCrashOnMissingCheckpoint(unittest.TestCase):
     def test_no_crash_on_missing_checkpoint(self) -> None:

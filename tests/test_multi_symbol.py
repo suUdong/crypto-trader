@@ -105,6 +105,14 @@ class FakeMarketData(MarketDataClient):
         return self._candle_map.get(symbol, [])
 
 
+class _RecordingNotifier:
+    def __init__(self) -> None:
+        self.messages: list[str] = []
+
+    def send_message(self, message: str) -> None:
+        self.messages.append(message)
+
+
 class FlakyMarketData(MarketDataClient):
     def __init__(self, failures_before_success: int, candles: list[Candle]) -> None:
         self._failures_before_success = failures_before_success
@@ -428,6 +436,25 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         self.assertEqual(health["recovery_delay_seconds"], 15)
         self.assertIn("network error", health["last_error"])
 
+    def test_runtime_emits_degraded_daemon_alert_on_transient_fetch_failure(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        market_data = MagicMock()
+        market_data.get_ohlcv.side_effect = RuntimeError("network error")
+        runtime = MultiSymbolRuntime(wallets=wallets, market_data=market_data, config=config)
+
+        with patch.object(runtime._alert_manager, "alert_daemon_status") as alert_daemon_status:
+            runtime.run()
+
+        alert_daemon_status.assert_called_once()
+        self.assertEqual(alert_daemon_status.call_args.kwargs["status"], "degraded")
+        self.assertIn("network error", alert_daemon_status.call_args.kwargs["error_message"])
+
     def test_runtime_recovers_health_after_transient_fetch_failure(self) -> None:
         config = _make_config(
             symbols=["KRW-BTC"],
@@ -487,6 +514,36 @@ class TestMultiSymbolRuntime(unittest.TestCase):
 
         self.assertLess(state["entry_size_penalty"], 1.0)
         self.assertLess(state["allowed_new_positions"], state["base_position_limit"])
+
+    def test_drawdown_warning_alerts_on_stage_transition_only(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.kill_switch.max_portfolio_drawdown_pct = 0.10
+        config.kill_switch.max_daily_loss_pct = 1.0
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+        notifier = _RecordingNotifier()
+        runtime._alert_manager = runtime._alert_manager.__class__([notifier])
+
+        runtime._check_kill_switch_after_tick([])
+        wallets[0].broker.cash = 940_000.0
+        runtime._check_kill_switch_after_tick([])
+        runtime._check_kill_switch_after_tick([])
+        wallets[0].broker.cash = 920_000.0
+        runtime._check_kill_switch_after_tick([])
+
+        self.assertEqual(len(notifier.messages), 2)
+        self.assertIn("RISK WARNING", notifier.messages[0])
+        self.assertIn("RISK REDUCE", notifier.messages[1])
 
     def test_rebalance_idle_wallet_cash_moves_capital_and_updates_summary(self) -> None:
         config = _make_config(

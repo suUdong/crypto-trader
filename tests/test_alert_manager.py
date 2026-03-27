@@ -25,6 +25,7 @@ class TestTradeAlertManager(unittest.TestCase):
     def test_alert_trade_sends_message(self) -> None:
         self.manager.alert_trade(
             wallet_name="momentum_wallet",
+            strategy_name="momentum",
             symbol="KRW-BTC",
             side="buy",
             quantity=0.001,
@@ -36,6 +37,7 @@ class TestTradeAlertManager(unittest.TestCase):
         msg = self.notifier.messages[0]
         self.assertIn("TRADE", msg)
         self.assertIn("momentum_wallet", msg)
+        self.assertIn("Strategy: momentum", msg)
         self.assertIn("KRW-BTC", msg)
         self.assertIn("BUY", msg)
         self.assertIn("breakout", msg)
@@ -91,11 +93,26 @@ class TestTradeAlertManager(unittest.TestCase):
         self.assertIn("network timeout", msg)
         self.assertIn("15s", msg)
 
+    def test_alert_drawdown_warning_sends_message(self) -> None:
+        self.manager.alert_drawdown_warning(
+            metric="portfolio_drawdown",
+            stage="reduce",
+            current_pct=0.08,
+            limit_pct=0.10,
+            position_size_penalty=0.5,
+        )
+        self.assertEqual(len(self.notifier.messages), 1)
+        msg = self.notifier.messages[0]
+        self.assertIn("RISK REDUCE", msg)
+        self.assertIn("portfolio_drawdown", msg)
+        self.assertIn("50%", msg)
+
     def test_multiple_notifiers_all_receive(self) -> None:
         notifier2 = _RecordingNotifier()
         manager = TradeAlertManager([self.notifier, notifier2])
         manager.alert_trade(
             wallet_name="w",
+            strategy_name="momentum",
             symbol="KRW-BTC",
             side="sell",
             quantity=1.0,
@@ -113,6 +130,7 @@ class TestTradeAlertManager(unittest.TestCase):
         manager = TradeAlertManager([failing, notifier2])
         manager.alert_trade(
             wallet_name="w",
+            strategy_name="momentum",
             symbol="KRW-BTC",
             side="buy",
             quantity=1.0,
@@ -128,6 +146,7 @@ class TestTradeAlertManager(unittest.TestCase):
         # Should not raise
         manager.alert_trade(
             wallet_name="w",
+            strategy_name="momentum",
             symbol="KRW-BTC",
             side="buy",
             quantity=1.0,
