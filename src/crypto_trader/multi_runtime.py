@@ -183,11 +183,20 @@ class MultiSymbolRuntime:
         self._last_correlation_snapshot: dict[str, Any] = {}
         self._last_portfolio_risk_state: dict[str, Any] = {}
         self._last_drawdown_alert_signature: str | None = None
+        self._last_position_reduction: dict[str, Any] = {
+            "stage": "normal",
+            "status": "idle",
+            "reduced_positions": [],
+            "orders": [],
+        }
         self._last_capital_reallocation: dict[str, Any] = {
+            "status": "idle",
+            "rebalance_date": "",
             "transfer_count": 0,
             "transfers": [],
             "target_capital": {},
         }
+        self._last_rebalance_date: str | None = None
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -289,13 +298,8 @@ class MultiSymbolRuntime:
             self._maybe_check_wallet_health()
             tick_results = self._run_tick(symbols)
             self._check_kill_switch_after_tick(tick_results)
-            rebalance_prices = {
-                result.symbol: result.latest_price
-                for result in tick_results
-                if result.latest_price is not None
-            }
-            if rebalance_prices:
-                self._rebalance_idle_wallet_cash(rebalance_prices)
+            if self._latest_prices:
+                self._maybe_rebalance_idle_wallet_cash(self._latest_prices)
             self._save_checkpoint(tick_results)
             self._refresh_runtime_artifacts()
             self._maybe_refresh_artifacts()
@@ -369,9 +373,11 @@ class MultiSymbolRuntime:
             for cached_symbol, symbol_candles in candle_cache.items()
             if symbol_candles
         }
+        self._latest_prices = dict(latest_prices)
         portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
+        if self._maybe_reduce_positions_for_drawdown(candle_cache, latest_prices):
+            portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
         self._apply_portfolio_risk_penalty()
-        self._rebalance_idle_wallet_cash(latest_prices)
 
         for symbol in symbols:
             candles = candle_cache[symbol]
@@ -451,6 +457,7 @@ class MultiSymbolRuntime:
                 results.append(result)
                 if result.latest_price is not None:
                     latest_prices[result.symbol] = result.latest_price
+                    self._latest_prices[result.symbol] = result.latest_price
                 portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
                 if result.error:
                     self._logger.error(result.message)
@@ -480,7 +487,7 @@ class MultiSymbolRuntime:
                         self._slippage_monitor.record_fill(
                             symbol=symbol,
                             side=result.order.side.value,
-                            market_price=result.latest_price or result.order.fill_price,
+                            market_price=result.order.reference_price or result.latest_price or result.order.fill_price,
                             fill_price=result.order.fill_price,
                             quantity=result.order.quantity,
                         )
@@ -494,6 +501,10 @@ class MultiSymbolRuntime:
                             fee_paid=result.order.fee_paid,
                             order_status=result.order.status,
                             reason=result.order.reason,
+                            order_type=result.order.order_type.value,
+                            market_price=result.order.reference_price or result.latest_price,
+                            slippage_pct=result.order.slippage_pct,
+                            fee_rate=result.order.fee_rate,
                         )
                         self._alert_manager.alert_trade(
                             wallet_name=wallet.name,
@@ -503,6 +514,21 @@ class MultiSymbolRuntime:
                             quantity=result.order.quantity,
                             fill_price=result.order.fill_price,
                             fee_paid=result.order.fee_paid,
+                            reason=result.order.reason,
+                        )
+                    elif result.order is not None:
+                        self._structured_logger.log_rejection(
+                            wallet_name=wallet.name,
+                            strategy_type=wallet.strategy_type,
+                            symbol=symbol,
+                            side=result.order.side.value,
+                            reason=result.order.reason,
+                            requested_quantity=result.order.quantity,
+                        )
+                        self._alert_manager.alert_rejection(
+                            wallet_name=wallet.name,
+                            symbol=symbol,
+                            side=result.order.side.value,
                             reason=result.order.reason,
                         )
                     elif result.signal.action.value in ("buy", "sell") and result.order is None:
@@ -626,6 +652,10 @@ class MultiSymbolRuntime:
         if ratio >= self._config.kill_switch.warn_threshold_pct:
             return "warning"
         return None
+
+    def _position_reduction_stage(self, drawdown_pct: float, limit_pct: float) -> str:
+        stage = self._warning_stage(drawdown_pct, limit_pct)
+        return stage or "normal"
 
     def _maybe_alert_drawdown_warning(self, state: KillSwitchState) -> None:
         if state.triggered or not state.warning_active:
@@ -794,15 +824,22 @@ class MultiSymbolRuntime:
             allowed_new_positions = 0
         else:
             allowed_new_positions = max(1, math.ceil(base_position_limit * entry_size_penalty))
+        stage = self._position_reduction_stage(drawdown_pct, limit_pct)
         state = {
             "peak_equity": round(self._portfolio_peak_equity, 2),
             "total_equity": round(total_equity, 2),
             "drawdown_pct": round(drawdown_pct * 100, 2),
+            "drawdown_ratio_pct": round(
+                (drawdown_pct / limit_pct) * 100 if limit_pct > 0 else 0.0,
+                2,
+            ),
+            "stage": stage,
             "entry_size_penalty": round(entry_size_penalty, 4),
             "base_position_limit": base_position_limit,
             "allowed_new_positions": allowed_new_positions,
             "active_position_limit": allowed_new_positions,
             "open_positions": open_positions,
+            "position_reduction": self._last_position_reduction,
         }
         self._last_portfolio_risk_state = state
         return state
@@ -818,10 +855,102 @@ class MultiSymbolRuntime:
             penalty * 100,
         )
 
+    def _maybe_reduce_positions_for_drawdown(
+        self,
+        candle_cache: dict[str, Any],
+        latest_prices: dict[str, float],
+    ) -> bool:
+        stage = str(self._last_portfolio_risk_state.get("stage", "normal") or "normal")
+        if stage != "reduce":
+            self._last_position_reduction = {
+                "stage": stage,
+                "status": "inactive" if stage == "normal" else stage,
+                "reduced_positions": [],
+                "orders": [],
+            }
+            return False
+
+        already_reduced = (
+            set(self._last_position_reduction.get("reduced_positions", []))
+            if self._last_position_reduction.get("stage") == "reduce"
+            else set()
+        )
+        keep_fraction = float(self._last_portfolio_risk_state.get("entry_size_penalty", 1.0) or 1.0)
+        executed_orders: list[dict[str, Any]] = []
+
+        for wallet in self._wallets:
+            for symbol in sorted(wallet.broker.positions):
+                position_key = f"{wallet.name}:{symbol}"
+                if position_key in already_reduced:
+                    continue
+                latest_price = latest_prices.get(symbol)
+                candles = candle_cache.get(symbol) or []
+                if latest_price is None or not candles:
+                    continue
+                order = wallet.reduce_position(
+                    symbol,
+                    latest_price,
+                    candles[-1].timestamp,
+                    keep_fraction=keep_fraction,
+                    reason="portfolio_drawdown_reduce",
+                    volume_ratio=wallet._volume_ratio(candles),
+                )
+                if order is None or order.status != "filled":
+                    continue
+                already_reduced.add(position_key)
+                remaining_position = wallet.broker.positions.get(symbol)
+                executed_orders.append(
+                    {
+                        "wallet": wallet.name,
+                        "symbol": symbol,
+                        "quantity": order.quantity,
+                        "fill_price": order.fill_price,
+                        "remaining_quantity": remaining_position.quantity
+                        if remaining_position is not None
+                        else 0.0,
+                    }
+                )
+                self._structured_logger.log_trade(
+                    wallet_name=wallet.name,
+                    strategy_type=wallet.strategy_type,
+                    symbol=symbol,
+                    side=order.side.value,
+                    quantity=order.quantity,
+                    fill_price=order.fill_price,
+                    fee_paid=order.fee_paid,
+                    order_status=order.status,
+                    reason=order.reason,
+                    order_type=order.order_type.value,
+                    market_price=order.reference_price or latest_price,
+                    slippage_pct=order.slippage_pct,
+                    fee_rate=order.fee_rate,
+                )
+                self._alert_manager.alert_trade(
+                    wallet_name=wallet.name,
+                    strategy_name=wallet.strategy_type,
+                    symbol=symbol,
+                    side=order.side.value,
+                    quantity=order.quantity,
+                    fill_price=order.fill_price,
+                    fee_paid=order.fee_paid,
+                    reason=order.reason,
+                )
+
+        self._last_position_reduction = {
+            "stage": "reduce",
+            "status": "executed" if executed_orders else "already_reduced",
+            "keep_fraction": round(keep_fraction, 4),
+            "reduced_positions": sorted(already_reduced),
+            "orders": executed_orders,
+        }
+        return bool(executed_orders)
+
     def _rebalance_idle_wallet_cash(self, latest_prices: dict[str, float]) -> None:
         idle_wallets = [wallet for wallet in self._wallets if not wallet.broker.positions]
         if len(idle_wallets) < 2:
             self._last_capital_reallocation = {
+                "status": "skipped_not_enough_idle_wallets",
+                "rebalance_date": self._last_rebalance_date or "",
                 "transfer_count": 0,
                 "transfers": [],
                 "target_capital": {},
@@ -891,6 +1020,8 @@ class MultiSymbolRuntime:
             wallet_map[transfer.source].adjust_capital(-transfer.amount)
             wallet_map[transfer.target].adjust_capital(transfer.amount)
         self._last_capital_reallocation = {
+            "status": "rebalanced" if transfers else "no_transfer_needed",
+            "rebalance_date": self._last_rebalance_date or "",
             "transfer_count": len(transfers),
             "total_reallocated": round(sum(transfer.amount for transfer in transfers), 2),
             "transfers": [
@@ -903,6 +1034,36 @@ class MultiSymbolRuntime:
             ],
             "target_capital": {name: round(amount, 2) for name, amount in target_capital.items()},
         }
+
+    def _maybe_rebalance_idle_wallet_cash(
+        self,
+        latest_prices: dict[str, float],
+        *,
+        now: datetime | None = None,
+    ) -> None:
+        rebalance_now = now or datetime.now(UTC)
+        rebalance_date = rebalance_now.astimezone(self._KST).date().isoformat()
+        if self._last_rebalance_date == rebalance_date:
+            self._last_capital_reallocation = {
+                "status": "skipped_already_rebalanced_today",
+                "rebalance_date": rebalance_date,
+                "transfer_count": 0,
+                "transfers": [],
+                "target_capital": self._last_capital_reallocation.get("target_capital", {}),
+            }
+            return
+        idle_wallets = [wallet for wallet in self._wallets if not wallet.broker.positions]
+        if len(idle_wallets) < 2:
+            self._last_capital_reallocation = {
+                "status": "skipped_not_enough_idle_wallets",
+                "rebalance_date": rebalance_date,
+                "transfer_count": 0,
+                "transfers": [],
+                "target_capital": self._last_capital_reallocation.get("target_capital", {}),
+            }
+            return
+        self._last_rebalance_date = rebalance_date
+        self._rebalance_idle_wallet_cash(latest_prices)
 
     def _apply_regime_weights(self) -> None:
         """Apply regime-aware strategy weights without macro data."""
@@ -928,7 +1089,18 @@ class MultiSymbolRuntime:
             return
 
         wallet_states = checkpoint.get("wallet_states", {})
+        portfolio_risk = checkpoint.get("portfolio_risk", {})
+        capital_reallocation = checkpoint.get("capital_reallocation", {})
         restored_count = 0
+
+        position_reduction = portfolio_risk.get("position_reduction", {})
+        if isinstance(position_reduction, dict) and position_reduction:
+            self._last_position_reduction = position_reduction
+        if isinstance(portfolio_risk, dict) and portfolio_risk:
+            self._last_portfolio_risk_state = portfolio_risk
+        if isinstance(capital_reallocation, dict) and capital_reallocation:
+            self._last_capital_reallocation = capital_reallocation
+            self._last_rebalance_date = capital_reallocation.get("rebalance_date")
 
         for wallet in self._wallets:
             ws = wallet_states.get(wallet.name)
@@ -972,6 +1144,9 @@ class MultiSymbolRuntime:
                     partial_tp_taken=pos_data.get("partial_tp_taken", False),
                 )
                 wallet.broker.positions[symbol] = position
+                market_price = pos_data.get("market_price")
+                if isinstance(market_price, (int, float)) and market_price > 0:
+                    self._latest_prices[symbol] = float(market_price)
                 restored_count += 1
 
         if restored_count > 0:
@@ -989,13 +1164,13 @@ class MultiSymbolRuntime:
     def _save_checkpoint(self, results: list[PipelineResult]) -> None:
         store = RuntimeCheckpointStore(self._config.runtime.runtime_checkpoint_path)
 
-        latest_prices: dict[str, float] = {}
+        latest_prices: dict[str, float] = dict(self._latest_prices)
         for r in results:
             if r.latest_price is not None:
                 latest_prices[r.symbol] = r.latest_price
 
         # Store for use by periodic artifact refreshes
-        self._latest_prices = latest_prices
+        self._latest_prices = dict(latest_prices)
         self._last_results = results
 
         wallet_states = {}
@@ -1019,6 +1194,14 @@ class MultiSymbolRuntime:
                         "symbol": pos.symbol,
                         "quantity": pos.quantity,
                         "entry_price": pos.entry_price,
+                        "market_price": latest_prices.get(symbol, pos.entry_price),
+                        "unrealized_pnl": pos.unrealized_pnl(
+                            latest_prices.get(symbol, pos.entry_price)
+                        ),
+                        "unrealized_pnl_pct": pos.pnl_pct(
+                            latest_prices.get(symbol, pos.entry_price)
+                        ),
+                        "marked_value": pos.quantity * latest_prices.get(symbol, pos.entry_price),
                         "entry_time": pos.entry_time.isoformat(),
                         "entry_index": pos.entry_index,
                         "entry_fee_paid": pos.entry_fee_paid,
@@ -1123,7 +1306,12 @@ class MultiSymbolRuntime:
             f"Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
             "---",
         ]
-        for strategy in sorted(report.strategies, key=lambda item: item.total_return_pct, reverse=True):
+        ranked_strategies = sorted(
+            report.strategies,
+            key=lambda item: item.total_return_pct,
+            reverse=True,
+        )
+        for strategy in ranked_strategies:
             status = ""
             if strategy.wallet in disabled:
                 status = " [DISABLED]"
@@ -1199,21 +1387,25 @@ class MultiSymbolRuntime:
     def _refresh_position_snapshot(self) -> None:
         """Save current open positions to positions.json."""
         snapshot_path = Path(self._config.runtime.position_snapshot_path)
-        positions = []
-        for wallet in self._wallets:
-            for symbol, pos in wallet.broker.positions.items():
-                positions.append(
-                    {
-                        "wallet": wallet.name,
-                        "symbol": symbol,
-                        "qty": pos.quantity,
-                        "entry_price": pos.entry_price,
-                        "side": "long",
-                    }
-                )
+        latest_prices = self._latest_prices
+        positions = [
+            metric
+            for wallet in self._wallets
+            for metric in wallet.position_metrics(latest_prices)
+        ]
+        total_unrealized_pnl = round(
+            sum(float(position["unrealized_pnl"]) for position in positions),
+            2,
+        )
         payload = {
             "generated_at": datetime.now(UTC).isoformat(),
             "count": len(positions),
+            "open_position_count": len(positions),
+            "mark_to_market_equity": round(
+                sum(wallet.broker.equity(latest_prices) for wallet in self._wallets),
+                2,
+            ),
+            "total_unrealized_pnl": total_unrealized_pnl,
             "positions": positions,
         }
         snapshot_path.parent.mkdir(parents=True, exist_ok=True)

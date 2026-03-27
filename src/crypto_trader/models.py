@@ -17,6 +17,11 @@ class OrderSide(StrEnum):
     SELL = "sell"
 
 
+class OrderType(StrEnum):
+    MARKET = "market"
+    LIMIT = "limit"
+
+
 class VerdictStatus(StrEnum):
     CONTINUE_PAPER = "continue_paper"
     REDUCE_RISK = "reduce_risk"
@@ -72,6 +77,10 @@ class Position:
     high_watermark: float = 0.0
     partial_tp_taken: bool = False
     side: str = "long"
+    entry_order_type: str = OrderType.MARKET
+    entry_reference_price: float = 0.0
+    entry_slippage_pct: float = 0.0
+    entry_fee_rate: float = 0.0
 
     def __post_init__(self) -> None:
         if self.high_watermark <= 0:
@@ -115,6 +124,7 @@ class OrderRequest:
     requested_at: datetime
     reason: str
     confidence: float = 0.0
+    order_type: OrderType = OrderType.MARKET
 
 
 @dataclass(slots=True)
@@ -128,6 +138,10 @@ class OrderResult:
     executed_at: datetime
     status: str
     reason: str
+    order_type: OrderType = OrderType.MARKET
+    reference_price: float = 0.0
+    slippage_pct: float = 0.0
+    fee_rate: float = 0.0
 
 
 @dataclass(slots=True)
@@ -145,6 +159,14 @@ class TradeRecord:
     entry_confidence: float = 0.0
     session_id: str = ""
     position_side: str = "long"
+    entry_order_type: str = OrderType.MARKET
+    exit_order_type: str = OrderType.MARKET
+    entry_reference_price: float = 0.0
+    exit_reference_price: float = 0.0
+    entry_fee_paid: float = 0.0
+    exit_fee_paid: float = 0.0
+    entry_slippage_pct: float = 0.0
+    exit_slippage_pct: float = 0.0
 
 
 @dataclass(slots=True)

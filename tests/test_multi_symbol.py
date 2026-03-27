@@ -23,7 +23,7 @@ from crypto_trader.config import (
     load_config,
 )
 from crypto_trader.data.base import MarketDataClient
-from crypto_trader.models import Candle, SignalAction
+from crypto_trader.models import Candle, OrderRequest, OrderSide, SignalAction
 from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
@@ -577,6 +577,164 @@ class TestMultiSymbolRuntime(unittest.TestCase):
             2_000_000.0,
         )
 
+    def test_drawdown_reduce_stage_trims_open_positions_once(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.backtest.fee_rate = 0.0
+        config.backtest.slippage_pct = 0.0
+        config.kill_switch.max_portfolio_drawdown_pct = 0.10
+        wallets = build_wallets(config)
+        wallet = wallets[0]
+        wallet.broker.submit_order(
+            OrderRequest(
+                symbol="KRW-BTC",
+                side=OrderSide.BUY,
+                quantity=5_000.0,
+                requested_at=datetime(2025, 1, 1, 0, 0, 0),
+                reason="seed_position",
+            ),
+            market_price=100.0,
+        )
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30 + [84.0])}),
+            config=config,
+        )
+        runtime._portfolio_peak_equity = runtime._total_starting_equity
+
+        state = runtime._compute_portfolio_risk_state({"KRW-BTC": 84.0})
+        applied = runtime._maybe_reduce_positions_for_drawdown(
+            {"KRW-BTC": _build_candles([100.0] * 30 + [84.0])},
+            {"KRW-BTC": 84.0},
+        )
+
+        self.assertEqual(state["stage"], "reduce")
+        self.assertTrue(applied)
+        self.assertAlmostEqual(wallet.broker.positions["KRW-BTC"].quantity, 2_500.0)
+        self.assertEqual(runtime._last_position_reduction["status"], "executed")
+
+        applied_again = runtime._maybe_reduce_positions_for_drawdown(
+            {"KRW-BTC": _build_candles([100.0] * 30 + [84.0])},
+            {"KRW-BTC": 84.0},
+        )
+
+        self.assertFalse(applied_again)
+        self.assertAlmostEqual(wallet.broker.positions["KRW-BTC"].quantity, 2_500.0)
+        self.assertEqual(runtime._last_position_reduction["status"], "already_reduced")
+
+    def test_daily_rebalance_runs_once_per_kst_day(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[
+                WalletConfig("leader_wallet", "momentum", 1_000_000.0),
+                WalletConfig("laggard_wallet", "mean_reversion", 1_000_000.0),
+            ],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        wallets[0].broker.cash = 1_500_000.0
+        wallets[0].broker.realized_pnl = 200_000.0
+        wallets[1].broker.cash = 500_000.0
+        wallets[1].broker.realized_pnl = -150_000.0
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+
+        runtime._maybe_rebalance_idle_wallet_cash(
+            {"KRW-BTC": 100.0},
+            now=datetime(2025, 1, 1, 0, 0, tzinfo=UTC),
+        )
+        first_cash = [wallet.broker.cash for wallet in wallets]
+        self.assertEqual(runtime._last_capital_reallocation["rebalance_date"], "2025-01-01")
+
+        runtime._maybe_rebalance_idle_wallet_cash(
+            {"KRW-BTC": 100.0},
+            now=datetime(2025, 1, 1, 1, 0, tzinfo=UTC),
+        )
+
+        self.assertEqual(
+            runtime._last_capital_reallocation["status"],
+            "skipped_already_rebalanced_today",
+        )
+        self.assertEqual(first_cash, [wallet.broker.cash for wallet in wallets])
+
+        wallets[0].broker.cash += 100_000.0
+        wallets[1].broker.cash -= 100_000.0
+        runtime._maybe_rebalance_idle_wallet_cash(
+            {"KRW-BTC": 100.0},
+            now=datetime(2025, 1, 1, 15, 30, tzinfo=UTC),
+        )
+
+        self.assertEqual(runtime._last_capital_reallocation["rebalance_date"], "2025-01-02")
+        self.assertNotEqual(
+            runtime._last_capital_reallocation["status"],
+            "skipped_already_rebalanced_today",
+        )
+
+    def test_daily_rebalance_waits_for_idle_wallets_before_consuming_day(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[
+                WalletConfig("leader_wallet", "momentum", 1_000_000.0),
+                WalletConfig("laggard_wallet", "mean_reversion", 1_000_000.0),
+            ],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.backtest.fee_rate = 0.0
+        config.backtest.slippage_pct = 0.0
+        wallets = build_wallets(config)
+        wallets[0].broker.submit_order(
+            OrderRequest(
+                symbol="KRW-BTC",
+                side=OrderSide.BUY,
+                quantity=1_000.0,
+                requested_at=datetime(2025, 1, 1, 0, 0, 0),
+                reason="seed_position",
+            ),
+            market_price=100.0,
+        )
+        wallets[1].broker.cash = 500_000.0
+        wallets[1].broker.realized_pnl = -150_000.0
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+
+        runtime._maybe_rebalance_idle_wallet_cash(
+            {"KRW-BTC": 100.0},
+            now=datetime(2025, 1, 1, 0, 0, tzinfo=UTC),
+        )
+
+        self.assertEqual(
+            runtime._last_capital_reallocation["status"],
+            "skipped_not_enough_idle_wallets",
+        )
+        self.assertIsNone(runtime._last_rebalance_date)
+
+        wallets[0].broker.positions.clear()
+        runtime._maybe_rebalance_idle_wallet_cash(
+            {"KRW-BTC": 100.0},
+            now=datetime(2025, 1, 1, 1, 0, tzinfo=UTC),
+        )
+
+        self.assertEqual(runtime._last_rebalance_date, "2025-01-01")
+        self.assertNotEqual(
+            runtime._last_capital_reallocation["status"],
+            "skipped_not_enough_idle_wallets",
+        )
+
 
 class TestStrategyComparisonReport(unittest.TestCase):
     def test_report_contains_all_wallets(self) -> None:
@@ -659,6 +817,119 @@ class TestIntegrationMultiSymbolPaperTrading(unittest.TestCase):
 
 
 class TestMultiRuntimeArtifacts(unittest.TestCase):
+    def test_position_snapshot_and_checkpoint_include_live_pnl_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts_dir = Path(temp_dir)
+            config = _make_config(
+                symbols=["KRW-BTC"],
+                wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+                daemon_mode=False,
+                max_iterations=1,
+                poll_interval_seconds=0,
+            )
+            config.backtest.fee_rate = 0.0
+            config.backtest.slippage_pct = 0.0
+            config.runtime.runtime_checkpoint_path = str(artifacts_dir / "runtime-checkpoint.json")
+            config.runtime.position_snapshot_path = str(artifacts_dir / "positions.json")
+            config.runtime.healthcheck_path = str(artifacts_dir / "health.json")
+            config.runtime.daily_performance_path = str(artifacts_dir / "daily-performance.json")
+            config.runtime.promotion_gate_path = str(artifacts_dir / "promotion-gate.json")
+            config.runtime.paper_trade_journal_path = str(artifacts_dir / "paper-trades.jsonl")
+            config.runtime.strategy_run_journal_path = str(artifacts_dir / "strategy-runs.jsonl")
+
+            wallets = build_wallets(config)
+            wallets[0].broker.submit_order(
+                OrderRequest(
+                    symbol="KRW-BTC",
+                    side=OrderSide.BUY,
+                    quantity=1_000.0,
+                    requested_at=datetime(2025, 1, 1, 0, 0, 0),
+                    reason="seed_position",
+                ),
+                market_price=100.0,
+            )
+            runtime = MultiSymbolRuntime(
+                wallets=wallets,
+                market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30 + [110.0])}),
+                config=config,
+            )
+            runtime._latest_prices = {"KRW-BTC": 110.0}
+
+            runtime._refresh_position_snapshot()
+            runtime._save_checkpoint([])
+
+            positions = json.loads((artifacts_dir / "positions.json").read_text())
+            checkpoint = json.loads((artifacts_dir / "runtime-checkpoint.json").read_text())
+
+            self.assertEqual(positions["open_position_count"], 1)
+            self.assertIn("market_price", positions["positions"][0])
+            self.assertIn("unrealized_pnl", positions["positions"][0])
+            self.assertIn("unrealized_pnl_pct", positions["positions"][0])
+            self.assertIn("marked_value", positions["positions"][0])
+            position_state = checkpoint["wallet_states"]["momentum_wallet"]["positions"]["KRW-BTC"]
+            self.assertEqual(position_state["market_price"], 110.0)
+            self.assertEqual(position_state["unrealized_pnl"], 10_000.0)
+            self.assertAlmostEqual(position_state["unrealized_pnl_pct"], 0.1)
+
+    def test_restore_checkpoint_recovers_latest_prices_and_rebalance_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts_dir = Path(temp_dir)
+            config = _make_config(
+                symbols=["KRW-BTC"],
+                wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+                daemon_mode=False,
+                max_iterations=1,
+                poll_interval_seconds=0,
+            )
+            config.backtest.fee_rate = 0.0
+            config.backtest.slippage_pct = 0.0
+            config.runtime.runtime_checkpoint_path = str(artifacts_dir / "runtime-checkpoint.json")
+            config.runtime.position_snapshot_path = str(artifacts_dir / "positions.json")
+            config.runtime.healthcheck_path = str(artifacts_dir / "health.json")
+            config.runtime.daily_performance_path = str(artifacts_dir / "daily-performance.json")
+            config.runtime.promotion_gate_path = str(artifacts_dir / "promotion-gate.json")
+            config.runtime.paper_trade_journal_path = str(artifacts_dir / "paper-trades.jsonl")
+            config.runtime.strategy_run_journal_path = str(artifacts_dir / "strategy-runs.jsonl")
+
+            original_wallets = build_wallets(config)
+            original_wallets[0].broker.submit_order(
+                OrderRequest(
+                    symbol="KRW-BTC",
+                    side=OrderSide.BUY,
+                    quantity=1_000.0,
+                    requested_at=datetime(2025, 1, 1, 0, 0, 0),
+                    reason="seed_position",
+                ),
+                market_price=100.0,
+            )
+            original_runtime = MultiSymbolRuntime(
+                wallets=original_wallets,
+                market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30 + [110.0])}),
+                config=config,
+            )
+            original_runtime._latest_prices = {"KRW-BTC": 110.0}
+            original_runtime._last_rebalance_date = "2025-01-01"
+            original_runtime._last_capital_reallocation = {
+                "status": "rebalanced",
+                "rebalance_date": "2025-01-01",
+                "transfer_count": 0,
+                "transfers": [],
+                "target_capital": {"momentum_wallet": 1_000_000.0},
+            }
+            original_runtime._save_checkpoint([])
+
+            restored_wallets = build_wallets(config)
+            restored_runtime = MultiSymbolRuntime(
+                wallets=restored_wallets,
+                market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30 + [110.0])}),
+                config=config,
+            )
+            restored_runtime._restore_from_checkpoint()
+
+            self.assertEqual(restored_runtime._latest_prices["KRW-BTC"], 110.0)
+            self.assertEqual(restored_runtime._last_rebalance_date, "2025-01-01")
+            self.assertIn("KRW-BTC", restored_wallets[0].broker.positions)
+
     def test_runtime_refreshes_daily_and_weekly_report_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             artifacts_dir = Path(temp_dir)

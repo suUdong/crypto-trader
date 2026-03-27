@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import logging
 from collections.abc import Mapping
 from dataclasses import replace
@@ -19,6 +20,7 @@ from crypto_trader.models import (
     OrderRequest,
     OrderResult,
     OrderSide,
+    OrderType,
     PipelineResult,
     Position,
     Signal,
@@ -160,6 +162,18 @@ class StrategyWallet:
         self.session_starting_equity = broker.cash
         self._logger = logging.getLogger(f"{__name__}.{self.name}")
         self._macro_multiplier: float = 1.0
+        self._prefer_limit_entries = bool(
+            wallet_config.strategy_overrides.get("prefer_limit_entries", True)
+        )
+        self._limit_confidence_cap = float(
+            wallet_config.strategy_overrides.get("limit_confidence_cap", 0.72)
+        )
+        self._limit_volume_floor = float(
+            wallet_config.strategy_overrides.get("limit_volume_floor", 1.0)
+        )
+        self._execution_cost_multiplier = float(
+            wallet_config.strategy_overrides.get("execution_cost_multiplier", 1.0)
+        )
 
     def set_macro_multiplier(self, multiplier: float) -> None:
         self._macro_multiplier = multiplier
@@ -172,6 +186,63 @@ class StrategyWallet:
         self.broker.cash += delta_cash
         self.session_starting_equity = max(0.0, self.session_starting_equity + delta_cash)
         self.risk_manager.adjust_capital_base(delta_cash)
+
+    def position_metrics(self, latest_prices: Mapping[str, float]) -> list[dict[str, float | str]]:
+        metrics: list[dict[str, float | str]] = []
+        for symbol, position in self.broker.positions.items():
+            market_price = float(latest_prices.get(symbol, position.entry_price))
+            metrics.append(
+                {
+                    "wallet": self.name,
+                    "symbol": symbol,
+                    "qty": position.quantity,
+                    "entry_price": position.entry_price,
+                    "market_price": market_price,
+                    "unrealized_pnl": position.unrealized_pnl(market_price),
+                    "unrealized_pnl_pct": position.pnl_pct(market_price),
+                    "marked_value": position.quantity * market_price,
+                    "side": position.side,
+                    "entry_time": position.entry_time.isoformat(),
+                }
+            )
+        return metrics
+
+    def reduce_position(
+        self,
+        symbol: str,
+        latest_price: float,
+        requested_at: dt.datetime,
+        *,
+        keep_fraction: float,
+        reason: str,
+        volume_ratio: float = 1.0,
+    ) -> OrderResult | None:
+        position = self.broker.positions.get(symbol)
+        if position is None:
+            return None
+        clamped_keep = max(0.0, min(1.0, keep_fraction))
+        sell_qty = position.quantity * (1.0 - clamped_keep)
+        if sell_qty <= 1e-8:
+            return None
+        if sell_qty >= position.quantity - 1e-8:
+            sell_qty = position.quantity
+        order = self.broker.submit_order(
+            OrderRequest(
+                symbol=symbol,
+                side=OrderSide.SELL,
+                quantity=sell_qty,
+                requested_at=requested_at,
+                reason=reason,
+            ),
+            latest_price,
+            volume_ratio=volume_ratio,
+        )
+        if order is not None and order.status == "filled" and order.side is OrderSide.SELL:
+            entry_value = position.entry_price * position.quantity
+            if entry_value > 0:
+                pnl_pct = (order.fill_price - position.entry_price) / position.entry_price
+                self.risk_manager.record_trade(pnl_pct)
+        return order
 
     def _marked_equity(self, symbol: str, latest_price: float) -> float:
         prices = {
@@ -192,6 +263,45 @@ class StrategyWallet:
         if avg_vol <= 0:
             return 1.0
         return candles[-1].volume / avg_vol
+
+    def _choose_entry_order_type(self, signal: Signal, volume_ratio: float) -> OrderType:
+        if (
+            self._prefer_limit_entries
+            and volume_ratio >= self._limit_volume_floor
+            and signal.confidence <= self._limit_confidence_cap
+        ):
+            return OrderType.LIMIT
+        return OrderType.MARKET
+
+    def _expected_round_trip_drag_pct(
+        self,
+        entry_order_type: OrderType,
+        volume_ratio: float,
+    ) -> float:
+        entry_fee = self.broker.fee_rate_for(entry_order_type)
+        entry_slippage = max(0.0, self.broker.estimate_slippage_pct(entry_order_type, volume_ratio))
+        exit_fee = self.broker.fee_rate_for(OrderType.MARKET)
+        exit_slippage = max(0.0, self.broker.estimate_slippage_pct(OrderType.MARKET, volume_ratio))
+        return (entry_fee + entry_slippage + exit_fee + exit_slippage) * self._execution_cost_multiplier
+
+    def _execution_edge_budget_pct(self, signal: Signal) -> float:
+        confidence_excess = max(0.0, signal.confidence - self.risk_manager.effective_min_confidence)
+        target_move = max(
+            self.risk_manager._config.take_profit_pct,
+            self.risk_manager._config.stop_loss_pct,
+        )
+        return confidence_excess * target_move
+
+    def _passes_execution_cost_gate(
+        self,
+        signal: Signal,
+        entry_order_type: OrderType,
+        volume_ratio: float,
+    ) -> bool:
+        return self._execution_edge_budget_pct(signal) >= self._expected_round_trip_drag_pct(
+            entry_order_type,
+            volume_ratio,
+        )
 
     _MIN_NOTIONAL: float = 10_000.0  # KRW — trades below this are fee-dominated
 
@@ -235,20 +345,35 @@ class StrategyWallet:
                     )
                     notional = quantity * latest_price
                     if quantity > 0 and notional >= self._MIN_NOTIONAL:
-                        now = candles[-1].timestamp
-                        order = self.broker.submit_order(
-                            OrderRequest(
-                                symbol=symbol,
-                                side=OrderSide.BUY,
-                                quantity=quantity,
-                                requested_at=now,
-                                reason=signal.reason,
+                        entry_order_type = self._choose_entry_order_type(signal, vol_ratio)
+                        if not self._passes_execution_cost_gate(
+                            signal,
+                            entry_order_type,
+                            vol_ratio,
+                        ):
+                            signal = Signal(
+                                action=signal.action,
+                                reason="execution_edge_below_cost_threshold",
                                 confidence=signal.confidence,
-                            ),
-                            latest_price,
-                            candle_index=len(candles) - 1,
-                            volume_ratio=vol_ratio,
-                        )
+                                indicators=signal.indicators,
+                                context=signal.context,
+                            )
+                        else:
+                            now = candles[-1].timestamp
+                            order = self.broker.submit_order(
+                                OrderRequest(
+                                    symbol=symbol,
+                                    side=OrderSide.BUY,
+                                    quantity=quantity,
+                                    requested_at=now,
+                                    reason=signal.reason,
+                                    confidence=signal.confidence,
+                                    order_type=entry_order_type,
+                                ),
+                                latest_price,
+                                candle_index=len(candles) - 1,
+                                volume_ratio=vol_ratio,
+                            )
             elif position is not None:
                 # Circuit breaker: force-close when daily loss limit hit
                 marked_equity = self._marked_equity(symbol, latest_price)
@@ -265,6 +390,7 @@ class StrategyWallet:
                             quantity=position.quantity,
                             requested_at=now,
                             reason="circuit_breaker",
+                            order_type=OrderType.MARKET,
                         ),
                         latest_price,
                         volume_ratio=vol_ratio,
@@ -321,6 +447,7 @@ class StrategyWallet:
                             quantity=sell_qty,
                             requested_at=now,
                             reason=exit_reason or signal.reason,
+                            order_type=OrderType.MARKET,
                         ),
                         latest_price,
                         volume_ratio=vol_ratio,
@@ -352,7 +479,7 @@ class StrategyWallet:
             )
             if order is not None:
                 message += (
-                    f" order={order.status} side={order.side.value} "
+                    f" order={order.status} order_type={order.order_type.value} side={order.side.value} "
                     f"qty={order.quantity:.8f} fill={order.fill_price:.2f}"
                 )
             return PipelineResult(

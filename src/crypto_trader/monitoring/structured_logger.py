@@ -86,6 +86,10 @@ class StructuredLogger:
         fee_paid: float,
         order_status: str,
         reason: str,
+        order_type: str = "market",
+        market_price: float | None = None,
+        slippage_pct: float | None = None,
+        fee_rate: float | None = None,
     ) -> None:
         self.log_event(
             "trade",
@@ -98,6 +102,10 @@ class StructuredLogger:
             fee_paid=fee_paid,
             order_status=order_status,
             reason=reason,
+            order_type=order_type,
+            market_price=market_price,
+            slippage_pct=slippage_pct,
+            fee_rate=fee_rate,
         )
 
     def log_rejection(
