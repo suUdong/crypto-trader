@@ -1083,13 +1083,22 @@ def _render_regime_panel(regime_data: dict[str, Any]) -> None:
         weekend_html = ' <span class="status-badge status-warn">주말 전략 활성</span>'
 
     alignment = regime_data.get("alignment", "unknown")
-    align_cls = "status-ok" if alignment == "aligned" else "status-warn"
-    align_label = "정렬" if alignment == "aligned" else "혼합"
+    if alignment == "aligned":
+        align_cls, align_label = "status-ok", "정렬"
+    elif alignment == "local-only":
+        align_cls, align_label = "status-warn", "로컬"
+    else:
+        align_cls, align_label = "status-warn", "혼합"
+
+    source_note = ""
+    if not regime_data.get("source_available", False) and regime_data.get("local_regime_label"):
+        source_note = f" · 로컬: {regime_data['local_regime_label']}"
 
     st.markdown(
         f'<span class="status-badge {align_cls}">{align_label}</span> '
         f'<strong>{regime_data["overall_regime_label"]}</strong> '
         f'({regime_data["overall_confidence"] * 100:.0f}%)'
+        f"{source_note}"
         f"{weekend_html}",
         unsafe_allow_html=True,
     )

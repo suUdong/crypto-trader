@@ -1,7 +1,8 @@
-# Production daemon config — optimized portfolio (2026-03-27)
-# Source: 90d grid-search + walk-forward optimization, then live 7d wallet sanity check
-# Wallets: 10 (from 15), capital concentrated on proven winners while throttling live drag.
-# momentum_pullback stays research-only until it clears walk-forward validation.
+# Production daemon config — ROI-driven rebalance (2026-03-28)
+# Source: live ROI report 2026-03 + 90d wallet benchmark Sharpe
+# Wallets: 5 (from 7), removed vbreak_xrp (live -0.119%) and mean_reversion_weekend (live -0.051%, low Sharpe 0.36).
+# Capital 4M KRW redistributed to top-Sharpe survivors.
+# Excluded: funding_rate / ema_crossover / consensus (research-only)
 
 [trading]
 exchange = "upbit"
@@ -97,13 +98,13 @@ promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
 strategy_report_path = "artifacts/strategy-report.md"
 
-# === TIER 1: Flagship winners (heavy allocation) ===
+# === TIER 1: Primary compounders ===
 
-# momentum_sol: Sharpe 2.23, Return +2.69%, WR 59%, PF 1.77
+# momentum_sol_wallet: 90d Sharpe 1.08, Return +0.78%, Trades 29 — boosted from rebalance
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
-initial_capital = 2_050_000.0
+initial_capital = 2_550_000.0
 symbols = ["KRW-SOL"]
 [wallets.strategy_overrides]
 momentum_lookback = 15
@@ -121,11 +122,11 @@ partial_tp_pct = 0.5
 max_concurrent_positions = 2
 max_position_pct = 0.25
 
-# momentum_eth: Sharpe 1.64, Return +0.94%, WR 43%, PF 1.47
+# momentum_eth_wallet: 90d Sharpe 0.67, Return +0.24%, Trades 35 — boosted from rebalance
 [[wallets]]
 name = "momentum_eth_wallet"
 strategy = "momentum"
-initial_capital = 1_500_000.0
+initial_capital = 1_950_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 momentum_lookback = 15
@@ -143,11 +144,11 @@ atr_stop_multiplier = 3.0
 partial_tp_pct = 0.5
 max_concurrent_positions = 2
 
-# vpin_sol: Sharpe 1.60, Return +2.13%, WR 58%, PF 1.57
+# vpin_sol_wallet: 90d Sharpe 1.97, Return +1.64%, Trades 37 — top Sharpe TIER1, boosted
 [[wallets]]
 name = "vpin_sol_wallet"
 strategy = "vpin"
-initial_capital = 1_500_000.0
+initial_capital = 4_250_000.0
 symbols = ["KRW-SOL"]
 [wallets.strategy_overrides]
 rsi_period = 14
@@ -167,99 +168,13 @@ atr_stop_multiplier = 3.0
 partial_tp_pct = 0.5
 max_concurrent_positions = 2
 
-# vbreak_xrp: Sharpe 1.50, Return +1.39%, WR 47%, PF 1.45
-[[wallets]]
-name = "vbreak_xrp_wallet"
-strategy = "volatility_breakout"
-initial_capital = 1_500_000.0
-symbols = ["KRW-XRP"]
-[wallets.strategy_overrides]
-k_base = 0.40
-noise_lookback = 15
-ma_filter_period = 5
-max_holding_bars = 36
-adx_threshold = 25.0
-volume_filter_mult = 1.2
-[wallets.risk_overrides]
-stop_loss_pct = 0.03
-take_profit_pct = 0.08
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-max_concurrent_positions = 2
+# === TIER 2: Satellite winners / capped specialists ===
 
-# === TIER 2: Solid performers (moderate allocation) ===
-
-# vpin_btc: Sharpe 1.23, Return +0.87%, WR 55%, PF 1.50
-# Lifted after the 2026-03-27 live check showed kimchi carrying the only active loss
-[[wallets]]
-name = "vpin_btc_wallet"
-strategy = "vpin"
-initial_capital = 1_250_000.0
-symbols = ["KRW-BTC"]
-[wallets.strategy_overrides]
-rsi_period = 14
-momentum_lookback = 12
-max_holding_bars = 48
-vpin_low_threshold = 0.45
-vpin_high_threshold = 0.75
-vpin_momentum_threshold = 0.001
-vpin_rsi_ceiling = 78.0
-vpin_rsi_floor = 22.0
-bucket_count = 20
-[wallets.risk_overrides]
-stop_loss_pct = 0.04
-take_profit_pct = 0.06
-risk_per_trade_pct = 0.01
-trailing_stop_pct = 0.04
-partial_tp_pct = 0.5
-
-# momentum_btc: Sharpe 1.03, Return +0.54%, WR 56%, PF 1.36
-[[wallets]]
-name = "momentum_btc_wallet"
-strategy = "momentum"
-initial_capital = 1_000_000.0
-symbols = ["KRW-BTC"]
-[wallets.strategy_overrides]
-momentum_lookback = 12
-momentum_entry_threshold = 0.001
-rsi_period = 14
-rsi_overbought = 72.0
-max_holding_bars = 36
-adx_threshold = 20.0
-volume_filter_mult = 1.2
-[wallets.risk_overrides]
-stop_loss_pct = 0.04
-take_profit_pct = 0.08
-risk_per_trade_pct = 0.008
-partial_tp_pct = 0.5
-
-# momentum_xrp: Sharpe 0.96, Return +0.69%, WR 53%, PF 1.25
-[[wallets]]
-name = "momentum_xrp_wallet"
-strategy = "momentum"
-initial_capital = 1_000_000.0
-symbols = ["KRW-XRP"]
-[wallets.strategy_overrides]
-momentum_lookback = 12
-momentum_entry_threshold = 0.001
-rsi_period = 14
-rsi_overbought = 70.0
-max_holding_bars = 36
-adx_threshold = 15.0
-volume_filter_mult = 1.0
-[wallets.risk_overrides]
-stop_loss_pct = 0.03
-take_profit_pct = 0.06
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-
-# === TIER 3: Niche / low-frequency (small allocation) ===
-
-# volspike_btc: Sharpe 3.01, Return +1.11%, WR 71%, PF 7.76 (only 7 trades)
+# volspike_btc_wallet: 90d Sharpe 3.40, Return +1.03%, Trades 7 — capped for low sample, modest boost
 [[wallets]]
 name = "volspike_btc_wallet"
 strategy = "volume_spike"
-initial_capital = 500_000.0
+initial_capital = 1_500_000.0
 symbols = ["KRW-BTC"]
 [wallets.strategy_overrides]
 spike_mult = 3.0
@@ -276,50 +191,11 @@ take_profit_pct = 0.08
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 
-# mean_reversion_weekend: 30d weekend slice improved avg return from -0.38% baseline
-# to roughly flat/positive with better dispersion when using tighter weekend-only filters.
-# ETH stayed weak in the weekend sample, so keep the probe on BTC/XRP/SOL only.
-[[wallets]]
-name = "mean_reversion_weekend_wallet"
-strategy = "mean_reversion"
-initial_capital = 200_000.0
-symbols = ["KRW-BTC", "KRW-XRP", "KRW-SOL"]
-[wallets.strategy_overrides]
-adx_threshold = 28.0
-bollinger_stddev = 1.5
-bollinger_window = 16
-max_holding_bars = 18
-noise_lookback = 10
-rsi_oversold_floor = 20.0
-rsi_period = 8
-rsi_recovery_ceiling = 28.0
-weekend_bollinger_window = 12
-weekend_bollinger_stddev = 1.2
-weekend_rsi_period = 6
-weekend_rsi_recovery_ceiling = 36.0
-weekend_noise_lookback = 8
-weekend_adx_threshold = 20.0
-weekend_max_holding_bars = 8
-weekend_volume_filter_mult = 0.0
-fear_greed_extreme_threshold = 20
-fear_greed_entry_rsi_ceiling = 40.0
-fear_greed_band_buffer_pct = 0.05
-fear_greed_confidence_boost = 0.10
-[wallets.risk_overrides]
-stop_loss_pct = 0.02
-take_profit_pct = 0.04
-risk_per_trade_pct = 0.006
-atr_stop_multiplier = 2.0
-partial_tp_pct = 0.5
-cooldown_bars = 5
-max_concurrent_positions = 1
-max_position_pct = 0.12
-
-# vpin_eth: Sharpe 0.83, Return +0.43%, PF 1.28 — smallest allocation
+# vpin_eth_wallet: 90d Sharpe 0.53, Return +0.23%, Trades 25
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
-initial_capital = 500_000.0
+initial_capital = 750_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
@@ -338,27 +214,24 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 5
 
-# === Capital Allocation Summary ===
-# TIER 1 (Sharpe > 1.5):
-#   momentum_sol:    2,050,000 (18.6%) — Sharpe 2.23
-#   momentum_eth:    1,500,000 (13.6%) — Sharpe 1.64
-#   vpin_sol:        1,500,000 (13.6%) — Sharpe 1.60
-#   vbreak_xrp:     1,500,000 (13.6%) — Sharpe 1.50
-# TIER 2 (Sharpe 0.8-1.5):
-#   vpin_btc:        1,250,000 (11.4%) — Sharpe 1.23
-#   momentum_btc:    1,000,000 (9.1%)  — Sharpe 1.03
-#   momentum_xrp:    1,000,000 (9.1%)  — Sharpe 0.96
-# TIER 3 (niche):
-#   volspike_btc:      500,000 (4.5%)  — Sharpe 3.01 (low freq)
-#   mean_reversion_weekend: 200,000 (1.8%) — weekend + extreme-fear defensive probe
-#   vpin_eth:          500,000 (4.5%)  — Sharpe 0.83
+# === Capital Allocation Summary (ROI-driven rebalance 2026-03-28) ===
+# TIER 1 (capital concentrated):
+#   vpin_sol:        4,250,000 (38.6%) — Sharpe 1.97, top compounder
+#   momentum_sol:    2,550,000 (23.2%) — Sharpe 1.08
+#   momentum_eth:    1,950,000 (17.7%) — Sharpe 0.67, boosted
+# TIER 2:
+#   volspike_btc:    1,500,000 (13.6%) — Sharpe 3.40, capped for low trade count
+#   vpin_eth:          750,000 (6.8%)  — Sharpe 0.53
 # TOTAL:          11,000,000
 #
-# REMOVED (underperformers):
-#   vbreak_btc (Sharpe -0.92), vbreak_eth (0.48 weak), volspike_eth (-0.21)
-#   vpin_xrp (Sharpe -1.29), mean_rev_eth (historically bad)
-#   consensus_btc (no grid data), ema_cross_btc (no grid data)
-#   momentum_pullback (research-only; 2026-03-27 OOS validation still negative)
+# DISABLED (live ROI negative, 2026-03 report):
+#   vbreak_xrp_wallet: live -0.119%, backtest Sharpe 2.54 — revisit after more live data
+#   mean_reversion_weekend: live -0.051%, backtest Sharpe 0.36 — low Sharpe + negative live
+# REMOVED (prior round, underperformers):
+#   vpin_btc_wallet: avg Sharpe -0.55, avg Return -0.21%
+#   momentum_xrp_wallet: avg Sharpe -1.33, avg Return -0.50%
+#   momentum_btc_wallet: avg Sharpe -1.42, avg Return -0.29%
+# Research-only: funding_rate, ema_crossover, consensus
 
 [credentials]
 upbit_access_key = ""

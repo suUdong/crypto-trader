@@ -1729,6 +1729,28 @@ class TestDashboardV3(unittest.TestCase):
 
     @patch("dashboard.data._fetch_macro_snapshot")
     @patch("dashboard.data._compute_macro_adjustment")
+    def test_load_regime_panel_data_keeps_local_regime_without_macro_snapshot(
+        self, mock_adj: Any, mock_snapshot: Any
+    ) -> None:
+        mock_adj.return_value = (0.9, ["macro adapter unavailable"])
+        mock_snapshot.return_value = None
+        (Path(self.tmpdir) / "regime-report.json").write_text(
+            json.dumps({"market_regime": "bull", "symbol": "KRW-BTC", "reasons": ["local"]})
+        )
+
+        result = data_mod.load_regime_panel_data()
+
+        self.assertTrue(result["available"])
+        self.assertFalse(result["source_available"])
+        self.assertEqual(result["alignment"], "local-only")
+        self.assertEqual(result["overall_regime"], "bull")
+        self.assertEqual(result["overall_regime_label"], "상승장")
+        self.assertEqual(result["local_regime_label"], "상승장")
+        self.assertIsNone(result["fear_greed_index"])
+        self.assertAlmostEqual(result["position_multiplier"], 0.9)
+
+    @patch("dashboard.data._fetch_macro_snapshot")
+    @patch("dashboard.data._compute_macro_adjustment")
     def test_load_regime_panel_weekend_flag(
         self, mock_adj: Any, mock_snapshot: Any
     ) -> None:

@@ -1447,9 +1447,11 @@ def load_regime_panel_data() -> dict[str, Any]:
     checkpoint = load_checkpoint() or {}
     is_weekend = bool(checkpoint.get("is_weekend", False))
     multiplier, reasons = _compute_macro_adjustment()
+    source_available = bool(macro and macro.get("source_available", False))
 
     panel: dict[str, Any] = {
-        "available": macro is not None and macro.get("source_available", False),
+        "available": macro is not None,
+        "source_available": source_available,
         "is_weekend": is_weekend,
         "position_multiplier": multiplier,
         "multiplier_reasons": reasons,
@@ -1470,9 +1472,13 @@ def load_regime_panel_data() -> dict[str, Any]:
 
     fg = macro.get("fear_greed_index")
     fg_int = int(fg) if fg is not None else None
+    overall_regime = str(macro.get("overall_regime") or macro.get("local_regime") or "unknown")
+    overall_regime_label = str(
+        macro.get("overall_regime_label") or macro.get("local_regime_label") or "알 수 없음"
+    )
     panel.update({
-        "overall_regime": macro.get("overall_regime", "unknown"),
-        "overall_regime_label": macro.get("overall_regime_label", "알 수 없음"),
+        "overall_regime": overall_regime,
+        "overall_regime_label": overall_regime_label,
         "overall_confidence": float(macro.get("overall_confidence", 0.0)),
         "layers": macro.get("layers", []),
         "fear_greed_index": fg_int,
