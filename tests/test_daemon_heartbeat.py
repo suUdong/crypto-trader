@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from crypto_trader.models import Candle
 from crypto_trader.multi_runtime import MultiSymbolRuntime
 
 
@@ -21,11 +23,25 @@ class TestDaemonHeartbeat(unittest.TestCase):
         config.runtime.daemon_mode = False
         config.runtime.poll_interval_seconds = 60
         config.runtime.runtime_checkpoint_path = f"{artifacts_dir}/runtime-checkpoint.json"
+        config.runtime.position_snapshot_path = f"{artifacts_dir}/positions.json"
+        config.runtime.healthcheck_path = f"{artifacts_dir}/health.json"
+        config.runtime.daily_performance_path = f"{artifacts_dir}/daily-performance.json"
+        config.runtime.promotion_gate_path = f"{artifacts_dir}/promotion-gate.json"
+        config.runtime.paper_trade_journal_path = f"{artifacts_dir}/paper-trades.jsonl"
+        config.runtime.strategy_run_journal_path = f"{artifacts_dir}/strategy-runs.jsonl"
         config.source_config_path = "config/test-daemon.toml"
+        config.macro.enabled = False
+        config.slack.enabled = False
+        config.regime.short_lookback = 10
+        config.regime.long_lookback = 30
+        config.regime.bull_threshold_pct = 0.03
+        config.regime.bear_threshold_pct = -0.03
 
         wallet = MagicMock()
         wallet.name = "test_wallet"
         wallet.strategy_type = "momentum"
+        wallet.session_starting_equity = 1_000_000.0
+        wallet.allowed_symbols = []
         wallet.broker.cash = 1_000_000.0
         wallet.broker.realized_pnl = 0.0
         wallet.broker.positions = {}
@@ -37,10 +53,26 @@ class TestDaemonHeartbeat(unittest.TestCase):
         result.symbol = "KRW-BTC"
         result.error = None
         result.message = "hold"
+        result.order = None
+        result.signal.action.value = "hold"
+        result.signal.reason = "entry_conditions_not_met"
+        result.signal.confidence = 0.2
+        result.signal.indicators = {}
+        result.signal.context = {}
         wallet.run_once.return_value = result
 
         market_data = MagicMock()
-        market_data.get_ohlcv.return_value = [MagicMock()]
+        market_data.get_ohlcv.return_value = [
+            Candle(
+                timestamp=datetime(2026, 3, 27, 0, 0, 0) + timedelta(hours=i),
+                open=50_000_000.0,
+                high=50_500_000.0,
+                low=49_500_000.0,
+                close=50_000_000.0,
+                volume=1.0 + i,
+            )
+            for i in range(220)
+        ]
 
         runtime = MultiSymbolRuntime(
             wallets=[wallet],
@@ -115,6 +147,40 @@ class TestDaemonHeartbeat(unittest.TestCase):
             data2 = json.loads(heartbeat_path.read_text())
             self.assertEqual(data2["iteration"], 2)
             self.assertGreaterEqual(data2["uptime_seconds"], data1["uptime_seconds"])
+
+    def test_checkpoint_overwrites_stale_dashboard_artifacts_immediately(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            health_path = Path(tmpdir) / "health.json"
+            positions_path = Path(tmpdir) / "positions.json"
+            daily_path = Path(tmpdir) / "daily-performance.json"
+            health_path.write_text(json.dumps({"wallet_count": 15, "open_positions": 9}))
+            positions_path.write_text(
+                json.dumps(
+                    {
+                        "count": 2,
+                        "positions": [
+                            {"wallet": "legacy_wallet", "symbol": "KRW-BTC", "qty": 1.0}
+                        ],
+                    }
+                )
+            )
+            daily_path.write_text(json.dumps({"trade_count": 99, "mode": "legacy"}))
+
+            runtime = self._make_runtime(tmpdir)
+            results = runtime._run_tick(["KRW-BTC"])
+            runtime._save_checkpoint(results)
+            runtime._refresh_runtime_artifacts()
+
+            health = json.loads(health_path.read_text())
+            positions = json.loads(positions_path.read_text())
+            daily = json.loads(daily_path.read_text())
+
+            self.assertEqual(health["wallet_count"], 1)
+            self.assertEqual(health["open_positions"], 0)
+            self.assertEqual(positions["count"], 0)
+            self.assertEqual(positions["positions"], [])
+            self.assertEqual(daily["trade_count"], 0)
+            self.assertEqual(daily["mode"], "multi_symbol")
 
 
 if __name__ == "__main__":
