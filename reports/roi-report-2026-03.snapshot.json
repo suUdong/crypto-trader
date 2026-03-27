@@ -1,0 +1,123 @@
+{
+  "generated_at": "2026-03-27T22:08:59.384405+00:00",
+  "session_id": "20260327T220458Z-2431860",
+  "config_path": "config/daemon.toml",
+  "wallet_names": [
+    "momentum_sol_wallet",
+    "momentum_eth_wallet",
+    "vpin_sol_wallet",
+    "vbreak_xrp_wallet",
+    "vpin_btc_wallet",
+    "momentum_btc_wallet",
+    "momentum_xrp_wallet",
+    "volspike_btc_wallet",
+    "mean_reversion_weekend_wallet",
+    "vpin_eth_wallet"
+  ],
+  "wallet_states": {
+    "momentum_sol_wallet": {
+      "strategy_type": "momentum",
+      "initial_capital": 1099388.0,
+      "cash": 1099388.0,
+      "realized_pnl": 0.0,
+      "open_positions": 0,
+      "equity": 1099388.0,
+      "positions": {}
+    },
+    "momentum_eth_wallet": {
+      "strategy_type": "momentum",
+      "initial_capital": 1102448.0,
+      "cash": 1102448.0,
+      "realized_pnl": 0.0,
+      "open_positions": 0,
+      "equity": 1102448.0,
+      "positions": {}
+    },
+    "vpin_sol_wallet": {
+      "strategy_type": "vpin",
+      "initial_capital": 1301224.0,
+      "cash": 1301224.0,
+      "realized_pnl": 0.0,
+      "open_positions": 0,
+      "equity": 1301224.0,
+      "positions": {}
+    },
+    "vbreak_xrp_wallet": {
+      "strategy_type": "volatility_breakout",
+      "initial_capital": 1500000.0,
+      "cash": 1498207.5431034483,
+      "realized_pnl": -1792.4568965517208,
+      "open_positions": 0,
+      "equity": 1498207.5431034483,
+      "positions": {}
+    },
+    "vpin_btc_wallet": {
+      "strategy_type": "vpin",
+      "initial_capital": 1099388.0,
+      "cash": 1099388.0,
+      "realized_pnl": 0.0,
+      "open_positions": 0,
+      "equity": 1099388.0,
+      "positions": {}
+    },
+    "momentum_btc_wallet": {
+      "strategy_type": "momentum",
+      "initial_capital": 1099388.0,
+      "cash": 1099388.0,
+      "realized_pnl": 0.0,
+      "open_positions": 0,
+      "equity": 1099388.0,
+      "positions": {}
+    },
+    "momentum_xrp_wallet": {
+      "strategy_type": "momentum",
+      "initial_capital": 1099388.0,
+      "cash": 1099388.0,
+      "realized_pnl": 0.0,
+      "open_positions": 0,
+      "equity": 1099388.0,
+      "positions": {}
+    },
+    "volspike_btc_wallet": {
+      "strategy_type": "volume_spike",
+      "initial_capital": 1099388.0,
+      "cash": 1099388.0,
+      "realized_pnl": 0.0,
+      "open_positions": 0,
+      "equity": 1099388.0,
+      "positions": {}
+    },
+    "mean_reversion_weekend_wallet": {
+      "strategy_type": "mean_reversion",
+      "initial_capital": 200000.0,
+      "cash": 175969.991,
+      "realized_pnl": 0.0,
+      "open_positions": 1,
+      "equity": 199898.77438278933,
+      "positions": {
+        "KRW-XRP": {
+          "symbol": "KRW-XRP",
+          "quantity": 11.869436201780415,
+          "entry_price": 2023.5165,
+          "market_price": 2016.0
+        }
+      }
+    },
+    "vpin_eth_wallet": {
+      "strategy_type": "vpin",
+      "initial_capital": 1099388.0,
+      "cash": 879235.4705459,
+      "realized_pnl": 0.0,
+      "open_positions": 1,
+      "equity": 1098894.5767400041,
+      "positions": {
+        "KRW-ETH": {
+          "symbol": "KRW-ETH",
+          "quantity": 0.07283126863199735,
+          "entry_price": 3021264.25,
+          "market_price": 3016000.0
+        }
+      }
+    }
+  }
+}
