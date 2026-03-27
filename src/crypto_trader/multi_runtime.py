@@ -92,9 +92,18 @@ class MultiSymbolRuntime:
             )
         )
         if config.macro.enabled:
+            base_url = config.macro.base_url if config.macro.has_base_url else None
             db_path = config.macro.db_path if config.macro.has_db else None
-            self._macro_client = MacroClient(db_path)
-            self._logger.info("Macro layer enabled (db=%s)", db_path or "default")
+            self._macro_client = MacroClient(
+                db_path=db_path,
+                base_url=base_url,
+                timeout_seconds=config.macro.timeout_seconds,
+            )
+            self._logger.info(
+                "Macro layer enabled (base_url=%s db=%s)",
+                base_url or "disabled",
+                db_path or "default",
+            )
         self._notifier = (
             TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
         )
@@ -155,6 +164,7 @@ class MultiSymbolRuntime:
             tick_results = self._run_tick(symbols)
             self._check_kill_switch_after_tick(tick_results)
             self._save_checkpoint(tick_results)
+            self._refresh_runtime_artifacts()
             self._maybe_refresh_artifacts()
             self._maybe_send_pnl_notify()
             self._iteration += 1
@@ -617,19 +627,26 @@ class MultiSymbolRuntime:
             self._logger.error("Failed to send PnL notification: %s", exc)
 
     def _maybe_refresh_artifacts(self) -> None:
-        """Periodically refresh drift, promotion, position, health and perf artifacts."""
-        if self._iteration % 10 != 0 or self._iteration == 0:
+        """Periodically refresh heavier artifacts that do not need every tick."""
+        if self._iteration % 60 != 0 or self._iteration == 0:
             return
+        try:
+            self._refresh_portfolio_promotion()
+            self._logger.info(
+                "Periodic heavy artifact refresh completed (iteration %d)",
+                self._iteration,
+            )
+        except Exception as exc:
+            self._logger.error("Artifact refresh failed: %s", exc)
+
+    def _refresh_runtime_artifacts(self) -> None:
+        """Keep dashboard/runtime snapshots current on every checkpoint."""
         try:
             self._refresh_position_snapshot()
             self._refresh_health_snapshot()
             self._refresh_daily_performance()
-            # Heavier operations only every 60 iterations
-            if self._iteration % 60 == 0:
-                self._refresh_portfolio_promotion()
-            self._logger.info("Periodic artifact refresh completed (iteration %d)", self._iteration)
         except Exception as exc:
-            self._logger.error("Artifact refresh failed: %s", exc)
+            self._logger.error("Runtime artifact refresh failed: %s", exc)
 
     def _refresh_position_snapshot(self) -> None:
         """Save current open positions to positions.json."""

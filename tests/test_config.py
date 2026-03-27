@@ -16,6 +16,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.trading.exchange, "upbit")
         self.assertEqual(config.trading.symbol, "KRW-BTC")
         self.assertTrue(config.trading.paper_trading)
+        self.assertEqual(config.macro.base_url, "http://127.0.0.1:8000")
 
     def test_environment_overrides_file_values(self) -> None:
         config = load_config(
@@ -24,10 +25,19 @@ class ConfigTests(unittest.TestCase):
                 "CT_SYMBOL": "KRW-ETH",
                 "CT_TELEGRAM_BOT_TOKEN": "token",
                 "CT_TELEGRAM_CHAT_ID": "123",
+                "CT_MACRO_BASE_URL": "http://macro.internal:8000",
             },
         )
         self.assertEqual(config.trading.symbol, "KRW-ETH")
         self.assertTrue(config.telegram.enabled)
+        self.assertEqual(config.macro.base_url, "http://macro.internal:8000")
+
+    def test_macro_timeout_env_override(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {"CT_MACRO_TIMEOUT_SECONDS": "2.5"},
+        )
+        self.assertEqual(config.macro.timeout_seconds, 2.5)
 
     def test_live_trading_requires_credentials(self) -> None:
         with self.assertRaisesRegex(ValueError, "credentials"):

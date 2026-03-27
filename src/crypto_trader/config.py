@@ -146,10 +146,16 @@ class RuntimeConfig:
 class MacroConfig:
     enabled: bool = False
     db_path: str = ""
+    base_url: str = ""
+    timeout_seconds: float = 5.0
 
     @property
     def has_db(self) -> bool:
         return bool(self.db_path.strip())
+
+    @property
+    def has_base_url(self) -> bool:
+        return bool(self.base_url.strip())
 
 
 @dataclass(slots=True)
@@ -630,6 +636,10 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
     macro = MacroConfig(
         enabled=_read_bool(raw, env, "macro", "enabled", "CT_MACRO_ENABLED", False),
         db_path=str(_read_value(raw, env, "macro", "db_path", "CT_MACRO_DB_PATH", "")),
+        base_url=str(_read_value(raw, env, "macro", "base_url", "CT_MACRO_BASE_URL", "")),
+        timeout_seconds=float(
+            _read_value(raw, env, "macro", "timeout_seconds", "CT_MACRO_TIMEOUT_SECONDS", 5.0)
+        ),
     )
     kill_switch = KillSwitchCfg(
         max_portfolio_drawdown_pct=float(

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import io
+import json
 import unittest
 from unittest.mock import patch
 
@@ -72,6 +74,46 @@ class TestMacroClient(unittest.TestCase):
         self.assertEqual(result.btc_dominance, 58.3)
         self.assertEqual(result.kimchi_premium, 2.1)
         self.assertEqual(result.fear_greed_index, 65)
+
+    def test_get_snapshot_prefers_http_payload(self) -> None:
+        client = MacroClient(base_url="http://macro.local")
+        payload = {
+            "status": "ok",
+            "overall_regime": "neutral",
+            "overall_confidence": 0.71,
+            "layers": {
+                "us": {"regime": "neutral", "confidence": 0.7, "signals": {}},
+                "kr": {"regime": "neutral", "confidence": 0.69, "signals": {}},
+                "crypto": {
+                    "regime": "expansionary",
+                    "confidence": 0.66,
+                    "signals": {"btc": "steady"},
+                },
+            },
+            "crypto_metrics": {
+                "btc_dominance": 58.4,
+                "kimchi_premium": 1.2,
+                "fear_greed_index": 63,
+            },
+        }
+
+        class _Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return None
+
+        with patch(
+            "crypto_trader.macro.client.urlopen",
+            return_value=_Resp(json.dumps(payload).encode("utf-8")),
+        ):
+            result = client.get_snapshot()
+
+        assert result is not None
+        self.assertEqual(result.overall_regime, "neutral")
+        self.assertEqual(result.crypto_signals["btc"], "steady")
+        self.assertEqual(result.fear_greed_index, 63)
 
     def test_get_memo_summary_returns_none_when_no_snapshot(self) -> None:
         client = MacroClient()

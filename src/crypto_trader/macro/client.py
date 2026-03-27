@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
 
@@ -29,29 +32,44 @@ class MacroSnapshot:
 
 
 class MacroClient:
-    """Reads macro regime data from the macro-intelligence SQLite database."""
+    """Reads macro regime data from the macro-intelligence service or local package."""
 
-    def __init__(self, db_path: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        db_path: str | Path | None = None,
+        base_url: str | None = None,
+        timeout_seconds: float = 5.0,
+    ) -> None:
         self._db_path = Path(db_path) if db_path else None
+        self._base_url = base_url.rstrip("/") if base_url else ""
+        self._timeout_seconds = timeout_seconds
 
-    def get_snapshot(self) -> MacroSnapshot | None:
-        """Fetch the latest macro regime snapshot. Returns None on any failure."""
+    def _fetch_http_payload(self) -> dict[str, Any] | None:
+        """Fetch the latest regime payload from the macro HTTP API."""
+        if not self._base_url:
+            return None
+
+        url = f"{self._base_url}/regime/current"
         try:
-            from macro_intelligence.api import get_macro_snapshot
-            from macro_intelligence.config import Config
+            with urlopen(url, timeout=self._timeout_seconds) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
+            logger.exception("Failed to fetch macro regime over HTTP")
+            return None
 
-            config = Config()
-            if self._db_path:
-                config.db_path = self._db_path
+        if payload.get("status") != "ok":
+            logger.info("Macro HTTP payload unavailable (status=%s)", payload.get("status"))
+            return None
+        return payload
 
-            data = get_macro_snapshot(config=config)
+    @staticmethod
+    def _snapshot_from_payload(data: dict[str, Any]) -> MacroSnapshot | None:
+        """Normalize HTTP or local payload into MacroSnapshot."""
+        if "regime" in data:
             regime = data.get("regime")
             crypto = data.get("crypto")
-
             if regime is None:
-                logger.info("Macro regime data not available (insufficient data)")
                 return None
-
             return MacroSnapshot(
                 overall_regime=regime["overall"],
                 overall_confidence=regime["overall_confidence"],
@@ -66,6 +84,46 @@ class MacroClient:
                 kimchi_premium=crypto.get("kimchi_premium") if crypto else None,
                 fear_greed_index=crypto.get("fear_greed_index") if crypto else None,
             )
+
+        layers = data.get("layers")
+        if not layers:
+            return None
+
+        crypto_metrics = data.get("crypto_metrics", {})
+        return MacroSnapshot(
+            overall_regime=data["overall_regime"],
+            overall_confidence=data["overall_confidence"],
+            us_regime=layers["us"]["regime"],
+            us_confidence=layers["us"]["confidence"],
+            kr_regime=layers["kr"]["regime"],
+            kr_confidence=layers["kr"]["confidence"],
+            crypto_regime=layers["crypto"]["regime"],
+            crypto_confidence=layers["crypto"]["confidence"],
+            crypto_signals=layers["crypto"].get("signals", {}),
+            btc_dominance=crypto_metrics.get("btc_dominance"),
+            kimchi_premium=crypto_metrics.get("kimchi_premium"),
+            fear_greed_index=crypto_metrics.get("fear_greed_index"),
+        )
+
+    def get_snapshot(self) -> MacroSnapshot | None:
+        """Fetch the latest macro regime snapshot. Returns None on any failure."""
+        http_payload = self._fetch_http_payload()
+        if http_payload is not None:
+            return self._snapshot_from_payload(http_payload)
+
+        try:
+            from macro_intelligence.api import get_macro_snapshot
+            from macro_intelligence.config import Config
+
+            config = Config()
+            if self._db_path:
+                config.db_path = self._db_path
+
+            data = get_macro_snapshot(config=config)
+            snapshot = self._snapshot_from_payload(data)
+            if snapshot is None:
+                logger.info("Macro regime data not available (insufficient data)")
+            return snapshot
         except ImportError:
             logger.warning("macro_intelligence package not installed, skipping macro layer")
             return None

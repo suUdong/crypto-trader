@@ -67,6 +67,11 @@ drift_report_path = "artifacts/drift-report.json"
 promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
 
+[macro]
+enabled = false
+base_url = "http://127.0.0.1:8000"
+timeout_seconds = 5.0
+
 [[wallets]]
 name = "momentum_wallet"
 strategy = "momentum"
