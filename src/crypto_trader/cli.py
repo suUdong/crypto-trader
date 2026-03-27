@@ -34,6 +34,7 @@ from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.operator.verdicts import StrategyVerdictEngine
+from crypto_trader.operator.wallet_performance import WalletPerformanceReportGenerator
 from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.runtime import TradingRuntime
@@ -67,6 +68,7 @@ def main() -> None:
             "pnl-report",
             "pnl-history",
             "performance-report",
+            "wallet-performance",
             "micro-live-check",
             "rebalance-capital",
             "walk-forward",
@@ -413,6 +415,19 @@ def main() -> None:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_text(content, encoding="utf-8")
         print(content)
+        return
+
+    if args.command == "wallet-performance":
+        generator = WalletPerformanceReportGenerator()
+        report = generator.generate(
+            checkpoint_path=config.runtime.runtime_checkpoint_path,
+            strategy_run_journal_path=config.runtime.strategy_run_journal_path,
+            trade_journal_path=config.runtime.paper_trade_journal_path,
+            lookback_hours=168,
+        )
+        output_path = generator.default_output_path()
+        generator.save(report, output_path)
+        print(generator.to_markdown(report))
         return
 
     if args.command == "gate-progress":
@@ -1116,6 +1131,7 @@ def main() -> None:
             "momentum",
             "momentum_pullback",
             "mean_reversion",
+            "kimchi_premium",
             "vpin",
             "volatility_breakout",
             "obi",

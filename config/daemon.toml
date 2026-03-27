@@ -1,7 +1,7 @@
 # Production daemon config — optimized portfolio (2026-03-27)
-# Cut underperformers, concentrate capital on proven winners
-# Source: 90d grid-search + walk-forward optimization
-# Wallets: 10 (from 15), capital weighted by Sharpe ratio
+# Source: 90d grid-search + walk-forward optimization, then live 7d wallet sanity check
+# Wallets: 10 (from 15), capital concentrated on proven winners while throttling live drag.
+# momentum_pullback stays research-only until it clears walk-forward validation.
 
 [trading]
 exchange = "upbit"
@@ -93,7 +93,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
-initial_capital = 2_000_000.0
+initial_capital = 2_050_000.0
 symbols = ["KRW-SOL"]
 [wallets.strategy_overrides]
 momentum_lookback = 15
@@ -180,10 +180,11 @@ max_concurrent_positions = 2
 # === TIER 2: Solid performers (moderate allocation) ===
 
 # vpin_btc: Sharpe 1.23, Return +0.87%, WR 55%, PF 1.50
+# Lifted after the 2026-03-27 live check showed kimchi carrying the only active loss
 [[wallets]]
 name = "vpin_btc_wallet"
 strategy = "vpin"
-initial_capital = 1_000_000.0
+initial_capital = 1_250_000.0
 symbols = ["KRW-BTC"]
 [wallets.strategy_overrides]
 rsi_period = 14
@@ -266,25 +267,29 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 
 # kimchi_premium: Multi-symbol, Sharpe 0.08 avg but ETH 1.11
+# Live 7d: only active drag in the 10-wallet set, so run it as a minimal throttled probe
 [[wallets]]
 name = "kimchi_premium_wallet"
 strategy = "kimchi_premium"
-initial_capital = 500_000.0
+initial_capital = 200_000.0
 symbols = ["KRW-BTC", "KRW-ETH", "KRW-SOL"]
 [wallets.strategy_overrides]
 rsi_period = 14
 rsi_recovery_ceiling = 45.0
 rsi_overbought = 75.0
 max_holding_bars = 24
-min_trade_interval_bars = 6
+min_trade_interval_bars = 12
 min_confidence = 0.3
-cooldown_hours = 8.0
+cooldown_hours = 12.0
 [wallets.risk_overrides]
-stop_loss_pct = 0.02
+stop_loss_pct = 0.015
 take_profit_pct = 0.04
+risk_per_trade_pct = 0.004
 atr_stop_multiplier = 3.0
 partial_tp_pct = 0.5
-cooldown_bars = 5
+cooldown_bars = 8
+max_concurrent_positions = 1
+max_position_pct = 0.12
 
 # vpin_eth: Sharpe 0.83, Return +0.43%, PF 1.28 — smallest allocation
 [[wallets]]
@@ -311,17 +316,17 @@ cooldown_bars = 5
 
 # === Capital Allocation Summary ===
 # TIER 1 (Sharpe > 1.5):
-#   momentum_sol:    2,000,000 (18.2%) — Sharpe 2.23
+#   momentum_sol:    2,050,000 (18.6%) — Sharpe 2.23
 #   momentum_eth:    1,500,000 (13.6%) — Sharpe 1.64
 #   vpin_sol:        1,500,000 (13.6%) — Sharpe 1.60
 #   vbreak_xrp:     1,500,000 (13.6%) — Sharpe 1.50
 # TIER 2 (Sharpe 0.8-1.5):
-#   vpin_btc:        1,000,000 (9.1%)  — Sharpe 1.23
+#   vpin_btc:        1,250,000 (11.4%) — Sharpe 1.23
 #   momentum_btc:    1,000,000 (9.1%)  — Sharpe 1.03
 #   momentum_xrp:    1,000,000 (9.1%)  — Sharpe 0.96
 # TIER 3 (niche):
 #   volspike_btc:      500,000 (4.5%)  — Sharpe 3.01 (low freq)
-#   kimchi_premium:    500,000 (4.5%)  — Sharpe 0.08 avg
+#   kimchi_premium:    200,000 (1.8%)  — live drag probe only
 #   vpin_eth:          500,000 (4.5%)  — Sharpe 0.83
 # TOTAL:          11,000,000
 #
@@ -329,6 +334,7 @@ cooldown_bars = 5
 #   vbreak_btc (Sharpe -0.92), vbreak_eth (0.48 weak), volspike_eth (-0.21)
 #   vpin_xrp (Sharpe -1.29), mean_rev_eth (historically bad)
 #   consensus_btc (no grid data), ema_cross_btc (no grid data)
+#   momentum_pullback (research-only; 2026-03-27 OOS validation still negative)
 
 [credentials]
 upbit_access_key = ""

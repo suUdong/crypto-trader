@@ -91,3 +91,66 @@ performance_report_path = "{output_path}"
             self.assertEqual(result.returncode, 0)
             self.assertTrue(output_path.exists())
             self.assertIn("72-Hour Performance Report", output_path.read_text(encoding="utf-8"))
+
+    def test_wallet_performance_command_writes_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_path = Path(tmpdir) / "runtime-checkpoint.json"
+            runs_path = Path(tmpdir) / "strategy-runs.jsonl"
+            journal_path = Path(tmpdir) / "paper-trades.jsonl"
+            checkpoint_path.write_text(
+                """
+{
+  "generated_at": "2026-03-27T11:45:00+00:00",
+  "wallet_names": ["momentum_wallet"],
+  "wallet_states": {
+    "momentum_wallet": {
+      "strategy_type": "momentum",
+      "initial_capital": 1000000,
+      "equity": 1010000
+    }
+  }
+}
+                """.strip(),
+                encoding="utf-8",
+            )
+            runs_path.write_text(
+                """
+{"recorded_at":"2026-03-27T10:05:00+00:00","wallet_name":"momentum_wallet","session_starting_equity":1000000}
+{"recorded_at":"2026-03-27T11:05:00+00:00","wallet_name":"momentum_wallet","session_starting_equity":1005000}
+                """.strip(),
+                encoding="utf-8",
+            )
+            journal_path.write_text("", encoding="utf-8")
+            config_path = Path(tmpdir) / "config.toml"
+            config_path.write_text(
+                f"""
+[runtime]
+runtime_checkpoint_path = "{checkpoint_path}"
+strategy_run_journal_path = "{runs_path}"
+paper_trade_journal_path = "{journal_path}"
+                """.strip(),
+                encoding="utf-8",
+            )
+
+            env = dict(os.environ)
+            env["PYTHONPATH"] = str(ROOT / "src")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "crypto_trader.cli",
+                    "wallet-performance",
+                    "--config",
+                    str(config_path),
+                ],
+                cwd=tmpdir,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0)
+            output_path = Path(tmpdir) / "artifacts" / "wallet-performance-7d.md"
+            self.assertTrue(output_path.exists())
+            self.assertIn("Wallet Performance Report", output_path.read_text(encoding="utf-8"))
