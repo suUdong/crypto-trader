@@ -66,6 +66,10 @@ class TestStructuredLogger(unittest.TestCase):
             fee_paid=1_750.0,
             order_status="filled",
             reason="obi_signal",
+            order_type="limit",
+            market_price=3_498_000.0,
+            slippage_pct=-0.000571,
+            fee_rate=0.0005,
         )
         events = self._read_events()
         self.assertEqual(len(events), 1)
@@ -74,6 +78,8 @@ class TestStructuredLogger(unittest.TestCase):
         self.assertAlmostEqual(ev["quantity"], 0.5)
         self.assertAlmostEqual(ev["fill_price"], 3_500_000.0)
         self.assertEqual(ev["order_status"], "filled")
+        self.assertEqual(ev["order_type"], "limit")
+        self.assertAlmostEqual(ev["market_price"], 3_498_000.0)
 
     def test_log_rejection_records_reason(self) -> None:
         self.logger.log_rejection(

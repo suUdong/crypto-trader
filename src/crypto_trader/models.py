@@ -251,6 +251,7 @@ class RuntimeCheckpoint:
     correlation: dict[str, Any] = field(default_factory=dict)
     portfolio_risk: dict[str, Any] = field(default_factory=dict)
     capital_reallocation: dict[str, Any] = field(default_factory=dict)
+    macro_state: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -332,6 +333,7 @@ class StrategyRunRecord:
     signal_indicators: dict[str, float] = field(default_factory=dict)
     signal_context: dict[str, str] = field(default_factory=dict)
     session_id: str = ""
+    order_type: str | None = None
 
 
 @dataclass(slots=True)

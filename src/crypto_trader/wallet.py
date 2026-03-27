@@ -144,6 +144,16 @@ def create_strategy(
 
 
 class StrategyWallet:
+    _LIMIT_FRIENDLY_STRATEGIES = frozenset(
+        {
+            "bollinger_rsi",
+            "funding_rate",
+            "kimchi_premium",
+            "mean_reversion",
+            "momentum_pullback",
+        }
+    )
+
     def __init__(
         self,
         wallet_config: WalletConfig,
@@ -163,16 +173,22 @@ class StrategyWallet:
         self._logger = logging.getLogger(f"{__name__}.{self.name}")
         self._macro_multiplier: float = 1.0
         self._prefer_limit_entries = bool(
-            wallet_config.strategy_overrides.get("prefer_limit_entries", True)
+            wallet_config.strategy_overrides.get(
+                "prefer_limit_entries",
+                wallet_config.strategy in self._LIMIT_FRIENDLY_STRATEGIES,
+            )
         )
         self._limit_confidence_cap = float(
             wallet_config.strategy_overrides.get("limit_confidence_cap", 0.72)
+        )
+        self._market_confidence_floor = float(
+            wallet_config.strategy_overrides.get("market_confidence_floor", 0.82)
         )
         self._limit_volume_floor = float(
             wallet_config.strategy_overrides.get("limit_volume_floor", 1.0)
         )
         self._execution_cost_multiplier = float(
-            wallet_config.strategy_overrides.get("execution_cost_multiplier", 1.0)
+            wallet_config.strategy_overrides.get("execution_cost_multiplier", 1.1)
         )
 
     def set_macro_multiplier(self, multiplier: float) -> None:
@@ -265,6 +281,8 @@ class StrategyWallet:
         return candles[-1].volume / avg_vol
 
     def _choose_entry_order_type(self, signal: Signal, volume_ratio: float) -> OrderType:
+        if signal.confidence >= self._market_confidence_floor:
+            return OrderType.MARKET
         if (
             self._prefer_limit_entries
             and volume_ratio >= self._limit_volume_floor
@@ -278,11 +296,11 @@ class StrategyWallet:
         entry_order_type: OrderType,
         volume_ratio: float,
     ) -> float:
-        entry_fee = self.broker.fee_rate_for(entry_order_type)
-        entry_slippage = max(0.0, self.broker.estimate_slippage_pct(entry_order_type, volume_ratio))
-        exit_fee = self.broker.fee_rate_for(OrderType.MARKET)
-        exit_slippage = max(0.0, self.broker.estimate_slippage_pct(OrderType.MARKET, volume_ratio))
-        return (entry_fee + entry_slippage + exit_fee + exit_slippage) * self._execution_cost_multiplier
+        return self.broker.estimate_round_trip_cost_pct(
+            entry_order_type,
+            volume_ratio=volume_ratio,
+            exit_order_type=OrderType.MARKET,
+        ) * self._execution_cost_multiplier
 
     def _execution_edge_budget_pct(self, signal: Signal) -> float:
         confidence_excess = max(0.0, signal.confidence - self.risk_manager.effective_min_confidence)
@@ -479,7 +497,8 @@ class StrategyWallet:
             )
             if order is not None:
                 message += (
-                    f" order={order.status} order_type={order.order_type.value} side={order.side.value} "
+                    f" order={order.status} order_type={order.order_type.value} "
+                    f"side={order.side.value} "
                     f"qty={order.quantity:.8f} fill={order.fill_price:.2f}"
                 )
             return PipelineResult(
@@ -517,6 +536,9 @@ def build_wallets(config: AppConfig) -> list[StrategyWallet]:
             starting_cash=wc.initial_capital,
             fee_rate=config.backtest.fee_rate,
             slippage_pct=config.backtest.slippage_pct,
+            maker_fee_rate=float(
+                wc.strategy_overrides.get("maker_fee_rate", config.backtest.fee_rate)
+            ),
         )
         risk_manager = RiskManager(
             risk_config,

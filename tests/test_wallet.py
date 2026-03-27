@@ -17,7 +17,7 @@ from crypto_trader.config import (
     WalletConfig,
 )
 from crypto_trader.execution.paper import PaperBroker
-from crypto_trader.models import Candle, Position, SignalAction
+from crypto_trader.models import Candle, OrderType, Position, Signal, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
 from crypto_trader.strategy.composite import CompositeStrategy
@@ -127,12 +127,23 @@ class TestCreateStrategy(unittest.TestCase):
 
 
 class TestStrategyWalletRunOnce(unittest.TestCase):
-    def _make_wallet(self, strategy_type: str = "momentum") -> StrategyWallet:
+    def _make_wallet(
+        self,
+        strategy_type: str = "momentum",
+        *,
+        strategy_overrides: dict[str, object] | None = None,
+        risk_config: RiskConfig | None = None,
+        broker: PaperBroker | None = None,
+    ) -> StrategyWallet:
         strategy_config = _make_strategy_config()
         regime_config = _make_regime_config()
         strategy = create_strategy(strategy_type, strategy_config, regime_config)
-        broker = PaperBroker(starting_cash=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005)
-        risk_config = RiskConfig(
+        wallet_broker = broker or PaperBroker(
+            starting_cash=1_000_000.0,
+            fee_rate=0.0005,
+            slippage_pct=0.0005,
+        )
+        wallet_risk_config = risk_config or RiskConfig(
             risk_per_trade_pct=0.01,
             stop_loss_pct=0.03,
             take_profit_pct=0.06,
@@ -140,11 +151,14 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
             max_concurrent_positions=5,
             min_entry_confidence=0.0,
         )
-        risk_manager = RiskManager(risk_config)
+        risk_manager = RiskManager(wallet_risk_config)
         wallet_config = WalletConfig(
-            name="test_wallet", strategy=strategy_type, initial_capital=1_000_000.0
+            name="test_wallet",
+            strategy=strategy_type,
+            initial_capital=1_000_000.0,
+            strategy_overrides=strategy_overrides or {},
         )
-        return StrategyWallet(wallet_config, strategy, broker, risk_manager)
+        return StrategyWallet(wallet_config, strategy, wallet_broker, risk_manager)
 
     def test_wallet_run_once_buy(self) -> None:
         # Rising prices trigger a momentum BUY when thresholds are loose
@@ -157,6 +171,59 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
         self.assertIsNone(result.error)
         self.assertEqual(result.signal.action, SignalAction.BUY)
         self.assertIsNotNone(result.order)
+        self.assertEqual(result.order.order_type, OrderType.MARKET)
+
+    def test_mean_reversion_prefers_limit_entry_when_liquidity_is_sufficient(self) -> None:
+        class StaticBuyStrategy:
+            def evaluate(
+                self,
+                candles: list[Candle],
+                position: Position | None = None,
+                *,
+                symbol: str = "",
+            ) -> Signal:
+                return Signal(
+                    action=SignalAction.BUY,
+                    reason="mean_reversion_entry",
+                    confidence=0.64,
+                )
+
+        wallet = StrategyWallet(
+            WalletConfig(
+                name="test_wallet",
+                strategy="mean_reversion",
+                initial_capital=1_000_000.0,
+                strategy_overrides={"execution_cost_multiplier": 1.0},
+            ),
+            StaticBuyStrategy(),
+            PaperBroker(starting_cash=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005),
+            RiskManager(
+                RiskConfig(
+                    take_profit_pct=0.04,
+                    stop_loss_pct=0.02,
+                    min_entry_confidence=0.5,
+                    max_concurrent_positions=5,
+                )
+            ),
+        )
+
+        result = wallet.run_once("KRW-BTC", _make_candles([100.0 + i for i in range(24)]))
+
+        self.assertIsNotNone(result.order)
+        self.assertEqual(result.order.order_type, OrderType.LIMIT)
+
+    def test_wallet_uses_market_order_when_limit_confidence_cap_is_tight(self) -> None:
+        closes = [100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0]
+        candles = _make_candles(closes)
+        wallet = self._make_wallet(
+            "momentum",
+            strategy_overrides={"limit_confidence_cap": 0.5},
+        )
+
+        result = wallet.run_once("KRW-BTC", candles)
+
+        self.assertIsNotNone(result.order)
+        self.assertEqual(result.order.order_type, OrderType.MARKET)
 
     def test_wallet_run_once_error_handling(self) -> None:
         # Empty candle list causes an IndexError inside run_once; must be caught
@@ -246,6 +313,72 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
         self.assertEqual(result.signal.action, SignalAction.SELL)
         self.assertIsNone(result.order)
         self.assertEqual(wallet.broker.positions, {})
+
+    def test_wallet_blocks_entry_when_execution_costs_dominate_edge(self) -> None:
+        class StaticBuyStrategy:
+            def evaluate(
+                self,
+                candles: list[Candle],
+                position: Position | None = None,
+                *,
+                symbol: str = "",
+            ) -> Signal:
+                return Signal(
+                    action=SignalAction.BUY,
+                    reason="weak_edge",
+                    confidence=0.61,
+                )
+
+        broker = PaperBroker(starting_cash=1_000_000.0, fee_rate=0.001, slippage_pct=0.001)
+        risk_manager = RiskManager(
+            RiskConfig(
+                take_profit_pct=0.02,
+                stop_loss_pct=0.02,
+                min_entry_confidence=0.6,
+                max_concurrent_positions=5,
+            )
+        )
+        wallet = StrategyWallet(
+            WalletConfig(name="test_wallet", strategy="momentum", initial_capital=1_000_000.0),
+            StaticBuyStrategy(),
+            broker,
+            risk_manager,
+        )
+
+        result = wallet.run_once("KRW-BTC", _make_candles([100.0 + i for i in range(20)]))
+
+        self.assertIsNone(result.order)
+        self.assertEqual(result.signal.reason, "execution_edge_below_cost_threshold")
+
+    def test_wallet_force_exit_uses_market_order(self) -> None:
+        class ExitRiskManager(RiskManager):
+            def should_force_exit(
+                self,
+                realized_pnl: float,
+                starting_equity: float,
+                current_equity: float | None = None,
+            ) -> bool:
+                return True
+
+        strategy = create_strategy("momentum", _make_strategy_config(), _make_regime_config())
+        broker = PaperBroker(starting_cash=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005)
+        broker.positions["KRW-BTC"] = Position(
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
+            entry_time=datetime(2025, 1, 1, 0, 0, 0),
+        )
+        wallet = StrategyWallet(
+            WalletConfig(name="test_wallet", strategy="momentum", initial_capital=1_000_000.0),
+            strategy,
+            broker,
+            ExitRiskManager(RiskConfig(min_entry_confidence=0.0)),
+        )
+
+        result = wallet.run_once("KRW-BTC", _make_candles([100.0 + i for i in range(20)]))
+
+        self.assertIsNotNone(result.order)
+        self.assertEqual(result.order.order_type, OrderType.MARKET)
 
 
 class TestBuildWallets(unittest.TestCase):

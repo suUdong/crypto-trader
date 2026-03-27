@@ -182,6 +182,26 @@ class TestIneligible:
         weights = [a.weight for a in result.allocations]
         assert all(abs(w - 0.5) < 0.01 for w in weights)
 
+    def test_all_ineligible_can_use_edge_scores(self):
+        allocator = CapitalAllocator(min_trades=100)
+        perfs = [
+            _perf("momentum_wallet", trade_count=0),
+            _perf("mean_reversion_wallet", trade_count=0),
+            _perf("volatility_wallet", trade_count=0),
+        ]
+        result = allocator.allocate(
+            perfs,
+            3_000_000,
+            edge_scores={
+                "momentum_wallet": 0.78,
+                "mean_reversion_wallet": 1.275,
+                "volatility_wallet": 0.60,
+            },
+        )
+        by_strategy = {allocation.strategy: allocation for allocation in result.allocations}
+        assert by_strategy["mean_reversion_wallet"].capital > by_strategy["momentum_wallet"].capital
+        assert by_strategy["momentum_wallet"].capital > by_strategy["volatility_wallet"].capital
+
 
 # ---------------------------------------------------------------------------
 # Ranking

@@ -12,6 +12,14 @@ from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
 
+_REGIME_ALIASES: dict[str, str] = {
+    "expansion": "expansionary",
+    "expansionary": "expansionary",
+    "neutral": "neutral",
+    "contraction": "contractionary",
+    "contractionary": "contractionary",
+}
+
 
 @dataclass(slots=True)
 class MacroSnapshot:
@@ -44,6 +52,11 @@ class MacroClient:
         self._base_url = base_url.rstrip("/") if base_url else ""
         self._timeout_seconds = timeout_seconds
 
+    @staticmethod
+    def _normalize_regime(value: Any) -> str:
+        text = str(value or "neutral").strip().lower()
+        return _REGIME_ALIASES.get(text, text or "neutral")
+
     def _fetch_http_payload(self) -> dict[str, Any] | None:
         """Fetch the latest regime payload from the macro HTTP API."""
         if not self._base_url:
@@ -74,13 +87,13 @@ class MacroClient:
             if regime is None:
                 return None
             return MacroSnapshot(
-                overall_regime=regime["overall"],
+                overall_regime=MacroClient._normalize_regime(regime["overall"]),
                 overall_confidence=regime["overall_confidence"],
-                us_regime=regime["us"]["regime"],
+                us_regime=MacroClient._normalize_regime(regime["us"]["regime"]),
                 us_confidence=regime["us"]["confidence"],
-                kr_regime=regime["kr"]["regime"],
+                kr_regime=MacroClient._normalize_regime(regime["kr"]["regime"]),
                 kr_confidence=regime["kr"]["confidence"],
-                crypto_regime=regime["crypto"]["regime"],
+                crypto_regime=MacroClient._normalize_regime(regime["crypto"]["regime"]),
                 crypto_confidence=regime["crypto"]["confidence"],
                 crypto_signals=regime["crypto"].get("signals", {}),
                 btc_dominance=crypto.get("btc_dominance") if crypto else None,
@@ -94,13 +107,13 @@ class MacroClient:
 
         crypto_metrics = data.get("crypto_metrics", {})
         return MacroSnapshot(
-            overall_regime=data["overall_regime"],
+            overall_regime=MacroClient._normalize_regime(data["overall_regime"]),
             overall_confidence=data["overall_confidence"],
-            us_regime=layers["us"]["regime"],
+            us_regime=MacroClient._normalize_regime(layers["us"]["regime"]),
             us_confidence=layers["us"]["confidence"],
-            kr_regime=layers["kr"]["regime"],
+            kr_regime=MacroClient._normalize_regime(layers["kr"]["regime"]),
             kr_confidence=layers["kr"]["confidence"],
-            crypto_regime=layers["crypto"]["regime"],
+            crypto_regime=MacroClient._normalize_regime(layers["crypto"]["regime"]),
             crypto_confidence=layers["crypto"]["confidence"],
             crypto_signals=layers["crypto"].get("signals", {}),
             btc_dominance=crypto_metrics.get("btc_dominance"),

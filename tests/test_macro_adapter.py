@@ -47,10 +47,28 @@ class TestMacroRegimeAdapter(unittest.TestCase):
         self.assertAlmostEqual(adj.position_size_multiplier, 0.5)
         self.assertIn("contractionary", adj.reasons[0])
 
+    def test_expansion_alias_maps_to_expansionary(self) -> None:
+        snapshot = _make_snapshot(overall_regime="expansion")
+        adj = self.adapter.compute(snapshot)
+        self.assertAlmostEqual(adj.position_size_multiplier, 1.5)
+        self.assertIn("expansionary", adj.reasons[0])
+
+    def test_contraction_alias_maps_to_contractionary(self) -> None:
+        snapshot = _make_snapshot(overall_regime="contraction")
+        adj = self.adapter.compute(snapshot)
+        self.assertAlmostEqual(adj.position_size_multiplier, 0.5)
+        self.assertIn("contractionary", adj.reasons[0])
+
     def test_neutral_regime_baseline(self) -> None:
         snapshot = _make_snapshot(overall_regime="neutral")
         adj = self.adapter.compute(snapshot)
         self.assertAlmostEqual(adj.position_size_multiplier, 1.0)
+
+    def test_alias_regime_names_are_normalized(self) -> None:
+        snapshot = _make_snapshot(overall_regime="expansion")
+        adj = self.adapter.compute(snapshot)
+        self.assertAlmostEqual(adj.position_size_multiplier, 1.5)
+        self.assertIn("expansionary", adj.reasons[0])
 
     def test_extreme_greed_reduces_multiplier(self) -> None:
         snapshot = _make_snapshot(overall_regime="expansionary", fear_greed_index=85)
@@ -116,6 +134,14 @@ class TestMacroRegimeAdapter(unittest.TestCase):
         )
         adj = self.adapter.compute(snapshot)
         self.assertAlmostEqual(adj.position_size_multiplier, 1.0)
+
+    def test_allocation_edge_score_reflects_macro_and_market_regime(self) -> None:
+        score = self.adapter.allocation_edge_score(
+            "momentum",
+            "expansionary",
+            "bull",
+        )
+        self.assertAlmostEqual(score, 1.82)
 
 
 if __name__ == "__main__":

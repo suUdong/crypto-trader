@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from crypto_trader.execution.paper import PaperBroker
-from crypto_trader.models import OrderRequest, OrderSide
+from crypto_trader.models import OrderRequest, OrderSide, OrderType
 from crypto_trader.operator.paper_trading import (
     PaperTradeJournal,
     PaperTradingOperations,
@@ -27,6 +27,7 @@ class PaperTradingOperationsTests(unittest.TestCase):
                     requested_at=datetime(2025, 1, 1, 0, 0, 0),
                     reason="entry",
                     confidence=0.73,
+                    order_type=OrderType.LIMIT,
                 ),
                 market_price=100.0,
             )
@@ -37,6 +38,7 @@ class PaperTradingOperationsTests(unittest.TestCase):
                     quantity=1.0,
                     requested_at=datetime(2025, 1, 1, 1, 0, 0),
                     reason="exit",
+                    order_type=OrderType.MARKET,
                 ),
                 market_price=110.0,
             )
@@ -47,6 +49,8 @@ class PaperTradingOperationsTests(unittest.TestCase):
             self.assertEqual(trades[0].exit_reason, "exit")
             self.assertEqual(trades[0].session_id, "session-1")
             self.assertEqual(trades[0].entry_confidence, 0.73)
+            self.assertEqual(trades[0].entry_order_type, OrderType.LIMIT)
+            self.assertEqual(trades[0].exit_order_type, OrderType.MARKET)
 
     def test_build_position_snapshot_tracks_open_positions(self) -> None:
         broker = PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0)

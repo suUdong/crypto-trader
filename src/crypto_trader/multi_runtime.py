@@ -191,12 +191,28 @@ class MultiSymbolRuntime:
         }
         self._last_capital_reallocation: dict[str, Any] = {
             "status": "idle",
+            "reason": "idle",
             "rebalance_date": "",
             "transfer_count": 0,
             "transfers": [],
             "target_capital": {},
         }
         self._last_rebalance_date: str | None = None
+        self._last_macro_regime: str | None = None
+        self._pending_macro_rebalance: dict[str, Any] | None = None
+        self._macro_allocation_edge_scores: dict[str, float] = {}
+        self._last_macro_state: dict[str, Any] = {
+            "status": "disabled" if not config.macro.enabled else "pending",
+            "overall_regime": "unknown",
+            "market_regime": self._current_market_regime,
+            "position_size_multiplier": 1.0,
+            "risk_per_trade_multiplier": 1.0,
+            "weekend": False,
+            "changed": False,
+            "reasons": [],
+            "strategy_edge_scores": {},
+            "wallet_multipliers": {},
+        }
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -364,16 +380,16 @@ class MultiSymbolRuntime:
                     continue
                 raise
 
-        # Refresh macro/regime-aware multipliers after regime detection
-        self._refresh_macro()
-        self._apply_kill_switch_penalty()
-
         latest_prices = {
             cached_symbol: symbol_candles[-1].close
             for cached_symbol, symbol_candles in candle_cache.items()
             if symbol_candles
         }
+        # Refresh macro/regime-aware multipliers after regime detection and price collection.
+        self._refresh_macro()
+        self._apply_kill_switch_penalty()
         self._latest_prices = dict(latest_prices)
+        self._maybe_rebalance_for_macro_regime_change(candle_cache, latest_prices)
         portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
         if self._maybe_reduce_positions_for_drawdown(candle_cache, latest_prices):
             portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
@@ -487,7 +503,11 @@ class MultiSymbolRuntime:
                         self._slippage_monitor.record_fill(
                             symbol=symbol,
                             side=result.order.side.value,
-                            market_price=result.order.reference_price or result.latest_price or result.order.fill_price,
+                            market_price=(
+                                result.order.reference_price
+                                or result.latest_price
+                                or result.order.fill_price
+                            ),
                             fill_price=result.order.fill_price,
                             quantity=result.order.quantity,
                         )
@@ -570,6 +590,7 @@ class MultiSymbolRuntime:
                     signal_indicators=result.signal.indicators,
                     signal_context=result.signal.context,
                     session_id=self._session_id,
+                    order_type=result.order.order_type.value if result.order else None,
                 )
                 self._strategy_run_journal.append(record)
 
@@ -717,7 +738,23 @@ class MultiSymbolRuntime:
     def _refresh_macro(self) -> None:
         weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
         if self._macro_client is None:
+            self._macro_allocation_edge_scores = {}
+            self._pending_macro_rebalance = None
             self._apply_regime_weights()
+            self._last_macro_state = {
+                "status": "market_regime_only",
+                "overall_regime": "unavailable",
+                "market_regime": self._current_market_regime,
+                "position_size_multiplier": 1.0,
+                "risk_per_trade_multiplier": 1.0,
+                "weekend": self._is_weekend,
+                "changed": False,
+                "reasons": ["macro layer disabled; using market regime only"],
+                "strategy_edge_scores": {},
+                "wallet_multipliers": {
+                    wallet.name: round(wallet._macro_multiplier, 4) for wallet in self._wallets
+                },
+            }
             return
         try:
             snapshot = self._macro_client.get_snapshot()
@@ -725,26 +762,86 @@ class MultiSymbolRuntime:
             self._logger.error("Macro snapshot refresh failed: %s", exc)
             if self._is_recoverable_error(exc):
                 self._record_tick_error(exc)
+                self._macro_allocation_edge_scores = {}
+                self._pending_macro_rebalance = None
                 self._apply_regime_weights()
                 return
             raise
         adjustment = self._macro_adapter.compute(snapshot)
+        overall_regime = (
+            self._macro_adapter.normalize_overall_regime(snapshot.overall_regime)
+            if snapshot is not None
+            else "neutral"
+        )
+        previous_regime = self._last_macro_regime
+        wallet_multipliers: dict[str, float] = {}
+        edge_scores: dict[str, float] = {}
         for wallet in self._wallets:
             regime_weight = self._macro_adapter.strategy_weight(
                 wallet.strategy_type,
                 self._current_market_regime,
             )
             combined = adjustment.position_size_multiplier * regime_weight * weekend_mult
-            wallet.set_macro_multiplier(combined)
+            self._set_wallet_macro_multiplier(wallet, combined)
+            wallet_multipliers[wallet.name] = round(combined, 4)
+            edge_scores[wallet.name] = round(
+                self._macro_adapter.allocation_edge_score(
+                    wallet.strategy_type,
+                    overall_regime,
+                    self._current_market_regime,
+                ),
+                4,
+            )
+        changed = (
+            snapshot is not None
+            and previous_regime is not None
+            and previous_regime != overall_regime
+        )
+        self._macro_allocation_edge_scores = edge_scores
+        self._pending_macro_rebalance = (
+            {
+                "previous_regime": previous_regime,
+                "current_regime": overall_regime,
+                "market_regime": self._current_market_regime,
+                "previous_multiplier": round(
+                    float(self._last_macro_state.get("position_size_multiplier", 1.0) or 1.0),
+                    4,
+                ),
+                "current_multiplier": round(adjustment.position_size_multiplier, 4),
+            }
+            if changed
+            else None
+        )
+        self._last_macro_regime = overall_regime
+        self._last_macro_state = {
+            "status": "active" if snapshot is not None else "fallback",
+            "overall_regime": overall_regime,
+            "market_regime": self._current_market_regime,
+            "position_size_multiplier": round(adjustment.position_size_multiplier, 4),
+            "risk_per_trade_multiplier": round(adjustment.risk_per_trade_multiplier, 4),
+            "weekend": self._is_weekend,
+            "changed": changed,
+            "previous_regime": previous_regime,
+            "confidence": round(snapshot.overall_confidence, 4) if snapshot is not None else 0.0,
+            "reasons": list(adjustment.reasons),
+            "strategy_edge_scores": edge_scores,
+            "wallet_multipliers": wallet_multipliers,
+        }
         if snapshot is not None:
             self._logger.info(
                 "Macro regime=%s confidence=%.0f%% multiplier=%.2f market_regime=%s weekend=%s",
-                snapshot.overall_regime,
+                overall_regime,
                 snapshot.overall_confidence * 100,
                 adjustment.position_size_multiplier,
                 self._current_market_regime,
                 self._is_weekend,
             )
+            if changed:
+                self._logger.info(
+                    "Macro regime transition detected: %s -> %s",
+                    previous_regime,
+                    overall_regime,
+                )
 
     def _apply_kill_switch_penalty(self) -> None:
         """Scale down position sizes when kill switch tiered thresholds are breached."""
@@ -752,7 +849,7 @@ class MultiSymbolRuntime:
         if penalty < 1.0:
             for wallet in self._wallets:
                 current = wallet._macro_multiplier
-                wallet.set_macro_multiplier(current * penalty)
+                self._set_wallet_macro_multiplier(wallet, current * penalty)
             self._logger.warning(
                 "Kill switch penalty active: position sizes scaled by %.0f%%",
                 penalty * 100,
@@ -764,6 +861,11 @@ class MultiSymbolRuntime:
             return float(value)
         except (TypeError, ValueError):
             return default
+
+    @staticmethod
+    def _set_wallet_macro_multiplier(wallet: StrategyWallet, multiplier: float) -> None:
+        wallet.set_macro_multiplier(multiplier)
+        wallet._macro_multiplier = multiplier
 
     def _compute_portfolio_risk_state(self, latest_prices: dict[str, float]) -> dict[str, Any]:
         total_equity = sum(wallet.broker.equity(latest_prices) for wallet in self._wallets)
@@ -849,7 +951,7 @@ class MultiSymbolRuntime:
         if penalty >= 1.0:
             return
         for wallet in self._wallets:
-            wallet.set_macro_multiplier(wallet._macro_multiplier * penalty)
+            self._set_wallet_macro_multiplier(wallet, wallet._macro_multiplier * penalty)
         self._logger.warning(
             "Portfolio drawdown penalty active: position sizes scaled by %.0f%%",
             penalty * 100,
@@ -945,18 +1047,126 @@ class MultiSymbolRuntime:
         }
         return bool(executed_orders)
 
-    def _rebalance_idle_wallet_cash(self, latest_prices: dict[str, float]) -> None:
+    def _maybe_rebalance_for_macro_regime_change(
+        self,
+        candle_cache: dict[str, Any],
+        latest_prices: dict[str, float],
+    ) -> None:
+        if self._pending_macro_rebalance is None:
+            return
+        transition = dict(self._pending_macro_rebalance)
+        self._pending_macro_rebalance = None
+        previous_multiplier = float(transition.get("previous_multiplier", 1.0) or 1.0)
+        current_multiplier = float(transition.get("current_multiplier", 1.0) or 1.0)
+        keep_fraction = 1.0
+        executed_orders: list[dict[str, Any]] = []
+        if previous_multiplier > 0 and current_multiplier < previous_multiplier:
+            keep_fraction = max(0.0, min(1.0, current_multiplier / previous_multiplier))
+            for wallet in self._wallets:
+                for symbol in sorted(wallet.broker.positions):
+                    latest_price = latest_prices.get(symbol)
+                    candles = candle_cache.get(symbol) or []
+                    if latest_price is None or not candles:
+                        continue
+                    order = wallet.reduce_position(
+                        symbol,
+                        latest_price,
+                        candles[-1].timestamp,
+                        keep_fraction=keep_fraction,
+                        reason="macro_regime_change_reduce",
+                        volume_ratio=wallet._volume_ratio(candles),
+                    )
+                    if order is None or order.status != "filled":
+                        continue
+                    remaining_position = wallet.broker.positions.get(symbol)
+                    executed_orders.append(
+                        {
+                            "wallet": wallet.name,
+                            "symbol": symbol,
+                            "quantity": order.quantity,
+                            "fill_price": order.fill_price,
+                            "remaining_quantity": remaining_position.quantity
+                            if remaining_position is not None
+                            else 0.0,
+                        }
+                    )
+                    self._structured_logger.log_trade(
+                        wallet_name=wallet.name,
+                        strategy_type=wallet.strategy_type,
+                        symbol=symbol,
+                        side=order.side.value,
+                        quantity=order.quantity,
+                        fill_price=order.fill_price,
+                        fee_paid=order.fee_paid,
+                        order_status=order.status,
+                        reason=order.reason,
+                        order_type=order.order_type.value,
+                        market_price=order.reference_price or latest_price,
+                        slippage_pct=order.slippage_pct,
+                        fee_rate=order.fee_rate,
+                    )
+                    self._alert_manager.alert_trade(
+                        wallet_name=wallet.name,
+                        strategy_name=wallet.strategy_type,
+                        symbol=symbol,
+                        side=order.side.value,
+                        quantity=order.quantity,
+                        fill_price=order.fill_price,
+                        fee_paid=order.fee_paid,
+                        reason=order.reason,
+                    )
+        transition["keep_fraction"] = round(keep_fraction, 4)
+        transition["position_adjustment_status"] = "executed" if executed_orders else "not_needed"
+        transition["position_adjustments"] = executed_orders
+        self._rebalance_idle_wallet_cash(
+            latest_prices,
+            reason="macro_regime_change",
+            transition=transition,
+            edge_scores=self._macro_allocation_edge_scores or None,
+            min_trades=0,
+        )
+        transition["capital_reallocation_status"] = self._last_capital_reallocation.get(
+            "status",
+            "idle",
+        )
+        self._last_macro_state["last_transition"] = transition
+
+    def _rebalance_idle_wallet_cash(
+        self,
+        latest_prices: dict[str, float],
+        *,
+        reason: str = "daily_schedule",
+        transition: dict[str, Any] | None = None,
+        edge_scores: dict[str, float] | None = None,
+        min_trades: int | None = None,
+    ) -> None:
         idle_wallets = [wallet for wallet in self._wallets if not wallet.broker.positions]
+        rebalance_date = self._last_rebalance_date or (
+            datetime.now(UTC).astimezone(self._KST).date().isoformat()
+        )
         if len(idle_wallets) < 2:
             self._last_capital_reallocation = {
                 "status": "skipped_not_enough_idle_wallets",
-                "rebalance_date": self._last_rebalance_date or "",
+                "reason": reason,
+                "rebalance_date": rebalance_date,
                 "transfer_count": 0,
                 "transfers": [],
                 "target_capital": {},
+                "macro_regime": self._last_macro_state.get("overall_regime", "unknown"),
+                "macro_transition": transition or {},
+                "strategy_edge_scores": edge_scores or self._macro_allocation_edge_scores,
             }
             return
 
+        use_baseline_scores = (
+            edge_scores is not None
+            and min_trades is None
+            and all(
+                len(wallet.broker.closed_trades) < self._capital_allocator.min_trades
+                for wallet in self._wallets
+            )
+        )
+        effective_min_trades = 0 if use_baseline_scores else min_trades
         performances = [
             StrategyPerformance(
                 strategy=wallet.name,
@@ -999,11 +1209,29 @@ class MultiSymbolRuntime:
                 ),
                 equity=wallet.broker.equity(latest_prices),
                 initial_capital=wallet.session_starting_equity,
+                composite_score_override=(
+                    max(wallet.session_starting_equity, 1.0)
+                    if edge_scores is not None and (min_trades is not None or use_baseline_scores)
+                    else None
+                ),
             )
             for wallet in self._wallets
         ]
         total_capital = sum(performance.equity for performance in performances)
-        allocation = self._capital_allocator.allocate(performances, total_capital)
+        allocator = (
+            self._capital_allocator
+            if effective_min_trades is None
+            else CapitalAllocator(
+                min_weight=self._capital_allocator.min_weight,
+                max_weight=self._capital_allocator.max_weight,
+                min_trades=effective_min_trades,
+            )
+        )
+        allocation = allocator.allocate(
+            performances,
+            total_capital,
+            edge_scores=edge_scores or self._macro_allocation_edge_scores or None,
+        )
         current_cash = {wallet.name: wallet.broker.cash for wallet in idle_wallets}
         target_capital = {
             item.strategy: item.capital
@@ -1021,7 +1249,8 @@ class MultiSymbolRuntime:
             wallet_map[transfer.target].adjust_capital(transfer.amount)
         self._last_capital_reallocation = {
             "status": "rebalanced" if transfers else "no_transfer_needed",
-            "rebalance_date": self._last_rebalance_date or "",
+            "reason": reason,
+            "rebalance_date": rebalance_date,
             "transfer_count": len(transfers),
             "total_reallocated": round(sum(transfer.amount for transfer in transfers), 2),
             "transfers": [
@@ -1033,6 +1262,9 @@ class MultiSymbolRuntime:
                 for transfer in transfers
             ],
             "target_capital": {name: round(amount, 2) for name, amount in target_capital.items()},
+            "macro_regime": self._last_macro_state.get("overall_regime", "unknown"),
+            "macro_transition": transition or {},
+            "strategy_edge_scores": edge_scores or self._macro_allocation_edge_scores,
         }
 
     def _maybe_rebalance_idle_wallet_cash(
@@ -1046,24 +1278,36 @@ class MultiSymbolRuntime:
         if self._last_rebalance_date == rebalance_date:
             self._last_capital_reallocation = {
                 "status": "skipped_already_rebalanced_today",
+                "reason": "daily_schedule",
                 "rebalance_date": rebalance_date,
                 "transfer_count": 0,
                 "transfers": [],
                 "target_capital": self._last_capital_reallocation.get("target_capital", {}),
+                "macro_regime": self._last_macro_state.get("overall_regime", "unknown"),
+                "macro_transition": {},
+                "strategy_edge_scores": self._macro_allocation_edge_scores,
             }
             return
         idle_wallets = [wallet for wallet in self._wallets if not wallet.broker.positions]
         if len(idle_wallets) < 2:
             self._last_capital_reallocation = {
                 "status": "skipped_not_enough_idle_wallets",
+                "reason": "daily_schedule",
                 "rebalance_date": rebalance_date,
                 "transfer_count": 0,
                 "transfers": [],
                 "target_capital": self._last_capital_reallocation.get("target_capital", {}),
+                "macro_regime": self._last_macro_state.get("overall_regime", "unknown"),
+                "macro_transition": {},
+                "strategy_edge_scores": self._macro_allocation_edge_scores,
             }
             return
         self._last_rebalance_date = rebalance_date
-        self._rebalance_idle_wallet_cash(latest_prices)
+        self._rebalance_idle_wallet_cash(
+            latest_prices,
+            reason="daily_schedule",
+            edge_scores=self._macro_allocation_edge_scores or None,
+        )
 
     def _apply_regime_weights(self) -> None:
         """Apply regime-aware strategy weights without macro data."""
@@ -1073,7 +1317,7 @@ class MultiSymbolRuntime:
                 wallet.strategy_type,
                 self._current_market_regime,
             )
-            wallet.set_macro_multiplier(regime_weight * weekend_mult)
+            self._set_wallet_macro_multiplier(wallet, regime_weight * weekend_mult)
 
     def _restore_from_checkpoint(self) -> None:
         """Restore wallet broker state from last checkpoint if available."""
@@ -1091,6 +1335,7 @@ class MultiSymbolRuntime:
         wallet_states = checkpoint.get("wallet_states", {})
         portfolio_risk = checkpoint.get("portfolio_risk", {})
         capital_reallocation = checkpoint.get("capital_reallocation", {})
+        macro_state = checkpoint.get("macro_state", {})
         restored_count = 0
 
         position_reduction = portfolio_risk.get("position_reduction", {})
@@ -1101,6 +1346,17 @@ class MultiSymbolRuntime:
         if isinstance(capital_reallocation, dict) and capital_reallocation:
             self._last_capital_reallocation = capital_reallocation
             self._last_rebalance_date = capital_reallocation.get("rebalance_date")
+        if isinstance(macro_state, dict) and macro_state:
+            self._last_macro_state = macro_state
+            overall_regime = macro_state.get("overall_regime")
+            self._last_macro_regime = overall_regime if isinstance(overall_regime, str) else None
+            strategy_edge_scores = macro_state.get("strategy_edge_scores", {})
+            if isinstance(strategy_edge_scores, dict):
+                self._macro_allocation_edge_scores = {
+                    str(name): float(score)
+                    for name, score in strategy_edge_scores.items()
+                    if isinstance(score, (int, float))
+                }
 
         for wallet in self._wallets:
             ws = wallet_states.get(wallet.name)
@@ -1140,6 +1396,10 @@ class MultiSymbolRuntime:
                     entry_index=pos_data.get("entry_index"),
                     entry_fee_paid=pos_data.get("entry_fee_paid", 0.0),
                     entry_confidence=pos_data.get("entry_confidence", 0.0),
+                    entry_order_type=pos_data.get("entry_order_type", "market"),
+                    entry_reference_price=pos_data.get("entry_reference_price", 0.0),
+                    entry_slippage_pct=pos_data.get("entry_slippage_pct", 0.0),
+                    entry_fee_rate=pos_data.get("entry_fee_rate", 0.0),
                     high_watermark=pos_data.get("high_watermark", 0.0),
                     partial_tp_taken=pos_data.get("partial_tp_taken", False),
                 )
@@ -1206,6 +1466,10 @@ class MultiSymbolRuntime:
                         "entry_index": pos.entry_index,
                         "entry_fee_paid": pos.entry_fee_paid,
                         "entry_confidence": pos.entry_confidence,
+                        "entry_order_type": pos.entry_order_type,
+                        "entry_reference_price": pos.entry_reference_price,
+                        "entry_slippage_pct": pos.entry_slippage_pct,
+                        "entry_fee_rate": pos.entry_fee_rate,
                         "high_watermark": pos.high_watermark,
                         "partial_tp_taken": pos.partial_tp_taken,
                     }
@@ -1224,6 +1488,7 @@ class MultiSymbolRuntime:
             correlation=self._last_correlation_snapshot,
             portfolio_risk=self._last_portfolio_risk_state,
             capital_reallocation=self._last_capital_reallocation,
+            macro_state=self._last_macro_state,
         )
         store.save(checkpoint)
         self._persist_journal()
@@ -1522,6 +1787,7 @@ class MultiSymbolRuntime:
                 getattr(self._config.runtime, "auto_restart_enabled", True)
             ),
             "config_path": self._config_path,
+            "macro_state": self._last_macro_state,
         }
         health_path = Path(self._config.runtime.healthcheck_path)
         health_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1614,6 +1880,7 @@ class MultiSymbolRuntime:
             "correlation": self._last_correlation_snapshot,
             "portfolio_risk": self._last_portfolio_risk_state,
             "capital_reallocation": self._last_capital_reallocation,
+            "macro_state": self._last_macro_state,
         }
         heartbeat_path = artifacts_dir / "daemon-heartbeat.json"
         heartbeat_path.write_text(json.dumps(heartbeat, indent=2), encoding="utf-8")

@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from crypto_trader.models import OrderRequest, OrderResult, OrderSide, OrderType, Position, TradeRecord
+from crypto_trader.models import (
+    OrderRequest,
+    OrderResult,
+    OrderSide,
+    OrderType,
+    Position,
+    TradeRecord,
+)
 
 
 class PaperBroker:
@@ -58,7 +65,12 @@ class PaperBroker:
         )
         notional = fill_price * request.quantity
         fee = notional * fee_rate
-        slippage_pct = self.slippage_pct_for(request.side, request.order_type, market_price, fill_price)
+        slippage_pct = self.slippage_pct_for(
+            request.side,
+            request.order_type,
+            market_price,
+            fill_price,
+        )
 
         if request.side is OrderSide.BUY:
             total_cost = notional + fee

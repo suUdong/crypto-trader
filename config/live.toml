@@ -68,6 +68,11 @@ slippage_pct = 0.0005
 bot_token = ""
 chat_id = ""
 
+[macro]
+enabled = true
+base_url = "http://127.0.0.1:8000"
+timeout_seconds = 5.0
+
 [runtime]
 log_level = "INFO"
 poll_interval_seconds = 60

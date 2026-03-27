@@ -31,5 +31,6 @@ class StrategyRunJournal:
             payload.setdefault("signal_indicators", {})
             payload.setdefault("signal_context", {})
             payload.setdefault("session_id", "")
+            payload.setdefault("order_type", None)
             records.append(StrategyRunRecord(**payload))
         return records

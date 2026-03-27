@@ -79,13 +79,13 @@ class TestMacroClient(unittest.TestCase):
         client = MacroClient(base_url="http://macro.local")
         payload = {
             "status": "ok",
-            "overall_regime": "neutral",
+            "overall_regime": "contraction",
             "overall_confidence": 0.71,
             "layers": {
-                "us": {"regime": "neutral", "confidence": 0.7, "signals": {}},
+                "us": {"regime": "contraction", "confidence": 0.7, "signals": {}},
                 "kr": {"regime": "neutral", "confidence": 0.69, "signals": {}},
                 "crypto": {
-                    "regime": "expansionary",
+                    "regime": "expansion",
                     "confidence": 0.66,
                     "signals": {"btc": "steady"},
                 },
@@ -111,7 +111,9 @@ class TestMacroClient(unittest.TestCase):
             result = client.get_snapshot()
 
         assert result is not None
-        self.assertEqual(result.overall_regime, "neutral")
+        self.assertEqual(result.overall_regime, "contractionary")
+        self.assertEqual(result.us_regime, "contractionary")
+        self.assertEqual(result.crypto_regime, "expansionary")
         self.assertEqual(result.crypto_signals["btc"], "steady")
         self.assertEqual(result.fear_greed_index, 63)
 

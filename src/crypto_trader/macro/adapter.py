@@ -26,6 +26,14 @@ _REGIME_MULTIPLIERS: dict[str, float] = {
     "contractionary": 0.5,
 }
 
+_REGIME_ALIASES: dict[str, str] = {
+    "expansion": "expansionary",
+    "expansionary": "expansionary",
+    "neutral": "neutral",
+    "contraction": "contractionary",
+    "contractionary": "contractionary",
+}
+
 
 class MacroRegimeAdapter:
     """Translates macro regime into position sizing adjustments.
@@ -88,10 +96,70 @@ class MacroRegimeAdapter:
         },
     }
 
+    STRATEGY_MACRO_WEIGHTS: dict[str, dict[str, float]] = {
+        "expansionary": {
+            "momentum": 1.3,
+            "momentum_pullback": 1.2,
+            "bollinger_rsi": 0.95,
+            "mean_reversion": 0.85,
+            "obi": 1.05,
+            "vpin": 1.0,
+            "composite": 1.15,
+            "kimchi_premium": 0.9,
+            "volatility_breakout": 1.2,
+            "consensus": 1.1,
+            "ema_crossover": 1.15,
+            "funding_rate": 1.0,
+            "volume_spike": 1.15,
+        },
+        "neutral": {},
+        "contractionary": {
+            "momentum": 0.7,
+            "momentum_pullback": 0.85,
+            "bollinger_rsi": 1.1,
+            "mean_reversion": 1.15,
+            "obi": 0.9,
+            "vpin": 1.05,
+            "composite": 0.9,
+            "kimchi_premium": 1.05,
+            "volatility_breakout": 0.75,
+            "consensus": 0.9,
+            "ema_crossover": 0.8,
+            "funding_rate": 1.1,
+            "volume_spike": 0.85,
+        },
+    }
+
+    def normalize_overall_regime(self, regime: str | None) -> str:
+        """Map regime aliases onto the adapter's canonical vocabulary."""
+        if regime is None:
+            return "neutral"
+        return _REGIME_ALIASES.get(str(regime).strip().lower(), "neutral")
+
     def strategy_weight(self, strategy_type: str, market_regime: str) -> float:
         """Get regime-aware weight multiplier for a specific strategy type."""
         regime_weights = self.STRATEGY_REGIME_WEIGHTS.get(market_regime, {})
         return regime_weights.get(strategy_type, 1.0)
+
+    def macro_strategy_weight(self, strategy_type: str, overall_regime: str) -> float:
+        """Get macro-regime-aware allocation tilt for a specific strategy type."""
+        macro_weights = self.STRATEGY_MACRO_WEIGHTS.get(
+            self.normalize_overall_regime(overall_regime),
+            {},
+        )
+        return macro_weights.get(strategy_type, 1.0)
+
+    def allocation_edge_score(
+        self,
+        strategy_type: str,
+        overall_regime: str,
+        market_regime: str,
+    ) -> float:
+        """Compose macro and market regime tilts into an allocation edge score."""
+        return self.macro_strategy_weight(strategy_type, overall_regime) * self.strategy_weight(
+            strategy_type,
+            market_regime,
+        )
 
     def compute(self, snapshot: MacroSnapshot | None) -> MacroAdjustment:
         """Compute position sizing adjustment from macro snapshot."""
@@ -103,7 +171,7 @@ class MacroRegimeAdapter:
             )
 
         reasons: list[str] = []
-        regime = snapshot.overall_regime
+        regime = self.normalize_overall_regime(snapshot.overall_regime)
         base = _REGIME_MULTIPLIERS.get(regime, 1.0)
         reasons.append(
             f"macro regime={regime} (confidence={snapshot.overall_confidence:.0%}) -> base={base}x"

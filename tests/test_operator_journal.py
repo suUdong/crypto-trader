@@ -41,6 +41,40 @@ class StrategyRunJournalTests(unittest.TestCase):
             self.assertEqual(records[0].symbol, "KRW-BTC")
             self.assertEqual(records[0].verdict_status, "continue_paper")
             self.assertEqual(records[0].session_id, "session-1")
+            self.assertIsNone(records[0].order_type)
+
+    def test_append_and_load_recent_preserves_order_type(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            journal = StrategyRunJournal(Path(temp_dir) / "runs.jsonl")
+            journal.append(
+                StrategyRunRecord(
+                    recorded_at="2026-03-23T00:00:00Z",
+                    symbol="KRW-BTC",
+                    latest_price=100.0,
+                    market_regime="sideways",
+                    signal_action="buy",
+                    signal_reason="entry",
+                    signal_confidence=0.8,
+                    order_status="filled",
+                    order_side="buy",
+                    session_starting_equity=1_000.0,
+                    cash=900.0,
+                    open_positions=1,
+                    realized_pnl=0.0,
+                    success=True,
+                    error=None,
+                    consecutive_failures=0,
+                    verdict_status="continue_paper",
+                    verdict_confidence=0.6,
+                    verdict_reasons=["ok"],
+                    session_id="session-1",
+                    order_type="limit",
+                )
+            )
+
+            records = journal.load_recent()
+
+            self.assertEqual(records[0].order_type, "limit")
 
     def test_load_recent_accepts_legacy_records_without_market_regime(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

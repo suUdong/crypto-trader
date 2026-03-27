@@ -24,6 +24,13 @@ from crypto_trader.operator.automated_reporting import (
 )
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.drift import DriftReportGenerator
+from crypto_trader.operator.execution_quality import (
+    generate_execution_quality_report,
+    save_execution_quality_report,
+)
+from crypto_trader.operator.execution_quality import (
+    to_markdown as execution_quality_to_markdown,
+)
 from crypto_trader.operator.gate_progress import generate_gate_progress_report
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
@@ -102,6 +109,7 @@ def main() -> None:
             "pnl-report",
             "pnl-history",
             "performance-report",
+            "execution-quality-report",
             "wallet-performance",
             "micro-live-check",
             "rebalance-capital",
@@ -456,6 +464,17 @@ def main() -> None:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_text(content, encoding="utf-8")
         print(content)
+        return
+
+    if args.command == "execution-quality-report":
+        artifacts_dir = Path(config.runtime.runtime_checkpoint_path).parent
+        output_path = artifacts_dir / "execution-quality-report.md"
+        report = generate_execution_quality_report(
+            Path(config.runtime.strategy_run_journal_path),
+            artifacts_dir / "logs" / "events.jsonl",
+        )
+        save_execution_quality_report(report, output_path)
+        print(execution_quality_to_markdown(report))
         return
 
     if args.command == "wallet-performance":
