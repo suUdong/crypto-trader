@@ -1,0 +1,842 @@
+{
+  "momentum": {
+    "best_params": {
+      "momentum_lookback": 12,
+      "momentum_entry_threshold": 0.001,
+      "rsi_period": 14,
+      "rsi_overbought": 72.0,
+      "max_holding_bars": 36,
+      "adx_threshold": 20.0
+    },
+    "best_score": 0.8882889658628093,
+    "best_sharpe": 0.8996579445425227,
+    "best_return_pct": 0.6413769089209542,
+    "best_mdd": 1.2611195605221324,
+    "best_win_rate": 52.662945241892615,
+    "total_trades": 123,
+    "best_per_symbol": {
+      "KRW-BTC": {
+        "params": {
+          "momentum_lookback": 12,
+          "momentum_entry_threshold": 0.001,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 20.0
+        },
+        "sharpe": 1.0321293332269592,
+        "return_pct": 0.5415403633540095,
+        "win_rate": 56.00000000000001,
+        "mdd": 0.570618514914109,
+        "pf": 1.3602944900106517,
+        "trades": 25
+      },
+      "KRW-ETH": {
+        "params": {
+          "momentum_lookback": 15,
+          "momentum_entry_threshold": 0.003,
+          "rsi_period": 14,
+          "rsi_overbought": 70.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 15.0
+        },
+        "sharpe": 1.642756848688993,
+        "return_pct": 0.9392055473764094,
+        "win_rate": 42.857142857142854,
+        "mdd": 1.1411207410373154,
+        "pf": 1.4747192257214459,
+        "trades": 35
+      },
+      "KRW-XRP": {
+        "params": {
+          "momentum_lookback": 12,
+          "momentum_entry_threshold": 0.001,
+          "rsi_period": 14,
+          "rsi_overbought": 70.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 15.0
+        },
+        "sharpe": 0.9623326101063574,
+        "return_pct": 0.688332813611936,
+        "win_rate": 52.94117647058824,
+        "mdd": 1.4336259299693628,
+        "pf": 1.2522419371395233,
+        "trades": 34
+      },
+      "KRW-SOL": {
+        "params": {
+          "momentum_lookback": 15,
+          "momentum_entry_threshold": 0.002,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 20.0
+        },
+        "sharpe": 2.2347816084735546,
+        "return_pct": 2.68908201099749,
+        "win_rate": 58.97435897435898,
+        "mdd": 1.9556758434106598,
+        "pf": 1.7706438774133726,
+        "trades": 39
+      }
+    },
+    "top5": [
+      {
+        "params": {
+          "momentum_lookback": 12,
+          "momentum_entry_threshold": 0.001,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 20.0
+        },
+        "score": 0.8882889658628093,
+        "sharpe": 0.8996579445425227,
+        "return_pct": 0.6413769089209542,
+        "mdd": 1.2611195605221324,
+        "win_rate": 52.662945241892615,
+        "trades": 123
+      },
+      {
+        "params": {
+          "momentum_lookback": 12,
+          "momentum_entry_threshold": 0.001,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 48,
+          "adx_threshold": 20.0
+        },
+        "score": 0.8882889658628093,
+        "sharpe": 0.8996579445425227,
+        "return_pct": 0.6413769089209542,
+        "mdd": 1.2611195605221324,
+        "win_rate": 52.662945241892615,
+        "trades": 123
+      },
+      {
+        "params": {
+          "momentum_lookback": 15,
+          "momentum_entry_threshold": 0.002,
+          "rsi_period": 14,
+          "rsi_overbought": 70.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 15.0
+        },
+        "score": 0.7168795893578807,
+        "sharpe": 0.7243246084113846,
+        "return_pct": 0.6051049680874138,
+        "mdd": 1.171568956986496,
+        "win_rate": 48.025202766582076,
+        "trades": 140
+      },
+      {
+        "params": {
+          "momentum_lookback": 15,
+          "momentum_entry_threshold": 0.002,
+          "rsi_period": 14,
+          "rsi_overbought": 70.0,
+          "max_holding_bars": 48,
+          "adx_threshold": 15.0
+        },
+        "score": 0.7168795893578807,
+        "sharpe": 0.7243246084113846,
+        "return_pct": 0.6051049680874138,
+        "mdd": 1.171568956986496,
+        "win_rate": 48.025202766582076,
+        "trades": 140
+      },
+      {
+        "params": {
+          "momentum_lookback": 15,
+          "momentum_entry_threshold": 0.001,
+          "rsi_period": 14,
+          "rsi_overbought": 70.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 15.0
+        },
+        "score": 0.6825633926363621,
+        "sharpe": 0.684711743662994,
+        "return_pct": 0.45637046914816515,
+        "mdd": 1.3211688119858473,
+        "win_rate": 48.14732142857143,
+        "trades": 142
+      }
+    ]
+  },
+  "vpin": {
+    "best_params": {
+      "rsi_period": 14,
+      "momentum_lookback": 12,
+      "max_holding_bars": 36,
+      "vpin_low_threshold": 0.55,
+      "vpin_high_threshold": 0.75,
+      "vpin_momentum_threshold": 0.0005,
+      "bucket_count": 20
+    },
+    "best_score": 0.2954508437220803,
+    "best_sharpe": 0.29517047977023836,
+    "best_return_pct": 0.3693256289836577,
+    "best_mdd": 2.0466820564479344,
+    "best_win_rate": 50.70931639443436,
+    "total_trades": 137,
+    "best_per_symbol": {
+      "KRW-BTC": {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 12,
+          "max_holding_bars": 48,
+          "vpin_low_threshold": 0.45,
+          "vpin_high_threshold": 0.75,
+          "vpin_momentum_threshold": 0.001,
+          "bucket_count": 20
+        },
+        "sharpe": 1.2304612333183107,
+        "return_pct": 0.8679684086998263,
+        "win_rate": 54.83870967741935,
+        "mdd": 1.1077608605346032,
+        "pf": 1.5012631317842122,
+        "trades": 31
+      },
+      "KRW-ETH": {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 10,
+          "max_holding_bars": 36,
+          "vpin_low_threshold": 0.45,
+          "vpin_high_threshold": 0.75,
+          "vpin_momentum_threshold": 0.0005,
+          "bucket_count": 20
+        },
+        "sharpe": 0.8348015517061813,
+        "return_pct": 0.4328154517376115,
+        "win_rate": 48.64864864864865,
+        "mdd": 1.1952064756911436,
+        "pf": 1.280728226515902,
+        "trades": 37
+      },
+      "KRW-XRP": {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 10,
+          "max_holding_bars": 36,
+          "vpin_low_threshold": 0.55,
+          "vpin_high_threshold": 0.75,
+          "vpin_momentum_threshold": 0.001,
+          "bucket_count": 20
+        },
+        "sharpe": -1.288297871851517,
+        "return_pct": -1.1344188445827963,
+        "win_rate": 51.85185185185185,
+        "mdd": 3.1419590614953528,
+        "pf": 0.7037549550303267,
+        "trades": 27
+      },
+      "KRW-SOL": {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 10,
+          "max_holding_bars": 36,
+          "vpin_low_threshold": 0.45,
+          "vpin_high_threshold": 0.75,
+          "vpin_momentum_threshold": 0.0005,
+          "bucket_count": 20
+        },
+        "sharpe": 1.6025962096276247,
+        "return_pct": 2.127653007259034,
+        "win_rate": 57.89473684210527,
+        "mdd": 2.57041536259303,
+        "pf": 1.5702614304435623,
+        "trades": 38
+      }
+    },
+    "top5": [
+      {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 12,
+          "max_holding_bars": 36,
+          "vpin_low_threshold": 0.55,
+          "vpin_high_threshold": 0.75,
+          "vpin_momentum_threshold": 0.0005,
+          "bucket_count": 20
+        },
+        "score": 0.2954508437220803,
+        "sharpe": 0.29517047977023836,
+        "return_pct": 0.3693256289836577,
+        "mdd": 2.0466820564479344,
+        "win_rate": 50.70931639443436,
+        "trades": 137
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 12,
+          "max_holding_bars": 36,
+          "vpin_low_threshold": 0.55,
+          "vpin_high_threshold": 0.8,
+          "vpin_momentum_threshold": 0.0005,
+          "bucket_count": 20
+        },
+        "score": 0.2954508437220803,
+        "sharpe": 0.29517047977023836,
+        "return_pct": 0.3693256289836577,
+        "mdd": 2.0466820564479344,
+        "win_rate": 50.70931639443436,
+        "trades": 137
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 12,
+          "max_holding_bars": 36,
+          "vpin_low_threshold": 0.55,
+          "vpin_high_threshold": 0.85,
+          "vpin_momentum_threshold": 0.0005,
+          "bucket_count": 20
+        },
+        "score": 0.2954508437220803,
+        "sharpe": 0.29517047977023836,
+        "return_pct": 0.3693256289836577,
+        "mdd": 2.0466820564479344,
+        "win_rate": 50.70931639443436,
+        "trades": 137
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 12,
+          "max_holding_bars": 48,
+          "vpin_low_threshold": 0.45,
+          "vpin_high_threshold": 0.75,
+          "vpin_momentum_threshold": 0.001,
+          "bucket_count": 20
+        },
+        "score": 0.28846262292849256,
+        "sharpe": 0.2894522060007384,
+        "return_pct": 0.37044861017404285,
+        "mdd": 1.815162280893658,
+        "win_rate": 52.63988336901159,
+        "trades": 132
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "momentum_lookback": 12,
+          "max_holding_bars": 48,
+          "vpin_low_threshold": 0.45,
+          "vpin_high_threshold": 0.8,
+          "vpin_momentum_threshold": 0.001,
+          "bucket_count": 20
+        },
+        "score": 0.28846262292849256,
+        "sharpe": 0.2894522060007384,
+        "return_pct": 0.37044861017404285,
+        "mdd": 1.815162280893658,
+        "win_rate": 52.63988336901159,
+        "trades": 132
+      }
+    ]
+  },
+  "volatility_breakout": {
+    "best_params": {
+      "k_base": 0.4,
+      "noise_lookback": 10,
+      "ma_filter_period": 5,
+      "max_holding_bars": 36
+    },
+    "best_score": -0.4122497812539183,
+    "best_sharpe": -0.412716662921824,
+    "best_return_pct": 0.07591398702188612,
+    "best_mdd": 1.1002466114844944,
+    "best_win_rate": 39.047535948624876,
+    "total_trades": 97,
+    "best_per_symbol": {
+      "KRW-BTC": {
+        "params": {
+          "k_base": 0.5,
+          "noise_lookback": 15,
+          "ma_filter_period": 10,
+          "max_holding_bars": 36
+        },
+        "sharpe": -0.9151053644370888,
+        "return_pct": -0.26469179625142614,
+        "win_rate": 40.0,
+        "mdd": 0.8604880765755357,
+        "pf": 0.6530717131481988,
+        "trades": 10
+      },
+      "KRW-ETH": {
+        "params": {
+          "k_base": 0.5,
+          "noise_lookback": 15,
+          "ma_filter_period": 5,
+          "max_holding_bars": 36
+        },
+        "sharpe": 0.48332882075362765,
+        "return_pct": 0.19656024016541096,
+        "win_rate": 42.857142857142854,
+        "mdd": 0.6747326071006937,
+        "pf": 1.3190164586917936,
+        "trades": 14
+      },
+      "KRW-XRP": {
+        "params": {
+          "k_base": 0.4,
+          "noise_lookback": 15,
+          "ma_filter_period": 5,
+          "max_holding_bars": 36
+        },
+        "sharpe": 1.498526546075309,
+        "return_pct": 1.391850268688044,
+        "win_rate": 47.22222222222222,
+        "mdd": 2.0047061430351834,
+        "pf": 1.4508033218320657,
+        "trades": 36
+      },
+      "KRW-SOL": {
+        "params": {
+          "k_base": 0.4,
+          "noise_lookback": 10,
+          "ma_filter_period": 5,
+          "max_holding_bars": 36
+        },
+        "sharpe": 0.5389042046964277,
+        "return_pct": 0.34521745795268455,
+        "win_rate": 37.93103448275862,
+        "mdd": 1.2643135592094137,
+        "pf": 1.1616124496822957,
+        "trades": 29
+      }
+    },
+    "top5": [
+      {
+        "params": {
+          "k_base": 0.4,
+          "noise_lookback": 10,
+          "ma_filter_period": 5,
+          "max_holding_bars": 36
+        },
+        "score": -0.4122497812539183,
+        "sharpe": -0.412716662921824,
+        "return_pct": 0.07591398702188612,
+        "mdd": 1.1002466114844944,
+        "win_rate": 39.047535948624876,
+        "trades": 97
+      },
+      {
+        "params": {
+          "k_base": 0.3,
+          "noise_lookback": 10,
+          "ma_filter_period": 5,
+          "max_holding_bars": 36
+        },
+        "score": -0.41490144135760654,
+        "sharpe": -0.41588521659061456,
+        "return_pct": 0.07323437756344975,
+        "mdd": 1.1080003163774175,
+        "win_rate": 39.02278755727032,
+        "trades": 89
+      },
+      {
+        "params": {
+          "k_base": 0.25,
+          "noise_lookback": 10,
+          "ma_filter_period": 5,
+          "max_holding_bars": 36
+        },
+        "score": -0.4584532394502197,
+        "sharpe": -0.4603029674081148,
+        "return_pct": 0.016711441365005464,
+        "mdd": 1.0922701004972413,
+        "win_rate": 38.73432601880878,
+        "trades": 90
+      },
+      {
+        "params": {
+          "k_base": 0.2,
+          "noise_lookback": 10,
+          "ma_filter_period": 5,
+          "max_holding_bars": 36
+        },
+        "score": -0.46909234255987853,
+        "sharpe": -0.4709667988584525,
+        "return_pct": -0.0030038330522536016,
+        "mdd": 1.1179441529137055,
+        "win_rate": 38.73432601880878,
+        "trades": 90
+      },
+      {
+        "params": {
+          "k_base": 0.25,
+          "noise_lookback": 10,
+          "ma_filter_period": 8,
+          "max_holding_bars": 36
+        },
+        "score": -0.5552960645584221,
+        "sharpe": -0.5576685921475669,
+        "return_pct": 0.048877777957831436,
+        "mdd": 1.087067940728871,
+        "win_rate": 36.260442773600666,
+        "trades": 93
+      }
+    ]
+  },
+  "kimchi_premium": {
+    "best_params": {
+      "rsi_period": 14,
+      "rsi_recovery_ceiling": 45.0,
+      "rsi_overbought": 75.0,
+      "max_holding_bars": 24,
+      "min_trade_interval_bars": 6,
+      "min_confidence": 0.3,
+      "cooldown_hours": 8.0
+    },
+    "best_score": 0.0801037326870123,
+    "best_sharpe": 0.08350830622619664,
+    "best_return_pct": 0.17996422107433852,
+    "best_mdd": 2.391856592433312,
+    "best_win_rate": 49.994449994449994,
+    "total_trades": 99,
+    "best_per_symbol": {
+      "KRW-BTC": {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 50.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 6,
+          "min_confidence": 0.3,
+          "cooldown_hours": 4.0
+        },
+        "sharpe": 0.6740067511220807,
+        "return_pct": 0.4395312883989311,
+        "win_rate": 40.0,
+        "mdd": 1.080179636447515,
+        "pf": 1.2393642905953322,
+        "trades": 25
+      },
+      "KRW-ETH": {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 6,
+          "min_confidence": 0.3,
+          "cooldown_hours": 8.0
+        },
+        "sharpe": 1.1105800203449079,
+        "return_pct": 1.048679879961334,
+        "win_rate": 53.57142857142857,
+        "mdd": 1.9414354343123492,
+        "pf": 1.4905098291107035,
+        "trades": 28
+      },
+      "KRW-XRP": {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 36,
+          "min_trade_interval_bars": 6,
+          "min_confidence": 0.3,
+          "cooldown_hours": 16.0
+        },
+        "sharpe": -0.9878476444192829,
+        "return_pct": -1.1038458826224673,
+        "win_rate": 50.0,
+        "mdd": 2.9008974735855446,
+        "pf": 0.5940096797759361,
+        "trades": 10
+      },
+      "KRW-SOL": {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 6,
+          "min_confidence": 0.3,
+          "cooldown_hours": 8.0
+        },
+        "sharpe": 0.979153759328842,
+        "return_pct": 1.2920680017781683,
+        "win_rate": 63.888888888888886,
+        "mdd": 3.4322540733005744,
+        "pf": 1.2375028133787171,
+        "trades": 36
+      }
+    },
+    "top5": [
+      {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 6,
+          "min_confidence": 0.3,
+          "cooldown_hours": 8.0
+        },
+        "score": 0.0801037326870123,
+        "sharpe": 0.08350830622619664,
+        "return_pct": 0.17996422107433852,
+        "mdd": 2.391856592433312,
+        "win_rate": 49.994449994449994,
+        "trades": 99
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 6,
+          "min_confidence": 0.4,
+          "cooldown_hours": 8.0
+        },
+        "score": 0.0801037326870123,
+        "sharpe": 0.08350830622619664,
+        "return_pct": 0.17996422107433852,
+        "mdd": 2.391856592433312,
+        "win_rate": 49.994449994449994,
+        "trades": 99
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 6,
+          "min_confidence": 0.5,
+          "cooldown_hours": 8.0
+        },
+        "score": 0.0801037326870123,
+        "sharpe": 0.08350830622619664,
+        "return_pct": 0.17996422107433852,
+        "mdd": 2.391856592433312,
+        "win_rate": 49.994449994449994,
+        "trades": 99
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 12,
+          "min_confidence": 0.3,
+          "cooldown_hours": 8.0
+        },
+        "score": 0.0801037326870123,
+        "sharpe": 0.08350830622619664,
+        "return_pct": 0.17996422107433852,
+        "mdd": 2.391856592433312,
+        "win_rate": 49.994449994449994,
+        "trades": 99
+      },
+      {
+        "params": {
+          "rsi_period": 14,
+          "rsi_recovery_ceiling": 45.0,
+          "rsi_overbought": 75.0,
+          "max_holding_bars": 24,
+          "min_trade_interval_bars": 12,
+          "min_confidence": 0.4,
+          "cooldown_hours": 8.0
+        },
+        "score": 0.0801037326870123,
+        "sharpe": 0.08350830622619664,
+        "return_pct": 0.17996422107433852,
+        "mdd": 2.391856592433312,
+        "win_rate": 49.994449994449994,
+        "trades": 99
+      }
+    ]
+  },
+  "volume_spike": {
+    "best_params": {
+      "spike_mult": 3.0,
+      "volume_window": 20,
+      "min_body_ratio": 0.4,
+      "momentum_lookback": 12,
+      "rsi_period": 14,
+      "rsi_overbought": 72.0,
+      "max_holding_bars": 36,
+      "adx_threshold": 15.0
+    },
+    "best_score": 0.13887798639645083,
+    "best_sharpe": 0.13784985257871424,
+    "best_return_pct": -0.04342070434447953,
+    "best_mdd": 1.4205677006872528,
+    "best_win_rate": 49.56349206349206,
+    "total_trades": 46,
+    "best_per_symbol": {
+      "KRW-BTC": {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.3,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 20.0
+        },
+        "sharpe": 3.0101351842972663,
+        "return_pct": 1.110202896650292,
+        "win_rate": 71.42857142857143,
+        "mdd": 0.235388105007562,
+        "pf": 7.755341345652899,
+        "trades": 7
+      },
+      "KRW-ETH": {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.3,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 15.0
+        },
+        "sharpe": -0.20770625275211066,
+        "return_pct": -0.1639183652387466,
+        "win_rate": 56.25,
+        "mdd": 1.6600848802751624,
+        "pf": 0.918207330598178,
+        "trades": 16
+      },
+      "KRW-XRP": {
+        "params": {
+          "spike_mult": 1.5,
+          "volume_window": 20,
+          "min_body_ratio": 0.4,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 25.0
+        },
+        "sharpe": 0.667173145857565,
+        "return_pct": 0.30585534670848347,
+        "win_rate": 41.17647058823529,
+        "mdd": 0.7881367875771795,
+        "pf": 1.2492888532015738,
+        "trades": 17
+      },
+      "KRW-SOL": {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.3,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 20.0
+        },
+        "sharpe": 0.3523533431805916,
+        "return_pct": 0.2830437661158758,
+        "win_rate": 50.0,
+        "mdd": 1.019347220452524,
+        "pf": 1.1851676568445186,
+        "trades": 10
+      }
+    },
+    "top5": [
+      {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.4,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 15.0
+        },
+        "score": 0.13887798639645083,
+        "sharpe": 0.13784985257871424,
+        "return_pct": -0.04342070434447953,
+        "mdd": 1.4205677006872528,
+        "win_rate": 49.56349206349206,
+        "trades": 46
+      },
+      {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.4,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 48,
+          "adx_threshold": 15.0
+        },
+        "score": 0.13887798639645083,
+        "sharpe": 0.13784985257871424,
+        "return_pct": -0.04342070434447953,
+        "mdd": 1.4205677006872528,
+        "win_rate": 49.56349206349206,
+        "trades": 46
+      },
+      {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.3,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 20.0
+        },
+        "score": 0.04140435810983634,
+        "sharpe": 0.029866859193098047,
+        "return_pct": -0.19518626367130143,
+        "mdd": 1.1824335648180921,
+        "win_rate": 52.85714285714286,
+        "trades": 37
+      },
+      {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.3,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 48,
+          "adx_threshold": 20.0
+        },
+        "score": 0.04140435810983634,
+        "sharpe": 0.029866859193098047,
+        "return_pct": -0.19518626367130143,
+        "mdd": 1.1824335648180921,
+        "win_rate": 52.85714285714286,
+        "trades": 37
+      },
+      {
+        "params": {
+          "spike_mult": 3.0,
+          "volume_window": 20,
+          "min_body_ratio": 0.3,
+          "momentum_lookback": 12,
+          "rsi_period": 14,
+          "rsi_overbought": 72.0,
+          "max_holding_bars": 36,
+          "adx_threshold": 15.0
+        },
+        "score": 0.006318492004459612,
+        "sharpe": -0.00105234281711971,
+        "return_pct": -0.15362622705761553,
+        "mdd": 1.3591209842451586,
+        "win_rate": 49.31502525252525,
+        "trades": 46
+      }
+    ]
+  }
+}
