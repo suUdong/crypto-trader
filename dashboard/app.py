@@ -167,7 +167,7 @@ def _render_wallet_timeline(wallets: list[dict[str, Any]]) -> None:
             yaxis_title="Equity (KRW)",
         ),
     )
-    st.plotly_chart(figure, use_container_width=True)
+    st.plotly_chart(figure, width="stretch")
 
 
 def _render_wallet_matrix(wallets: list[dict[str, Any]]) -> None:
@@ -202,7 +202,7 @@ def _render_wallet_matrix(wallets: list[dict[str, Any]]) -> None:
         ),
         showlegend=False,
     )
-    st.plotly_chart(scatter, use_container_width=True)
+    st.plotly_chart(scatter, width="stretch")
 
 
 def _render_open_positions(wallets: list[dict[str, Any]]) -> None:
@@ -363,7 +363,7 @@ def _render_overview(
         }
         for wallet in wallets
     ]
-    st.dataframe(leaderboard_rows, use_container_width=True, hide_index=True)
+    st.dataframe(leaderboard_rows, width="stretch", hide_index=True)
 
 
 def _render_portfolio_and_risk(
@@ -435,7 +435,7 @@ def _render_portfolio_and_risk(
                 reverse=True,
             )
         ]
-        st.dataframe(risk_rows, use_container_width=True, hide_index=True)
+        st.dataframe(risk_rows, width="stretch", hide_index=True)
 
     st.markdown("#### 현재 포지션")
     _render_open_positions(wallets)
@@ -506,12 +506,12 @@ def _render_research(research: dict[str, Any] | None) -> None:
         **chart_layout(title="momentum_pullback vs benchmarks", height=340),
         barmode="group",
     )
-    st.plotly_chart(chart, use_container_width=True)
+    st.plotly_chart(chart, width="stretch")
 
     compare_col, symbol_col = st.columns([1.05, 0.95])
     with compare_col:
         st.markdown("#### 전략 비교")
-        st.dataframe(compare_rows, use_container_width=True, hide_index=True)
+        st.dataframe(compare_rows, width="stretch", hide_index=True)
     with symbol_col:
         st.markdown("#### Best Candidate 파라미터")
         st.code(
@@ -555,7 +555,7 @@ def _render_research(research: dict[str, Any] | None) -> None:
             ),
             showlegend=False,
         )
-        st.plotly_chart(bubble, use_container_width=True)
+        st.plotly_chart(bubble, width="stretch")
         st.dataframe(
             [
                 {
@@ -568,7 +568,7 @@ def _render_research(research: dict[str, Any] | None) -> None:
                 }
                 for row in per_symbol
             ],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -625,7 +625,7 @@ def _render_signals(history: dict[str, Any]) -> None:
         }
         for row in history["alert_rows"][:20]
     ]
-    st.dataframe(spotlight, use_container_width=True, hide_index=True)
+    st.dataframe(spotlight, width="stretch", hide_index=True)
 
     chart = go.Figure()
     chart.add_trace(
@@ -674,7 +674,7 @@ def _render_signals(history: dict[str, Any]) -> None:
         )
     )
     chart.update_layout(**chart_layout(title="지갑별 시그널 히스토리", height=320), barmode="stack")
-    st.plotly_chart(chart, use_container_width=True)
+    st.plotly_chart(chart, width="stretch")
 
     st.markdown(f"#### 시그널 히스토리 ({len(filtered_rows)}건)")
     st.dataframe(
@@ -692,7 +692,7 @@ def _render_signals(history: dict[str, Any]) -> None:
             }
             for row in filtered_rows[:120]
         ],
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 

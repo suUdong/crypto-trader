@@ -67,7 +67,7 @@ def render_login(
             type="password",
             placeholder="비밀번호를 입력하세요",
         )
-        submitted = st.form_submit_button("로그인", use_container_width=True)
+        submitted = st.form_submit_button("로그인", width="stretch")
 
     if submitted:
         expected = os.environ.get(env_var, default_token)
