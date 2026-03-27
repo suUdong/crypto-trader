@@ -19,6 +19,7 @@ import streamlit as st  # noqa: E402
 
 from dashboard.auth import check_auth, render_login  # noqa: E402
 from dashboard.data import (  # noqa: E402
+    SYMBOL_KR,
     load_backtest_baseline,
     load_checkpoint,
     load_daemon_heartbeat,
@@ -118,8 +119,8 @@ else:
     )
 
 # ── 탭 내비게이션 ─────────────────────────────────────────
-tab_trading, tab_wallets, tab_signals, tab_sig_analysis, tab_trades, tab_regime, tab_operator, tab_health, tab_perf = st.tabs(
-    ["현황", "전략", "시그널", "시그널분석", "체결현황", "국면", "운영", "시스템", "성과"]
+tab_trading, tab_wallets, tab_vspike, tab_pnl_chart, tab_corr, tab_killswitch, tab_signals, tab_sig_analysis, tab_trades, tab_regime, tab_operator, tab_health, tab_perf = st.tabs(
+    ["현황", "전략", "거래량급등", "포지션PnL", "상관관계", "킬스위치", "시그널", "시그널분석", "체결현황", "국면", "운영", "시스템", "성과"]
 )
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -352,7 +353,560 @@ with tab_wallets:
             st.plotly_chart(fig2, use_container_width=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 탭 3: 시그널 — 시그널 히스토리 타임라인
+# 탭 3: 거래량급등 — VolumeSpikeStrategy 전용
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab_vspike:
+    with st.spinner("데이터 로딩 중..."):
+        try:
+            vs_runs = load_strategy_runs()
+        except Exception:
+            vs_runs = []
+        try:
+            vs_trades = load_paper_trades()
+        except Exception:
+            vs_trades = []
+        try:
+            vs_checkpoint = load_checkpoint()
+        except Exception:
+            vs_checkpoint = None
+
+    # Filter volume_spike data
+    vs_signals = [r for r in vs_runs if "volume_spike" in r.get("wallet_name", "")]
+    vs_closed = [t for t in vs_trades if "volume_spike" in t.get("wallet", "")]
+
+    if not vs_signals and not vs_closed:
+        st.info("거래량급등 전략 데이터가 없습니다.")
+    else:
+        # Wallet state summary
+        if vs_checkpoint:
+            vs_wallets = {
+                k: v for k, v in vs_checkpoint.get("wallet_states", {}).items()
+                if "volume_spike" in k
+            }
+            if vs_wallets:
+                cols = st.columns(min(len(vs_wallets), 3))
+                for i, (wname, wstate) in enumerate(vs_wallets.items()):
+                    with cols[i % len(cols)]:
+                        eq = wstate.get("equity", 0)
+                        initial = wstate.get("initial_capital", eq)
+                        ret = ((eq - initial) / initial * 100) if initial > 0 else 0
+                        pnl = wstate.get("realized_pnl", 0)
+                        st.metric(
+                            strategy_kr(wname),
+                            f"₩{eq:,.0f}",
+                            f"{ret:+.2f}% (PnL ₩{pnl:,.0f})",
+                        )
+
+        # Signal action distribution
+        if vs_signals:
+            st.markdown("#### 시그널 분포")
+            action_counts: dict[str, int] = {"buy": 0, "sell": 0, "hold": 0}
+            conf_values: list[float] = []
+            for s in vs_signals:
+                action = s.get("signal_action", "hold")
+                if action in action_counts:
+                    action_counts[action] += 1
+                conf_values.append(s.get("signal_confidence", 0.0))
+
+            c1, c2, c3, c4 = st.columns(4)
+            total_vs = sum(action_counts.values())
+            c1.metric("총 시그널", f"{total_vs}")
+            c2.metric("매수", f"{action_counts['buy']}")
+            c3.metric("매도", f"{action_counts['sell']}")
+            avg_conf = sum(conf_values) / len(conf_values) if conf_values else 0
+            c4.metric("평균 신뢰도", f"{avg_conf:.2f}")
+
+            # Confidence distribution histogram
+            if conf_values:
+                fig_conf = go.Figure()
+                fig_conf.add_trace(go.Histogram(
+                    x=conf_values,
+                    nbinsx=20,
+                    marker_color="#a78bfa",
+                    name="신뢰도",
+                ))
+                fig_conf.update_layout(
+                    title="신뢰도 분포",
+                    template="plotly_dark",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(l=16, r=16, t=40, b=24),
+                    height=250,
+                    font=dict(size=11),
+                    xaxis_title="신뢰도",
+                    yaxis_title="빈도",
+                )
+                st.plotly_chart(fig_conf, use_container_width=True)
+
+        # Win rate for volume spike
+        if vs_closed:
+            st.markdown("#### 거래량급등 승률")
+            wins = sum(1 for t in vs_closed if t.get("pnl", 0) > 0)
+            total_t = len(vs_closed)
+            wr = (wins / total_t * 100) if total_t > 0 else 0
+            total_pnl = sum(t.get("pnl", 0) for t in vs_closed)
+            avg_pnl_pct = (
+                sum(t.get("pnl_pct", 0) for t in vs_closed) / total_t
+                if total_t > 0 else 0
+            )
+            c1, c2, c3 = st.columns(3)
+            c1.metric("승률", f"{wr:.1f}%", f"{wins}/{total_t}건")
+            c2.metric("총 손익", f"₩{total_pnl:,.0f}")
+            c3.metric("평균 수익률", f"{avg_pnl_pct:+.2f}%")
+
+            # PnL per trade bar chart
+            pnl_pcts = [t.get("pnl_pct", 0) for t in vs_closed[-30:]]
+            pnl_colors = ["#4ade80" if p >= 0 else "#f87171" for p in pnl_pcts]
+            fig_pnl = go.Figure()
+            fig_pnl.add_trace(go.Bar(
+                y=pnl_pcts,
+                marker_color=pnl_colors,
+                name="수익률",
+            ))
+            fig_pnl.update_layout(
+                title="최근 거래 수익률 (%)",
+                template="plotly_dark",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=24),
+                height=250,
+                font=dict(size=11),
+                yaxis_title="수익률 (%)",
+                xaxis_title="거래 순서",
+            )
+            st.plotly_chart(fig_pnl, use_container_width=True)
+
+        # Recent signals timeline (volume spike only)
+        if vs_signals:
+            st.markdown("#### 최근 시그널")
+            ACTION_KR_VS = {"buy": "매수", "sell": "매도", "hold": "관망"}
+            html_parts = ['<div class="signal-container">']
+            for run in reversed(vs_signals[-30:]):
+                ts = run.get("recorded_at", "")[:19]
+                action = run.get("signal_action", "hold")
+                symbol = run.get("symbol", "?")
+                price = run.get("latest_price", 0)
+                reason = run.get("signal_reason", "")
+                confidence = run.get("signal_confidence", 0)
+
+                action_kr = ACTION_KR_VS.get(action, action)
+                if action == "buy":
+                    css_cls, icon = "signal-buy", "🟢"
+                elif action == "sell":
+                    css_cls, icon = "signal-sell", "🔴"
+                else:
+                    css_cls, icon = "signal-hold", "⚪"
+
+                conf_color = "#4ade80" if confidence > 0.7 else "#fbbf24" if confidence > 0.4 else "#f87171"
+                conf_bar = (
+                    f'<span class="conf-track">'
+                    f'<span class="conf-fill" style="width:{confidence*100:.0f}%;'
+                    f'background:{conf_color};"></span></span>'
+                )
+                html_parts.append(
+                    f'<div class="signal-row">'
+                    f'{icon} <span class="{css_cls}">{action_kr}</span> '
+                    f"<strong>{symbol_kr(symbol)}</strong> ₩{price:,.0f} · {reason} · "
+                    f"{confidence:.0%} {conf_bar}"
+                    f'<br><span style="color:var(--text-secondary);font-size:0.8125rem">'
+                    f"{ts}</span>"
+                    f"</div>"
+                )
+            html_parts.append("</div>")
+            st.markdown("".join(html_parts), unsafe_allow_html=True)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 탭 4: 포지션PnL — 전략별 실시간 포지션 손익 차트
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab_pnl_chart:
+    with st.spinner("데이터 로딩 중..."):
+        try:
+            pnl_checkpoint = load_checkpoint()
+        except Exception:
+            pnl_checkpoint = None
+
+    if pnl_checkpoint is None:
+        st.info("포지션 데이터가 없습니다.")
+    else:
+        pnl_wallets = pnl_checkpoint.get("wallet_states", {})
+        if not pnl_wallets:
+            st.info("지갑 정보가 없습니다.")
+        else:
+            # Per-strategy equity & unrealized PnL
+            st.markdown("#### 전략별 포지션 손익")
+            strat_names: list[str] = []
+            unrealized_pnls: list[float] = []
+            realized_pnls: list[float] = []
+            equities_pnl: list[float] = []
+            return_pcts_pnl: list[float] = []
+
+            for wname, wstate in pnl_wallets.items():
+                strat_names.append(strategy_kr(wname))
+                eq = wstate.get("equity", 0)
+                initial = wstate.get("initial_capital", eq)
+                realized = wstate.get("realized_pnl", 0)
+                unrealized = eq - initial - realized
+                unrealized_pnls.append(unrealized)
+                realized_pnls.append(realized)
+                equities_pnl.append(eq)
+                ret = ((eq - initial) / initial * 100) if initial > 0 else 0
+                return_pcts_pnl.append(ret)
+
+            # Stacked bar: realized + unrealized PnL
+            fig_pnl_stacked = go.Figure()
+            fig_pnl_stacked.add_trace(go.Bar(
+                name="실현 손익",
+                x=strat_names,
+                y=realized_pnls,
+                marker_color="#4ade80",
+            ))
+            fig_pnl_stacked.add_trace(go.Bar(
+                name="미실현 손익",
+                x=strat_names,
+                y=unrealized_pnls,
+                marker_color="#60a5fa",
+            ))
+            fig_pnl_stacked.update_layout(
+                title="전략별 실현/미실현 손익",
+                barmode="relative",
+                template="plotly_dark",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=24),
+                height=300,
+                font=dict(size=11),
+                yaxis_title="손익 (KRW)",
+                legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
+            )
+            st.plotly_chart(fig_pnl_stacked, use_container_width=True)
+
+            # Per-wallet position detail cards
+            st.markdown("#### 보유 포지션 상세")
+            has_open = False
+            for wname, wstate in pnl_wallets.items():
+                pos_data = wstate.get("positions", {})
+                if isinstance(pos_data, dict) and pos_data:
+                    has_open = True
+                    for sym, pos in pos_data.items():
+                        entry_price = pos.get("entry_price", 0)
+                        quantity = pos.get("quantity", 0)
+                        # Try to get latest price from strategy runs
+                        latest_price = entry_price  # fallback
+                        for run in reversed(vs_runs if vs_runs else []):
+                            if run.get("symbol") == sym:
+                                latest_price = run.get("latest_price", entry_price)
+                                break
+                        unrealized = (latest_price - entry_price) * quantity
+                        unrealized_pct = ((latest_price - entry_price) / entry_price * 100) if entry_price > 0 else 0
+                        pnl_color = "#4ade80" if unrealized >= 0 else "#f87171"
+                        st.markdown(
+                            f'<div class="position-card">'
+                            f"<strong>{symbol_kr(sym)}</strong> · {strategy_kr(wname)}<br>"
+                            f"진입가: ₩{entry_price:,.0f} · 수량: {quantity:.8f}<br>"
+                            f'미실현: <span style="color:{pnl_color};">₩{unrealized:,.0f} ({unrealized_pct:+.2f}%)</span>'
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+            if not has_open:
+                st.info("보유 포지션이 없습니다.")
+
+            # Return waterfall chart
+            fig_waterfall = go.Figure()
+            wf_colors = ["#4ade80" if r >= 0 else "#f87171" for r in return_pcts_pnl]
+            fig_waterfall.add_trace(go.Bar(
+                x=strat_names,
+                y=return_pcts_pnl,
+                marker_color=wf_colors,
+                text=[f"{r:+.2f}%" for r in return_pcts_pnl],
+                textposition="outside",
+            ))
+            fig_waterfall.update_layout(
+                title="전략별 총수익률",
+                template="plotly_dark",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=24),
+                height=280,
+                font=dict(size=11),
+                yaxis_title="수익률 (%)",
+            )
+            st.plotly_chart(fig_waterfall, use_container_width=True)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 탭 5: 상관관계 — 클러스터 노출 매트릭스
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab_corr:
+    with st.spinner("데이터 로딩 중..."):
+        try:
+            corr_checkpoint = load_checkpoint()
+        except Exception:
+            corr_checkpoint = None
+
+    if corr_checkpoint is None:
+        st.info("상관관계 데이터가 없습니다.")
+    else:
+        corr_wallets = corr_checkpoint.get("wallet_states", {})
+        if not corr_wallets:
+            st.info("지갑 정보가 없습니다.")
+        else:
+            # Build position matrix: wallet × symbol
+            all_symbols: set[str] = set()
+            wallet_positions: dict[str, set[str]] = {}
+            for wname, wstate in corr_wallets.items():
+                pos_data = wstate.get("positions", {})
+                if isinstance(pos_data, dict):
+                    syms = set(pos_data.keys())
+                    if syms:
+                        wallet_positions[wname] = syms
+                        all_symbols.update(syms)
+
+            # Correlation clusters
+            clusters: dict[str, list[str]] = {
+                "major_crypto": ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-XRP"],
+            }
+            symbol_to_cluster: dict[str, str] = {}
+            for cname, csyms in clusters.items():
+                for s in csyms:
+                    symbol_to_cluster[s] = cname
+
+            st.markdown("#### 클러스터 노출도")
+
+            # Cluster exposure summary
+            cluster_wallets: dict[str, list[str]] = {}
+            for wname, syms in wallet_positions.items():
+                for sym in syms:
+                    cl = symbol_to_cluster.get(sym, "기타")
+                    cluster_wallets.setdefault(cl, [])
+                    if wname not in cluster_wallets[cl]:
+                        cluster_wallets[cl].append(wname)
+
+            max_exposure = 6
+            if cluster_wallets:
+                for cname, wallets in cluster_wallets.items():
+                    exposure = len(wallets)
+                    ratio = exposure / max_exposure
+                    if ratio >= 0.75:
+                        badge_cls = "status-fail"
+                    elif ratio >= 0.5:
+                        badge_cls = "status-warn"
+                    else:
+                        badge_cls = "status-ok"
+                    st.markdown(
+                        f'<span class="status-badge {badge_cls}">'
+                        f"{cname}: {exposure}/{max_exposure}</span> "
+                        f"{', '.join(strategy_kr(w) for w in wallets)}",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("포지션이 없어 클러스터 노출이 없습니다.")
+
+            # Position heatmap: wallets × symbols
+            st.markdown("#### 포지션 매트릭스")
+            sorted_wallets = sorted(corr_wallets.keys())
+            sorted_symbols = sorted(all_symbols) if all_symbols else sorted(SYMBOL_KR.keys())[:8]
+
+            if sorted_symbols:
+                matrix: list[list[int]] = []
+                for wname in sorted_wallets:
+                    row: list[int] = []
+                    pos_data = corr_wallets[wname].get("positions", {})
+                    for sym in sorted_symbols:
+                        row.append(1 if isinstance(pos_data, dict) and sym in pos_data else 0)
+                    matrix.append(row)
+
+                fig_heat = go.Figure(data=go.Heatmap(
+                    z=matrix,
+                    x=[symbol_kr(s) for s in sorted_symbols],
+                    y=[strategy_kr(w) for w in sorted_wallets],
+                    colorscale=[[0, "#1f2937"], [1, "#4ade80"]],
+                    showscale=False,
+                    hovertemplate="전략: %{y}<br>종목: %{x}<br>포지션: %{z}<extra></extra>",
+                ))
+                fig_heat.update_layout(
+                    template="plotly_dark",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(l=16, r=16, t=16, b=24),
+                    height=max(200, len(sorted_wallets) * 35 + 80),
+                    font=dict(size=11),
+                    xaxis=dict(side="bottom"),
+                )
+                st.plotly_chart(fig_heat, use_container_width=True)
+
+            # Wallet-to-wallet correlation (based on shared symbol holdings)
+            if len(wallet_positions) >= 2:
+                st.markdown("#### 전략간 포지션 상관도")
+                wp_keys = sorted(wallet_positions.keys())
+                corr_matrix: list[list[float]] = []
+                for w1 in wp_keys:
+                    row_corr: list[float] = []
+                    s1 = wallet_positions[w1]
+                    for w2 in wp_keys:
+                        s2 = wallet_positions[w2]
+                        union = len(s1 | s2)
+                        overlap = len(s1 & s2)
+                        row_corr.append(overlap / union if union > 0 else 0)
+                    corr_matrix.append(row_corr)
+
+                fig_corr = go.Figure(data=go.Heatmap(
+                    z=corr_matrix,
+                    x=[strategy_kr(w) for w in wp_keys],
+                    y=[strategy_kr(w) for w in wp_keys],
+                    colorscale="RdYlGn_r",
+                    zmin=0, zmax=1,
+                    text=[[f"{v:.0%}" for v in row] for row in corr_matrix],
+                    texttemplate="%{text}",
+                    hovertemplate="%{y} ↔ %{x}: %{z:.0%}<extra></extra>",
+                ))
+                fig_corr.update_layout(
+                    template="plotly_dark",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(l=16, r=16, t=16, b=24),
+                    height=max(250, len(wp_keys) * 40 + 80),
+                    font=dict(size=11),
+                )
+                st.plotly_chart(fig_corr, use_container_width=True)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 탭 6: 킬스위치 — 리스크 게이지
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab_killswitch:
+    with st.spinner("데이터 로딩 중..."):
+        try:
+            ks_data = load_kill_switch()
+        except Exception:
+            ks_data = None
+
+    if ks_data is None:
+        st.info("킬스위치 데이터가 없습니다.")
+    else:
+        # Overall status
+        triggered = ks_data.get("triggered", False)
+        if triggered:
+            st.markdown(
+                f'<span class="status-badge status-fail">킬스위치 발동</span> '
+                f'{ks_data.get("trigger_reason", "")}',
+                unsafe_allow_html=True,
+            )
+        else:
+            warning = ks_data.get("warning_active", False)
+            if warning:
+                st.markdown(
+                    '<span class="status-badge status-warn">경고 활성</span> '
+                    "리스크 지표 상승 중",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    '<span class="status-badge status-ok">킬스위치 정상</span>',
+                    unsafe_allow_html=True,
+                )
+
+        # Config limits
+        ks_config = ks_data.get("config", {})
+        max_dd = ks_config.get("max_portfolio_drawdown_pct", 0.05)
+        max_daily = ks_config.get("max_daily_loss_pct", 0.03)
+        max_consec = ks_config.get("max_consecutive_losses", 5)
+        warn_thresh = ks_config.get("warn_threshold_pct", 0.5)
+        reduce_thresh = ks_config.get("reduce_threshold_pct", 0.75)
+
+        # Current values
+        cur_dd = ks_data.get("portfolio_drawdown_pct", 0)
+        cur_daily = ks_data.get("daily_loss_pct", 0)
+        cur_consec = ks_data.get("consecutive_losses", 0)
+        penalty = ks_data.get("position_size_penalty", 1.0)
+
+        st.markdown("#### 리스크 게이지")
+
+        def _make_gauge(
+            title: str, value: float, max_val: float,
+            suffix: str = "%", is_int: bool = False,
+        ) -> go.Figure:
+            """Create a gauge chart for a risk metric."""
+            if is_int:
+                display_val = int(value)
+                warn_val = int(max_val * warn_thresh)
+                reduce_val = int(max_val * reduce_thresh)
+            else:
+                display_val = value * 100
+                max_val_display = max_val * 100
+                warn_val = max_val_display * warn_thresh
+                reduce_val = max_val_display * reduce_thresh
+                max_val = max_val_display
+
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=display_val,
+                number={"suffix": suffix, "font": {"size": 24}},
+                title={"text": title, "font": {"size": 14}},
+                gauge=dict(
+                    axis=dict(range=[0, max_val], tickfont=dict(size=10)),
+                    bar=dict(color="#60a5fa"),
+                    bgcolor="rgba(0,0,0,0)",
+                    steps=[
+                        dict(range=[0, warn_val], color="#1a3a2a"),
+                        dict(range=[warn_val, reduce_val], color="#5c4d1a"),
+                        dict(range=[reduce_val, max_val], color="#7f1d1d"),
+                    ],
+                    threshold=dict(
+                        line=dict(color="#f87171", width=3),
+                        thickness=0.8,
+                        value=max_val,
+                    ),
+                ),
+            ))
+            fig.update_layout(
+                template="plotly_dark",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=16, r=16, t=40, b=8),
+                height=200,
+                font=dict(size=11),
+            )
+            return fig
+
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            st.plotly_chart(
+                _make_gauge("포트폴리오 MDD", cur_dd, max_dd),
+                use_container_width=True,
+            )
+        with g2:
+            st.plotly_chart(
+                _make_gauge("일간 손실", cur_daily, max_daily),
+                use_container_width=True,
+            )
+        with g3:
+            st.plotly_chart(
+                _make_gauge("연속 손실", cur_consec, max_consec, suffix="회", is_int=True),
+                use_container_width=True,
+            )
+
+        # Position size penalty
+        st.markdown("#### 포지션 크기 조절")
+        penalty_pct = penalty * 100
+        penalty_color = "#4ade80" if penalty >= 0.9 else "#fbbf24" if penalty >= 0.6 else "#f87171"
+        st.markdown(
+            f'포지션 크기 배율: <span style="color:{penalty_color};font-weight:700;font-size:1.5rem;">'
+            f"{penalty_pct:.0f}%</span>",
+            unsafe_allow_html=True,
+        )
+        if penalty < 1.0:
+            st.caption(f"리스크 수준에 따라 포지션 크기가 {100 - penalty_pct:.0f}% 축소되었습니다.")
+
+        # Kill switch config summary
+        st.markdown("#### 킬스위치 설정")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("MDD 한도", f"{max_dd:.1%}")
+        c2.metric("일간 손실 한도", f"{max_daily:.1%}")
+        c3.metric("연속 손실 한도", f"{max_consec}회")
+        c4, c5 = st.columns(2)
+        c4.metric("경고 임계값", f"{warn_thresh:.0%}")
+        c5.metric("축소 임계값", f"{reduce_thresh:.0%}")
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 탭 7: 시그널 — 시그널 히스토리 타임라인
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab_signals:
     with st.spinner("데이터 로딩 중..."):

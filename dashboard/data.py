@@ -54,6 +54,7 @@ STRATEGY_KR: dict[str, str] = {
     "vbreak": "변동성돌파",
     "ema_crossover": "EMA크로스",
     "consensus": "합의전략",
+    "volume_spike": "거래량급등",
 }
 
 REGIME_KR: dict[str, str] = {

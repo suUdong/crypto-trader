@@ -267,6 +267,152 @@ class TestAuth(unittest.TestCase):
         self.assertNotIn("st.set_page_config", source)
 
 
+@_skip
+class TestStrategyKrMapping(unittest.TestCase):
+    """Test Korean name mappings include new strategies."""
+
+    def test_volume_spike_in_strategy_kr(self) -> None:
+        self.assertIn("volume_spike", data_mod.STRATEGY_KR)
+        self.assertEqual(data_mod.STRATEGY_KR["volume_spike"], "거래량급등")
+
+    def test_strategy_kr_volume_spike_wallet(self) -> None:
+        result = data_mod.strategy_kr("volume_spike_wallet")
+        self.assertEqual(result, "거래량급등")
+
+    def test_strategy_kr_volume_spike_per_symbol(self) -> None:
+        result = data_mod.strategy_kr("volume_spike_btc_wallet")
+        self.assertEqual(result, "거래량급등 (BTC)")
+
+
+@_skip
+class TestNewTabData(unittest.TestCase):
+    """Test data patterns used by the new dashboard tabs."""
+
+    def setUp(self) -> None:
+        self.tmpdir = tempfile.mkdtemp()
+        self._orig_dir = data_mod.ARTIFACTS_DIR
+        data_mod.ARTIFACTS_DIR = Path(self.tmpdir)
+        try:
+            import streamlit as st
+            st.cache_data.clear()
+        except Exception:
+            pass
+
+    def tearDown(self) -> None:
+        data_mod.ARTIFACTS_DIR = self._orig_dir
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_kill_switch_with_config(self) -> None:
+        path = Path(self.tmpdir) / "kill-switch.json"
+        ks = {
+            "triggered": False,
+            "trigger_reason": "",
+            "consecutive_losses": 2,
+            "daily_loss_pct": 0.01,
+            "portfolio_drawdown_pct": 0.02,
+            "warning_active": False,
+            "position_size_penalty": 1.0,
+            "config": {
+                "max_portfolio_drawdown_pct": 0.05,
+                "max_daily_loss_pct": 0.03,
+                "max_consecutive_losses": 5,
+                "warn_threshold_pct": 0.5,
+                "reduce_threshold_pct": 0.75,
+                "reduce_position_factor": 0.5,
+            },
+        }
+        path.write_text(json.dumps(ks))
+        result = data_mod.load_kill_switch()
+        assert result is not None
+        self.assertFalse(result["triggered"])
+        self.assertEqual(result["consecutive_losses"], 2)
+        self.assertIn("config", result)
+        self.assertEqual(result["config"]["max_consecutive_losses"], 5)
+
+    def test_checkpoint_with_positions(self) -> None:
+        path = Path(self.tmpdir) / "runtime-checkpoint.json"
+        cp = {
+            "iteration": 10,
+            "wallet_states": {
+                "volume_spike_btc_wallet": {
+                    "equity": 1050000,
+                    "initial_capital": 1000000,
+                    "realized_pnl": 30000,
+                    "trade_count": 5,
+                    "open_positions": 1,
+                    "positions": {
+                        "KRW-BTC": {
+                            "entry_price": 90000000,
+                            "quantity": 0.001,
+                        },
+                    },
+                },
+                "momentum_btc_wallet": {
+                    "equity": 980000,
+                    "initial_capital": 1000000,
+                    "realized_pnl": -20000,
+                    "trade_count": 3,
+                    "open_positions": 0,
+                    "positions": {},
+                },
+            },
+        }
+        path.write_text(json.dumps(cp))
+        result = data_mod.load_checkpoint()
+        assert result is not None
+        ws = result["wallet_states"]
+        self.assertIn("volume_spike_btc_wallet", ws)
+        self.assertEqual(ws["volume_spike_btc_wallet"]["positions"]["KRW-BTC"]["entry_price"], 90000000)
+
+    def test_volume_spike_signal_filtering(self) -> None:
+        """Verify volume_spike signals can be filtered from strategy-runs."""
+        path = Path(self.tmpdir) / "strategy-runs.jsonl"
+        runs = [
+            json.dumps({
+                "signal_action": "buy", "wallet_name": "volume_spike_btc_wallet",
+                "signal_confidence": 0.85, "symbol": "KRW-BTC",
+            }),
+            json.dumps({
+                "signal_action": "hold", "wallet_name": "momentum_btc_wallet",
+                "signal_confidence": 0.3, "symbol": "KRW-BTC",
+            }),
+            json.dumps({
+                "signal_action": "hold", "wallet_name": "volume_spike_eth_wallet",
+                "signal_confidence": 0.4, "symbol": "KRW-ETH",
+            }),
+        ]
+        path.write_text("\n".join(runs))
+        all_runs = data_mod.load_strategy_runs()
+        vs_runs = [r for r in all_runs if "volume_spike" in r.get("wallet_name", "")]
+        self.assertEqual(len(vs_runs), 2)
+        self.assertEqual(vs_runs[0]["signal_action"], "buy")
+
+    def test_paper_trades_volume_spike_filtering(self) -> None:
+        path = Path(self.tmpdir) / "paper-trades.jsonl"
+        trades = [
+            json.dumps({
+                "symbol": "KRW-BTC", "pnl": 50000, "pnl_pct": 1.5,
+                "wallet": "volume_spike_btc_wallet",
+                "entry_time": "2026-03-27T01:00:00+00:00",
+                "exit_time": "2026-03-27T05:00:00+00:00",
+                "entry_price": 90000000, "exit_price": 91350000,
+            }),
+            json.dumps({
+                "symbol": "KRW-ETH", "pnl": -10000, "pnl_pct": -0.5,
+                "wallet": "momentum_eth_wallet",
+                "entry_time": "2026-03-27T02:00:00+00:00",
+                "exit_time": "2026-03-27T06:00:00+00:00",
+                "entry_price": 3000000, "exit_price": 2985000,
+            }),
+        ]
+        path.write_text("\n".join(trades))
+        all_trades = data_mod.load_paper_trades()
+        vs_trades = [t for t in all_trades if "volume_spike" in t.get("wallet", "")]
+        self.assertEqual(len(vs_trades), 1)
+        self.assertEqual(vs_trades[0]["pnl"], 50000)
+
+
 class TestDashboardEntrypoint(unittest.TestCase):
     """Guard startup compatibility for local Streamlit and Cloud."""
 
@@ -281,6 +427,17 @@ class TestDashboardEntrypoint(unittest.TestCase):
     def test_app_sets_page_config_before_auth_gate(self) -> None:
         source = _read_source("dashboard/app.py")
         self.assertLess(source.index("st.set_page_config"), source.index("if not check_auth():"))
+
+    def test_app_has_new_tabs(self) -> None:
+        source = _read_source("dashboard/app.py")
+        self.assertIn("tab_vspike", source)
+        self.assertIn("tab_pnl_chart", source)
+        self.assertIn("tab_corr", source)
+        self.assertIn("tab_killswitch", source)
+        self.assertIn("거래량급등", source)
+        self.assertIn("포지션PnL", source)
+        self.assertIn("상관관계", source)
+        self.assertIn("킬스위치", source)
 
 
 if __name__ == "__main__":
