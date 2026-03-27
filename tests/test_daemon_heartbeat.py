@@ -27,6 +27,13 @@ class TestDaemonHeartbeat(unittest.TestCase):
         config.runtime.healthcheck_path = f"{artifacts_dir}/health.json"
         config.runtime.daily_performance_path = f"{artifacts_dir}/daily-performance.json"
         config.runtime.promotion_gate_path = f"{artifacts_dir}/promotion-gate.json"
+        config.runtime.regime_report_path = f"{artifacts_dir}/regime-report.json"
+        config.runtime.operator_report_path = f"{artifacts_dir}/operator-report.md"
+        config.runtime.drift_report_path = f"{artifacts_dir}/drift-report.json"
+        config.runtime.drift_calibration_path = f"{artifacts_dir}/drift-calibration.json"
+        config.runtime.daily_memo_path = f"{artifacts_dir}/daily-memo.md"
+        config.runtime.strategy_report_path = f"{artifacts_dir}/strategy-report.md"
+        config.runtime.backtest_baseline_path = f"{artifacts_dir}/backtest-baseline.json"
         config.runtime.paper_trade_journal_path = f"{artifacts_dir}/paper-trades.jsonl"
         config.runtime.strategy_run_journal_path = f"{artifacts_dir}/strategy-runs.jsonl"
         config.runtime.network_recovery_backoff_seconds = 15
@@ -195,18 +202,26 @@ class TestDaemonHeartbeat(unittest.TestCase):
     def test_promotion_gate_refreshes_on_first_tick(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime = self._make_runtime(tmpdir)
-            with patch.object(runtime, "_refresh_portfolio_promotion") as refresh:
+            with (
+                patch.object(runtime, "_refresh_portfolio_promotion") as refresh_promo,
+                patch.object(runtime, "_refresh_extended_artifacts") as refresh_extended,
+            ):
                 runtime._iteration = 0
                 runtime._maybe_refresh_artifacts()
-            refresh.assert_called_once()
+            refresh_promo.assert_called_once()
+            refresh_extended.assert_called_once()
 
     def test_promotion_gate_skips_non_boundary_ticks_after_startup(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime = self._make_runtime(tmpdir)
-            with patch.object(runtime, "_refresh_portfolio_promotion") as refresh:
+            with (
+                patch.object(runtime, "_refresh_portfolio_promotion") as refresh_promo,
+                patch.object(runtime, "_refresh_extended_artifacts") as refresh_extended,
+            ):
                 runtime._iteration = 1
                 runtime._maybe_refresh_artifacts()
-            refresh.assert_not_called()
+            refresh_promo.assert_not_called()
+            refresh_extended.assert_not_called()
 
 
 if __name__ == "__main__":

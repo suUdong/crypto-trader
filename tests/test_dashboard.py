@@ -729,10 +729,13 @@ class TestDashboardAggregates(unittest.TestCase):
     def setUp(self) -> None:
         self.tmpdir = tempfile.mkdtemp()
         self.docsdir = tempfile.mkdtemp()
+        self.reportsdir = tempfile.mkdtemp()
         self._orig_artifacts_dir = data_mod.ARTIFACTS_DIR
         self._orig_docs_dir = data_mod.DOCS_DIR
+        self._orig_reports_dir = data_mod.REPORTS_DIR
         data_mod.ARTIFACTS_DIR = Path(self.tmpdir)
         data_mod.DOCS_DIR = Path(self.docsdir)
+        data_mod.REPORTS_DIR = Path(self.reportsdir)
         try:
             import streamlit as st
 
@@ -743,10 +746,12 @@ class TestDashboardAggregates(unittest.TestCase):
     def tearDown(self) -> None:
         data_mod.ARTIFACTS_DIR = self._orig_artifacts_dir
         data_mod.DOCS_DIR = self._orig_docs_dir
+        data_mod.REPORTS_DIR = self._orig_reports_dir
         import shutil
 
         shutil.rmtree(self.tmpdir, ignore_errors=True)
         shutil.rmtree(self.docsdir, ignore_errors=True)
+        shutil.rmtree(self.reportsdir, ignore_errors=True)
 
     def test_load_wallet_analytics_builds_wallet_metrics_and_timeline(self) -> None:
         (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
@@ -1398,6 +1403,112 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertIsNone(result["validation"])
         self.assertEqual(result["best_candidate"]["avg_sharpe"], 1.2)
 
+    def test_load_funding_rate_research_reads_best_candidate_and_review(self) -> None:
+        (Path(self.tmpdir) / "funding-rate-long-only-review-90d.json").write_text(
+            json.dumps(
+                {
+                    "phase1_top5": [
+                        {
+                            "avg_return_pct": -0.2,
+                            "avg_sharpe": -0.5,
+                            "max_mdd_pct": 1.2,
+                            "trade_count": 12,
+                            "score": -0.4,
+                        }
+                    ],
+                    "phase2_top10": [],
+                    "best": {
+                        "avg_return_pct": -0.15,
+                        "avg_sharpe": -0.2,
+                        "max_mdd_pct": 0.9,
+                        "trade_count": 18,
+                        "score": -0.1,
+                        "strategy_params": {"negative_funding_threshold": -0.0001},
+                        "risk_params": {"stop_loss_pct": 0.02},
+                        "per_symbol": [
+                            {
+                                "symbol": "KRW-SOL",
+                                "return_pct": 1.2,
+                                "sharpe": 1.8,
+                                "trade_count": 8,
+                                "win_rate_pct": 62.5,
+                                "profit_factor": 1.5,
+                            },
+                            {
+                                "symbol": "KRW-BTC",
+                                "return_pct": -0.4,
+                                "sharpe": -0.3,
+                                "trade_count": 10,
+                                "win_rate_pct": 40.0,
+                                "profit_factor": 0.8,
+                            },
+                        ],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.reportsdir) / "funding-rate-deployment-review-2026-03-28.md").write_text(
+            "# Funding Rate Deployment Review\n\n"
+            "- Date: `2026-03-28`\n"
+            "- Scope: funding-rate strategy production admission check\n"
+            "- Decision: `NO_DEPLOY`\n",
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_funding_rate_research()
+
+        assert result is not None
+        self.assertEqual(result["decision"], "NO_DEPLOY")
+        self.assertEqual(result["review_date"], "2026-03-28")
+        self.assertEqual(result["best_symbol"]["symbol"], "KRW-SOL")
+        self.assertEqual(result["best_candidate"]["trade_count"], 18)
+
+    def test_load_edge_analysis_builds_hour_symbol_heatmap(self) -> None:
+        (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "wallet": "momentum_btc_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": 12_000,
+                            "exit_time": "2026-03-27T00:10:00+00:00",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "wallet": "momentum_btc_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": -4_000,
+                            "exit_time": "2026-03-27T00:45:00+00:00",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "wallet": "momentum_eth_wallet",
+                            "symbol": "KRW-ETH",
+                            "pnl": 7_500,
+                            "exit_time": "2026-03-27T01:20:00+00:00",
+                        }
+                    ),
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_edge_analysis()
+
+        assert result is not None
+        self.assertEqual(result["trade_count"], 3)
+        self.assertEqual(result["timezone"], "KST")
+        self.assertEqual(result["symbols"], ["KRW-BTC", "KRW-ETH"])
+        self.assertEqual(result["best_bucket"]["symbol"], "KRW-BTC")
+        self.assertEqual(result["best_bucket"]["hour_label"], "09:00")
+        self.assertEqual(result["worst_bucket"]["symbol"], "KRW-ETH")
+        self.assertEqual(result["worst_bucket"]["total_pnl"], 7_500)
+        self.assertEqual(result["symbol_summary"][0]["symbol"], "KRW-BTC")
+
     def test_load_signal_history_includes_risk_alert_row(self) -> None:
         (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
             json.dumps({"wallet_states": {"momentum_btc_wallet": {"strategy_type": "momentum"}}})
@@ -1584,9 +1695,13 @@ class TestDashboardEntrypoint(unittest.TestCase):
         fake_data.load_daily_performance = lambda: None
         fake_data.load_daily_report = lambda: None
         fake_data.load_data_freshness = lambda: {"files": {}}
+        fake_data.load_edge_analysis = lambda: None
+        fake_data.load_funding_rate_research = lambda: None
         fake_data.load_health = lambda: {}
         fake_data.load_macro_summary = lambda: None
         fake_data.load_momentum_pullback_research = lambda: {}
+        fake_data.load_operator_report = lambda: None
+        fake_data.load_pnl_report = lambda: None
         fake_data.load_promotion_gate = lambda: None
         fake_data.load_risk_overview = lambda: {}
         fake_data.load_signal_history = (
@@ -1637,7 +1752,15 @@ class TestDashboardEntrypoint(unittest.TestCase):
         self.assertEqual(page_config_calls[0]["page_title"], "크립토 트레이더")
         self.assertEqual(
             ctx.exception.args[0],
-            ["개요", "포트폴리오·리스크", "전략연구", "알림·히스토리"],
+            [
+                "개요",
+                "포트폴리오·리스크",
+                "엣지분석",
+                "자동리포트",
+                "전략연구",
+                "펀딩레이트 연구",
+                "알림·히스토리",
+            ],
         )
         self.assertNotIn("dashboard_authenticated", session_state)
         self.assertNotIn("dashboard_authenticated", session_state.accessed)
@@ -1646,11 +1769,17 @@ class TestDashboardEntrypoint(unittest.TestCase):
         source = _read_source("dashboard/app.py")
         self.assertIn("tab_overview", source)
         self.assertIn("tab_portfolio_risk", source)
+        self.assertIn("tab_edge_analysis", source)
+        self.assertIn("tab_reports", source)
         self.assertIn("tab_strategy_research", source)
+        self.assertIn("tab_funding_rate_research", source)
         self.assertIn("tab_alerts_history", source)
         self.assertIn("개요", source)
         self.assertIn("포트폴리오·리스크", source)
+        self.assertIn("엣지분석", source)
+        self.assertIn("자동리포트", source)
         self.assertIn("전략연구", source)
+        self.assertIn("펀딩레이트 연구", source)
         self.assertIn("알림·히스토리", source)
 
 

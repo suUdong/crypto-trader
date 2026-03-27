@@ -31,14 +31,21 @@ from crypto_trader.operator.automated_reporting import (
     AutomatedReportGenerator,
     build_legacy_daily_performance_summary,
 )
+from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradeJournal
 from crypto_trader.operator.pnl_report import PnLReportGenerator
+from crypto_trader.operator.regime_report import RegimeReportGenerator
+from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
+from crypto_trader.operator.services import generate_operator_artifacts
+from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.risk.correlation_guard import CorrelationGuard
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
+from crypto_trader.risk.manager import RiskManager
 from crypto_trader.risk.slippage_monitor import SlippageMonitor
 from crypto_trader.risk.wallet_health import WalletHealthMonitor
+from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.regime import (
     WEEKEND_POSITION_MULTIPLIER,
     RegimeDetector,
@@ -1052,6 +1059,7 @@ class MultiSymbolRuntime:
             return
         try:
             self._refresh_portfolio_promotion()
+            self._refresh_extended_artifacts()
             self._logger.info(
                 "Periodic heavy artifact refresh completed (iteration %d)",
                 current_iteration,
@@ -1110,6 +1118,54 @@ class MultiSymbolRuntime:
         )
         promo_path = Path(self._config.runtime.promotion_gate_path)
         gate.save(decision, promo_path)
+
+    def _refresh_extended_artifacts(self) -> None:
+        """Refresh heavier operator artifacts that power the dashboard."""
+        symbol = self._config.trading.symbol
+        candles = self._market_data.get_ohlcv(
+            symbol=symbol,
+            interval=self._config.trading.interval,
+            count=self._config.trading.candle_count,
+        )
+        regime_generator = RegimeReportGenerator(self._config.regime)
+        regime_report = regime_generator.generate(
+            symbol=symbol,
+            strategy=self._config.strategy,
+            candles=candles,
+        )
+        regime_generator.save(regime_report, self._config.runtime.regime_report_path)
+
+        operator_artifacts = generate_operator_artifacts(
+            config=self._config,
+            market_data=self._market_data,
+            strategy=CompositeStrategy(self._config.strategy, self._config.regime),
+            risk_manager=RiskManager(self._config.risk),
+        )
+        recent_runs = self._strategy_run_journal.load_recent(200)
+        calibration_toolkit = DriftCalibrationToolkit()
+        calibration = calibration_toolkit.generate(
+            symbol=symbol,
+            backtest_baseline=operator_artifacts.backtest_baseline,
+            recent_runs=recent_runs,
+        )
+        calibration_toolkit.save(calibration, self._config.runtime.drift_calibration_path)
+
+        operator_report = OperatorReportBuilder().build(
+            baseline=operator_artifacts.backtest_baseline,
+            regime_report=regime_report,
+            drift_report=operator_artifacts.drift_report,
+            promotion_decision=operator_artifacts.promotion_decision,
+            memo=operator_artifacts.daily_memo,
+            calibration_report=calibration,
+        )
+        OperatorReportBuilder().save(operator_report, self._config.runtime.operator_report_path)
+
+        strategy_report = StrategyComparisonReport().generate(
+            wallets=self._wallets,
+            symbols=self._config.trading.symbols,
+            latest_prices=self._latest_prices,
+        )
+        StrategyComparisonReport().save(strategy_report, self._config.runtime.strategy_report_path)
 
     def _refresh_health_snapshot(self) -> None:
         """Write aggregated health.json from all wallets (multi-strategy equivalent)."""

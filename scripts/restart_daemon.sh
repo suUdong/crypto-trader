@@ -8,33 +8,63 @@ CHECKPOINT="$ARTIFACTS_DIR/runtime-checkpoint.json"
 HEARTBEAT="$ARTIFACTS_DIR/daemon-heartbeat.json"
 LOG="$ARTIFACTS_DIR/daemon.log"
 
+find_matching_daemon_pids() {
+    python3 - "$CONFIG" <<'PY'
+import subprocess
+import sys
+
+config = sys.argv[1]
+ps = subprocess.run(
+    ["ps", "-eo", "pid=,args="],
+    check=True,
+    capture_output=True,
+    text=True,
+)
+for raw in ps.stdout.splitlines():
+    raw = raw.strip()
+    if not raw:
+        continue
+    pid_text, _, args = raw.partition(" ")
+    if not pid_text.isdigit():
+        continue
+    if "run-multi" not in args or f"--config {config}" not in args:
+        continue
+    print(pid_text)
+PY
+}
+
 echo "=== Crypto Trader Daemon Restart ==="
 echo "Config: $CONFIG"
 echo ""
 
 # 1. Find and stop existing daemon
-if [ -f "$HEARTBEAT" ]; then
-    OLD_PID=$(python3 -c "import json; print(json.load(open('$HEARTBEAT'))['pid'])" 2>/dev/null || echo "")
-    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-        echo "[1/5] Stopping daemon PID=$OLD_PID..."
-        kill -TERM "$OLD_PID"
-        # Wait up to 30s for graceful shutdown
-        for i in $(seq 1 30); do
-            if ! kill -0 "$OLD_PID" 2>/dev/null; then
-                echo "  Daemon stopped after ${i}s"
-                break
+MATCHING_PIDS="$(find_matching_daemon_pids)"
+if [ -n "$MATCHING_PIDS" ]; then
+    echo "[1/5] Stopping existing daemon PIDs: $(echo "$MATCHING_PIDS" | tr '\n' ' ' | xargs)"
+    for OLD_PID in $MATCHING_PIDS; do
+        kill -TERM "$OLD_PID" 2>/dev/null || true
+    done
+    for i in $(seq 1 30); do
+        STILL_RUNNING=""
+        for OLD_PID in $MATCHING_PIDS; do
+            if kill -0 "$OLD_PID" 2>/dev/null; then
+                STILL_RUNNING="$STILL_RUNNING $OLD_PID"
             fi
-            sleep 1
         done
+        if [ -z "$STILL_RUNNING" ]; then
+            echo "  All matching daemons stopped after ${i}s"
+            break
+        fi
+        sleep 1
+    done
+    for OLD_PID in $MATCHING_PIDS; do
         if kill -0 "$OLD_PID" 2>/dev/null; then
             echo "  Force killing PID=$OLD_PID"
             kill -9 "$OLD_PID" 2>/dev/null || true
         fi
-    else
-        echo "[1/5] No running daemon found (PID=$OLD_PID not active)"
-    fi
+    done
 else
-    echo "[1/5] No heartbeat file found, assuming no daemon running"
+    echo "[1/5] No running daemon found for config=$CONFIG"
 fi
 
 # 2. Verify checkpoint exists

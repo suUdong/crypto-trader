@@ -7,7 +7,7 @@ import logging
 import math
 import os
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -17,8 +17,10 @@ logger = logging.getLogger(__name__)
 
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
+REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
 DEFAULT_INITIAL_CAPITAL = 1_000_000.0
 _FUTURE_GRACE = timedelta(minutes=5)
+_KST = timezone(timedelta(hours=9))
 
 # Primary data source: files the daemon writes every iteration.
 _PRIMARY_FILES = [
@@ -321,6 +323,17 @@ def _is_current_session_run(
 def _first_existing_file(pattern: str, directory: Path) -> Path | None:
     matches = sorted(directory.glob(pattern))
     return matches[-1] if matches else None
+
+
+def _extract_markdown_field(markdown: str | None, label: str) -> str | None:
+    if not markdown:
+        return None
+    prefix = f"- {label}:"
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(prefix):
+            return stripped.split(":", 1)[1].strip().strip("`")
+    return None
 
 
 def _strategy_key(wallet_name: str, state: dict[str, Any] | None = None) -> str:
@@ -1098,6 +1111,204 @@ def load_momentum_pullback_research() -> dict[str, Any] | None:
         "validation": validation,
         "verdict": verdict,
         "activation_status": "research_only",
+    }
+
+
+@st.cache_data(ttl=300)
+def load_funding_rate_research() -> dict[str, Any] | None:
+    """Load the latest funding-rate research artifact and deployment review."""
+    research_path = _first_existing_file("funding-rate-long-only-review-*.json", ARTIFACTS_DIR)
+    if research_path is None:
+        return None
+
+    research = _read_json_path(research_path)
+    if not isinstance(research, dict):
+        return None
+
+    phase1_top5_raw = research.get("phase1_top5", [])
+    phase2_top10_raw = research.get("phase2_top10", [])
+    phase1_top5 = (
+        cast(list[dict[str, Any]], phase1_top5_raw) if isinstance(phase1_top5_raw, list) else []
+    )
+    phase2_top10 = (
+        cast(list[dict[str, Any]], phase2_top10_raw) if isinstance(phase2_top10_raw, list) else []
+    )
+
+    best_candidate = research.get("best")
+    if not isinstance(best_candidate, dict):
+        candidate_pool = phase2_top10 or phase1_top5
+        if not candidate_pool:
+            return None
+        best_candidate = max(
+            candidate_pool,
+            key=lambda candidate: float(candidate.get("score", float("-inf"))),
+        )
+
+    per_symbol_raw = best_candidate.get("per_symbol", [])
+    per_symbol = (
+        cast(list[dict[str, Any]], per_symbol_raw) if isinstance(per_symbol_raw, list) else []
+    )
+    best_symbol = max(
+        per_symbol,
+        key=lambda item: float(item.get("sharpe", float("-inf"))),
+        default=None,
+    )
+
+    review_path = _first_existing_file("funding-rate-deployment-review-*.md", REPORTS_DIR)
+    review_markdown = review_path.read_text(encoding="utf-8") if review_path else None
+
+    return {
+        "research_path": research_path.name,
+        "review_path": review_path.name if review_path else None,
+        "review_markdown": review_markdown,
+        "review_date": _extract_markdown_field(review_markdown, "Date"),
+        "review_scope": _extract_markdown_field(review_markdown, "Scope"),
+        "decision": _extract_markdown_field(review_markdown, "Decision"),
+        "phase1_top5": phase1_top5,
+        "phase2_top10": phase2_top10,
+        "best_candidate": best_candidate,
+        "best_symbol": best_symbol,
+    }
+
+
+@st.cache_data(ttl=30)
+def load_edge_analysis() -> dict[str, Any] | None:
+    """Aggregate full trade history into hour-by-symbol edge heatmap data."""
+    trades = _load_jsonl("paper-trades.jsonl")
+    parsed_rows: list[dict[str, Any]] = []
+
+    for trade in trades:
+        symbol = str(trade.get("symbol", "") or "")
+        if not symbol:
+            continue
+        trade_dt = _parse_dt(trade.get("exit_time")) or _parse_dt(trade.get("entry_time"))
+        if trade_dt is None:
+            continue
+        local_dt = trade_dt.astimezone(_KST)
+        pnl = _numeric_value(trade.get("pnl"))
+        parsed_rows.append(
+            {
+                "symbol": symbol,
+                "symbol_display": symbol_kr(symbol),
+                "wallet": str(trade.get("wallet", "") or ""),
+                "wallet_display": strategy_kr(str(trade.get("wallet", "") or "")),
+                "hour": local_dt.hour,
+                "hour_label": f"{local_dt.hour:02d}:00",
+                "timestamp": local_dt.isoformat(),
+                "pnl": pnl,
+                "pnl_pct": _numeric_value(trade.get("pnl_pct")),
+                "win": pnl > 0.0,
+            }
+        )
+
+    if not parsed_rows:
+        return None
+
+    hours = list(range(24))
+    symbols = sorted({row["symbol"] for row in parsed_rows})
+    matrix_total_pnl: list[list[float]] = []
+    matrix_trade_count: list[list[int]] = []
+    bucket_rows: list[dict[str, Any]] = []
+
+    for hour in hours:
+        pnl_row: list[float] = []
+        count_row: list[int] = []
+        for symbol in symbols:
+            bucket = [
+                row for row in parsed_rows if row["hour"] == hour and row["symbol"] == symbol
+            ]
+            total_pnl = sum(float(row["pnl"]) for row in bucket)
+            trade_count = len(bucket)
+            wins = sum(1 for row in bucket if row["win"])
+            avg_pnl = total_pnl / trade_count if trade_count else 0.0
+            pnl_row.append(total_pnl)
+            count_row.append(trade_count)
+            bucket_rows.append(
+                {
+                    "hour": hour,
+                    "hour_label": f"{hour:02d}:00",
+                    "symbol": symbol,
+                    "symbol_display": symbol_kr(symbol),
+                    "trade_count": trade_count,
+                    "total_pnl": total_pnl,
+                    "avg_pnl": avg_pnl,
+                    "win_rate": wins / trade_count if trade_count else 0.0,
+                }
+            )
+        matrix_total_pnl.append(pnl_row)
+        matrix_trade_count.append(count_row)
+
+    symbol_summary: list[dict[str, Any]] = []
+    for symbol in symbols:
+        symbol_rows = [row for row in parsed_rows if row["symbol"] == symbol]
+        total_pnl = sum(float(row["pnl"]) for row in symbol_rows)
+        trade_count = len(symbol_rows)
+        best_hour = max(
+            (row for row in bucket_rows if row["symbol"] == symbol),
+            key=lambda row: float(row["total_pnl"]),
+            default=None,
+        )
+        symbol_summary.append(
+            {
+                "symbol": symbol,
+                "symbol_display": symbol_kr(symbol),
+                "trade_count": trade_count,
+                "total_pnl": total_pnl,
+                "avg_pnl": total_pnl / trade_count if trade_count else 0.0,
+                "win_rate": (sum(1 for row in symbol_rows if row["win"]) / trade_count)
+                if trade_count
+                else 0.0,
+                "best_hour": best_hour["hour_label"] if best_hour else "-",
+            }
+        )
+
+    hour_summary: list[dict[str, Any]] = []
+    for hour in hours:
+        hour_rows = [row for row in parsed_rows if row["hour"] == hour]
+        trade_count = len(hour_rows)
+        total_pnl = sum(float(row["pnl"]) for row in hour_rows)
+        hour_summary.append(
+            {
+                "hour": hour,
+                "hour_label": f"{hour:02d}:00",
+                "trade_count": trade_count,
+                "total_pnl": total_pnl,
+                "avg_pnl": total_pnl / trade_count if trade_count else 0.0,
+                "win_rate": (sum(1 for row in hour_rows if row["win"]) / trade_count)
+                if trade_count
+                else 0.0,
+            }
+        )
+
+    active_bucket_rows = [row for row in bucket_rows if row["trade_count"] > 0]
+    best_bucket = max(active_bucket_rows, key=lambda row: float(row["total_pnl"]), default=None)
+    worst_bucket = min(active_bucket_rows, key=lambda row: float(row["total_pnl"]), default=None)
+
+    return {
+        "timezone": "KST",
+        "rows": parsed_rows,
+        "hours": hours,
+        "hour_labels": [f"{hour:02d}:00" for hour in hours],
+        "symbols": symbols,
+        "symbol_labels": [symbol_kr(symbol) for symbol in symbols],
+        "heatmap_total_pnl": matrix_total_pnl,
+        "heatmap_trade_count": matrix_trade_count,
+        "bucket_rows": sorted(
+            active_bucket_rows,
+            key=lambda row: float(row["total_pnl"]),
+            reverse=True,
+        ),
+        "symbol_summary": sorted(
+            symbol_summary,
+            key=lambda row: float(row["total_pnl"]),
+            reverse=True,
+        ),
+        "hour_summary": sorted(hour_summary, key=lambda row: row["hour"]),
+        "total_pnl": sum(float(row["pnl"]) for row in parsed_rows),
+        "trade_count": len(parsed_rows),
+        "win_rate": sum(1 for row in parsed_rows if row["win"]) / len(parsed_rows),
+        "best_bucket": best_bucket,
+        "worst_bucket": worst_bucket,
     }
 
 

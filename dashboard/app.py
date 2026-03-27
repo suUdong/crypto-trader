@@ -1,4 +1,4 @@
-"""Unified crypto-trader dashboard with 4 responsive tabs."""
+"""Unified crypto-trader dashboard with v2 research and reporting tabs."""
 
 from __future__ import annotations
 
@@ -25,9 +25,13 @@ from dashboard.data import (  # noqa: E402
     load_daily_performance,
     load_daily_report,
     load_data_freshness,
+    load_edge_analysis,
+    load_funding_rate_research,
     load_health,
     load_macro_summary,
     load_momentum_pullback_research,
+    load_operator_report,
+    load_pnl_report,
     load_promotion_gate,
     load_risk_overview,
     load_signal_history,
@@ -76,6 +80,12 @@ def _status_class(level: str) -> str:
 
 def _metric_delta(value: float, suffix: str = "%") -> str:
     return f"{value:+.2f}{suffix}"
+
+
+def _format_timestamp(value: str | None) -> str:
+    if not value:
+        return "-"
+    return str(value).replace("T", " ")[:19]
 
 
 def _render_status_row(heartbeat: dict[str, Any] | None, freshness: dict[str, Any]) -> None:
@@ -286,10 +296,11 @@ def _render_overview(
         <div class="dashboard-hero">
             <div>
                 <span class="eyebrow">Unified Operator View</span>
-                <h2>멀티 월렛 상태를 4개 탭으로 압축한 운영 대시보드</h2>
+                <h2>멀티 월렛 운용, 엣지, 연구, 리포트를 v2 탭으로 연결한 대시보드</h2>
                 <p>
                     지갑별 실시간 P&amp;L, Sharpe/MDD/수익률, 매크로 레짐, 리스크 축소 상태,
-                    전략 연구와 시그널 히스토리를 한 화면 흐름으로 정리했습니다.
+                    전략 연구, 펀딩레이트 검증, 자동 리포트, 엣지 분석을
+                    한 화면 흐름으로 정리했습니다.
                 </p>
             </div>
             <div class="hero-chip-stack">
@@ -525,6 +536,120 @@ def _render_portfolio_and_risk(
     _render_open_positions(wallets)
 
 
+def _render_edge_analysis(edge: dict[str, Any] | None) -> None:
+    if edge is None:
+        _empty("paper-trades 기반 엣지 분석 데이터가 없습니다.")
+        return
+
+    best_bucket = edge.get("best_bucket") or {}
+    worst_bucket = edge.get("worst_bucket") or {}
+    metric_columns = st.columns(5)
+    metric_columns[0].metric("분석 거래", f"{int(edge['trade_count'])}", edge["timezone"])
+    metric_columns[1].metric("누적 실현손익", _format_krw(float(edge["total_pnl"])))
+    metric_columns[2].metric("승률", f"{float(edge['win_rate']) * 100:.1f}%")
+    metric_columns[3].metric(
+        "Best Bucket",
+        best_bucket.get("hour_label", "-"),
+        best_bucket.get("symbol", "-"),
+    )
+    metric_columns[4].metric(
+        "Worst Bucket",
+        worst_bucket.get("hour_label", "-"),
+        worst_bucket.get("symbol", "-"),
+    )
+
+    heatmap = go.Figure(
+        data=
+        [
+            go.Heatmap(
+                x=edge["symbol_labels"],
+                y=edge["hour_labels"],
+                z=edge["heatmap_total_pnl"],
+                customdata=edge["heatmap_trade_count"],
+                colorscale=[
+                    [0.0, "rgba(255,125,142,0.95)"],
+                    [0.5, "rgba(15,29,42,0.85)"],
+                    [1.0, "rgba(97,242,162,0.95)"],
+                ],
+                zmid=0,
+                hovertemplate=(
+                    "시간대: %{y} KST<br>"
+                    "심볼: %{x}<br>"
+                    "누적 P&L: ₩%{z:,.0f}<br>"
+                    "거래 수: %{customdata}<extra></extra>"
+                ),
+            )
+        ]
+    )
+    heatmap.update_layout(
+        **chart_layout(
+            title="시간대 × 심볼 누적 실현손익 히트맵",
+            height=520,
+            xaxis_title="심볼",
+            yaxis_title="시간대 (KST)",
+        ),
+    )
+    st.plotly_chart(heatmap, width="stretch")
+
+    left_col, right_col = st.columns([1.1, 0.9])
+    with left_col:
+        st.markdown("#### 심볼별 엣지 요약")
+        st.dataframe(
+            [
+                {
+                    "심볼": row["symbol_display"],
+                    "거래수": row["trade_count"],
+                    "누적 P&L": _format_krw(float(row["total_pnl"])),
+                    "평균 P&L": _format_krw(float(row["avg_pnl"])),
+                    "승률": f"{float(row['win_rate']) * 100:.1f}%",
+                    "강한 시간대": row["best_hour"],
+                }
+                for row in edge["symbol_summary"]
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+    with right_col:
+        st.markdown("#### 시간대별 엣지 요약")
+        st.dataframe(
+            [
+                {
+                    "시간대": row["hour_label"],
+                    "거래수": row["trade_count"],
+                    "누적 P&L": _format_krw(float(row["total_pnl"])),
+                    "평균 P&L": _format_krw(float(row["avg_pnl"])),
+                    "승률": f"{float(row['win_rate']) * 100:.1f}%",
+                }
+                for row in edge["hour_summary"]
+                if row["trade_count"] > 0
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+
+    strongest_rows = edge["bucket_rows"][:6]
+    weakest_candidates = list(reversed(edge["bucket_rows"][-6:])) if edge["bucket_rows"] else []
+    weakest_rows = [row for row in weakest_candidates if row not in strongest_rows]
+
+    st.markdown("#### Strongest / Weakest Buckets")
+    st.dataframe(
+        [
+            {
+                "구간": "Strongest" if index < len(strongest_rows) else "Weakest",
+                "시간대": row["hour_label"],
+                "심볼": row["symbol_display"],
+                "거래수": row["trade_count"],
+                "누적 P&L": _format_krw(float(row["total_pnl"])),
+                "평균 P&L": _format_krw(float(row["avg_pnl"])),
+                "승률": f"{float(row['win_rate']) * 100:.1f}%",
+            }
+            for index, row in enumerate(strongest_rows + weakest_rows)
+        ],
+        width="stretch",
+        hide_index=True,
+    )
+
+
 def _render_research(research: dict[str, Any] | None) -> None:
     if research is None:
         _empty("momentum_pullback 연구 산출물이 없습니다.")
@@ -655,6 +780,196 @@ def _render_research(research: dict[str, Any] | None) -> None:
             width="stretch",
             hide_index=True,
         )
+
+
+def _render_funding_rate_research(research: dict[str, Any] | None) -> None:
+    if research is None:
+        _empty("funding-rate 연구 산출물이 없습니다.")
+        return
+
+    best_candidate = research["best_candidate"]
+    best_symbol = research.get("best_symbol")
+    decision = str(research.get("decision") or "REVIEW_MISSING")
+    decision_level = "fail" if "NO_DEPLOY" in decision else "ok"
+
+    metric_columns = st.columns(6)
+    metric_columns[0].metric("배포 판정", decision, research.get("review_date") or "-")
+    metric_columns[1].metric(
+        "Avg Return",
+        f"{float(best_candidate.get('avg_return_pct', 0.0)):+.3f}%",
+    )
+    metric_columns[2].metric(
+        "Avg Sharpe",
+        f"{float(best_candidate.get('avg_sharpe', 0.0)):.2f}",
+    )
+    metric_columns[3].metric(
+        "Max MDD",
+        f"{float(best_candidate.get('max_mdd_pct', 0.0)):.2f}%",
+    )
+    metric_columns[4].metric("Trades", f"{int(best_candidate.get('trade_count', 0))}")
+    metric_columns[5].metric(
+        "Best Symbol",
+        symbol_kr(str(best_symbol.get("symbol", ""))) if best_symbol else "-",
+        f"Sharpe {float(best_symbol.get('sharpe', 0.0)):.2f}" if best_symbol else "-",
+    )
+
+    scope_text = research.get("review_scope") or "배포 리뷰 문서 없음"
+    st.markdown(
+        f'<div class="dashboard-panel"><strong>Funding-rate Deployment Review</strong><br>'
+        f'<span class="status-badge {_status_class(decision_level)}">{decision}</span> '
+        f"{scope_text}</div>",
+        unsafe_allow_html=True,
+    )
+
+    per_symbol = best_candidate.get("per_symbol", [])
+    if per_symbol:
+        labels = [symbol_kr(str(row.get("symbol", ""))) for row in per_symbol]
+        returns = [float(row.get("return_pct", 0.0)) for row in per_symbol]
+        sharpes = [float(row.get("sharpe", 0.0)) for row in per_symbol]
+        trades = [int(row.get("trade_count", 0)) for row in per_symbol]
+
+        chart = go.Figure()
+        chart.add_trace(
+            go.Bar(
+                name="Return %",
+                x=labels,
+                y=returns,
+                marker_color=COLORS["green"],
+                hovertemplate="%{x}<br>Return %{y:+.2f}%<extra></extra>",
+            )
+        )
+        chart.add_trace(
+            go.Bar(
+                name="Sharpe",
+                x=labels,
+                y=sharpes,
+                marker_color=COLORS["blue"],
+                hovertemplate="%{x}<br>Sharpe %{y:.2f}<extra></extra>",
+            )
+        )
+        chart.update_layout(
+            **chart_layout(title="Funding-rate best candidate per-symbol", height=360),
+            barmode="group",
+        )
+        st.plotly_chart(chart, width="stretch")
+
+        left_col, right_col = st.columns([1.05, 0.95])
+        with left_col:
+            st.markdown("#### 심볼별 성능")
+            st.dataframe(
+                [
+                    {
+                        "심볼": label,
+                        "Return": f"{returns[index]:+.2f}%",
+                        "Sharpe": f"{sharpes[index]:.2f}",
+                        "Trades": trades[index],
+                        "Win Rate": f"{float(per_symbol[index].get('win_rate_pct', 0.0)):.1f}%",
+                        "Profit Factor": (
+                            f"{float(per_symbol[index].get('profit_factor', 0.0)):.2f}"
+                        ),
+                    }
+                    for index, label in enumerate(labels)
+                ],
+                width="stretch",
+                hide_index=True,
+            )
+        with right_col:
+            st.markdown("#### Best Candidate 파라미터")
+            st.code(
+                json.dumps(
+                    {
+                        "strategy_params": best_candidate.get("strategy_params", {}),
+                        "risk_params": best_candidate.get("risk_params", {}),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                language="json",
+            )
+
+    st.markdown("#### Top Research Candidates")
+    st.dataframe(
+        [
+            {
+                "Rank": index + 1,
+                "Avg Return": f"{float(candidate.get('avg_return_pct', 0.0)):+.3f}%",
+                "Avg Sharpe": f"{float(candidate.get('avg_sharpe', 0.0)):.2f}",
+                "Max MDD": f"{float(candidate.get('max_mdd_pct', 0.0)):.2f}%",
+                "Trades": int(candidate.get("trade_count", 0)),
+                "Score": f"{float(candidate.get('score', 0.0)):.3f}",
+            }
+            for index, candidate in enumerate(research.get("phase1_top5", []))
+        ],
+        width="stretch",
+        hide_index=True,
+    )
+
+    review_markdown = research.get("review_markdown")
+    if review_markdown:
+        with st.expander("배포 리뷰 원문"):
+            st.markdown(review_markdown)
+
+
+def _render_reports(
+    *,
+    daily_report: dict[str, Any] | None,
+    weekly_report: dict[str, Any] | None,
+    operator_report: str | None,
+    pnl_report: dict[str, Any] | None,
+) -> None:
+    _render_report_digest(daily_report=daily_report, weekly_report=weekly_report)
+
+    if pnl_report is not None:
+        st.markdown("#### P&L Snapshot")
+        metric_columns = st.columns(5)
+        metric_columns[0].metric("구간", str(pnl_report.get("period", "-")).upper())
+        metric_columns[1].metric(
+            "포트폴리오 수익률",
+            f"{float(pnl_report.get('portfolio_return_pct', 0.0)):+.2f}%",
+        )
+        metric_columns[2].metric(
+            "Sharpe",
+            f"{float(pnl_report.get('portfolio_sharpe', 0.0)):.2f}",
+        )
+        metric_columns[3].metric(
+            "MDD",
+            f"{float(pnl_report.get('portfolio_mdd', 0.0)) * 100:.2f}%",
+        )
+        metric_columns[4].metric(
+            "총 거래",
+            f"{int(pnl_report.get('total_trades', 0) or 0)}",
+            _format_timestamp(str(pnl_report.get("generated_at", ""))),
+        )
+
+    strategy_rows = []
+    for report in (daily_report, weekly_report):
+        if report is None:
+            continue
+        strategies = report.get("strategies", [])
+        if not isinstance(strategies, list):
+            continue
+        for strategy in strategies:
+            if not isinstance(strategy, dict):
+                continue
+            strategy_rows.append(
+                {
+                    "리포트": "일일" if report.get("period") == "daily" else "주간",
+                    "전략": strategy_kr(str(strategy.get("strategy_type", ""))),
+                    "지갑": str(strategy.get("wallet_name", "")),
+                    "Signals": int(strategy.get("total_signals", 0) or 0),
+                    "Executed": int(strategy.get("trades_executed", 0) or 0),
+                    "Win Rate": f"{float(strategy.get('win_rate', 0.0) or 0.0) * 100:.1f}%",
+                    "Avg Conf": f"{float(strategy.get('avg_confidence', 0.0) or 0.0) * 100:.0f}%",
+                }
+            )
+
+    if strategy_rows:
+        st.markdown("#### 전략별 자동 리포트 집계")
+        st.dataframe(strategy_rows[:20], width="stretch", hide_index=True)
+
+    if operator_report:
+        with st.expander("Operator Report 원문"):
+            st.markdown(operator_report)
 
 
 def _render_signals(history: dict[str, Any]) -> None:
@@ -790,11 +1105,15 @@ with st.spinner("데이터 로딩 중..."):
     analytics = load_wallet_analytics()
     risk = load_risk_overview()
     macro = load_macro_summary()
+    edge_analysis = load_edge_analysis()
     research = load_momentum_pullback_research()
+    funding_rate_research = load_funding_rate_research()
     signal_history = load_signal_history(limit=400)
     daily_performance = load_daily_performance()
     daily_report = load_daily_report()
     weekly_report = load_weekly_report()
+    operator_report = load_operator_report()
+    pnl_report = load_pnl_report()
     promotion_gate = load_promotion_gate()
     health = load_health()
 
@@ -803,13 +1122,19 @@ _render_status_row(heartbeat, freshness)
 (
     tab_overview,
     tab_portfolio_risk,
+    tab_edge_analysis,
+    tab_reports,
     tab_strategy_research,
+    tab_funding_rate_research,
     tab_alerts_history,
 ) = st.tabs(
     [
         "개요",
         "포트폴리오·리스크",
+        "엣지분석",
+        "자동리포트",
         "전략연구",
+        "펀딩레이트 연구",
         "알림·히스토리",
     ]
 )
@@ -828,8 +1153,22 @@ with tab_overview:
 with tab_portfolio_risk:
     _render_portfolio_and_risk(analytics=analytics, risk=risk, health=health)
 
+with tab_edge_analysis:
+    _render_edge_analysis(edge_analysis)
+
+with tab_reports:
+    _render_reports(
+        daily_report=daily_report,
+        weekly_report=weekly_report,
+        operator_report=operator_report,
+        pnl_report=pnl_report,
+    )
+
 with tab_strategy_research:
     _render_research(research)
+
+with tab_funding_rate_research:
+    _render_funding_rate_research(funding_rate_research)
 
 with tab_alerts_history:
     _render_signals(signal_history)
