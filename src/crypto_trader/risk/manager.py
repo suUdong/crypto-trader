@@ -4,6 +4,7 @@ import math
 
 from crypto_trader.config import RiskConfig
 from crypto_trader.models import Candle, Position
+from crypto_trader.risk.edge_schedule import EdgeSchedule
 from crypto_trader.strategy.indicators import average_true_range
 
 
@@ -18,6 +19,7 @@ class RiskManager:
         trailing_stop_pct: float = 0.0,
         atr_stop_multiplier: float = 0.0,
         max_holding_bars: int = 48,
+        edge_schedule: EdgeSchedule | None = None,
     ) -> None:
         self._config = config
         self._trade_history: list[float] = []
@@ -31,6 +33,7 @@ class RiskManager:
         self._consecutive_losses: int = 0
         self._consecutive_wins: int = 0
         self._paused: bool = False
+        self._edge_schedule = edge_schedule or EdgeSchedule()
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -258,14 +261,16 @@ class RiskManager:
         equity: float,
         price: float,
         macro_multiplier: float = 1.0,
+        utc_hour: int | None = None,
     ) -> float:
         if equity <= 0 or price <= 0:
             return 0.0
         if equity > self._peak_equity:
             self._peak_equity = equity
         base_quantity = self._base_position_quantity(equity, price, macro_multiplier)
-        sized = base_quantity * self._drawdown_scale(equity) * self._streak_multiplier()
-        # Hard cap: max_position_pct is NEVER expanded by streak boost
+        edge_mult = self._edge_schedule.hour_multiplier(utc_hour) if utc_hour is not None else 1.0
+        sized = base_quantity * self._drawdown_scale(equity) * self._streak_multiplier() * edge_mult
+        # Hard cap: max_position_pct is NEVER expanded by edge or streak boost
         max_position_value = equity * self._config.max_position_pct
         max_qty_by_cap = max_position_value / price
         return min(sized, max_qty_by_cap)

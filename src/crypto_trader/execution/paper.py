@@ -16,10 +16,14 @@ class PaperBroker:
         self._sequence = 0
 
     def submit_order(
-        self, request: OrderRequest, market_price: float, candle_index: int | None = None
+        self,
+        request: OrderRequest,
+        market_price: float,
+        candle_index: int | None = None,
+        volume_ratio: float = 1.0,
     ) -> OrderResult:
         self._sequence += 1
-        fill_price = self._apply_slippage(request.side, market_price)
+        fill_price = self._apply_slippage(request.side, market_price, volume_ratio)
         notional = fill_price * request.quantity
         fee = notional * self._fee_rate
 
@@ -133,7 +137,20 @@ class PaperBroker:
             for symbol, position in self.positions.items()
         }
 
-    def _apply_slippage(self, side: OrderSide, market_price: float) -> float:
+    def _apply_slippage(
+        self, side: OrderSide, market_price: float, volume_ratio: float = 1.0,
+    ) -> float:
+        """Apply slippage adjusted by volume liquidity.
+
+        volume_ratio = current_volume / avg_volume.
+        High volume (>2x) → 40% less slippage (deeper liquidity).
+        Low volume (<0.5x) → 50% more slippage (thin book).
+        """
+        adjusted = self._slippage_pct
+        if volume_ratio > 2.0:
+            adjusted *= 0.6  # 40% reduction in liquid markets
+        elif volume_ratio < 0.5:
+            adjusted *= 1.5  # 50% penalty in thin markets
         if side is OrderSide.BUY:
-            return market_price * (1.0 + self._slippage_pct)
-        return market_price * (1.0 - self._slippage_pct)
+            return market_price * (1.0 + adjusted)
+        return market_price * (1.0 - adjusted)

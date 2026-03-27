@@ -166,6 +166,19 @@ class StrategyWallet:
         }
         return self.broker.equity(prices)
 
+    @staticmethod
+    def _volume_ratio(candles: list[Candle], window: int = 20) -> float:
+        """Current bar volume / rolling average volume."""
+        if len(candles) < 2:
+            return 1.0
+        lookback = candles[-(window + 1) : -1] if len(candles) > window else candles[:-1]
+        avg_vol = sum(c.volume for c in lookback) / max(1, len(lookback))
+        if avg_vol <= 0:
+            return 1.0
+        return candles[-1].volume / avg_vol
+
+    _MIN_NOTIONAL: float = 10_000.0  # KRW — trades below this are fee-dominated
+
     def run_once(self, symbol: str, candles: list[Candle]) -> PipelineResult:
         try:
             self.risk_manager.update_atr_from_candles(candles)
@@ -174,6 +187,8 @@ class StrategyWallet:
             signal = evaluate_strategy(self.strategy, candles, position, symbol=symbol)
             latest_price = candles[-1].close
             order: OrderResult | None = None
+            utc_hour = candles[-1].timestamp.hour if candles else None
+            vol_ratio = self._volume_ratio(candles)
 
             if (
                 position is None
@@ -193,8 +208,10 @@ class StrategyWallet:
                         self.broker.cash,
                         latest_price,
                         self._macro_multiplier,
+                        utc_hour=utc_hour,
                     )
-                    if quantity > 0:
+                    notional = quantity * latest_price
+                    if quantity > 0 and notional >= self._MIN_NOTIONAL:
                         now = candles[-1].timestamp
                         order = self.broker.submit_order(
                             OrderRequest(
@@ -207,6 +224,7 @@ class StrategyWallet:
                             ),
                             latest_price,
                             candle_index=len(candles) - 1,
+                            volume_ratio=vol_ratio,
                         )
             elif position is not None:
                 # Circuit breaker: force-close when daily loss limit hit
@@ -226,6 +244,7 @@ class StrategyWallet:
                             reason="circuit_breaker",
                         ),
                         latest_price,
+                        volume_ratio=vol_ratio,
                     )
                     if order is not None and order.status == "filled":
                         entry_value = position.entry_price * position.quantity
@@ -281,6 +300,7 @@ class StrategyWallet:
                             reason=exit_reason or signal.reason,
                         ),
                         latest_price,
+                        volume_ratio=vol_ratio,
                     )
                     # Mark partial TP taken so it doesn't re-trigger
                     if (

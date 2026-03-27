@@ -91,6 +91,7 @@ class CapitalAllocator:
         self,
         performances: list[StrategyPerformance],
         total_capital: float,
+        edge_scores: dict[str, float] | None = None,
     ) -> AllocationResult:
         if not performances:
             return AllocationResult(
@@ -133,7 +134,12 @@ class CapitalAllocator:
         eligible_pool = 1.0 - ineligible_reserve
 
         # Score-proportional weights for eligible strategies
-        scores = {p.strategy: p.score for p in eligible}
+        # Apply edge multipliers when provided (signal quality, hit rate, etc.)
+        _edge = edge_scores or {}
+        scores = {
+            p.strategy: p.score * _edge.get(p.strategy, 1.0)
+            for p in eligible
+        }
         total_score = sum(scores.values())
 
         if total_score > 0:
