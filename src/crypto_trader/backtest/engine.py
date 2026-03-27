@@ -68,7 +68,9 @@ class BacktestEngine:
             if open_position is not None:
                 holding_bars = index - entry_bar
                 exit_reason = self._risk_manager.exit_reason(
-                    open_position, market_price, holding_bars=holding_bars,
+                    open_position,
+                    market_price,
+                    holding_bars=holding_bars,
                 )
                 signal = evaluate_strategy(
                     self._strategy,
@@ -115,7 +117,7 @@ class BacktestEngine:
                         self._risk_manager.record_trade(pnl_pct)
                         trade_regimes.append(entry_regime)
                         open_position.quantity = keep_qty
-                        open_position.entry_fee_paid *= (1.0 - partial_frac)
+                        open_position.entry_fee_paid *= 1.0 - partial_frac
                         open_position.partial_tp_taken = True
                     else:
                         exit_price = market_price * (1.0 - self._config.slippage_pct)
@@ -128,13 +130,10 @@ class BacktestEngine:
                             - open_position.entry_fee_paid
                         )
                         realized_pnl += pnl
-                        pnl_pct = (
-                            pnl
-                            / max(
-                                1.0,
-                                (open_position.entry_price * open_position.quantity)
-                                + open_position.entry_fee_paid,
-                            )
+                        pnl_pct = pnl / max(
+                            1.0,
+                            (open_position.entry_price * open_position.quantity)
+                            + open_position.entry_fee_paid,
                         )
                         trades.append(
                             TradeRecord(
@@ -286,9 +285,7 @@ class BacktestEngine:
         # Recovery factor: net profit / max drawdown
         net_profit = final_equity - self._config.initial_capital
         recovery = (
-            net_profit / (max_drawdown * self._config.initial_capital)
-            if max_drawdown > 0
-            else 0.0
+            net_profit / (max_drawdown * self._config.initial_capital) if max_drawdown > 0 else 0.0
         )
 
         # Tail ratio: 95th percentile gain / abs(5th percentile loss)
@@ -342,8 +339,7 @@ class BacktestEngine:
             exit_counts[t.exit_reason] = exit_counts.get(t.exit_reason, 0) + 1
             exit_pnl_sums[t.exit_reason] = exit_pnl_sums.get(t.exit_reason, 0.0) + t.pnl
         exit_avg_pnl = {
-            reason: exit_pnl_sums[reason] / count
-            for reason, count in exit_counts.items()
+            reason: exit_pnl_sums[reason] / count for reason, count in exit_counts.items()
         }
 
         return BacktestResult(
@@ -393,10 +389,10 @@ def _sharpe_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -
         return 0.0
     mean_ret = sum(returns) / len(returns)
     variance = sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)
-    std_ret = variance ** 0.5
+    std_ret = variance**0.5
     if std_ret == 0:
         return 0.0
-    return float((mean_ret / std_ret) * (periods_per_year ** 0.5))
+    return float((mean_ret / std_ret) * (periods_per_year**0.5))
 
 
 def _sortino_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:
@@ -417,11 +413,11 @@ def _sortino_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) 
     downside = [r for r in returns if r < 0]
     if not downside:
         return float("inf") if mean_ret > 0 else 0.0
-    downside_variance = sum(r ** 2 for r in downside) / len(returns)
-    downside_std = downside_variance ** 0.5
+    downside_variance = sum(r**2 for r in downside) / len(returns)
+    downside_std = downside_variance**0.5
     if downside_std == 0:
         return 0.0
-    return float((mean_ret / downside_std) * (periods_per_year ** 0.5))
+    return float((mean_ret / downside_std) * (periods_per_year**0.5))
 
 
 def _calmar_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:

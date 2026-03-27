@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Simulate compound returns over time using observed strategy performance."""
+
 from __future__ import annotations
 
 import sys
@@ -87,9 +88,9 @@ def generate_report(
         header += f" {d}d Return |"
     lines.append(header)
 
-    sep = f"|{'-'*37}|{'-'*10}|"
+    sep = f"|{'-' * 37}|{'-' * 10}|"
     for _ in periods:
-        sep += f"{'-'*12}|{'-'*12}|"
+        sep += f"{'-' * 12}|{'-' * 12}|"
     lines.append(sep)
 
     for scenario in scenarios:
@@ -100,39 +101,46 @@ def generate_report(
             row += f" {result.total_return_pct:>+9.2f}% |"
         lines.append(row)
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Key Milestones (Base Scenario)",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Key Milestones (Base Scenario)",
+            "",
+        ]
+    )
 
     base_daily = observed_daily
     if base_daily > 0:
         # Days to double
         import math
+
         days_to_2x = math.log(2) / math.log(1 + base_daily / 100.0)
         days_to_3x = math.log(3) / math.log(1 + base_daily / 100.0)
         days_to_10x = math.log(10) / math.log(1 + base_daily / 100.0)
 
-        lines.extend([
-            f"- **2x Capital**: ~{days_to_2x:.0f} days ({days_to_2x/30:.1f} months)",
-            f"- **3x Capital**: ~{days_to_3x:.0f} days ({days_to_3x/30:.1f} months)",
-            f"- **10x Capital**: ~{days_to_10x:.0f} days ({days_to_10x/30:.1f} months)",
-        ])
+        lines.extend(
+            [
+                f"- **2x Capital**: ~{days_to_2x:.0f} days ({days_to_2x / 30:.1f} months)",
+                f"- **3x Capital**: ~{days_to_3x:.0f} days ({days_to_3x / 30:.1f} months)",
+                f"- **10x Capital**: ~{days_to_10x:.0f} days ({days_to_10x / 30:.1f} months)",
+            ]
+        )
     else:
         lines.append("- Base scenario return is not positive; milestones not applicable.")
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Portfolio Scaling Projections (Base Scenario)",
-        "",
-        "| Starting Capital | 30d | 90d | 365d |",
-        "|-----------------|-----|-----|------|",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Portfolio Scaling Projections (Base Scenario)",
+            "",
+            "| Starting Capital | 30d | 90d | 365d |",
+            "|-----------------|-----|-----|------|",
+        ]
+    )
 
     for cap in [1_000_000, 5_000_000, 10_000_000, 50_000_000, 100_000_000]:
         r30 = simulate_compound(cap, base_daily, 30)
@@ -143,20 +151,22 @@ def generate_report(
             f"{r90.final_equity:>12,.0f} | {r365.final_equity:>12,.0f} |"
         )
 
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## Caveats",
-        "",
-        "- Returns are NOT guaranteed to compound at observed rates",
-        "- Slippage, fees, and market impact increase with capital",
-        "- Drawdown periods can significantly reduce compound growth",
-        "- Past performance does not predict future results",
-        "- This simulation assumes daily rebalancing at a fixed return rate",
-        "",
-        "*Report generated from 48h paper trading observations. No real capital at risk.*",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## Caveats",
+            "",
+            "- Returns are NOT guaranteed to compound at observed rates",
+            "- Slippage, fees, and market impact increase with capital",
+            "- Drawdown periods can significantly reduce compound growth",
+            "- Past performance does not predict future results",
+            "- This simulation assumes daily rebalancing at a fixed return rate",
+            "",
+            "*Report generated from 48h paper trading observations. No real capital at risk.*",
+        ]
+    )
 
     report = "\n".join(lines)
 

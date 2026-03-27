@@ -1,15 +1,13 @@
 """Tests for snapshot CLI automation features."""
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-import pytest
-
 from crypto_trader.operator.pnl_report import (
     PnLReportGenerator,
     PnLSnapshotStore,
-    PortfolioPnLReport,
 )
 
 
@@ -20,21 +18,26 @@ class TestSnapshotCLI:
         output_dir.mkdir()
 
         checkpoint_path = tmp_path / "runtime-checkpoint.json"
-        checkpoint_path.write_text(json.dumps({
-            "generated_at": "2026-03-26T12:00:00",
-            "iteration": 10,
-            "symbols": ["KRW-BTC"],
-            "wallet_states": {
-                "test_wallet": {
-                    "strategy_type": "momentum",
-                    "cash": 950000,
-                    "realized_pnl": -50000,
-                    "open_positions": 0,
-                    "equity": 950000,
-                    "trade_count": 5,
+        checkpoint_path.write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-26T12:00:00",
+                    "iteration": 10,
+                    "symbols": ["KRW-BTC"],
+                    "wallet_states": {
+                        "test_wallet": {
+                            "strategy_type": "momentum",
+                            "cash": 950000,
+                            "realized_pnl": -50000,
+                            "open_positions": 0,
+                            "equity": 950000,
+                            "trade_count": 5,
+                        }
+                    },
                 }
-            },
-        }), encoding="utf-8")
+            ),
+            encoding="utf-8",
+        )
 
         generator = PnLReportGenerator()
         report = generator.generate_from_checkpoint(str(checkpoint_path))
@@ -48,21 +51,26 @@ class TestSnapshotCLI:
     def test_snapshot_json_output_format(self, tmp_path: Path) -> None:
         """Snapshot should produce structured JSON summary."""
         checkpoint_path = tmp_path / "runtime-checkpoint.json"
-        checkpoint_path.write_text(json.dumps({
-            "generated_at": "2026-03-26T12:00:00",
-            "iteration": 10,
-            "symbols": ["KRW-BTC"],
-            "wallet_states": {
-                "momentum_wallet": {
-                    "strategy_type": "momentum",
-                    "cash": 1_048_000,
-                    "realized_pnl": 48000,
-                    "open_positions": 1,
-                    "equity": 1_048_000,
-                    "trade_count": 12,
+        checkpoint_path.write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-26T12:00:00",
+                    "iteration": 10,
+                    "symbols": ["KRW-BTC"],
+                    "wallet_states": {
+                        "momentum_wallet": {
+                            "strategy_type": "momentum",
+                            "cash": 1_048_000,
+                            "realized_pnl": 48000,
+                            "open_positions": 1,
+                            "equity": 1_048_000,
+                            "trade_count": 12,
+                        }
+                    },
                 }
-            },
-        }), encoding="utf-8")
+            ),
+            encoding="utf-8",
+        )
 
         generator = PnLReportGenerator()
         report = generator.generate_from_checkpoint(str(checkpoint_path))

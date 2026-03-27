@@ -1,4 +1,5 @@
 """Tests for US-023: Adaptive RSI ceiling in MomentumStrategy."""
+
 from __future__ import annotations
 
 import unittest

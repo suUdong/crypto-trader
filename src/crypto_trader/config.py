@@ -176,11 +176,13 @@ class AppConfig:
     slack: SlackConfig = field(default_factory=SlackConfig)
     macro: MacroConfig = field(default_factory=MacroConfig)
     kill_switch: KillSwitchCfg = field(default_factory=KillSwitchCfg)
-    wallets: list[WalletConfig] = field(default_factory=lambda: [
-        WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
-        WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
-        WalletConfig("composite_wallet", "composite", 1_000_000.0),
-    ])
+    wallets: list[WalletConfig] = field(
+        default_factory=lambda: [
+            WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
+            WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
+            WalletConfig("composite_wallet", "composite", 1_000_000.0),
+        ]
+    )
     source_config_path: str = ""
 
 
@@ -189,13 +191,23 @@ _RISK_FIELD_NAMES = {field.name for field in fields(RiskConfig)}
 _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
     "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
     "consensus": {
-        "sub_strategies", "min_agree", "min_confidence_sum", "weights",
-        "quorum_threshold", "exit_mode",
+        "sub_strategies",
+        "min_agree",
+        "min_confidence_sum",
+        "weights",
+        "quorum_threshold",
+        "exit_mode",
         # Allow VPIN sub-strategy overrides
-        "vpin_high_threshold", "vpin_low_threshold", "vpin_momentum_threshold",
-        "vpin_rsi_ceiling", "vpin_rsi_floor", "bucket_count",
+        "vpin_high_threshold",
+        "vpin_low_threshold",
+        "vpin_momentum_threshold",
+        "vpin_rsi_ceiling",
+        "vpin_rsi_floor",
+        "bucket_count",
         # Allow volume_spike sub-strategy overrides
-        "spike_mult", "volume_window", "min_body_ratio",
+        "spike_mult",
+        "volume_window",
+        "min_body_ratio",
     },
     "volume_spike": {"spike_mult", "volume_window", "min_body_ratio"},
     "vpin": {
@@ -272,16 +284,12 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         max_holding_bars=int(
             _read_value(raw, env, "strategy", "max_holding_bars", "CT_MAX_HOLDING_BARS", 48)
         ),
-        adx_period=int(
-            _read_value(raw, env, "strategy", "adx_period", "CT_ADX_PERIOD", 14)
-        ),
+        adx_period=int(_read_value(raw, env, "strategy", "adx_period", "CT_ADX_PERIOD", 14)),
         adx_threshold=float(
             _read_value(raw, env, "strategy", "adx_threshold", "CT_ADX_THRESHOLD", 20.0)
         ),
         volume_filter_mult=float(
-            _read_value(
-                raw, env, "strategy", "volume_filter_mult", "CT_VOLUME_FILTER_MULT", 0.0
-            )
+            _read_value(raw, env, "strategy", "volume_filter_mult", "CT_VOLUME_FILTER_MULT", 0.0)
         ),
     )
     regime = RegimeConfig(
@@ -409,9 +417,7 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         partial_tp_pct=float(
             _read_value(raw, env, "risk", "partial_tp_pct", "CT_PARTIAL_TP_PCT", 0.5)
         ),
-        cooldown_bars=int(
-            _read_value(raw, env, "risk", "cooldown_bars", "CT_COOLDOWN_BARS", 3)
-        ),
+        cooldown_bars=int(_read_value(raw, env, "risk", "cooldown_bars", "CT_COOLDOWN_BARS", 3)),
         max_position_pct=float(
             _read_value(raw, env, "risk", "max_position_pct", "CT_MAX_POSITION_PCT", 0.25)
         ),
@@ -623,42 +629,47 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
     )
     macro = MacroConfig(
         enabled=_read_bool(raw, env, "macro", "enabled", "CT_MACRO_ENABLED", False),
-        db_path=str(
-            _read_value(raw, env, "macro", "db_path", "CT_MACRO_DB_PATH", "")
-        ),
+        db_path=str(_read_value(raw, env, "macro", "db_path", "CT_MACRO_DB_PATH", "")),
     )
     kill_switch = KillSwitchCfg(
         max_portfolio_drawdown_pct=float(
-            _read_value(raw, env, "kill_switch", "max_portfolio_drawdown_pct",
-                        "CT_KS_MAX_PORTFOLIO_DD", 0.15)
+            _read_value(
+                raw,
+                env,
+                "kill_switch",
+                "max_portfolio_drawdown_pct",
+                "CT_KS_MAX_PORTFOLIO_DD",
+                0.15,
+            )
         ),
         max_daily_loss_pct=float(
-            _read_value(raw, env, "kill_switch", "max_daily_loss_pct",
-                        "CT_KS_MAX_DAILY_LOSS", 0.05)
+            _read_value(raw, env, "kill_switch", "max_daily_loss_pct", "CT_KS_MAX_DAILY_LOSS", 0.05)
         ),
         max_consecutive_losses=int(
-            _read_value(raw, env, "kill_switch", "max_consecutive_losses",
-                        "CT_KS_MAX_CONSEC_LOSSES", 5)
+            _read_value(
+                raw, env, "kill_switch", "max_consecutive_losses", "CT_KS_MAX_CONSEC_LOSSES", 5
+            )
         ),
         max_strategy_drawdown_pct=float(
-            _read_value(raw, env, "kill_switch", "max_strategy_drawdown_pct",
-                        "CT_KS_MAX_STRATEGY_DD", 0.10)
+            _read_value(
+                raw, env, "kill_switch", "max_strategy_drawdown_pct", "CT_KS_MAX_STRATEGY_DD", 0.10
+            )
         ),
         cooldown_minutes=int(
-            _read_value(raw, env, "kill_switch", "cooldown_minutes",
-                        "CT_KS_COOLDOWN_MIN", 60)
+            _read_value(raw, env, "kill_switch", "cooldown_minutes", "CT_KS_COOLDOWN_MIN", 60)
         ),
         warn_threshold_pct=float(
-            _read_value(raw, env, "kill_switch", "warn_threshold_pct",
-                        "CT_KS_WARN_THRESHOLD", 0.5)
+            _read_value(raw, env, "kill_switch", "warn_threshold_pct", "CT_KS_WARN_THRESHOLD", 0.5)
         ),
         reduce_threshold_pct=float(
-            _read_value(raw, env, "kill_switch", "reduce_threshold_pct",
-                        "CT_KS_REDUCE_THRESHOLD", 0.75)
+            _read_value(
+                raw, env, "kill_switch", "reduce_threshold_pct", "CT_KS_REDUCE_THRESHOLD", 0.75
+            )
         ),
         reduce_position_factor=float(
-            _read_value(raw, env, "kill_switch", "reduce_position_factor",
-                        "CT_KS_REDUCE_FACTOR", 0.5)
+            _read_value(
+                raw, env, "kill_switch", "reduce_position_factor", "CT_KS_REDUCE_FACTOR", 0.5
+            )
         ),
     )
     raw_wallets = raw.get("wallets", None)
@@ -746,20 +757,12 @@ def _apply_strategy_overrides(
     base: StrategyConfig,
     overrides: dict[str, Any],
 ) -> StrategyConfig:
-    config_kwargs = {
-        key: value
-        for key, value in overrides.items()
-        if key in _STRATEGY_FIELD_NAMES
-    }
+    config_kwargs = {key: value for key, value in overrides.items() if key in _STRATEGY_FIELD_NAMES}
     return replace(base, **config_kwargs)
 
 
 def _apply_risk_overrides(base: RiskConfig, overrides: dict[str, Any]) -> RiskConfig:
-    config_kwargs = {
-        key: value
-        for key, value in overrides.items()
-        if key in _RISK_FIELD_NAMES
-    }
+    config_kwargs = {key: value for key, value in overrides.items() if key in _RISK_FIELD_NAMES}
     return replace(base, **config_kwargs)
 
 
@@ -856,8 +859,8 @@ def _validate_config(config: AppConfig) -> None:
             errors.append(f"wallet '{wc.name}': strategy must be one of {valid_strategies}")
         if wc.initial_capital <= 0:
             errors.append(f"wallet '{wc.name}': initial_capital must be positive")
-        invalid_strategy_overrides = (
-            set(wc.strategy_overrides) - _strategy_override_names(wc.strategy)
+        invalid_strategy_overrides = set(wc.strategy_overrides) - _strategy_override_names(
+            wc.strategy
         )
         if invalid_strategy_overrides:
             invalid = ", ".join(sorted(invalid_strategy_overrides))

@@ -1,4 +1,5 @@
 """Tests for wallet auto-pause based on rolling profit factor."""
+
 from __future__ import annotations
 
 import unittest

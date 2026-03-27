@@ -1,11 +1,12 @@
 """Tests for Session #12 Wave 18: VWAP indicator, VWAP in strategies, WF scoring."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.config import StrategyConfig
-from crypto_trader.models import Candle, SignalAction
+from crypto_trader.models import Candle
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.indicators import rolling_vwap, vwap
 from crypto_trader.strategy.momentum import MomentumStrategy
@@ -14,13 +15,20 @@ from crypto_trader.strategy.momentum import MomentumStrategy
 def _candles(closes: list[float], volume: float = 1000.0) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=volume)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=volume,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- VWAP indicator ----------
+
 
 class TestVWAP(unittest.TestCase):
     def test_flat_prices_equal_close(self) -> None:
@@ -73,23 +81,32 @@ class TestRollingVWAP(unittest.TestCase):
 
 # ---------- VWAP in composite ----------
 
+
 class TestCompositeVWAP(unittest.TestCase):
     def test_vwap_in_indicators(self) -> None:
         """Composite should include vwap in indicators."""
         prices = [100.0 + i * 0.1 for i in range(50)]
         candles = _candles(prices)
-        strategy = CompositeStrategy(StrategyConfig(
-            momentum_lookback=5, bollinger_window=20, rsi_period=5,
-        ))
+        strategy = CompositeStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                bollinger_window=20,
+                rsi_period=5,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertIn("vwap", signal.indicators)
 
     def test_vwap_absent_short_data(self) -> None:
         """With very few candles, vwap may not be in indicators."""
         candles = _candles([100.0] * 10)
-        strategy = CompositeStrategy(StrategyConfig(
-            momentum_lookback=3, bollinger_window=5, rsi_period=3,
-        ))
+        strategy = CompositeStrategy(
+            StrategyConfig(
+                momentum_lookback=3,
+                bollinger_window=5,
+                rsi_period=3,
+            )
+        )
         signal = strategy.evaluate(candles)
         # May or may not have vwap depending on minimum window
         self.assertIsNotNone(signal)
@@ -97,26 +114,35 @@ class TestCompositeVWAP(unittest.TestCase):
 
 # ---------- VWAP in momentum ----------
 
+
 class TestMomentumVWAP(unittest.TestCase):
     def test_vwap_in_indicators(self) -> None:
         """Momentum should include vwap in indicators."""
         prices = [100.0 + i * 0.3 for i in range(50)]
         candles = _candles(prices)
-        strategy = MomentumStrategy(StrategyConfig(
-            momentum_lookback=5, rsi_period=5, adx_threshold=0.0,
-        ))
+        strategy = MomentumStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                rsi_period=5,
+                adx_threshold=0.0,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertIn("vwap", signal.indicators)
 
 
 # ---------- Walk-forward scoring ----------
 
+
 class TestWalkForwardScoring(unittest.TestCase):
     def test_summary_includes_new_metrics(self) -> None:
         """WalkForwardReport summary should include profit_factor and sharpe."""
         from crypto_trader.backtest.walk_forward import WalkForwardReport
+
         report = WalkForwardReport(
-            strategy_name="test", symbol="KRW-BTC", total_folds=0,
+            strategy_name="test",
+            symbol="KRW-BTC",
+            total_folds=0,
         )
         summary = report.summary()
         self.assertIn("avg_oos_profit_factor", summary)
@@ -125,8 +151,11 @@ class TestWalkForwardScoring(unittest.TestCase):
     def test_avg_oos_profit_factor_empty(self) -> None:
         """Empty folds should return 0 for profit factor."""
         from crypto_trader.backtest.walk_forward import WalkForwardReport
+
         report = WalkForwardReport(
-            strategy_name="test", symbol="KRW-BTC", total_folds=0,
+            strategy_name="test",
+            symbol="KRW-BTC",
+            total_folds=0,
         )
         self.assertEqual(report.avg_oos_profit_factor, 0.0)
         self.assertEqual(report.avg_oos_sharpe, 0.0)

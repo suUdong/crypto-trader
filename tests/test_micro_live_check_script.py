@@ -1,4 +1,5 @@
 """Tests for scripts/micro_live_check.py."""
+
 from __future__ import annotations
 
 import json
@@ -6,6 +7,7 @@ import sys
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
@@ -13,13 +15,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from micro_live_check import format_human, run_check
 
 
-def _write_checkpoint(path: Path, wallet_states: dict, generated_at: str | None = None) -> None:
+def _write_checkpoint(
+    path: Path,
+    wallet_states: dict[str, dict[str, Any]],
+    generated_at: str | None = None,
+) -> None:
     ts = generated_at or datetime.now(UTC).isoformat()
     data = {"generated_at": ts, "wallet_states": wallet_states}
     path.write_text(json.dumps(data), encoding="utf-8")
 
 
-def _write_journal(path: Path, trades: list[dict]) -> None:
+def _write_journal(path: Path, trades: list[dict[str, Any]]) -> None:
     lines = [json.dumps(t) for t in trades]
     path.write_text("\n".join(lines), encoding="utf-8")
 
@@ -27,6 +33,7 @@ def _write_journal(path: Path, trades: list[dict]) -> None:
 class TestRunCheck(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
+
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         self.cp = self.tmp / "checkpoint.json"

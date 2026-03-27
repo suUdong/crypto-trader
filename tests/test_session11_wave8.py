@@ -1,10 +1,11 @@
 """Tests for Session #11 Wave 8: RSI divergence in mean reversion, profit-lock trailing."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
-from crypto_trader.config import RegimeConfig, RiskConfig, StrategyConfig
+from crypto_trader.config import RiskConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
@@ -13,13 +14,20 @@ from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- RSI divergence in MeanReversion ----------
+
 
 class TestMeanReversionDivergence(unittest.TestCase):
     def test_divergence_indicators_present(self) -> None:
@@ -62,8 +70,11 @@ class TestMeanReversionDivergence(unittest.TestCase):
 
         candles = _candles(prices)
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=95.0,
-            entry_time=datetime(2025, 1, 1), entry_index=15,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=95.0,
+            entry_time=datetime(2025, 1, 1),
+            entry_index=15,
         )
         strategy = MeanReversionStrategy(
             StrategyConfig(bollinger_window=20, rsi_period=5, max_holding_bars=100),
@@ -75,6 +86,7 @@ class TestMeanReversionDivergence(unittest.TestCase):
 
 # ---------- Profit-lock trailing stop ----------
 
+
 class TestProfitLockTrailing(unittest.TestCase):
     def test_profit_lock_triggers_after_3pct_gain(self) -> None:
         """After 3%+ gain, 1.5% trailing from watermark should trigger."""
@@ -83,7 +95,9 @@ class TestProfitLockTrailing(unittest.TestCase):
             atr_stop_multiplier=0.0,
         )
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
             entry_time=datetime(2025, 1, 1),
         )
         # Price went up 5%, then drops to 1.5% below watermark
@@ -99,7 +113,9 @@ class TestProfitLockTrailing(unittest.TestCase):
             atr_stop_multiplier=0.0,
         )
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
             entry_time=datetime(2025, 1, 1),
         )
         pos.update_watermark(102.5)  # 2.5% gain, below threshold
@@ -113,7 +129,9 @@ class TestProfitLockTrailing(unittest.TestCase):
             atr_stop_multiplier=0.0,
         )
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
             entry_time=datetime(2025, 1, 1),
         )
         pos.update_watermark(105.0)
@@ -128,7 +146,9 @@ class TestProfitLockTrailing(unittest.TestCase):
             atr_stop_multiplier=0.0,
         )
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
             entry_time=datetime(2025, 1, 1),
         )
         pos.update_watermark(106.0)  # 6% gain
@@ -143,7 +163,9 @@ class TestProfitLockTrailing(unittest.TestCase):
             atr_stop_multiplier=0.0,
         )
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
             entry_time=datetime(2025, 1, 1),
         )
         pos.update_watermark(103.0)  # Exactly 3%

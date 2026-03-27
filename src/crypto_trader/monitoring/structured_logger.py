@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-
 _LOG_DIR = Path("artifacts/logs")
 _EVENTS_FILE = _LOG_DIR / "events.jsonl"
 

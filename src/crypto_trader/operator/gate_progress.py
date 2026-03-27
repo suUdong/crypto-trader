@@ -1,4 +1,7 @@
+# ruff: noqa: E501
+
 """Promotion gate progress report helpers."""
+
 from __future__ import annotations
 
 import json
@@ -110,7 +113,9 @@ def generate_gate_progress_report(
         row["open_positions"] = int(row["open_positions"]) + int(wallet.get("open_positions", 0))
 
     live_strategies = sorted(by_strategy)
-    live_universe = ", ".join(f"`{name} x{int(by_strategy[name]['wallets'])}`" for name in live_strategies)
+    live_universe = ", ".join(
+        f"`{name} x{int(by_strategy[name]['wallets'])}`" for name in live_strategies
+    )
 
     portfolio_start = sum(float(row["start_capital"]) for row in by_strategy.values())
     portfolio_equity = sum(float(row["equity"]) for row in by_strategy.values())
@@ -221,7 +226,9 @@ def generate_gate_progress_report(
         elif wf is not None and float(wf.get("avg_return_pct", 0.0)) <= 0:
             current_read = "Flat live and already weak in walk-forward research, so it has no promotion case yet."
         else:
-            current_read = "No live realized evidence yet, so promotion readiness is still unproven."
+            current_read = (
+                "No live realized evidence yet, so promotion readiness is still unproven."
+            )
 
         lines.append(
             f"| `{strategy}` | {int(row['wallets'])} | {start_capital:,.2f} | {equity:,.2f} | "

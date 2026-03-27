@@ -19,7 +19,9 @@ class PaperTradeJournal:
         self._path = Path(path)
 
     def append_many(
-        self, trades: list[TradeRecord], wallet_name: str = "",
+        self,
+        trades: list[TradeRecord],
+        wallet_name: str = "",
     ) -> None:
         if not trades:
             return

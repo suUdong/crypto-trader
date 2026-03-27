@@ -1,8 +1,8 @@
 """Tests for wallet-level circuit breaker (daily loss limit force-exit)."""
+
 from __future__ import annotations
 
 import unittest
-from datetime import UTC, datetime
 
 from crypto_trader.config import RiskConfig
 from crypto_trader.risk.manager import RiskManager
@@ -35,3 +35,13 @@ class CircuitBreakerTests(unittest.TestCase):
     def test_no_force_exit_when_profitable(self) -> None:
         rm = self._make_manager(0.05)
         self.assertFalse(rm.should_force_exit(10_000, 1_000_000))
+
+    def test_force_exit_on_mark_to_market_drawdown(self) -> None:
+        rm = self._make_manager(0.05)
+        self.assertTrue(
+            rm.should_force_exit(
+                realized_pnl=-10_000,
+                starting_equity=1_000_000,
+                current_equity=940_000,
+            )
+        )

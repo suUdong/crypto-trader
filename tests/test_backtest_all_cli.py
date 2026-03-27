@@ -1,12 +1,10 @@
 """Tests for US-033: backtest-all CLI command."""
+
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
 from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
@@ -21,14 +19,16 @@ def _build_candles(count: int = 200, base_price: float = 100.0) -> list[Candle]:
     for i in range(count):
         # Slight uptrend with oscillation
         price = base_price + i * 0.1 + (2.0 if i % 7 < 3 else -1.0)
-        candles.append(Candle(
-            timestamp=start + timedelta(hours=i),
-            open=price - 0.5,
-            high=price + 1.0,
-            low=price - 1.0,
-            close=price,
-            volume=1000.0 + i * 5,
-        ))
+        candles.append(
+            Candle(
+                timestamp=start + timedelta(hours=i),
+                open=price - 0.5,
+                high=price + 1.0,
+                low=price - 1.0,
+                close=price,
+                volume=1000.0 + i * 5,
+            )
+        )
     return candles
 
 
@@ -37,7 +37,10 @@ class TestBacktestAllStrategies(unittest.TestCase):
 
     def test_all_strategies_backtest_without_error(self) -> None:
         strategies = [
-            "momentum", "mean_reversion", "vpin", "volatility_breakout",
+            "momentum",
+            "mean_reversion",
+            "vpin",
+            "volatility_breakout",
         ]
         candles = _build_candles(200)
         for strat_name in strategies:
@@ -65,12 +68,15 @@ class TestBacktestAllStrategies(unittest.TestCase):
         strategy = create_strategy("momentum", strat_config, RegimeConfig())
         rm = RiskManager(RiskConfig(atr_stop_multiplier=0.0))
         engine = BacktestEngine(
-            strategy=strategy, risk_manager=rm,
-            config=BacktestConfig(), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=rm,
+            config=BacktestConfig(),
+            symbol="KRW-BTC",
         )
         result = engine.run(candles)
 
         from crypto_trader.backtest.grid_wf import _approx_sharpe
+
         data = {
             "strategy": "momentum",
             "return_pct": result.total_return_pct * 100,

@@ -1,4 +1,5 @@
 """Tests for Session #12 Wave 14: OBV indicator, OBV confirmation in strategies."""
+
 from __future__ import annotations
 
 import unittest
@@ -14,8 +15,14 @@ from crypto_trader.strategy.momentum import MomentumStrategy
 def _candles(closes: list[float], volume: float = 1000.0) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=volume)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=volume,
+        )
         for i, c in enumerate(closes)
     ]
 
@@ -23,13 +30,15 @@ def _candles(closes: list[float], volume: float = 1000.0) -> list[Candle]:
 def _candles_with_volumes(closes: list[float], volumes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=v)
-        for i, (c, v) in enumerate(zip(closes, volumes))
+        Candle(
+            timestamp=t + timedelta(hours=i), open=c, high=c * 1.01, low=c * 0.99, close=c, volume=v
+        )
+        for i, (c, v) in enumerate(zip(closes, volumes, strict=False))
     ]
 
 
 # ---------- OBV indicator ----------
+
 
 class TestOnBalanceVolume(unittest.TestCase):
     def test_rising_prices_accumulate(self) -> None:
@@ -75,6 +84,7 @@ class TestOnBalanceVolume(unittest.TestCase):
 
 # ---------- OBV slope ----------
 
+
 class TestOBVSlope(unittest.TestCase):
     def test_rising_obv_positive_slope(self) -> None:
         """Rising prices -> rising OBV -> positive slope."""
@@ -105,14 +115,19 @@ class TestOBVSlope(unittest.TestCase):
 
 # ---------- OBV in composite strategy ----------
 
+
 class TestCompositeOBV(unittest.TestCase):
     def test_obv_slope_in_indicators(self) -> None:
         """Composite should include obv_slope in indicators."""
         prices = [100.0 + i * 0.1 for i in range(50)]
         candles = _candles(prices)
-        strategy = CompositeStrategy(StrategyConfig(
-            momentum_lookback=5, bollinger_window=20, rsi_period=5,
-        ))
+        strategy = CompositeStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                bollinger_window=20,
+                rsi_period=5,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertIn("obv_slope", signal.indicators)
 
@@ -120,9 +135,13 @@ class TestCompositeOBV(unittest.TestCase):
         """With short data, obv_slope may not be present."""
         prices = [100.0] * 8
         candles = _candles(prices)
-        strategy = CompositeStrategy(StrategyConfig(
-            momentum_lookback=3, bollinger_window=5, rsi_period=3,
-        ))
+        strategy = CompositeStrategy(
+            StrategyConfig(
+                momentum_lookback=3,
+                bollinger_window=5,
+                rsi_period=3,
+            )
+        )
         signal = strategy.evaluate(candles)
         # May or may not have obv_slope depending on minimum requirements
         self.assertIsNotNone(signal)
@@ -130,14 +149,19 @@ class TestCompositeOBV(unittest.TestCase):
 
 # ---------- OBV in momentum strategy ----------
 
+
 class TestMomentumOBV(unittest.TestCase):
     def test_obv_slope_in_indicators(self) -> None:
         """Momentum should include obv_slope in indicators."""
         prices = [100.0 + i * 0.3 for i in range(50)]
         candles = _candles(prices)
-        strategy = MomentumStrategy(StrategyConfig(
-            momentum_lookback=5, rsi_period=5, adx_threshold=0.0,
-        ))
+        strategy = MomentumStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                rsi_period=5,
+                adx_threshold=0.0,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertIn("obv_slope", signal.indicators)
 
@@ -147,11 +171,16 @@ class TestMomentumOBV(unittest.TestCase):
         prices = [80.0 + i * 0.5 for i in range(55)]
         volumes = [1000.0 + i * 100 for i in range(55)]
         candles = _candles_with_volumes(prices, volumes)
-        strategy = MomentumStrategy(StrategyConfig(
-            momentum_lookback=5, momentum_entry_threshold=0.001,
-            rsi_period=5, rsi_oversold_floor=0.0, rsi_recovery_ceiling=100.0,
-            adx_threshold=0.0,
-        ))
+        strategy = MomentumStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                momentum_entry_threshold=0.001,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+                adx_threshold=0.0,
+            )
+        )
         signal = strategy.evaluate(candles)
         if signal.action == SignalAction.BUY:
             # Should have positive OBV slope

@@ -135,12 +135,12 @@ class TestVPINStrategy(unittest.TestCase):
             if i % 2 == 0:
                 o = price
                 c = price + 5.0
-                h = c          # high == close → z = +1
+                h = c  # high == close → z = +1
                 lo = o
             else:
                 o = price
                 c = price - 5.0
-                h = o          # high == open → z = -1
+                h = o  # high == open → z = -1
                 lo = c
             candles.append(
                 Candle(
@@ -230,7 +230,6 @@ class TestVPINStrategy(unittest.TestCase):
         signal = strategy.evaluate(candles, position)
         self.assertEqual(signal.action, SignalAction.SELL)
         self.assertEqual(signal.reason, "max_holding_period")
-
 
     # ------------------------------------------------------------------
     # 7. Relaxed params: entry with vpin=0.45, momentum=0.001, rsi=65
@@ -352,7 +351,6 @@ class TestVPINStrategy(unittest.TestCase):
         signal = strategy.evaluate(candles)
         self.assertEqual(signal.action, SignalAction.HOLD)
         self.assertEqual(signal.reason, "entry_conditions_not_met")
-
 
     # ------------------------------------------------------------------
     # 10. VPIN params pass-through from create_strategy extra_params

@@ -172,13 +172,16 @@ class TestCandleCache(unittest.TestCase):
 
             def iterrows(self):
                 for candle in self._rows:
-                    yield candle.timestamp, {
-                        "open": candle.open,
-                        "high": candle.high,
-                        "low": candle.low,
-                        "close": candle.close,
-                        "volume": candle.volume,
-                    }
+                    yield (
+                        candle.timestamp,
+                        {
+                            "open": candle.open,
+                            "high": candle.high,
+                            "low": candle.low,
+                            "close": candle.close,
+                            "volume": candle.volume,
+                        },
+                    )
 
         class FakePyUpbit:
             def __init__(self) -> None:

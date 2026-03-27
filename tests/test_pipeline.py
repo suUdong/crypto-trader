@@ -49,9 +49,20 @@ class RecordingRiskManager(RiskManager):
         super().__init__(config)
         self.starting_equities: list[float] = []
 
-    def can_open(self, active_positions: int, realized_pnl: float, starting_equity: float) -> bool:
+    def can_open(
+        self,
+        active_positions: int,
+        realized_pnl: float,
+        starting_equity: float,
+        current_equity: float | None = None,
+    ) -> bool:
         self.starting_equities.append(starting_equity)
-        return super().can_open(active_positions, realized_pnl, starting_equity)
+        return super().can_open(
+            active_positions,
+            realized_pnl,
+            starting_equity,
+            current_equity,
+        )
 
 
 class AtrRecordingRiskManager(RiskManager):

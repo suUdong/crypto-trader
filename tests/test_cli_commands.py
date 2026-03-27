@@ -1,4 +1,5 @@
 """Tests for grid-wf-all and strategy-dashboard CLI commands."""
+
 from __future__ import annotations
 
 import json
@@ -100,11 +101,18 @@ class TestGridWfAllTomlGeneration(unittest.TestCase):
 
     def test_toml_generated_from_validated_results(self) -> None:
         """TOML output contains wallet sections for validated strategies."""
-        from crypto_trader.backtest.grid_wf import kelly_fraction
 
         validated_strats = [
-            {"strategy": "momentum", "params": {"momentum_lookback": 15, "rsi_period": 14}, "kelly": 0.15},
-            {"strategy": "volatility_breakout", "params": {"k_base": 0.4, "noise_lookback": 10}, "kelly": 0.10},
+            {
+                "strategy": "momentum",
+                "params": {"momentum_lookback": 15, "rsi_period": 14},
+                "kelly": 0.15,
+            },
+            {
+                "strategy": "volatility_breakout",
+                "params": {"k_base": 0.4, "noise_lookback": 10},
+                "kelly": 0.10,
+            },
         ]
         total_kelly = sum(v["kelly"] for v in validated_strats)
         base_capital = 1_000_000.0
@@ -125,9 +133,10 @@ class TestGridWfAllTomlGeneration(unittest.TestCase):
 
     def test_kelly_fraction_used_for_weighting(self) -> None:
         from crypto_trader.backtest.grid_wf import kelly_fraction
+
         # Strategy with better edge gets more capital
         kf_good = kelly_fraction(0.6, 1.5)  # 0.25 (clamped)
-        kf_ok = kelly_fraction(0.55, 1.2)   # ~0.175
+        kf_ok = kelly_fraction(0.55, 1.2)  # ~0.175
         self.assertGreater(kf_good, kf_ok)
 
 
@@ -136,6 +145,7 @@ class TestMonteCarloBootstrap(unittest.TestCase):
 
     def test_bootstrap_confidence_interval(self) -> None:
         from crypto_trader.backtest.grid_wf import bootstrap_return_ci
+
         # Simulate trade returns
         trade_returns = [0.02, -0.01, 0.03, -0.005, 0.015, -0.02, 0.025, 0.01, -0.015, 0.02] * 10
         ci_5, ci_95 = bootstrap_return_ci(trade_returns, n_samples=500)
@@ -146,12 +156,14 @@ class TestMonteCarloBootstrap(unittest.TestCase):
 
     def test_bootstrap_empty_returns_zero(self) -> None:
         from crypto_trader.backtest.grid_wf import bootstrap_return_ci
+
         ci_5, ci_95 = bootstrap_return_ci([])
         self.assertEqual(ci_5, 0.0)
         self.assertEqual(ci_95, 0.0)
 
     def test_bootstrap_single_return(self) -> None:
         from crypto_trader.backtest.grid_wf import bootstrap_return_ci
+
         ci_5, ci_95 = bootstrap_return_ci([0.05])
         self.assertAlmostEqual(ci_5, 0.05, places=4)
         self.assertAlmostEqual(ci_95, 0.05, places=4)

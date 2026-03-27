@@ -37,7 +37,11 @@ class VPINStrategy:
         self._vpin_rsi_floor = vpin_rsi_floor
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
     ) -> Signal:
         minimum = max(
             self._config.rsi_period + 1,
@@ -67,9 +71,7 @@ class VPINStrategy:
             return self._evaluate_exit(
                 candles, position, vpin_value, rsi_value, indicators, context
             )
-        return self._evaluate_entry(
-            vpin_value, momentum_value, rsi_value, indicators, context
-        )
+        return self._evaluate_entry(vpin_value, momentum_value, rsi_value, indicators, context)
 
     def _evaluate_entry(
         self,
@@ -133,9 +135,7 @@ class VPINStrategy:
         context: dict[str, str],
     ) -> Signal:
         holding_bars = (
-            0
-            if position.entry_index is None
-            else len(candles) - position.entry_index - 1
+            0 if position.entry_index is None else len(candles) - position.entry_index - 1
         )
 
         if holding_bars >= self._config.max_holding_bars:
@@ -180,7 +180,7 @@ class VPINStrategy:
         normalized price change (close - open) / (high - low) mapped
         through the standard normal CDF approximation.
         """
-        recent = candles[-self._bucket_count:]
+        recent = candles[-self._bucket_count :]
         if not recent:
             return 0.5
 

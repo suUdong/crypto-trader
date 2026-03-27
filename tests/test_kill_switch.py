@@ -1,4 +1,5 @@
 """Tests for the kill switch module."""
+
 from __future__ import annotations
 
 import json
@@ -33,8 +34,12 @@ class KillSwitchTests(unittest.TestCase):
 
     def test_consecutive_losses_triggers(self) -> None:
         ks = KillSwitch(KillSwitchConfig(max_consecutive_losses=3))
-        ks.check(current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False)
-        ks.check(current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False)
+        ks.check(
+            current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
+        )
+        ks.check(
+            current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
+        )
         state = ks.check(
             current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
         )
@@ -43,9 +48,15 @@ class KillSwitchTests(unittest.TestCase):
 
     def test_consecutive_losses_reset_on_win(self) -> None:
         ks = KillSwitch(KillSwitchConfig(max_consecutive_losses=3))
-        ks.check(current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False)
-        ks.check(current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False)
-        ks.check(current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=True)
+        ks.check(
+            current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
+        )
+        ks.check(
+            current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
+        )
+        ks.check(
+            current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=True
+        )
         self.assertFalse(ks.is_triggered)
         self.assertEqual(ks.state.consecutive_losses, 0)
 
@@ -59,8 +70,12 @@ class KillSwitchTests(unittest.TestCase):
 
     def test_save_and_load(self) -> None:
         ks = KillSwitch(KillSwitchConfig(max_consecutive_losses=2))
-        ks.check(current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False)
-        ks.check(current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False)
+        ks.check(
+            current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
+        )
+        ks.check(
+            current_equity=1_000_000, starting_equity=1_000_000, realized_pnl=0, trade_won=False
+        )
 
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "kill-switch.json"

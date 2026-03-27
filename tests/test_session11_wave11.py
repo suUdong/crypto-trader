@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 11: Stochastic RSI, trade frequency limiter."""
+
 from __future__ import annotations
 
 import unittest
@@ -16,13 +17,20 @@ from crypto_trader.strategy.indicators import stochastic_rsi
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Stochastic RSI ----------
+
 
 class TestStochasticRSI(unittest.TestCase):
     def test_basic_calculation(self) -> None:
@@ -58,6 +66,7 @@ class TestStochasticRSI(unittest.TestCase):
 
 
 # ---------- StochRSI in EMA Crossover ----------
+
 
 class TestEMACrossoverStochRSI(unittest.TestCase):
     def test_stoch_rsi_in_indicators(self) -> None:
@@ -112,6 +121,7 @@ class TestEMACrossoverStochRSI(unittest.TestCase):
 
 # ---------- Trade frequency limiter ----------
 
+
 class TestTradeFrequencyLimiter(unittest.TestCase):
     def test_frequency_limiter_reduces_trades(self) -> None:
         """Trade frequency limiter should result in fewer trades than without."""
@@ -126,15 +136,21 @@ class TestTradeFrequencyLimiter(unittest.TestCase):
 
         strategy = CompositeStrategy(
             StrategyConfig(
-                momentum_lookback=3, momentum_entry_threshold=-0.5,
-                bollinger_window=20, bollinger_stddev=1.5,
-                rsi_period=5, rsi_oversold_floor=0.0, rsi_recovery_ceiling=100.0,
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                bollinger_window=20,
+                bollinger_stddev=1.5,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
             )
         )
         risk = RiskManager(RiskConfig(stop_loss_pct=0.05, take_profit_pct=0.10, cooldown_bars=0))
         engine = BacktestEngine(
-            strategy=strategy, risk_manager=risk,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
         result = engine.run(candles)
         # min_bars_between_trades=2 is enforced, limiting rapid re-entry
@@ -148,15 +164,21 @@ class TestTradeFrequencyLimiter(unittest.TestCase):
         candles = _candles(prices)
         strategy = CompositeStrategy(
             StrategyConfig(
-                momentum_lookback=3, momentum_entry_threshold=-0.5,
-                bollinger_window=20, bollinger_stddev=1.5,
-                rsi_period=5, rsi_oversold_floor=0.0, rsi_recovery_ceiling=100.0,
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                bollinger_window=20,
+                bollinger_stddev=1.5,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
             )
         )
         risk = RiskManager(RiskConfig(stop_loss_pct=0.05, take_profit_pct=0.10))
         engine = BacktestEngine(
-            strategy=strategy, risk_manager=risk,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
         result = engine.run(candles)
         self.assertIsInstance(result.sharpe_ratio, float)

@@ -1,4 +1,5 @@
 """Tests for the apply-params CLI command."""
+
 from __future__ import annotations
 
 import json
@@ -51,7 +52,7 @@ def _run_apply_params(
     config_path: Path,
     strategy: str = "momentum",
     wallet: str | None = None,
-) -> subprocess.CompletedProcess:
+) -> subprocess.CompletedProcess[str]:
     cmd = [
         sys.executable,
         "-m",
@@ -76,7 +77,9 @@ def _run_apply_params(
     )
 
 
-def _write_config(tmpdir: Path, strategy: str = "momentum", wallet_name: str = "btc_momentum") -> Path:
+def _write_config(
+    tmpdir: Path, strategy: str = "momentum", wallet_name: str = "btc_momentum"
+) -> Path:
     config_path = tmpdir / "config.toml"
     config_path.write_text(
         f"""
@@ -106,9 +109,11 @@ class TestApplyParamsReadsLatestFile(unittest.TestCase):
             config_path = _write_config(tmpdir)
             # Create two dated files; the later one should be used
             _make_grid_wf_json(tmpdir, "momentum", "2026-03-25")
-            latest = _make_grid_wf_json(tmpdir, "momentum", "2026-03-26")
+            _make_grid_wf_json(tmpdir, "momentum", "2026-03-26")
 
-            result = _run_apply_params(tmpdir, config_path, strategy="momentum", wallet="btc_momentum")
+            result = _run_apply_params(
+                tmpdir, config_path, strategy="momentum", wallet="btc_momentum"
+            )
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             # Output should reference the latest file name
@@ -120,7 +125,9 @@ class TestApplyParamsReadsLatestFile(unittest.TestCase):
             config_path = _write_config(tmpdir)
             (tmpdir / "artifacts").mkdir()
 
-            result = _run_apply_params(tmpdir, config_path, strategy="momentum", wallet="btc_momentum")
+            result = _run_apply_params(
+                tmpdir, config_path, strategy="momentum", wallet="btc_momentum"
+            )
 
             self.assertEqual(result.returncode, 0)
             self.assertIn("No grid-wf results found", result.stdout)

@@ -1,4 +1,5 @@
 """Tests for PnL snapshot store."""
+
 from __future__ import annotations
 
 import json
@@ -132,7 +133,10 @@ class TestPnLSnapshotStore(unittest.TestCase):
                 "artifact_freshness_status",
             }
             for entry in history:
-                self.assertTrue(required_keys.issubset(entry.keys()), f"Missing keys: {required_keys - entry.keys()}")
+                self.assertTrue(
+                    required_keys.issubset(entry.keys()),
+                    f"Missing keys: {required_keys - entry.keys()}",
+                )
 
 
 if __name__ == "__main__":

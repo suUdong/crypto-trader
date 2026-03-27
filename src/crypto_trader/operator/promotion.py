@@ -4,6 +4,7 @@ import json
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, cast
 
 from crypto_trader.models import (
     BacktestBaseline,
@@ -14,6 +15,8 @@ from crypto_trader.models import (
     PromotionStatus,
     StrategyRunRecord,
 )
+
+JsonDict = dict[str, Any]
 
 
 class MicroLiveCriteria:
@@ -53,7 +56,9 @@ class MicroLiveCriteria:
             reasons.append(f"MDD {max_drawdown:.1%} exceeds {cls.MAXIMUM_DRAWDOWN:.0%} limit")
             ready = False
         if profit_factor < cls.MINIMUM_PROFIT_FACTOR:
-            reasons.append(f"Profit factor {profit_factor:.2f} below {cls.MINIMUM_PROFIT_FACTOR:.1f}")
+            reasons.append(
+                f"Profit factor {profit_factor:.2f} below {cls.MINIMUM_PROFIT_FACTOR:.1f}"
+            )
             ready = False
         if positive_strategies < cls.MINIMUM_POSITIVE_STRATEGIES:
             reasons.append(
@@ -73,7 +78,7 @@ class MicroLiveCriteria:
         checkpoint_path: str | Path,
         journal_path: str | Path | None = None,
         strategy_runs_path: str | Path | None = None,
-    ) -> tuple[bool, list[str], dict]:
+    ) -> tuple[bool, list[str], JsonDict]:
         """Evaluate micro-live readiness from runtime artifacts.
 
         Returns (ready, reasons, metrics_dict).
@@ -83,22 +88,22 @@ class MicroLiveCriteria:
             return False, ["Checkpoint file not found"], {}
 
         try:
-            checkpoint = json.loads(cp_path.read_text(encoding="utf-8"))
+            checkpoint = cast(JsonDict, json.loads(cp_path.read_text(encoding="utf-8")))
         except Exception as exc:
             return False, [f"Failed to read checkpoint: {exc}"], {}
 
-        wallet_states = checkpoint.get("wallet_states", {})
+        wallet_states = cast(dict[str, JsonDict], checkpoint.get("wallet_states", {}))
         generated_at_str = checkpoint.get("generated_at", "")
 
         # Load journal trades
-        trades: list[dict] = []
+        trades: list[JsonDict] = []
         jp_path = Path(journal_path) if journal_path is not None else None
         if jp_path is not None and jp_path.exists():
             for line in jp_path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if line:
                     try:
-                        trades.append(json.loads(line))
+                        trades.append(cast(JsonDict, json.loads(line)))
                     except Exception:
                         pass
 
@@ -151,9 +156,7 @@ class MicroLiveCriteria:
         paper_days = max(0, (now - earliest_dt).days) if earliest_dt else 0
 
         # total_trades: use journal closed trades count, fall back to checkpoint trade_count
-        checkpoint_trades = sum(
-            w.get("trade_count", 0) for w in wallet_states.values()
-        )
+        checkpoint_trades = sum(w.get("trade_count", 0) for w in wallet_states.values())
         journal_trades = len(trades)
         total_trades = max(checkpoint_trades, journal_trades)
 
@@ -198,7 +201,7 @@ class MicroLiveCriteria:
             positive_strategies=positive_strategies,
         )
 
-        metrics: dict = {
+        metrics: JsonDict = {
             "paper_days": paper_days,
             "total_trades": total_trades,
             "win_rate": win_rate,
@@ -236,10 +239,10 @@ class PromotionGate:
             reasons.append("paper behavior still needs more observation")
         if drift_report.paper_realized_pnl_pct <= 0:
             reasons.append("paper pnl is not yet positive")
-        if (
-            latest_run is not None
-            and latest_run.verdict_status in {"pause_strategy", "reduce_risk"}
-        ):
+        if latest_run is not None and latest_run.verdict_status in {
+            "pause_strategy",
+            "reduce_risk",
+        }:
             reasons.append("latest strategy verdict does not support promotion")
 
         if (
@@ -292,8 +295,8 @@ class PortfolioPromotionGate:
         if not cp_path.exists():
             return self._fail("Checkpoint file not found")
 
-        checkpoint = json.loads(cp_path.read_text(encoding="utf-8"))
-        wallet_states = checkpoint.get("wallet_states", {})
+        checkpoint = cast(JsonDict, json.loads(cp_path.read_text(encoding="utf-8")))
+        wallet_states = cast(dict[str, JsonDict], checkpoint.get("wallet_states", {}))
         generated_at_str = checkpoint.get("generated_at", "")
 
         # Calculate paper days
@@ -313,7 +316,7 @@ class PortfolioPromotionGate:
                     first_line = f.readline().strip()
                 if first_line:
                     try:
-                        first_rec = json.loads(first_line)
+                        first_rec = cast(JsonDict, json.loads(first_line))
                         ts = first_rec.get("recorded_at", "")
                         first_dt = datetime.fromisoformat(ts)
                         paper_days = max(paper_days, (now - first_dt).days)
@@ -321,7 +324,7 @@ class PortfolioPromotionGate:
                         pass
 
         initial_capital = 1_000_000.0
-        per_wallet: dict[str, dict] = {}
+        per_wallet: dict[str, JsonDict] = {}
         total_equity = 0.0
         total_realized_pnl = 0.0
         total_trades = 0
@@ -331,7 +334,9 @@ class PortfolioPromotionGate:
             equity = ws.get("equity", initial_capital)
             pnl = ws.get("realized_pnl", 0.0)
             trades = ws.get("trade_count", 0)
-            return_pct = (equity - initial_capital) / initial_capital if initial_capital > 0 else 0.0
+            return_pct = (
+                (equity - initial_capital) / initial_capital if initial_capital > 0 else 0.0
+            )
             per_wallet[name] = {
                 "equity": equity,
                 "realized_pnl": pnl,
@@ -346,7 +351,9 @@ class PortfolioPromotionGate:
 
         wallet_count = len(wallet_states)
         total_initial = initial_capital * wallet_count
-        portfolio_return_pct = (total_equity - total_initial) / total_initial if total_initial > 0 else 0.0
+        portfolio_return_pct = (
+            (total_equity - total_initial) / total_initial if total_initial > 0 else 0.0
+        )
 
         # Evaluate criteria
         reasons: list[str] = []
@@ -356,7 +363,8 @@ class PortfolioPromotionGate:
             reasons.append(f"Need {self.MINIMUM_TOTAL_TRADES}+ trades (have {total_trades})")
         if profitable_wallets < self.MINIMUM_PROFITABLE_WALLETS:
             reasons.append(
-                f"Need {self.MINIMUM_PROFITABLE_WALLETS}+ profitable wallets (have {profitable_wallets})"
+                f"Need {self.MINIMUM_PROFITABLE_WALLETS}+ profitable wallets "
+                f"(have {profitable_wallets})"
             )
         if portfolio_return_pct <= self.MINIMUM_PORTFOLIO_RETURN_PCT:
             reasons.append(f"Portfolio return {portfolio_return_pct:.4%} not positive")

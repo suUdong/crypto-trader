@@ -1,4 +1,5 @@
 """Tests for US-036: Weighted consensus voting with confidence scores."""
+
 from __future__ import annotations
 
 import unittest
@@ -10,6 +11,7 @@ from crypto_trader.strategy.consensus import ConsensusStrategy
 
 class MockStrategy:
     """Mock strategy returning a predetermined signal."""
+
     def __init__(self, action: SignalAction, confidence: float, reason: str = "mock") -> None:
         self._action = action
         self._confidence = confidence
@@ -26,7 +28,9 @@ class MockStrategy:
 def _candles(n: int = 5) -> list[Candle]:
     start = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=start + timedelta(hours=i), open=100, high=101, low=99, close=100, volume=1000)
+        Candle(
+            timestamp=start + timedelta(hours=i), open=100, high=101, low=99, close=100, volume=1000
+        )
         for i in range(n)
     ]
 

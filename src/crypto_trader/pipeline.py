@@ -130,8 +130,7 @@ class TradingPipeline:
         order: OrderResult | None,
     ) -> str:
         base = (
-            f"{symbol} price={latest_price:.2f} signal={signal.action.value} "
-            f"reason={signal.reason}"
+            f"{symbol} price={latest_price:.2f} signal={signal.action.value} reason={signal.reason}"
         )
         if order is None:
             return base

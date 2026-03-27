@@ -1,4 +1,5 @@
 """Tests for US-035: Post-loss cooldown to prevent revenge trading."""
+
 from __future__ import annotations
 
 import unittest

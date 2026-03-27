@@ -1,8 +1,8 @@
 """Tests for capital_allocator module."""
+
 from __future__ import annotations
 
 import json
-import math
 from pathlib import Path
 
 import pytest
@@ -14,10 +14,10 @@ from crypto_trader.capital_allocator import (
     StrategyPerformance,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _perf(
     strategy: str,
@@ -42,6 +42,7 @@ def _perf(
 # ---------------------------------------------------------------------------
 # StrategyPerformance.score
 # ---------------------------------------------------------------------------
+
 
 class TestStrategyPerformanceScore:
     def test_positive_sharpe_low_mdd(self):
@@ -69,6 +70,7 @@ class TestStrategyPerformanceScore:
 # ---------------------------------------------------------------------------
 # CapitalAllocator.allocate — basic scenarios
 # ---------------------------------------------------------------------------
+
 
 class TestAllocateBasic:
     def test_empty_input(self):
@@ -119,6 +121,7 @@ class TestAllocateBasic:
 # Capital concentration — top performer gets more
 # ---------------------------------------------------------------------------
 
+
 class TestConcentration:
     def test_top_performer_gets_most_capital(self):
         allocator = CapitalAllocator()
@@ -158,6 +161,7 @@ class TestConcentration:
 # Ineligible strategies (low trade count)
 # ---------------------------------------------------------------------------
 
+
 class TestIneligible:
     def test_low_trade_count_gets_min_weight(self):
         allocator = CapitalAllocator(min_trades=5, min_weight=0.10)
@@ -182,6 +186,7 @@ class TestIneligible:
 # Ranking
 # ---------------------------------------------------------------------------
 
+
 class TestRanking:
     def test_allocations_ranked_by_score(self):
         allocator = CapitalAllocator()
@@ -200,6 +205,7 @@ class TestRanking:
 # HHI concentration ratio
 # ---------------------------------------------------------------------------
 
+
 class TestConcentrationRatio:
     def test_equal_weight_hhi(self):
         allocator = CapitalAllocator()
@@ -217,6 +223,7 @@ class TestConcentrationRatio:
 # ---------------------------------------------------------------------------
 # from_checkpoint
 # ---------------------------------------------------------------------------
+
 
 class TestFromCheckpoint:
     def test_loads_checkpoint(self, tmp_path: Path):
@@ -255,6 +262,7 @@ class TestFromCheckpoint:
 # to_toml_wallets
 # ---------------------------------------------------------------------------
 
+
 class TestToTomlWallets:
     def test_generates_valid_toml(self):
         allocations = [
@@ -262,7 +270,7 @@ class TestToTomlWallets:
             StrategyAllocation("obi", 0.6, 4_200_000, 1_000_000, 1.0, 2),
         ]
         toml = CapitalAllocator.to_toml_wallets(allocations)
-        assert '[[wallets]]' in toml
+        assert "[[wallets]]" in toml
         assert 'name = "momentum_wallet"' in toml
         assert 'strategy = "obi"' in toml
         assert "2800000.0" in toml
@@ -271,6 +279,7 @@ class TestToTomlWallets:
 # ---------------------------------------------------------------------------
 # save_report
 # ---------------------------------------------------------------------------
+
 
 class TestSaveReport:
     def test_saves_json(self, tmp_path: Path):
@@ -295,6 +304,7 @@ class TestSaveReport:
 # ---------------------------------------------------------------------------
 # Full 7-strategy scenario
 # ---------------------------------------------------------------------------
+
 
 class TestFullSevenStrategy:
     def test_seven_strategies_realistic(self):

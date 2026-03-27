@@ -1,16 +1,16 @@
 """Tests for Session #11 features: backtest fixes, Sharpe ratio, MACD, regime breakdown."""
+
 from __future__ import annotations
 
-import math
 import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.backtest.engine import BacktestEngine, _sharpe_ratio
-from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
-from crypto_trader.models import Candle, Position
+from crypto_trader.config import BacktestConfig, RiskConfig, StrategyConfig
+from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
-from crypto_trader.strategy.indicators import macd, _ema
+from crypto_trader.strategy.indicators import _ema, macd
 
 
 def _candles(closes: list[float], start: datetime | None = None) -> list[Candle]:
@@ -30,9 +30,10 @@ def _candles(closes: list[float], start: datetime | None = None) -> list[Candle]
 
 # ---------- US-042: holding_bars passed to exit_reason ----------
 
+
 class TestBacktestHoldingBars(unittest.TestCase):
     def test_time_decay_exit_fires_in_backtest(self) -> None:
-        """Time-decay exit should fire when position is held >75% max_holding_bars and underwater."""
+        """Time-decay exit should fire once a long-held position stays underwater."""
         # Create a scenario: buy signal, then price drops slightly and stays flat
         # max_holding_bars=20, so time_decay triggers at bar 15+ if underwater
         flat = [100.0] * 25
@@ -70,12 +71,13 @@ class TestBacktestHoldingBars(unittest.TestCase):
         )
         result = engine.run(candles)
         # If there are trades, check that time_decay or max_holding exits happen
-        exit_reasons = [t.exit_reason for t in result.trade_log]
+        [t.exit_reason for t in result.trade_log]
         # At minimum, we should have the sharpe_ratio field
         self.assertIsInstance(result.sharpe_ratio, float)
 
 
 # ---------- US-043: cooldown and auto_pause in backtest ----------
+
 
 class TestBacktestCooldown(unittest.TestCase):
     def test_cooldown_prevents_immediate_reentry(self) -> None:
@@ -104,12 +106,16 @@ class TestBacktestCooldown(unittest.TestCase):
         )
 
         engine_cd = BacktestEngine(
-            strategy=strategy, risk_manager=risk_with_cd,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=risk_with_cd,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
         engine_no_cd = BacktestEngine(
-            strategy=strategy, risk_manager=risk_no_cd,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=risk_no_cd,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
 
         result_cd = engine_cd.run(candles)
@@ -128,6 +134,7 @@ class TestBacktestCooldown(unittest.TestCase):
 
 
 # ---------- US-044: Sharpe ratio ----------
+
 
 class TestSharpeRatio(unittest.TestCase):
     def test_sharpe_positive_for_uptrend(self) -> None:
@@ -156,15 +163,22 @@ class TestSharpeRatio(unittest.TestCase):
     def test_backtest_result_has_sharpe(self) -> None:
         """BacktestResult should include sharpe_ratio field."""
         candles = _candles([100.0] * 30)
-        strategy = CompositeStrategy(StrategyConfig(momentum_lookback=3, bollinger_window=20, rsi_period=5))
+        strategy = CompositeStrategy(
+            StrategyConfig(momentum_lookback=3, bollinger_window=20, rsi_period=5)
+        )
         risk = RiskManager(RiskConfig())
-        engine = BacktestEngine(strategy=strategy, risk_manager=risk,
-                                config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC")
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
+        )
         result = engine.run(candles)
         self.assertIsInstance(result.sharpe_ratio, float)
 
 
 # ---------- US-045: MACD indicator ----------
+
 
 class TestMACDIndicator(unittest.TestCase):
     def test_macd_basic_calculation(self) -> None:
@@ -214,6 +228,7 @@ class TestMACDIndicator(unittest.TestCase):
 
 # ---------- US-045 continued: MACD in CompositeStrategy ----------
 
+
 class TestCompositeMACDIntegration(unittest.TestCase):
     def test_macd_indicators_in_signal(self) -> None:
         """CompositeStrategy should include MACD indicators in signal output."""
@@ -249,6 +264,7 @@ class TestCompositeMACDIntegration(unittest.TestCase):
 
 # ---------- US-046: Regime breakdown ----------
 
+
 class TestRegimeBreakdown(unittest.TestCase):
     def test_regime_fields_in_backtest_all_export(self) -> None:
         """Verify regime breakdown dict structure is correct."""
@@ -257,7 +273,9 @@ class TestRegimeBreakdown(unittest.TestCase):
         regime_totals = {"bull": 8, "sideways": 6, "bear": 4}
         row = {
             "regime_bull_wr": round(regime_wins["bull"] / max(1, regime_totals["bull"]) * 100, 1),
-            "regime_sideways_wr": round(regime_wins["sideways"] / max(1, regime_totals["sideways"]) * 100, 1),
+            "regime_sideways_wr": round(
+                regime_wins["sideways"] / max(1, regime_totals["sideways"]) * 100, 1
+            ),
             "regime_bear_wr": round(regime_wins["bear"] / max(1, regime_totals["bear"]) * 100, 1),
             "regime_bull_n": regime_totals["bull"],
             "regime_sideways_n": regime_totals["sideways"],

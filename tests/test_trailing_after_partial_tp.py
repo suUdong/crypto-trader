@@ -1,4 +1,5 @@
 """Tests for US-032: Trailing stop auto-activation after partial take-profit."""
+
 from __future__ import annotations
 
 import unittest

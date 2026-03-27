@@ -7,6 +7,7 @@ Usage:
 Combines strategy param grid search + risk param grid search, then writes
 the best parameters to a TOML config file ready for production use.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,7 +19,9 @@ import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-sys.path.insert(0, "src")
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root / "src"))
+sys.path.insert(0, str(_project_root))
 
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
 from crypto_trader.config import (  # noqa: E402
@@ -29,25 +32,14 @@ from crypto_trader.config import (  # noqa: E402
 )
 from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
-
-try:
-    from scripts.grid_search import (  # noqa: E402
-        SYMBOLS,
-        _create_strategy_for_grid,
-        _setup_kimchi_premium_mock,
-        fetch_candles,
-        run_grid_for_strategy,
-        top_param_sets,
-    )
-except ModuleNotFoundError:
-    from grid_search import (  # type: ignore[no-redef]  # noqa: E402
-        SYMBOLS,
-        _create_strategy_for_grid,
-        _setup_kimchi_premium_mock,
-        fetch_candles,
-        run_grid_for_strategy,
-        top_param_sets,
-    )
+from scripts.grid_search import (  # noqa: E402
+    SYMBOLS,
+    _create_strategy_for_grid,
+    _setup_kimchi_premium_mock,
+    fetch_candles,
+    run_grid_for_strategy,
+    top_param_sets,
+)
 
 
 @dataclass
@@ -260,9 +252,9 @@ def tune_strategy(
     risk_combo_count = len(list(itertools.product(*RISK_GRID.values())))
 
     if verbose:
-        print(f"\n{'─'*60}")
+        print(f"\n{'─' * 60}")
         print(f"  Optimizing: {strategy_type}")
-        print(f"{'─'*60}")
+        print(f"{'─' * 60}")
 
     grid_results = run_grid_for_strategy(strategy_type, candles_by_symbol)
     if not grid_results:
@@ -463,11 +455,7 @@ def write_optimized_toml(
 
 def _strategy_config_params(params: dict[str, float | int]) -> dict[str, float | int]:
     config_fields = set(StrategyConfig.__dataclass_fields__)
-    return {
-        key: value
-        for key, value in params.items()
-        if key in config_fields
-    }
+    return {key: value for key, value in params.items() if key in config_fields}
 
 
 def _toml_literal(value: object) -> str:
@@ -501,9 +489,9 @@ def main() -> None:
     if args.cache_dir:
         os.environ["CT_CANDLE_CACHE_DIR"] = args.cache_dir
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  AUTO-TUNE: Grid Search + Risk Optimization ({days}d)")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     # Fetch data
     candles_by_symbol: dict[str, list[Candle]] = {}
@@ -524,26 +512,28 @@ def main() -> None:
             tune_results.append(result)
 
     # Summary
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  AUTO-TUNE RESULTS")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(
         f"\n  {'Strategy':<20} {'Sharpe':>8} {'Return%':>9} "
         f"{'MDD%':>7} {'WR%':>7} {'PF':>7} {'Trades':>7}"
     )
-    print(f"  {'─'*66}")
+    print(f"  {'─' * 66}")
     for r in sorted(tune_results, key=lambda x: -x.avg_sharpe):
         pf = f"{r.avg_profit_factor:.2f}" if r.avg_profit_factor < 1000 else "inf"
-        print(f"  {r.strategy:<20} {r.avg_sharpe:>7.2f} {r.avg_return_pct:>+8.2f}% "
-              f"{r.avg_mdd_pct:>6.2f}% {r.avg_win_rate:>6.1f}% {pf:>7} {r.total_trades:>7}")
+        print(
+            f"  {r.strategy:<20} {r.avg_sharpe:>7.2f} {r.avg_return_pct:>+8.2f}% "
+            f"{r.avg_mdd_pct:>6.2f}% {r.avg_win_rate:>6.1f}% {pf:>7} {r.total_trades:>7}"
+        )
 
     # Write optimized TOML
     write_optimized_toml(tune_results, output_toml)
     if args.json_out:
         write_results_json(baseline_results, tune_results, args.json_out, days)
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  Auto-tune complete. Apply with: --config {output_toml}")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
 
 if __name__ == "__main__":

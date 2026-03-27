@@ -31,6 +31,25 @@ testpaths = ["tests"]
 python_version = "3.12"
 strict = true
 packages = ["crypto_trader"]
+explicit_package_bases = true
+mypy_path = ["src"]
+exclude = "^(dashboard|scripts|tests)/"
+
+[[tool.mypy.overrides]]
+module = ["plotly", "plotly.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["macro_intelligence", "macro_intelligence.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*", "pyupbit", "pyupbit.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["crypto_trader.cli"]
+ignore_errors = true
 
 [tool.ruff]
 line-length = 100

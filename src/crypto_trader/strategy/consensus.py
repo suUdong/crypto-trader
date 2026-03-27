@@ -1,4 +1,5 @@
 """Consensus strategy: only enters when multiple sub-strategies agree."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -85,9 +86,7 @@ class ConsensusStrategy:
             # Majority exit: need > 50% of weighted votes to SELL
             total_weight = sum(self._weights)
             sell_weight = sum(
-                self._weights[i]
-                for i, s in enumerate(signals)
-                if s.action is SignalAction.SELL
+                self._weights[i] for i, s in enumerate(signals) if s.action is SignalAction.SELL
             )
             if total_weight > 0 and sell_weight > total_weight * 0.5 and sell_signals:
                 best_sell = max(sell_signals, key=lambda s: s.confidence)
@@ -130,10 +129,10 @@ class ConsensusStrategy:
             total_weight = sum(self._weights)
             if total_weight > 0:
                 # Weighted score: sum of (weight * confidence) for BUY signals / total weight
-                weighted_buy_score = sum(
-                    self._weights[i] * signals[i].confidence
-                    for i in buy_indices
-                ) / total_weight
+                weighted_buy_score = (
+                    sum(self._weights[i] * signals[i].confidence for i in buy_indices)
+                    / total_weight
+                )
                 context["weighted_score"] = f"{weighted_buy_score:.3f}"
                 context["quorum_threshold"] = f"{self._quorum_threshold:.3f}"
 
@@ -151,8 +150,7 @@ class ConsensusStrategy:
         confidence_sum = sum(s.confidence for s in buy_signals)
         meets_count = len(buy_signals) >= self._min_agree
         meets_confidence = (
-            self._min_confidence_sum <= 0
-            or confidence_sum >= self._min_confidence_sum
+            self._min_confidence_sum <= 0 or confidence_sum >= self._min_confidence_sum
         )
 
         if meets_count and meets_confidence:
@@ -175,10 +173,10 @@ class ConsensusStrategy:
         # Weighted confidence: factor in per-strategy weights
         total_weight = sum(self._weights[i] for i in buy_indices)
         if total_weight > 0:
-            weighted_conf = sum(
-                self._weights[i] * all_signals[i].confidence ** 2
-                for i in buy_indices
-            ) / total_weight
+            weighted_conf = (
+                sum(self._weights[i] * all_signals[i].confidence ** 2 for i in buy_indices)
+                / total_weight
+            )
         else:
             weighted_conf = 0.0
 

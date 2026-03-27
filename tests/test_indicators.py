@@ -118,8 +118,22 @@ class TestRsi(unittest.TestCase):
         self.assertAlmostEqual(result, 100.0)
 
     def test_result_in_valid_range(self):
-        values = [44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.10, 45.15,
-                  43.61, 44.33, 44.83, 45.10, 45.15, 43.61]
+        values = [
+            44.34,
+            44.09,
+            44.15,
+            43.61,
+            44.33,
+            44.83,
+            45.10,
+            45.15,
+            43.61,
+            44.33,
+            44.83,
+            45.10,
+            45.15,
+            43.61,
+        ]
         result = rsi(values, 13)
         self.assertGreaterEqual(result, 0.0)
         self.assertLessEqual(result, 100.0)

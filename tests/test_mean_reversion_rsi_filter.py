@@ -1,4 +1,5 @@
 """Tests for US-025: Widened Bollinger + RSI confirmation for mean reversion."""
+
 from __future__ import annotations
 
 import unittest

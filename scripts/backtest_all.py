@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Run backtests for all strategy x symbol combinations on real Upbit data."""
+
 from __future__ import annotations
 
 import argparse
@@ -8,7 +9,9 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, "src")
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root / "src"))
+sys.path.insert(0, str(_project_root))
 
 from crypto_trader.backtest.candle_cache import fetch_upbit_candles  # noqa: E402
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
@@ -20,17 +23,10 @@ from crypto_trader.config import (  # noqa: E402
 )
 from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
-
-try:
-    from scripts.grid_search import (  # noqa: E402
-        _create_strategy_for_grid,
-        _setup_kimchi_premium_mock,
-    )
-except ModuleNotFoundError:
-    from grid_search import (  # type: ignore[no-redef]  # noqa: E402
-        _create_strategy_for_grid,
-        _setup_kimchi_premium_mock,
-    )
+from scripts.grid_search import (  # noqa: E402
+    _create_strategy_for_grid,
+    _setup_kimchi_premium_mock,
+)
 
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 STRATEGIES = [
@@ -113,9 +109,9 @@ def main() -> None:
     if args.cache_dir:
         os.environ["CT_CANDLE_CACHE_DIR"] = args.cache_dir
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  BACKTEST ALL STRATEGIES - {days}-day hourly candles from Upbit")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
     header = (
         f"{'Strategy':<16} {'Symbol':<10} {'Candles':>7} "
@@ -152,16 +148,12 @@ def main() -> None:
             )
 
     # Summary
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  SUMMARY")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     total_trades = sum(int(r["trade_count"]) for r in all_results)
-    strategies_with_trades = {
-        r["strategy"] for r in all_results if int(r["trade_count"]) > 0
-    }
-    symbols_with_trades = {
-        r["symbol"] for r in all_results if int(r["trade_count"]) > 0
-    }
+    strategies_with_trades = {r["strategy"] for r in all_results if int(r["trade_count"]) > 0}
+    symbols_with_trades = {r["symbol"] for r in all_results if int(r["trade_count"]) > 0}
     print(f"  Total trades across all combos: {total_trades}")
     print(f"  Strategies generating trades: {strategies_with_trades or 'NONE'}")
     print(f"  Symbols with trades: {symbols_with_trades or 'NONE'}")

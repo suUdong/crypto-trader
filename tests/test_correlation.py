@@ -1,4 +1,5 @@
 """Tests for strategy signal correlation detector."""
+
 from __future__ import annotations
 
 import unittest

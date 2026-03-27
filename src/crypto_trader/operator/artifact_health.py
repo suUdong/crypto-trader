@@ -1,4 +1,5 @@
 """Helpers for artifact freshness and consistency summaries."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -28,7 +29,9 @@ def format_age(seconds: float | None) -> str:
     return f"{secs}s"
 
 
-def compute_artifact_age_seconds(report_generated_at: str, artifact_generated_at: str) -> float | None:
+def compute_artifact_age_seconds(
+    report_generated_at: str, artifact_generated_at: str
+) -> float | None:
     report_dt = parse_iso8601(report_generated_at)
     artifact_dt = parse_iso8601(artifact_generated_at)
     if report_dt is None or artifact_dt is None:
@@ -37,20 +40,36 @@ def compute_artifact_age_seconds(report_generated_at: str, artifact_generated_at
 
 
 def summarize_artifact_health(report: PortfolioPnLReport) -> dict[str, float | str | int | bool]:
-    heartbeat_age_seconds = compute_artifact_age_seconds(report.generated_at, report.heartbeat_generated_at)
-    checkpoint_age_seconds = compute_artifact_age_seconds(report.generated_at, report.source_generated_at)
-    heartbeat_threshold = max(300, report.heartbeat_poll_interval_seconds * 5) if report.heartbeat_poll_interval_seconds > 0 else 300
-    checkpoint_threshold = max(900, report.heartbeat_poll_interval_seconds * 15) if report.heartbeat_poll_interval_seconds > 0 else 900
+    heartbeat_age_seconds = compute_artifact_age_seconds(
+        report.generated_at, report.heartbeat_generated_at
+    )
+    checkpoint_age_seconds = compute_artifact_age_seconds(
+        report.generated_at, report.source_generated_at
+    )
+    heartbeat_threshold = (
+        max(300, report.heartbeat_poll_interval_seconds * 5)
+        if report.heartbeat_poll_interval_seconds > 0
+        else 300
+    )
+    checkpoint_threshold = (
+        max(900, report.heartbeat_poll_interval_seconds * 15)
+        if report.heartbeat_poll_interval_seconds > 0
+        else 900
+    )
 
     heartbeat_freshness = (
-        "unknown" if heartbeat_age_seconds is None else
-        "stale" if heartbeat_age_seconds > heartbeat_threshold else
-        "fresh"
+        "unknown"
+        if heartbeat_age_seconds is None
+        else "stale"
+        if heartbeat_age_seconds > heartbeat_threshold
+        else "fresh"
     )
     checkpoint_freshness = (
-        "unknown" if checkpoint_age_seconds is None else
-        "stale" if checkpoint_age_seconds > checkpoint_threshold else
-        "fresh"
+        "unknown"
+        if checkpoint_age_seconds is None
+        else "stale"
+        if checkpoint_age_seconds > checkpoint_threshold
+        else "fresh"
     )
 
     if heartbeat_freshness == "stale" and checkpoint_freshness == "stale":
@@ -76,8 +95,12 @@ def summarize_artifact_health(report: PortfolioPnLReport) -> dict[str, float | s
         "headline_status": headline_status,
         "consistency_status": consistency_status,
         "consistency_reason": report.artifact_consistency_reason or "n/a",
-        "checkpoint_age_seconds": checkpoint_age_seconds if checkpoint_age_seconds is not None else -1.0,
-        "heartbeat_age_seconds": heartbeat_age_seconds if heartbeat_age_seconds is not None else -1.0,
+        "checkpoint_age_seconds": checkpoint_age_seconds
+        if checkpoint_age_seconds is not None
+        else -1.0,
+        "heartbeat_age_seconds": heartbeat_age_seconds
+        if heartbeat_age_seconds is not None
+        else -1.0,
         "checkpoint_age_display": format_age(checkpoint_age_seconds),
         "heartbeat_age_display": format_age(heartbeat_age_seconds),
         "checkpoint_freshness": checkpoint_freshness,

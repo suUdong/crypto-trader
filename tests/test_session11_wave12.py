@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 12: band distance scoring, performance decay."""
+
 from __future__ import annotations
 
 import unittest
@@ -13,13 +14,20 @@ from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Band distance scoring ----------
+
 
 class TestBandDistanceScoring(unittest.TestCase):
     def test_band_distance_in_indicators(self) -> None:
@@ -42,8 +50,11 @@ class TestBandDistanceScoring(unittest.TestCase):
         prices = [100.0] * 25 + [95.0, 94.0, 95.0, 97.0, 100.0]
         candles = _candles(prices)
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=94.0,
-            entry_time=datetime(2025, 1, 2, 1), entry_index=25,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=94.0,
+            entry_time=datetime(2025, 1, 2, 1),
+            entry_index=25,
         )
         strategy = MeanReversionStrategy(
             StrategyConfig(bollinger_window=20, rsi_period=5, max_holding_bars=100),
@@ -51,14 +62,20 @@ class TestBandDistanceScoring(unittest.TestCase):
         signal = strategy.evaluate(candles, pos)
         # Price at 100 is likely at/above middle band, should trigger exit
         if signal.action == SignalAction.SELL:
-            self.assertIn(signal.reason, [
-                "middle_band_target", "bollinger_upper_touch",
-                "mean_reversion_target", "max_holding_period",
-                "rsi_bearish_divergence",
-            ])
+            self.assertIn(
+                signal.reason,
+                [
+                    "middle_band_target",
+                    "bollinger_upper_touch",
+                    "mean_reversion_target",
+                    "max_holding_period",
+                    "rsi_bearish_divergence",
+                ],
+            )
 
 
 # ---------- Performance decay detection ----------
+
 
 class TestPerformanceDecay(unittest.TestCase):
     def test_rolling_win_rate_none_with_few_trades(self) -> None:

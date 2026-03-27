@@ -135,7 +135,7 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         strategy = _make_strategy(
             binance_price=78.0,
             fx_rate=1300.0,
-            rsi_overbought=90.0,   # high threshold so RSI doesn't fire first
+            rsi_overbought=90.0,  # high threshold so RSI doesn't fire first
             max_holding_bars=1000,
         )
         candles = build_candles(_flat_closes(upbit_price))
@@ -197,7 +197,7 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         strategy = _make_strategy(
             binance_price=78.0,
             fx_rate=1300.0,
-            rsi_overbought=30.0,   # very low threshold — rising prices breach it easily
+            rsi_overbought=30.0,  # very low threshold — rising prices breach it easily
             max_holding_bars=1000,
         )
         # Steadily rising prices ensure RSI is high (all gains, no losses → RSI=100)
@@ -213,7 +213,6 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         signal = strategy.evaluate(candles, position)
         self.assertEqual(signal.action, SignalAction.SELL)
         self.assertEqual(signal.reason, "rsi_overbought")
-
 
     # ------------------------------------------------------------------
     # 9. Cooldown blocks re-entry within cooldown_hours
@@ -330,7 +329,6 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         )
         signal2 = strategy.evaluate(candles2, position)
         self.assertEqual(signal2.action, SignalAction.SELL)
-
 
     # ------------------------------------------------------------------
     # 13. Verify hardcoded thresholds: -2% contrarian, 24h default cooldown

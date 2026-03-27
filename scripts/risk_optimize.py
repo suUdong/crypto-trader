@@ -8,18 +8,13 @@ from __future__ import annotations
 
 import itertools
 import json
-import os
 import sys
 import time
+from pathlib import Path
 
-sys.path.insert(0, "src")
-sys.path.insert(0, os.path.dirname(__file__))
-
-from grid_search import (  # noqa: E402
-    SYMBOLS,
-    _approx_sharpe,
-    fetch_candles,
-)
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root / "src"))
+sys.path.insert(0, str(_project_root))
 
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
 from crypto_trader.config import (  # noqa: E402
@@ -31,6 +26,11 @@ from crypto_trader.config import (  # noqa: E402
 from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from crypto_trader.wallet import create_strategy  # noqa: E402
+from scripts.grid_search import (  # noqa: E402
+    SYMBOLS,
+    _approx_sharpe,
+    fetch_candles,
+)
 
 # Best strategy params from grid search (per-symbol best)
 BEST_STRATEGY_PARAMS = {
@@ -234,8 +234,10 @@ def main() -> None:
             if best_risk:
                 best_per_symbol[symbol] = {"risk_params": best_risk, **best_result}
                 print(
-                    f"  {symbol}: stop={best_risk['stop_loss_pct']:.0%} tp={best_risk['take_profit_pct']:.0%} "
-                    f"trail={best_risk['trailing_stop_pct']:.0%} | sharpe={best_result['sharpe']:.2f} "
+                    f"  {symbol}: stop={best_risk['stop_loss_pct']:.0%} "
+                    f"tp={best_risk['take_profit_pct']:.0%} "
+                    f"trail={best_risk['trailing_stop_pct']:.0%} | "
+                    f"sharpe={best_result['sharpe']:.2f} "
                     f"ret={best_result['return_pct']:+.2f}% wr={best_result['win_rate']:.1f}%"
                 )
 
@@ -251,7 +253,8 @@ def main() -> None:
         for sym, data in syms.items():
             rp = data["risk_params"]
             print(
-                f"    {sym}: stop={rp['stop_loss_pct']} tp={rp['take_profit_pct']} trail={rp['trailing_stop_pct']} "
+                f"    {sym}: stop={rp['stop_loss_pct']} tp={rp['take_profit_pct']} "
+                f"trail={rp['trailing_stop_pct']} "
                 f"| sharpe={data['sharpe']:.2f} ret={data['return_pct']:+.2f}%"
             )
 

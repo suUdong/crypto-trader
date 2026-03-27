@@ -109,26 +109,18 @@ class MacroRegimeAdapter:
         if snapshot.fear_greed_index is not None:
             if snapshot.fear_greed_index >= 80:
                 adjustment -= 0.1
-                reasons.append(
-                    f"extreme greed (F&G={snapshot.fear_greed_index}) -> -0.1"
-                )
+                reasons.append(f"extreme greed (F&G={snapshot.fear_greed_index}) -> -0.1")
             elif snapshot.fear_greed_index <= 20:
                 adjustment -= 0.1
-                reasons.append(
-                    f"extreme fear (F&G={snapshot.fear_greed_index}) -> -0.1"
-                )
+                reasons.append(f"extreme fear (F&G={snapshot.fear_greed_index}) -> -0.1")
 
         if snapshot.kimchi_premium is not None and snapshot.kimchi_premium > 5.0:
             adjustment -= 0.15
-            reasons.append(
-                f"high kimchi premium ({snapshot.kimchi_premium:.1f}%) -> -0.15"
-            )
+            reasons.append(f"high kimchi premium ({snapshot.kimchi_premium:.1f}%) -> -0.15")
 
         if snapshot.btc_dominance is not None and snapshot.btc_dominance > 65.0:
             adjustment -= 0.1
-            reasons.append(
-                f"high BTC dominance ({snapshot.btc_dominance:.1f}%) -> -0.1 (risk-off)"
-            )
+            reasons.append(f"high BTC dominance ({snapshot.btc_dominance:.1f}%) -> -0.1 (risk-off)")
 
         final = max(self.MIN_MULTIPLIER, min(self.MAX_MULTIPLIER, base + adjustment))
 

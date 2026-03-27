@@ -1,4 +1,5 @@
 """Tests for trailing stop and ATR-based dynamic stop/take-profit."""
+
 from __future__ import annotations
 
 import unittest
@@ -168,19 +169,29 @@ class TestBacktestWithTrailingStop(unittest.TestCase):
     def test_backtest_runs_with_trailing_stop(self) -> None:
         """Backtest completes without error when trailing stop is enabled."""
         import math
+
         closes = [100_000.0 + 5000 * math.sin(i * 0.15) for i in range(300)]
         candles = []
         base = datetime(2025, 1, 1)
         for i, c in enumerate(closes):
             prev = closes[i - 1] if i > 0 else c
-            candles.append(Candle(
-                timestamp=base + timedelta(hours=i),
-                open=prev, high=c * 1.02, low=c * 0.98,
-                close=c, volume=1000.0,
-            ))
-        strategy = create_strategy("mean_reversion", StrategyConfig(bollinger_stddev=1.5), RegimeConfig())
+            candles.append(
+                Candle(
+                    timestamp=base + timedelta(hours=i),
+                    open=prev,
+                    high=c * 1.02,
+                    low=c * 0.98,
+                    close=c,
+                    volume=1000.0,
+                )
+            )
+        strategy = create_strategy(
+            "mean_reversion", StrategyConfig(bollinger_stddev=1.5), RegimeConfig()
+        )
         rm = RiskManager(RiskConfig(), trailing_stop_pct=0.03)
-        engine = BacktestEngine(strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC")
+        engine = BacktestEngine(
+            strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC"
+        )
         result = engine.run(candles)
         self.assertIsInstance(result.total_return_pct, float)
         self.assertGreaterEqual(len(result.equity_curve), 2)
@@ -188,19 +199,29 @@ class TestBacktestWithTrailingStop(unittest.TestCase):
     def test_backtest_runs_with_atr_stops(self) -> None:
         """Backtest completes with ATR-based dynamic stops."""
         import math
+
         closes = [100_000.0 + 5000 * math.sin(i * 0.15) for i in range(300)]
         candles = []
         base = datetime(2025, 1, 1)
         for i, c in enumerate(closes):
             prev = closes[i - 1] if i > 0 else c
-            candles.append(Candle(
-                timestamp=base + timedelta(hours=i),
-                open=prev, high=c * 1.02, low=c * 0.98,
-                close=c, volume=1000.0,
-            ))
-        strategy = create_strategy("mean_reversion", StrategyConfig(bollinger_stddev=1.5), RegimeConfig())
+            candles.append(
+                Candle(
+                    timestamp=base + timedelta(hours=i),
+                    open=prev,
+                    high=c * 1.02,
+                    low=c * 0.98,
+                    close=c,
+                    volume=1000.0,
+                )
+            )
+        strategy = create_strategy(
+            "mean_reversion", StrategyConfig(bollinger_stddev=1.5), RegimeConfig()
+        )
         rm = RiskManager(RiskConfig(), atr_stop_multiplier=2.0)
-        engine = BacktestEngine(strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC")
+        engine = BacktestEngine(
+            strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC"
+        )
         result = engine.run(candles)
         self.assertIsInstance(result.total_return_pct, float)
 
@@ -209,21 +230,31 @@ class TestRegimeAwareBacktest(unittest.TestCase):
     def test_regime_aware_backtest_runs(self) -> None:
         """Backtest with regime_aware=True completes without error."""
         import math
+
         closes = [100_000.0 + 5000 * math.sin(i * 0.15) for i in range(300)]
         candles = []
         base = datetime(2025, 1, 1)
         for i, c in enumerate(closes):
             prev = closes[i - 1] if i > 0 else c
-            candles.append(Candle(
-                timestamp=base + timedelta(hours=i),
-                open=prev, high=c * 1.02, low=c * 0.98,
-                close=c, volume=1000.0,
-            ))
-        strategy = create_strategy("mean_reversion", StrategyConfig(bollinger_stddev=1.5), RegimeConfig())
+            candles.append(
+                Candle(
+                    timestamp=base + timedelta(hours=i),
+                    open=prev,
+                    high=c * 1.02,
+                    low=c * 0.98,
+                    close=c,
+                    volume=1000.0,
+                )
+            )
+        strategy = create_strategy(
+            "mean_reversion", StrategyConfig(bollinger_stddev=1.5), RegimeConfig()
+        )
         rm = RiskManager(RiskConfig())
         engine = BacktestEngine(
-            strategy=strategy, risk_manager=rm,
-            config=BacktestConfig(), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=rm,
+            config=BacktestConfig(),
+            symbol="KRW-BTC",
             regime_aware=True,
         )
         result = engine.run(candles)
@@ -232,41 +263,60 @@ class TestRegimeAwareBacktest(unittest.TestCase):
     def test_regime_aware_differs_from_default(self) -> None:
         """Regime-aware backtest should produce different results than default."""
         # Trend up then down — will hit different regimes
-        closes = ([100_000.0 + i * 1000 for i in range(150)]
-                  + [250_000.0 - i * 1000 for i in range(150)])
+        closes = [100_000.0 + i * 1000 for i in range(150)] + [
+            250_000.0 - i * 1000 for i in range(150)
+        ]
         candles = []
         base = datetime(2025, 1, 1)
         for i, c in enumerate(closes):
             prev = closes[i - 1] if i > 0 else c
-            candles.append(Candle(
-                timestamp=base + timedelta(hours=i),
-                open=prev, high=c * 1.02, low=c * 0.98,
-                close=c, volume=1000.0,
-            ))
-        config = StrategyConfig(bollinger_stddev=1.5, momentum_lookback=10, momentum_entry_threshold=0.003)
+            candles.append(
+                Candle(
+                    timestamp=base + timedelta(hours=i),
+                    open=prev,
+                    high=c * 1.02,
+                    low=c * 0.98,
+                    close=c,
+                    volume=1000.0,
+                )
+            )
+        config = StrategyConfig(
+            bollinger_stddev=1.5, momentum_lookback=10, momentum_entry_threshold=0.003
+        )
         regime = RegimeConfig()
 
         # Without regime-aware
         s1 = create_strategy("mean_reversion", config, regime)
         rm1 = RiskManager(RiskConfig())
-        e1 = BacktestEngine(strategy=s1, risk_manager=rm1, config=BacktestConfig(), symbol="KRW-BTC")
+        e1 = BacktestEngine(
+            strategy=s1, risk_manager=rm1, config=BacktestConfig(), symbol="KRW-BTC"
+        )
         r1 = e1.run(candles)
 
         # With regime-aware
         s2 = create_strategy("mean_reversion", config, regime)
         rm2 = RiskManager(RiskConfig())
-        e2 = BacktestEngine(strategy=s2, risk_manager=rm2, config=BacktestConfig(), symbol="KRW-BTC", regime_aware=True)
+        e2 = BacktestEngine(
+            strategy=s2,
+            risk_manager=rm2,
+            config=BacktestConfig(),
+            symbol="KRW-BTC",
+            regime_aware=True,
+        )
         r2 = e2.run(candles)
 
         # Results should differ due to different position sizing
         if len(r1.trade_log) > 0 and len(r2.trade_log) > 0:
-            different = (r1.total_return_pct != r2.total_return_pct) or (r1.final_equity != r2.final_equity)
+            different = (r1.total_return_pct != r2.total_return_pct) or (
+                r1.final_equity != r2.final_equity
+            )
             self.assertTrue(different)
 
 
 class TestRiskGridExpanded(unittest.TestCase):
     def test_risk_grid_has_trailing_and_atr(self) -> None:
         from scripts.auto_tune import RISK_GRID
+
         self.assertIn("trailing_stop_pct", RISK_GRID)
         self.assertIn("atr_stop_multiplier", RISK_GRID)
         self.assertIn(0.0, RISK_GRID["trailing_stop_pct"])  # disabled option
@@ -276,16 +326,20 @@ class TestRiskGridExpanded(unittest.TestCase):
         """Verify auto_tune backtest runner works with trailing + ATR params."""
         from scripts.auto_tune import _run_single_backtest
         from tests.test_grid_search import _build_candles, _sideways
+
         candles = _build_candles(_sideways(200))
         result = _run_single_backtest(
             "mean_reversion",
             {"bollinger_window": 20, "bollinger_stddev": 1.5},
             {
-                "stop_loss_pct": 0.03, "take_profit_pct": 0.06,
+                "stop_loss_pct": 0.03,
+                "take_profit_pct": 0.06,
                 "risk_per_trade_pct": 0.01,
-                "trailing_stop_pct": 0.03, "atr_stop_multiplier": 2.0,
+                "trailing_stop_pct": 0.03,
+                "atr_stop_multiplier": 2.0,
             },
-            candles, "KRW-BTC",
+            candles,
+            "KRW-BTC",
         )
         self.assertIn("return_pct", result)
         self.assertIsInstance(result["return_pct"], float)

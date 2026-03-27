@@ -1,4 +1,5 @@
 """Tests for performance report helpers."""
+
 from __future__ import annotations
 
 import json
@@ -92,6 +93,7 @@ def _write_heartbeat(
 class TestGenerateReport(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
+
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         self.checkpoint = self.tmp / "runtime-checkpoint.json"
@@ -140,17 +142,22 @@ class TestGenerateReport(unittest.TestCase):
     def test_report_warns_when_artifacts_are_stale(self) -> None:
         stale_ts = "2026-03-20T00:00:00+00:00"
         _write_checkpoint(self.checkpoint, generated_at=stale_ts)
-        self.heartbeat.write_text(json.dumps({
-            "last_heartbeat": stale_ts,
-            "pid": 1234,
-            "iteration": 50,
-            "uptime_seconds": 120.0,
-            "poll_interval_seconds": 60,
-            "session_id": "session-123",
-            "config_path": "config/test.toml",
-            "symbols": ["KRW-BTC", "KRW-ETH"],
-            "wallet_names": ["momentum_wallet", "mean_reversion_wallet", "obi_wallet"],
-        }), encoding="utf-8")
+        self.heartbeat.write_text(
+            json.dumps(
+                {
+                    "last_heartbeat": stale_ts,
+                    "pid": 1234,
+                    "iteration": 50,
+                    "uptime_seconds": 120.0,
+                    "poll_interval_seconds": 60,
+                    "session_id": "session-123",
+                    "config_path": "config/test.toml",
+                    "symbols": ["KRW-BTC", "KRW-ETH"],
+                    "wallet_names": ["momentum_wallet", "mean_reversion_wallet", "obi_wallet"],
+                }
+            ),
+            encoding="utf-8",
+        )
         md = generate_performance_report(self.checkpoint, self.journal)
         self.assertIn("WARNING (stale_artifacts)", md)
         self.assertIn("Freshness status | stale_artifacts |", md)
@@ -159,6 +166,7 @@ class TestGenerateReport(unittest.TestCase):
 class TestComputePaperDays(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
+
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
 
@@ -193,6 +201,7 @@ class TestComputePaperDays(unittest.TestCase):
 class TestComputeProfitFactor(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
+
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
 
@@ -232,6 +241,7 @@ class TestComputeProfitFactor(unittest.TestCase):
 class TestMicroLiveReadinessSection(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
+
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         self.checkpoint = self.tmp / "runtime-checkpoint.json"
@@ -242,6 +252,7 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
 
     def _make_report(self) -> object:
         from crypto_trader.operator.pnl_report import PnLReportGenerator
+
         _write_checkpoint(self.checkpoint)
         _write_journal(self.journal)
         gen = PnLReportGenerator()
@@ -262,6 +273,7 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
         trades = [{"wallet": "momentum_wallet", "pnl": 100, "timestamp": ts_now}]
         self.journal.write_text(json.dumps(trades[0]), encoding="utf-8")
         from crypto_trader.operator.pnl_report import PnLReportGenerator
+
         gen = PnLReportGenerator()
         report = gen.generate_from_checkpoint(self.checkpoint, self.journal, period="72h")
         section = build_readiness_section(report, self.checkpoint, self.journal)
@@ -279,18 +291,36 @@ class TestMicroLiveReadinessSection(unittest.TestCase):
             period="72h",
             strategies=[
                 StrategyPnLMetrics(
-                    strategy="momentum", wallet="momentum_wallet",
-                    total_return_pct=5.0, realized_pnl=50000,
-                    unrealized_pnl=0, trade_count=15, win_count=9, loss_count=6,
-                    win_rate=0.6, profit_factor=1.5, max_drawdown_pct=0.0,
-                    sharpe_ratio=1.2, equity=1_050_000, initial_capital=1_000_000,
+                    strategy="momentum",
+                    wallet="momentum_wallet",
+                    total_return_pct=5.0,
+                    realized_pnl=50000,
+                    unrealized_pnl=0,
+                    trade_count=15,
+                    win_count=9,
+                    loss_count=6,
+                    win_rate=0.6,
+                    profit_factor=1.5,
+                    max_drawdown_pct=0.0,
+                    sharpe_ratio=1.2,
+                    equity=1_050_000,
+                    initial_capital=1_000_000,
                 ),
                 StrategyPnLMetrics(
-                    strategy="mean_reversion", wallet="mean_reversion_wallet",
-                    total_return_pct=3.0, realized_pnl=30000,
-                    unrealized_pnl=0, trade_count=10, win_count=6, loss_count=4,
-                    win_rate=0.6, profit_factor=1.5, max_drawdown_pct=0.0,
-                    sharpe_ratio=1.0, equity=1_030_000, initial_capital=1_000_000,
+                    strategy="mean_reversion",
+                    wallet="mean_reversion_wallet",
+                    total_return_pct=3.0,
+                    realized_pnl=30000,
+                    unrealized_pnl=0,
+                    trade_count=10,
+                    win_count=6,
+                    loss_count=4,
+                    win_rate=0.6,
+                    profit_factor=1.5,
+                    max_drawdown_pct=0.0,
+                    sharpe_ratio=1.0,
+                    equity=1_030_000,
+                    initial_capital=1_000_000,
                 ),
             ],
             portfolio_return_pct=4.0,

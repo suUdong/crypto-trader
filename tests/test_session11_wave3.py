@@ -1,15 +1,15 @@
 """Tests for Session #11 Wave 3: EMA crossover strategy, MACD vol breakout."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
-from crypto_trader.config import StrategyConfig
+from crypto_trader.config import RegimeConfig, StrategyConfig
 from crypto_trader.models import Candle, Position, SignalAction
 from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.wallet import create_strategy
-from crypto_trader.config import RegimeConfig
 
 
 def _candles(closes: list[float], start: datetime | None = None) -> list[Candle]:
@@ -28,6 +28,7 @@ def _candles(closes: list[float], start: datetime | None = None) -> list[Candle]
 
 
 # ---------- EMA Crossover Strategy ----------
+
 
 class TestEMACrossoverStrategy(unittest.TestCase):
     def test_hold_on_insufficient_data(self) -> None:
@@ -62,8 +63,11 @@ class TestEMACrossoverStrategy(unittest.TestCase):
         prices = [100.0 + i * 2.0 for i in range(25)] + [148.0 - i * 3.0 for i in range(25)]
         candles = _candles(prices)
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=120.0,
-            entry_time=datetime(2025, 1, 1), entry_index=10,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=120.0,
+            entry_time=datetime(2025, 1, 1),
+            entry_index=10,
         )
         strategy = EMACrossoverStrategy(StrategyConfig(rsi_period=5))
         signal = strategy.evaluate(candles, pos)
@@ -75,8 +79,11 @@ class TestEMACrossoverStrategy(unittest.TestCase):
         prices = [100.0] * 60
         candles = _candles(prices)
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
-            entry_time=datetime(2025, 1, 1), entry_index=0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
+            entry_time=datetime(2025, 1, 1),
+            entry_index=0,
         )
         strategy = EMACrossoverStrategy(StrategyConfig(rsi_period=5, max_holding_bars=48))
         signal = strategy.evaluate(candles, pos)
@@ -100,6 +107,7 @@ class TestEMACrossoverStrategy(unittest.TestCase):
 
 # ---------- EMA Crossover registration ----------
 
+
 class TestEMACrossoverRegistration(unittest.TestCase):
     def test_create_strategy_ema_crossover(self) -> None:
         """create_strategy should return EMACrossoverStrategy for 'ema_crossover'."""
@@ -108,7 +116,6 @@ class TestEMACrossoverRegistration(unittest.TestCase):
 
     def test_backtest_all_includes_ema_crossover(self) -> None:
         """ema_crossover should be in the backtest-all strategy list."""
-        from crypto_trader.cli import main
         # Just verify the strategy is importable and constructable
         strategy = EMACrossoverStrategy(StrategyConfig())
         candles = _candles([100.0] * 30)
@@ -117,6 +124,7 @@ class TestEMACrossoverRegistration(unittest.TestCase):
 
 
 # ---------- Vol breakout MACD ----------
+
 
 class TestVolBreakoutMACD(unittest.TestCase):
     def test_macd_histogram_in_indicators(self) -> None:

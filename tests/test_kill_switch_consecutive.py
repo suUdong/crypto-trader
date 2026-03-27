@@ -1,4 +1,5 @@
 """Tests for consecutive losses detection in KillSwitch (US-022)."""
+
 from __future__ import annotations
 
 import unittest

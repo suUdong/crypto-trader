@@ -138,15 +138,11 @@ class MomentumPullbackStrategy:
         pullback_zone = latest_close <= middle_band * 1.03 and latest_close >= lower_band * 0.97
         above_structure = latest_close >= ema50 * 0.995
         vwap_discount = (
-            vwap_value is None
-            or latest_close <= vwap_value * 1.02
-            or pullback_depth >= 0.015
+            vwap_value is None or latest_close <= vwap_value * 1.02 or pullback_depth >= 0.015
         )
         pullback_reset = effective.rsi_oversold_floor <= rsi_value <= pullback_rsi_ceiling
         pullback_depth_ok = (
-            max(0.008, effective.momentum_entry_threshold * 1.5)
-            <= pullback_depth
-            <= 0.08
+            max(0.008, effective.momentum_entry_threshold * 1.5) <= pullback_depth <= 0.08
         )
         recent_pullback_low = min(closes[-3:])
         orderly_pullback = (

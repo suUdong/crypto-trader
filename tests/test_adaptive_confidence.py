@@ -1,4 +1,5 @@
 """Tests for RiskManager.effective_min_confidence adaptive threshold."""
+
 from __future__ import annotations
 
 import pytest

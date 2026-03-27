@@ -1,12 +1,13 @@
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 from crypto_trader.backtest.baseline import BacktestBaselineStore, build_baseline
-from crypto_trader.capital_allocator import CapitalAllocator
 from crypto_trader.backtest.engine import BacktestEngine
+from crypto_trader.capital_allocator import CapitalAllocator
 from crypto_trader.config import load_config
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
 from crypto_trader.execution.paper import PaperBroker
@@ -14,15 +15,19 @@ from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
+from crypto_trader.operator.artifact_health import summarize_artifact_health
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.drift import DriftReportGenerator
-from crypto_trader.operator.artifact_health import summarize_artifact_health
 from crypto_trader.operator.gate_progress import generate_gate_progress_report
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradingOperations
 from crypto_trader.operator.performance_report import generate_performance_report
 from crypto_trader.operator.pnl_report import PnLReportGenerator
-from crypto_trader.operator.promotion import MicroLiveCriteria, PortfolioPromotionGate, PromotionGate
+from crypto_trader.operator.promotion import (
+    MicroLiveCriteria,
+    PortfolioPromotionGate,
+    PromotionGate,
+)
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
@@ -32,7 +37,6 @@ from crypto_trader.operator.verdicts import StrategyVerdictEngine
 from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.runtime import TradingRuntime
-from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.wallet import build_wallets, create_strategy
 
 
@@ -84,8 +88,15 @@ def main() -> None:
     parser.add_argument(
         "--strategy",
         choices=[
-            "momentum", "momentum_pullback", "mean_reversion", "composite",
-            "kimchi_premium", "obi", "vpin", "volatility_breakout", "ema_crossover",
+            "momentum",
+            "momentum_pullback",
+            "mean_reversion",
+            "composite",
+            "kimchi_premium",
+            "obi",
+            "vpin",
+            "volatility_breakout",
+            "ema_crossover",
             "consensus",
         ],
         default="composite",
@@ -111,8 +122,18 @@ def main() -> None:
         help="Number of top grid search candidates to validate (default: 5)",
     )
     parser.add_argument("--wallet", default=None, help="Target wallet name for apply-params")
-    parser.add_argument("--regime", choices=["bull", "bear", "sideways"], default=None, help="Filter candles by market regime for grid-wf")
-    parser.add_argument("--output-dir", default=None, dest="output_dir", help="Output directory for snapshot artifacts")
+    parser.add_argument(
+        "--regime",
+        choices=["bull", "bear", "sideways"],
+        default=None,
+        help="Filter candles by market regime for grid-wf",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        dest="output_dir",
+        help="Output directory for snapshot artifacts",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -145,6 +166,7 @@ def main() -> None:
         )
         # Export equity curve
         import json
+
         artifacts_dir = Path("artifacts")
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         curve_data = {
@@ -263,7 +285,10 @@ def main() -> None:
         print(f"Status : {d.status.value}")
         print(f"Drift  : {d.drift_status.value}")
         print(f"Runs   : {d.observed_paper_runs}/{d.minimum_paper_runs_required} required")
-        print(f"Return : backtest={d.backtest_total_return_pct:.2%}  paper_pnl={d.paper_realized_pnl_pct:.2%}")
+        print(
+            f"Return : backtest={d.backtest_total_return_pct:.2%}  "
+            f"paper_pnl={d.paper_realized_pnl_pct:.2%}"
+        )
         print()
         for reason in d.reasons:
             is_pass = d.status.value == "candidate_for_promotion"
@@ -300,17 +325,21 @@ def main() -> None:
 
     if args.command == "pnl-history":
         from crypto_trader.operator.pnl_report import PnLSnapshotStore
+
         snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
         store = PnLSnapshotStore(snapshot_path)
         history = store.load_history()
         if not history:
             print("No PnL snapshots found. Run pnl-report first to accumulate history.")
             return
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("  PnL HISTORY — Trending Performance")
-        print(f"{'='*80}\n")
-        print(f"  {'Date':<22} {'Equity':>14} {'Return%':>9} {'Realized':>12} {'Delta':>10} {'Trades':>7}")
-        print(f"  {'-'*76}")
+        print(f"{'=' * 80}\n")
+        print(
+            f"  {'Date':<22} {'Equity':>14} {'Return%':>9} {'Realized':>12} "
+            f"{'Delta':>10} {'Trades':>7}"
+        )
+        print(f"  {'-' * 76}")
         prev_equity = None
         for entry in history:
             ts = entry.get("timestamp", "?")[:19]
@@ -320,15 +349,20 @@ def main() -> None:
             trades = entry.get("total_trades", 0)
             delta = equity - prev_equity if prev_equity is not None else 0
             delta_str = f"{delta:+,.0f}" if prev_equity is not None else "-"
-            print(f"  {ts:<22} {equity:>13,.0f} {ret:>+8.3f}% {realized:>+11,.0f} {delta_str:>10} {trades:>7}")
+            print(
+                f"  {ts:<22} {equity:>13,.0f} {ret:>+8.3f}% "
+                f"{realized:>+11,.0f} {delta_str:>10} {trades:>7}"
+            )
             prev_equity = equity
         print(f"\n  Snapshots: {len(history)}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
         return
 
     if args.command == "snapshot":
         import sys
+
         from crypto_trader.operator.pnl_report import PnLSnapshotStore
+
         generator = PnLReportGenerator()
         period = f"{args.hours}h" if args.hours > 0 else "daily"
         output_dir = Path(getattr(args, "output_dir", None) or "artifacts")
@@ -344,7 +378,9 @@ def main() -> None:
             output_path = output_dir / "pnl-report.md"
             generator.save(report, output_path)
             # Append to snapshot history
-            snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
+            snapshot_path = (
+                Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
+            )
             store = PnLSnapshotStore(snapshot_path)
             store.append(report)
             # JSON summary on stdout for cron consumption
@@ -404,32 +440,39 @@ def main() -> None:
                 (
                     "Paper days",
                     metrics.get("paper_days", 0) >= MicroLiveCriteria.MINIMUM_PAPER_DAYS,
-                    f"{metrics.get('paper_days', 0)}d / {MicroLiveCriteria.MINIMUM_PAPER_DAYS}d required",
+                    f"{metrics.get('paper_days', 0)}d / "
+                    f"{MicroLiveCriteria.MINIMUM_PAPER_DAYS}d required",
                 ),
                 (
                     "Trade count",
                     metrics.get("total_trades", 0) >= MicroLiveCriteria.MINIMUM_TRADES,
-                    f"{metrics.get('total_trades', 0)} / {MicroLiveCriteria.MINIMUM_TRADES} required",
+                    f"{metrics.get('total_trades', 0)} / "
+                    f"{MicroLiveCriteria.MINIMUM_TRADES} required",
                 ),
                 (
                     "Win rate",
                     metrics.get("win_rate", 0.0) >= MicroLiveCriteria.MINIMUM_WIN_RATE,
-                    f"{metrics.get('win_rate', 0.0):.1%} / {MicroLiveCriteria.MINIMUM_WIN_RATE:.0%} required",
+                    f"{metrics.get('win_rate', 0.0):.1%} / "
+                    f"{MicroLiveCriteria.MINIMUM_WIN_RATE:.0%} required",
                 ),
                 (
                     "Max drawdown",
                     metrics.get("max_drawdown", 1.0) <= MicroLiveCriteria.MAXIMUM_DRAWDOWN,
-                    f"{metrics.get('max_drawdown', 0.0):.1%} / {MicroLiveCriteria.MAXIMUM_DRAWDOWN:.0%} limit",
+                    f"{metrics.get('max_drawdown', 0.0):.1%} / "
+                    f"{MicroLiveCriteria.MAXIMUM_DRAWDOWN:.0%} limit",
                 ),
                 (
                     "Profit factor",
                     metrics.get("profit_factor", 0.0) >= MicroLiveCriteria.MINIMUM_PROFIT_FACTOR,
-                    f"{metrics.get('profit_factor', 0.0):.2f} / {MicroLiveCriteria.MINIMUM_PROFIT_FACTOR:.1f} required",
+                    f"{metrics.get('profit_factor', 0.0):.2f} / "
+                    f"{MicroLiveCriteria.MINIMUM_PROFIT_FACTOR:.1f} required",
                 ),
                 (
                     "Positive strategies",
-                    metrics.get("positive_strategies", 0) >= MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES,
-                    f"{metrics.get('positive_strategies', 0)} / {MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES} required",
+                    metrics.get("positive_strategies", 0)
+                    >= MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES,
+                    f"{metrics.get('positive_strategies', 0)} / "
+                    f"{MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES} required",
                 ),
             ]
             for label, passed, detail in criteria_checks:
@@ -452,15 +495,18 @@ def main() -> None:
         result = allocator.allocate(performances, total_capital)
         report_path = "artifacts/capital-allocation.json"
         allocator.save_report(result, report_path)
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("  CAPITAL REBALANCE — Concentrate on Top Performers")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"\n  {'Rank':<5} {'Strategy':<22} {'Score':>7} {'Weight':>8} {'Capital':>14}")
-        print(f"  {'-'*58}")
+        print(f"  {'-' * 58}")
         for a in result.allocations:
-            print(f"  #{a.rank:<4} {a.strategy:<22} {a.score:>6.3f} {a.weight:>7.1%} {a.capital:>13,.0f}")
+            print(
+                f"  #{a.rank:<4} {a.strategy:<22} {a.score:>6.3f} "
+                f"{a.weight:>7.1%} {a.capital:>13,.0f}"
+            )
         print(f"\n  Concentration (HHI): {result.concentration_ratio:.4f}")
-        print(f"  TOML wallets:\n")
+        print("  TOML wallets:\n")
         print(allocator.to_toml_wallets(result.allocations))
         print(f"\n  Report saved to {report_path}")
         return
@@ -493,14 +539,16 @@ def main() -> None:
             train_pct=0.7,
         )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  WALK-FORWARD VALIDATION — {strategy_type} ({days}d)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         all_passed = True
         for sym, candles in candles_map.items():
+
             def _factory(s=sym, cs=candles):
                 from unittest.mock import MagicMock
+
                 strat = create_strategy(strategy_type, config.strategy, config.regime)
                 if strategy_type == "kimchi_premium":
                     # Simulate premium using MA deviation
@@ -535,10 +583,10 @@ def main() -> None:
             print(f"    OOS Win Rate:     {summary['oos_win_rate']:.1%}")
             print(f"    Status:           [{status}]")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         overall = "PASS" if all_passed else "FAIL"
         print(f"  Overall: [{overall}]")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
         return
 
     if args.command == "grid-wf":
@@ -563,9 +611,9 @@ def main() -> None:
             print("No candle data available for grid-wf.")
             return
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  GRID-WF: {strategy_type} ({days}d, top-{top_n})")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         summary = run_grid_wf(
             strategy_type=strategy_type,
@@ -579,13 +627,18 @@ def main() -> None:
         print(f"\n  Candidates tested: {summary.candidates_tested}")
         print(f"  Candidates validated (WF pass): {summary.candidates_validated}")
 
-        print(f"\n  {'Rank':<5} {'Sharpe':>8} {'Sortino':>8} {'Return%':>9} {'Trades':>7} {'WF':>6} {'EffR':>7} {'OOS WR':>7}")
-        print(f"  {'-'*58}")
+        print(
+            f"\n  {'Rank':<5} {'Sharpe':>8} {'Sortino':>8} {'Return%':>9} "
+            f"{'Trades':>7} {'WF':>6} {'EffR':>7} {'OOS WR':>7}"
+        )
+        print(f"  {'-' * 58}")
         for i, r in enumerate(summary.results, 1):
             wf_status = "PASS" if r.validated else "FAIL"
             eff_r = r.wf_report.avg_efficiency_ratio
             oos_wr = r.wf_report.oos_win_rate
-            sortino_val = r.candidate.avg_sortino if r.candidate.avg_sortino != float("inf") else 999.0
+            sortino_val = (
+                r.candidate.avg_sortino if r.candidate.avg_sortino != float("inf") else 999.0
+            )
             print(
                 f"  #{i:<4} {r.candidate.avg_sharpe:>7.2f} "
                 f"{sortino_val:>7.2f} "
@@ -599,17 +652,20 @@ def main() -> None:
 
         best = summary.best_validated
         if best:
-            print(f"\n  BEST VALIDATED: Sharpe={best.candidate.avg_sharpe:.2f} "
-                  f"Return={best.candidate.avg_return_pct:+.2f}%")
+            print(
+                f"\n  BEST VALIDATED: Sharpe={best.candidate.avg_sharpe:.2f} "
+                f"Return={best.candidate.avg_return_pct:+.2f}%"
+            )
             print(f"  Params: {best.candidate.params}")
         else:
             print("\n  No candidates passed walk-forward validation.")
 
-        print(f"\n{'='*60}\n")
+        print(f"\n{'=' * 60}\n")
 
         # Save results to JSON
         import json
         from datetime import date
+
         artifacts_dir = Path("artifacts")
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         export_path = artifacts_dir / f"grid-wf-{strategy_type}-{date.today().isoformat()}.json"
@@ -637,14 +693,14 @@ def main() -> None:
 
         corr = signal_correlation(strategies, candles, strategy_types)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("  STRATEGY SIGNAL CORRELATION MATRIX")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # Print header
         header = f"  {'':>20}" + "".join(f"{s:>14}" for s in strategy_types)
         print(header)
-        print(f"  {'-'*(20 + 14*len(strategy_types))}")
+        print(f"  {'-' * (20 + 14 * len(strategy_types))}")
 
         for sa in strategy_types:
             row = f"  {sa:>20}"
@@ -654,14 +710,14 @@ def main() -> None:
                 row += f"{val:>13.3f} "
             print(row)
 
-        print(f"\n  Correlation > 0.7 = highly redundant (consider removing one)")
-        print(f"  Correlation < 0.3 = good diversification")
-        print(f"{'='*60}\n")
+        print("\n  Correlation > 0.7 = highly redundant (consider removing one)")
+        print("  Correlation < 0.3 = good diversification")
+        print(f"{'=' * 60}\n")
         return
 
     if args.command == "apply-params":
-        import json
         import glob as globmod
+        import json
 
         # Find latest grid-wf JSON
         strategy_type = args.strategy
@@ -696,13 +752,13 @@ def main() -> None:
             print(f"Config file not found: {config_path}")
             return
 
-        toml_text = config_path.read_text(encoding="utf-8")
+        config_path.read_text(encoding="utf-8")
 
         # Find the wallet section and show diff
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  APPLY PARAMS: {strategy_type} -> {wallet_name}")
         print(f"  Source: {latest}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # Show what will change
         target_wallet = None
@@ -716,6 +772,7 @@ def main() -> None:
             return
 
         from crypto_trader.config import _STRATEGY_FIELD_NAMES
+
         strategy_params = {k: v for k, v in best_params.items() if k in _STRATEGY_FIELD_NAMES}
 
         print("  Parameter changes:")
@@ -737,18 +794,32 @@ def main() -> None:
 
         print(f"\n  Params saved to {sidecar_path}")
         print(f"  To apply: manually update [wallets.strategy_overrides] in {config_path}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
         return
 
     if args.command == "backtest-all":
         import json
         from datetime import date
-        from crypto_trader.backtest.grid_wf import _approx_sharpe, _approx_sortino, _approx_calmar, kelly_fraction, bootstrap_return_ci
-        from crypto_trader.strategy.regime import RegimeDetector, MarketRegime
+
+        from crypto_trader.backtest.grid_wf import (
+            _approx_calmar,
+            _approx_sharpe,
+            _approx_sortino,
+            bootstrap_return_ci,
+            kelly_fraction,
+        )
+        from crypto_trader.strategy.regime import RegimeDetector
 
         all_strategies = [
-            "momentum", "momentum_pullback", "mean_reversion", "vpin", "volatility_breakout",
-            "kimchi_premium", "obi", "ema_crossover", "consensus",
+            "momentum",
+            "momentum_pullback",
+            "mean_reversion",
+            "vpin",
+            "volatility_breakout",
+            "kimchi_premium",
+            "obi",
+            "ema_crossover",
+            "consensus",
         ]
         symbols = config.trading.symbols
         results_list: list[dict] = []
@@ -757,7 +828,9 @@ def main() -> None:
         candles_map: dict[str, list] = {}
         for sym in symbols:
             try:
-                c = market_data.get_ohlcv(sym, interval=config.trading.interval, count=config.trading.candle_count)
+                c = market_data.get_ohlcv(
+                    sym, interval=config.trading.interval, count=config.trading.candle_count
+                )
                 if c and len(c) >= 50:
                     candles_map[sym] = c
             except Exception as e:
@@ -767,11 +840,15 @@ def main() -> None:
             print("No candle data available for backtest-all.")
             return
 
-        print(f"\n{'='*90}")
+        print(f"\n{'=' * 90}")
         print(f"  BACKTEST-ALL: {len(all_strategies)} strategies x {len(candles_map)} symbols")
-        print(f"{'='*90}")
-        print(f"\n  {'Strategy':<22} {'Return%':>9} {'Sharpe':>8} {'Sortino':>8} {'Calmar':>8} {'PF':>6} {'MDD%':>7} {'WinR%':>7} {'Trades':>7} {'MCL':>4}")
-        print(f"  {'-'*88}")
+        print(f"{'=' * 90}")
+        print(
+            f"\n  {'Strategy':<22} {'Return%':>9} {'Sharpe':>8} {'Sortino':>8} "
+            f"{'Calmar':>8} {'PF':>6} {'MDD%':>7} {'WinR%':>7} {'Trades':>7} "
+            f"{'MCL':>4}"
+        )
+        print(f"  {'-' * 88}")
 
         for strat_name in all_strategies:
             try:
@@ -840,7 +917,7 @@ def main() -> None:
                                 entry_idx = ci
                                 break
                         if entry_idx is not None and entry_idx >= 31:
-                            r = regime_det.detect(candles[:entry_idx + 1])
+                            r = regime_det.detect(candles[: entry_idx + 1])
                             rkey = r.value
                             regime_totals[rkey] = regime_totals.get(rkey, 0) + 1
                             if trade.pnl > 0:
@@ -879,24 +956,56 @@ def main() -> None:
                     "trade_count": total_trades,
                     "max_consecutive_losses": max_mcl,
                     "max_consecutive_wins": max_mcw,
-                    "avg_trade_duration_bars": round(sum(sym_durations) / n, 1) if sym_durations else 0.0,
+                    "avg_trade_duration_bars": round(sum(sym_durations) / n, 1)
+                    if sym_durations
+                    else 0.0,
                     "max_trade_duration_bars": max_dur,
                     "payoff_ratio": round(sum(sym_payoffs) / n, 3) if sym_payoffs else 0.0,
                     "expected_value_per_trade": round(sum(sym_evs) / n, 2) if sym_evs else 0.0,
                     "recovery_factor": round(sum(sym_recoveries) / n, 3) if sym_recoveries else 0.0,
                     "tail_ratio": round(sum(sym_tails) / n, 3) if sym_tails else 0.0,
-                    "regime_bull_wr": round(regime_wins.get("bull", 0) / max(1, regime_totals.get("bull", 0)) * 100, 1),
-                    "regime_sideways_wr": round(regime_wins.get("sideways", 0) / max(1, regime_totals.get("sideways", 0)) * 100, 1),
-                    "regime_bear_wr": round(regime_wins.get("bear", 0) / max(1, regime_totals.get("bear", 0)) * 100, 1),
+                    "regime_bull_wr": round(
+                        regime_wins.get("bull", 0) / max(1, regime_totals.get("bull", 0)) * 100, 1
+                    ),
+                    "regime_sideways_wr": round(
+                        regime_wins.get("sideways", 0)
+                        / max(1, regime_totals.get("sideways", 0))
+                        * 100,
+                        1,
+                    ),
+                    "regime_bear_wr": round(
+                        regime_wins.get("bear", 0) / max(1, regime_totals.get("bear", 0)) * 100, 1
+                    ),
                     "regime_bull_n": regime_totals.get("bull", 0),
                     "regime_sideways_n": regime_totals.get("sideways", 0),
                     "regime_bear_n": regime_totals.get("bear", 0),
-                    "regime_bull_pf": round(regime_profit.get("bull", 0) / max(0.01, regime_loss.get("bull", 0.01)), 2),
-                    "regime_sideways_pf": round(regime_profit.get("sideways", 0) / max(0.01, regime_loss.get("sideways", 0.01)), 2),
-                    "regime_bear_pf": round(regime_profit.get("bear", 0) / max(0.01, regime_loss.get("bear", 0.01)), 2),
-                    "return_ci_5": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[0] * 100, 3) if all_trade_returns else 0.0,
-                    "return_ci_95": round(bootstrap_return_ci(all_trade_returns, n_samples=500)[1] * 100, 3) if all_trade_returns else 0.0,
-                    "kelly_fraction": round(kelly_fraction(sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0), 4),
+                    "regime_bull_pf": round(
+                        regime_profit.get("bull", 0) / max(0.01, regime_loss.get("bull", 0.01)), 2
+                    ),
+                    "regime_sideways_pf": round(
+                        regime_profit.get("sideways", 0)
+                        / max(0.01, regime_loss.get("sideways", 0.01)),
+                        2,
+                    ),
+                    "regime_bear_pf": round(
+                        regime_profit.get("bear", 0) / max(0.01, regime_loss.get("bear", 0.01)), 2
+                    ),
+                    "return_ci_5": round(
+                        bootstrap_return_ci(all_trade_returns, n_samples=500)[0] * 100, 3
+                    )
+                    if all_trade_returns
+                    else 0.0,
+                    "return_ci_95": round(
+                        bootstrap_return_ci(all_trade_returns, n_samples=500)[1] * 100, 3
+                    )
+                    if all_trade_returns
+                    else 0.0,
+                    "kelly_fraction": round(
+                        kelly_fraction(
+                            sum(sym_wrs) / n / 100, sum(sym_payoffs) / n if sym_payoffs else 0.0
+                        ),
+                        4,
+                    ),
                     "composite_score": round(composite, 3),
                 }
                 results_list.append(row)
@@ -917,11 +1026,11 @@ def main() -> None:
         # Strategy recommendations based on composite score
         if results_list:
             ranked = sorted(results_list, key=lambda r: r.get("composite_score", 0), reverse=True)
-            print(f"\n{'='*90}")
+            print(f"\n{'=' * 90}")
             print("  STRATEGY RANKING (by composite score)")
-            print(f"{'='*90}")
+            print(f"{'=' * 90}")
             print(f"\n  {'Rank':<6} {'Strategy':<22} {'Score':>7} {'Kelly%':>7} {'Action':<20}")
-            print(f"  {'-'*62}")
+            print(f"  {'-' * 62}")
             for i, r in enumerate(ranked, 1):
                 score = r.get("composite_score", 0)
                 kf = r.get("kelly_fraction", 0) * 100
@@ -945,8 +1054,10 @@ def main() -> None:
                         bt_s = create_strategy(strat_name2, config.strategy, config.regime)
                         bt_r = _build_risk_manager(config)
                         eng = BacktestEngine(
-                            strategy=bt_s, risk_manager=bt_r,
-                            config=config.backtest, symbol=sym,
+                            strategy=bt_s,
+                            risk_manager=bt_r,
+                            config=config.backtest,
+                            symbol=sym,
                         )
                         res = eng.run(candle_list)
                         curves.append(res.equity_curve)
@@ -965,6 +1076,7 @@ def main() -> None:
                     min_len = min(len(a), len(b))
                     if min_len >= 20:
                         from crypto_trader.strategy.indicators import rolling_correlation
+
                         corr = rolling_correlation(a[:min_len], b[:min_len], min_len)
                         if corr > 0.8:
                             corr_warnings.append(
@@ -972,13 +1084,13 @@ def main() -> None:
                             )
 
             if corr_warnings:
-                print(f"\n{'='*90}")
+                print(f"\n{'=' * 90}")
                 print("  CORRELATION WARNINGS (r > 0.8 — avoid deploying both)")
-                print(f"{'='*90}")
+                print(f"{'=' * 90}")
                 for w in corr_warnings:
                     print(w)
 
-        print(f"\n{'='*90}\n")
+        print(f"\n{'=' * 90}\n")
 
         # Save results
         artifacts_dir = Path("artifacts")
@@ -997,11 +1109,18 @@ def main() -> None:
     if args.command == "grid-wf-all":
         import json
         from datetime import date
-        from crypto_trader.backtest.grid_wf import run_grid_wf, kelly_fraction, _approx_sortino
+
+        from crypto_trader.backtest.grid_wf import _approx_sortino, kelly_fraction, run_grid_wf
 
         grid_strategies = [
-            "momentum", "momentum_pullback", "mean_reversion", "vpin", "volatility_breakout",
-            "obi", "ema_crossover", "consensus",
+            "momentum",
+            "momentum_pullback",
+            "mean_reversion",
+            "vpin",
+            "volatility_breakout",
+            "obi",
+            "ema_crossover",
+            "consensus",
         ]
         days = args.days
         top_n = args.top_n
@@ -1021,9 +1140,9 @@ def main() -> None:
             print("No candle data available for grid-wf-all.")
             return
 
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"  GRID-WF-ALL: {len(grid_strategies)} strategies ({days}d, top-{top_n})")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         all_summaries: list[dict] = []
 
@@ -1039,13 +1158,18 @@ def main() -> None:
                     regime_filter=args.regime,
                 )
 
-                print(f"  Tested: {summary.candidates_tested}  Validated: {summary.candidates_validated}")
+                print(
+                    f"  Tested: {summary.candidates_tested}  "
+                    f"Validated: {summary.candidates_validated}"
+                )
 
                 best = summary.best_validated
                 if best:
-                    print(f"  BEST: Sharpe={best.candidate.avg_sharpe:.2f} "
-                          f"Sortino={best.candidate.avg_sortino:.2f} "
-                          f"Return={best.candidate.avg_return_pct:+.2f}%")
+                    print(
+                        f"  BEST: Sharpe={best.candidate.avg_sharpe:.2f} "
+                        f"Sortino={best.candidate.avg_sortino:.2f} "
+                        f"Return={best.candidate.avg_return_pct:+.2f}%"
+                    )
                     print(f"  Params: {best.candidate.params}")
                 else:
                     print("  No validated candidate.")
@@ -1057,21 +1181,29 @@ def main() -> None:
                 print(f"  {strat_name}: ERROR — {exc}")
 
         # Combined summary
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print("  GRID-WF-ALL SUMMARY")
-        print(f"{'='*70}")
-        print(f"\n  {'Strategy':<22} {'Validated':>9} {'Best Sharpe':>12} {'Best Sortino':>13} {'Best Return':>12}")
-        print(f"  {'-'*70}")
+        print(f"{'=' * 70}")
+        print(
+            f"\n  {'Strategy':<22} {'Validated':>9} {'Best Sharpe':>12} "
+            f"{'Best Sortino':>13} {'Best Return':>12}"
+        )
+        print(f"  {'-' * 70}")
         for s in all_summaries:
             bv = s.get("best_validated")
             if bv:
-                print(f"  {s['strategy']:<22} {s['candidates_validated']:>9} "
-                      f"{bv['avg_sharpe']:>11.2f} {bv.get('avg_sortino', 0):>12.2f} "
-                      f"{bv['avg_return_pct']:>+11.2f}%")
+                print(
+                    f"  {s['strategy']:<22} {s['candidates_validated']:>9} "
+                    f"{bv['avg_sharpe']:>11.2f} {bv.get('avg_sortino', 0):>12.2f} "
+                    f"{bv['avg_return_pct']:>+11.2f}%"
+                )
             else:
-                print(f"  {s['strategy']:<22} {s['candidates_validated']:>9} {'—':>12} {'—':>13} {'—':>12}")
+                print(
+                    f"  {s['strategy']:<22} {s['candidates_validated']:>9} "
+                    f"{'—':>12} {'—':>13} {'—':>12}"
+                )
 
-        print(f"\n{'='*70}\n")
+        print(f"\n{'=' * 70}\n")
 
         # Save combined results
         artifacts_dir = Path("artifacts")
@@ -1088,7 +1220,11 @@ def main() -> None:
         print(f"  Results saved to {export_path_gw}")
 
         # Auto-generate optimized TOML from best validated params
-        toml_lines = ["# Auto-generated from grid-wf-all", f"# Date: {date.today().isoformat()}", ""]
+        toml_lines = [
+            "# Auto-generated from grid-wf-all",
+            f"# Date: {date.today().isoformat()}",
+            "",
+        ]
         total_kelly = 0.0
         validated_strats: list[dict] = []
         for s in all_summaries:
@@ -1097,20 +1233,24 @@ def main() -> None:
                 wr = 0.5  # default
                 pr = bv.get("avg_profit_factor", 1.0)
                 kf = kelly_fraction(wr, pr)
-                validated_strats.append({"strategy": s["strategy"], "params": bv["params"], "kelly": kf})
+                validated_strats.append(
+                    {"strategy": s["strategy"], "params": bv["params"], "kelly": kf}
+                )
                 total_kelly += kf
 
         if validated_strats:
             base_capital = 1_000_000.0
             for vs in validated_strats:
-                weight = vs["kelly"] / total_kelly if total_kelly > 0 else 1.0 / len(validated_strats)
+                weight = (
+                    vs["kelly"] / total_kelly if total_kelly > 0 else 1.0 / len(validated_strats)
+                )
                 capital = round(base_capital * weight, 0)
                 toml_lines.append("[[wallets]]")
                 toml_lines.append(f'name = "{vs["strategy"]}_optimized"')
                 toml_lines.append(f'strategy = "{vs["strategy"]}"')
                 toml_lines.append(f"initial_capital = {capital:.0f}")
                 toml_lines.append("")
-                toml_lines.append(f"[wallets.strategy_overrides]")
+                toml_lines.append("[wallets.strategy_overrides]")
                 for pk, pv in vs["params"].items():
                     if isinstance(pv, str):
                         toml_lines.append(f'{pk} = "{pv}"')
@@ -1124,8 +1264,8 @@ def main() -> None:
         return
 
     if args.command == "strategy-dashboard":
-        import json
         import glob as globmod
+        import json
 
         # Find latest backtest-all JSON
         pattern = "artifacts/backtest-all-*.json"
@@ -1142,15 +1282,19 @@ def main() -> None:
             print("No strategy results in latest backtest-all.")
             return
 
-        print(f"\n{'='*100}")
+        print(f"\n{'=' * 100}")
         print(f"  STRATEGY HEALTH DASHBOARD — {latest}")
-        print(f"{'='*100}")
+        print(f"{'=' * 100}")
 
         # Sort by composite score
         ranked = sorted(results, key=lambda r: r.get("composite_score", 0), reverse=True)
 
-        print(f"\n  {'#':<4} {'Strategy':<20} {'Score':>6} {'Kelly%':>7} {'EV/Trade':>10} {'Return%':>9} {'Sharpe':>7} {'Sortino':>8} {'Calmar':>8} {'RecF':>6} {'Tail':>5} {'Action':<18}")
-        print(f"  {'-'*110}")
+        print(
+            f"\n  {'#':<4} {'Strategy':<20} {'Score':>6} {'Kelly%':>7} "
+            f"{'EV/Trade':>10} {'Return%':>9} {'Sharpe':>7} {'Sortino':>8} "
+            f"{'Calmar':>8} {'RecF':>6} {'Tail':>5} {'Action':<18}"
+        )
+        print(f"  {'-' * 110}")
 
         for i, r in enumerate(ranked, 1):
             score = r.get("composite_score", 0)
@@ -1179,12 +1323,20 @@ def main() -> None:
             )
 
         # Summary stats
-        deploy_count = sum(1 for r in ranked if r.get("composite_score", 0) > 1.0 and r.get("return_pct", 0) > 0 and r.get("kelly_fraction", 0) > 0)
-        total_ev = sum(r.get("expected_value_per_trade", 0) for r in ranked if r.get("return_pct", 0) > 0)
+        deploy_count = sum(
+            1
+            for r in ranked
+            if r.get("composite_score", 0) > 1.0
+            and r.get("return_pct", 0) > 0
+            and r.get("kelly_fraction", 0) > 0
+        )
+        total_ev = sum(
+            r.get("expected_value_per_trade", 0) for r in ranked if r.get("return_pct", 0) > 0
+        )
         print(f"\n  Deploy candidates: {deploy_count}/{len(ranked)}")
         print(f"  Total EV (positive strategies): {total_ev:+,.0f} KRW/trade")
         print(f"  Source: {latest}")
-        print(f"{'='*100}\n")
+        print(f"{'=' * 100}\n")
         return
 
     if args.command == "run-multi":
@@ -1224,6 +1376,7 @@ def main() -> None:
     if args.command == "signal-summary":
         import json as _json
         from collections import Counter
+
         journal_path = Path(config.runtime.strategy_run_journal_path)
         if not journal_path.exists():
             print("No strategy run journal found.")
@@ -1262,8 +1415,11 @@ def main() -> None:
             print(f"  {reason:40s} {count:5d} ({pct:5.1f}%)")
 
         print("\n--- Per-Wallet Signal Distribution ---")
-        print(f"  {'Wallet':<30s} {'Buy':>5s} {'Sell':>5s} {'Hold':>5s} {'Total':>6s} {'AvgConf':>8s} {'BuyRate':>8s}")
-        print(f"  {'-'*68}")
+        print(
+            f"  {'Wallet':<30s} {'Buy':>5s} {'Sell':>5s} {'Hold':>5s} "
+            f"{'Total':>6s} {'AvgConf':>8s} {'BuyRate':>8s}"
+        )
+        print(f"  {'-' * 68}")
         for wn, stats in sorted(by_wallet.items()):
             avg_conf = stats["conf_sum"] / stats["total"] if stats["total"] > 0 else 0
             buy_rate = stats["buy"] / stats["total"] * 100 if stats["total"] > 0 else 0
@@ -1274,11 +1430,17 @@ def main() -> None:
 
         # Actionable insights
         print("\n--- Actionable Insights ---")
-        total_holds = sum(1 for r, _ in reasons.items() if r != "position_open_waiting")
+        sum(1 for r, _ in reasons.items() if r != "position_open_waiting")
         if reasons.get("below_ma_filter", 0) > total_records * 0.1:
-            print("  [!] MA filter blocking >10% of signals — consider relaxing ma_filter_period in sideways")
+            print(
+                "  [!] MA filter blocking >10% of signals — consider relaxing "
+                "ma_filter_period in sideways"
+            )
         if reasons.get("adx_too_weak", 0) > total_records * 0.05:
-            print("  [!] ADX filter blocking >5% — consider lowering ADX threshold for sideways regime")
+            print(
+                "  [!] ADX filter blocking >5% — consider lowering ADX "
+                "threshold for sideways regime"
+            )
         if reasons.get("cooldown_active", 0) > total_records * 0.15:
             print("  [!] Cooldown blocking >15% — consider shorter cooldown_hours")
         if reasons.get("entry_conditions_not_met", 0) > total_records * 0.4:
@@ -1302,7 +1464,7 @@ def main() -> None:
         )
         print(f"  drift-report     : {artifacts.drift_report.status.value}")
         print(f"  promotion-gate   : {artifacts.promotion_decision.status.value}")
-        print(f"  daily-memo       : saved")
+        print("  daily-memo       : saved")
         # 2. Portfolio promotion gate (multi-wallet)
         portfolio_gate = PortfolioPromotionGate()
         portfolio_decision = portfolio_gate.evaluate_from_checkpoint(
@@ -1311,9 +1473,14 @@ def main() -> None:
         )
         portfolio_path = Path(config.runtime.promotion_gate_path).parent / "portfolio-gate.json"
         portfolio_gate.save(portfolio_decision, portfolio_path)
-        print(f"  portfolio-gate   : {portfolio_decision.status.value} ({portfolio_decision.profitable_wallets}/{portfolio_decision.wallet_count} profitable)")
+        print(
+            f"  portfolio-gate   : {portfolio_decision.status.value} "
+            f"({portfolio_decision.profitable_wallets}/"
+            f"{portfolio_decision.wallet_count} profitable)"
+        )
         # 3. Position snapshot
         import json as _json
+
         cp_path = Path(config.runtime.runtime_checkpoint_path)
         if cp_path.exists():
             cp = _json.loads(cp_path.read_text(encoding="utf-8"))
@@ -1350,7 +1517,10 @@ def main() -> None:
             recent_runs=recent_runs,
         )
         drift_gen.save(drift_report, config.runtime.drift_report_path)
-        print(f"  drift-report     : {drift_report.status.value} (baseline return={baseline.total_return_pct:.4%})")
+        print(
+            f"  drift-report     : {drift_report.status.value} "
+            f"(baseline return={baseline.total_return_pct:.4%})"
+        )
         gate = PromotionGate()
         decision = gate.evaluate(
             symbol=config.trading.symbol,

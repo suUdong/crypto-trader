@@ -1,4 +1,5 @@
 """EMA crossover strategy: fast/slow EMA trend-following."""
+
 from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
@@ -42,7 +43,11 @@ class EMACrossoverStrategy:
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
     ) -> Signal:
         regime = self._regime_detector.detect(candles)
         effective = self._regime_detector.adjust(self._config, regime)
@@ -109,8 +114,10 @@ class EMACrossoverStrategy:
         cmf_value: float | None = None
         try:
             cmf_value = chaikin_money_flow(
-                [c.high for c in candles], [c.low for c in candles],
-                closes, volumes,
+                [c.high for c in candles],
+                [c.low for c in candles],
+                closes,
+                volumes,
             )
         except ValueError:
             pass
@@ -186,7 +193,13 @@ class EMACrossoverStrategy:
 
         if position is not None:
             return self._evaluate_exit(
-                candles, position, cross_down, rsi_value, effective, indicators, context,
+                candles,
+                position,
+                cross_down,
+                rsi_value,
+                effective,
+                indicators,
+                context,
             )
 
         return self._evaluate_entry(
@@ -240,11 +253,7 @@ class EMACrossoverStrategy:
                 context=context,
             )
         # Entry: EMA crossover + RSI not overbought + StochRSI not extreme
-        if (
-            cross_up
-            and rsi_value < cfg.rsi_overbought
-            and stoch_rsi_value < 80.0
-        ):
+        if cross_up and rsi_value < cfg.rsi_overbought and stoch_rsi_value < 80.0:
             # ADX filter: skip entry in choppy/trendless markets
             if adx_value is not None and adx_value < cfg.adx_threshold:
                 return Signal(
@@ -366,8 +375,7 @@ class EMACrossoverStrategy:
         context: dict[str, str],
     ) -> Signal:
         holding_bars = (
-            0 if position.entry_index is None
-            else len(candles) - position.entry_index - 1
+            0 if position.entry_index is None else len(candles) - position.entry_index - 1
         )
 
         if holding_bars >= effective.max_holding_bars:

@@ -15,7 +15,9 @@ from crypto_trader.strategy.regime import (
 
 
 def _build_candles_at(
-    dt: datetime, count: int = 40, close: float = 100_000.0,
+    dt: datetime,
+    count: int = 40,
+    close: float = 100_000.0,
 ) -> list[Candle]:
     """Build candles ending at the given datetime."""
     return [

@@ -1,12 +1,11 @@
 """Tests for micro-live promotion criteria."""
+
 from __future__ import annotations
 
 import json
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-
-import pytest
 
 from crypto_trader.operator.promotion import MicroLiveCriteria
 
@@ -108,7 +107,6 @@ class MicroLiveCriteriaTests(unittest.TestCase):
         self.assertFalse(ready)
         self.assertGreater(len(reasons), 3)
 
-
     def test_exact_boundary_values_pass(self) -> None:
         """Exact minimum thresholds (7d, 10 trades, 45%WR, 10%MDD, 1.2PF) must pass."""
         ready, reasons = MicroLiveCriteria.evaluate(
@@ -125,36 +123,56 @@ class MicroLiveCriteriaTests(unittest.TestCase):
         """One tick below each threshold must fail."""
         # paper_days=6 (below 7)
         ready, _ = MicroLiveCriteria.evaluate(
-            paper_days=6, total_trades=10, win_rate=0.45,
-            max_drawdown=0.10, profit_factor=1.2, positive_strategies=2,
+            paper_days=6,
+            total_trades=10,
+            win_rate=0.45,
+            max_drawdown=0.10,
+            profit_factor=1.2,
+            positive_strategies=2,
         )
         self.assertFalse(ready)
 
         # total_trades=9 (below 10)
         ready, _ = MicroLiveCriteria.evaluate(
-            paper_days=7, total_trades=9, win_rate=0.45,
-            max_drawdown=0.10, profit_factor=1.2, positive_strategies=2,
+            paper_days=7,
+            total_trades=9,
+            win_rate=0.45,
+            max_drawdown=0.10,
+            profit_factor=1.2,
+            positive_strategies=2,
         )
         self.assertFalse(ready)
 
         # win_rate=0.449 (below 0.45)
         ready, _ = MicroLiveCriteria.evaluate(
-            paper_days=7, total_trades=10, win_rate=0.449,
-            max_drawdown=0.10, profit_factor=1.2, positive_strategies=2,
+            paper_days=7,
+            total_trades=10,
+            win_rate=0.449,
+            max_drawdown=0.10,
+            profit_factor=1.2,
+            positive_strategies=2,
         )
         self.assertFalse(ready)
 
         # max_drawdown=0.101 (above 0.10)
         ready, _ = MicroLiveCriteria.evaluate(
-            paper_days=7, total_trades=10, win_rate=0.45,
-            max_drawdown=0.101, profit_factor=1.2, positive_strategies=2,
+            paper_days=7,
+            total_trades=10,
+            win_rate=0.45,
+            max_drawdown=0.101,
+            profit_factor=1.2,
+            positive_strategies=2,
         )
         self.assertFalse(ready)
 
         # profit_factor=1.19 (below 1.2)
         ready, _ = MicroLiveCriteria.evaluate(
-            paper_days=7, total_trades=10, win_rate=0.45,
-            max_drawdown=0.10, profit_factor=1.19, positive_strategies=2,
+            paper_days=7,
+            total_trades=10,
+            win_rate=0.45,
+            max_drawdown=0.10,
+            profit_factor=1.19,
+            positive_strategies=2,
         )
         self.assertFalse(ready)
 
@@ -168,7 +186,9 @@ class MicroLiveCriteriaTests(unittest.TestCase):
 
 
 class MicroLiveCriteriaArtifactTests(unittest.TestCase):
-    def _make_checkpoint(self, path: Path, wallet_states: dict, generated_at: str | None = None) -> None:
+    def _make_checkpoint(
+        self, path: Path, wallet_states: dict, generated_at: str | None = None
+    ) -> None:
         ts = generated_at or datetime.now(UTC).isoformat()
         data = {"generated_at": ts, "wallet_states": wallet_states}
         path.write_text(json.dumps(data), encoding="utf-8")
@@ -180,6 +200,7 @@ class MicroLiveCriteriaArtifactTests(unittest.TestCase):
     def test_evaluate_from_artifacts_passing(self, tmp_path=None) -> None:
         if tmp_path is None:
             import tempfile
+
             tmp_path = Path(tempfile.mkdtemp())
         cp = tmp_path / "checkpoint.json"
         journal = tmp_path / "trades.jsonl"
@@ -196,7 +217,9 @@ class MicroLiveCriteriaArtifactTests(unittest.TestCase):
         first_ts = (datetime.now(UTC) - timedelta(days=10)).isoformat()
         trades = []
         for i in range(10):
-            trades.append({"pnl": 5000.0, "timestamp": first_ts if i == 0 else datetime.now(UTC).isoformat()})
+            trades.append(
+                {"pnl": 5000.0, "timestamp": first_ts if i == 0 else datetime.now(UTC).isoformat()}
+            )
         for _ in range(5):
             trades.append({"pnl": -2000.0, "timestamp": datetime.now(UTC).isoformat()})
         self._make_journal(journal, trades)
@@ -212,6 +235,7 @@ class MicroLiveCriteriaArtifactTests(unittest.TestCase):
     def test_evaluate_from_artifacts_no_trades(self, tmp_path=None) -> None:
         if tmp_path is None:
             import tempfile
+
             tmp_path = Path(tempfile.mkdtemp())
         cp = tmp_path / "checkpoint.json"
         journal = tmp_path / "trades.jsonl"
@@ -234,6 +258,7 @@ class MicroLiveCriteriaArtifactTests(unittest.TestCase):
     def test_evaluate_from_artifacts_missing_checkpoint(self, tmp_path=None) -> None:
         if tmp_path is None:
             import tempfile
+
             tmp_path = Path(tempfile.mkdtemp())
         missing = tmp_path / "nonexistent.json"
 

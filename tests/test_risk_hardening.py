@@ -1,12 +1,13 @@
 """Tests for risk management hardening: max_position_pct, tiered kill switch, slippage monitor."""
+
 from __future__ import annotations
 
 import pytest
-from crypto_trader.config import RiskConfig, KillSwitchCfg
-from crypto_trader.risk.manager import RiskManager
-from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig, KillSwitchState
-from crypto_trader.risk.slippage_monitor import SlippageMonitor, SlippageStats
 
+from crypto_trader.config import KillSwitchCfg, RiskConfig
+from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig, KillSwitchState
+from crypto_trader.risk.manager import RiskManager
+from crypto_trader.risk.slippage_monitor import SlippageMonitor
 
 # ── max_position_pct cap ──────────────────────────────────────────────
 

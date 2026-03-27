@@ -1,4 +1,5 @@
 """Tests for equity curve JSON export logic."""
+
 from __future__ import annotations
 
 import json
@@ -6,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from crypto_trader.models import BacktestResult, TradeRecord
+from crypto_trader.models import BacktestResult
 
 
 def _make_backtest_result(equity_curve: list[float]) -> BacktestResult:
@@ -52,7 +53,14 @@ class TestEquityCurveExport(unittest.TestCase):
             curve_path = _export_equity_curve(result, "momentum", "KRW-BTC", Path(tmp))
             data = json.loads(curve_path.read_text(encoding="utf-8"))
 
-        required_keys = {"strategy", "symbol", "initial_capital", "final_equity", "total_return_pct", "equity_curve"}
+        required_keys = {
+            "strategy",
+            "symbol",
+            "initial_capital",
+            "final_equity",
+            "total_return_pct",
+            "equity_curve",
+        }
         self.assertEqual(required_keys, set(data.keys()))
 
     def test_equity_curve_length_matches(self) -> None:

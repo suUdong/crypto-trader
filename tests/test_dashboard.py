@@ -12,6 +12,7 @@ from unittest.mock import patch
 try:
     from dashboard import data as data_mod
     from dashboard.auth import check_auth
+
     _HAS_STREAMLIT = True
 except ImportError:
     _HAS_STREAMLIT = False
@@ -35,6 +36,7 @@ class TestDataLoaders(unittest.TestCase):
         # Clear st.cache_data between tests
         try:
             import streamlit as st
+
             st.cache_data.clear()
         except Exception:
             pass
@@ -42,6 +44,7 @@ class TestDataLoaders(unittest.TestCase):
     def tearDown(self) -> None:
         data_mod.ARTIFACTS_DIR = self._orig_dir
         import shutil
+
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_load_json_missing_file(self) -> None:
@@ -128,7 +131,9 @@ class TestDataLoaders(unittest.TestCase):
         path = Path(self.tmpdir) / "daemon-heartbeat.json"
         hb = {
             "last_heartbeat": "2026-03-25T12:00:00+00:00",
-            "pid": 1234, "iteration": 5, "uptime_seconds": 300.0,
+            "pid": 1234,
+            "iteration": 5,
+            "uptime_seconds": 300.0,
         }
         path.write_text(json.dumps(hb))
         result = data_mod.load_daemon_heartbeat()
@@ -143,20 +148,30 @@ class TestDataLoaders(unittest.TestCase):
     def test_load_paper_trades_valid(self) -> None:
         path = Path(self.tmpdir) / "paper-trades.jsonl"
         trades = [
-            json.dumps({
-                "symbol": "KRW-BTC", "entry_price": 50000000,
-                "exit_price": 51000000, "pnl": 100000, "pnl_pct": 2.0,
-                "wallet": "momentum_wallet",
-                "entry_time": "2026-03-27T01:00:00+00:00",
-                "exit_time": "2026-03-27T05:00:00+00:00",
-            }),
-            json.dumps({
-                "symbol": "KRW-ETH", "entry_price": 3000000,
-                "exit_price": 2900000, "pnl": -50000, "pnl_pct": -1.5,
-                "wallet": "mean_reversion_wallet",
-                "entry_time": "2026-03-27T02:00:00+00:00",
-                "exit_time": "2026-03-27T06:00:00+00:00",
-            }),
+            json.dumps(
+                {
+                    "symbol": "KRW-BTC",
+                    "entry_price": 50000000,
+                    "exit_price": 51000000,
+                    "pnl": 100000,
+                    "pnl_pct": 2.0,
+                    "wallet": "momentum_wallet",
+                    "entry_time": "2026-03-27T01:00:00+00:00",
+                    "exit_time": "2026-03-27T05:00:00+00:00",
+                }
+            ),
+            json.dumps(
+                {
+                    "symbol": "KRW-ETH",
+                    "entry_price": 3000000,
+                    "exit_price": 2900000,
+                    "pnl": -50000,
+                    "pnl_pct": -1.5,
+                    "wallet": "mean_reversion_wallet",
+                    "entry_time": "2026-03-27T02:00:00+00:00",
+                    "exit_time": "2026-03-27T06:00:00+00:00",
+                }
+            ),
         ]
         path.write_text("\n".join(trades))
         result = data_mod.load_paper_trades()
@@ -172,26 +187,46 @@ class TestDataLoaders(unittest.TestCase):
     def test_load_signal_summary_aggregation(self) -> None:
         path = Path(self.tmpdir) / "strategy-runs.jsonl"
         runs = [
-            json.dumps({
-                "signal_action": "hold", "signal_reason": "below_ma_filter",
-                "wallet_name": "momentum_wallet", "signal_confidence": 0.3,
-            }),
-            json.dumps({
-                "signal_action": "hold", "signal_reason": "below_ma_filter",
-                "wallet_name": "momentum_wallet", "signal_confidence": 0.4,
-            }),
-            json.dumps({
-                "signal_action": "buy", "signal_reason": "momentum_strong",
-                "wallet_name": "momentum_wallet", "signal_confidence": 0.8,
-            }),
-            json.dumps({
-                "signal_action": "hold", "signal_reason": "cooldown_active",
-                "wallet_name": "vbreak_wallet", "signal_confidence": 0.2,
-            }),
-            json.dumps({
-                "signal_action": "sell", "signal_reason": "exit_trailing",
-                "wallet_name": "vbreak_wallet", "signal_confidence": 0.9,
-            }),
+            json.dumps(
+                {
+                    "signal_action": "hold",
+                    "signal_reason": "below_ma_filter",
+                    "wallet_name": "momentum_wallet",
+                    "signal_confidence": 0.3,
+                }
+            ),
+            json.dumps(
+                {
+                    "signal_action": "hold",
+                    "signal_reason": "below_ma_filter",
+                    "wallet_name": "momentum_wallet",
+                    "signal_confidence": 0.4,
+                }
+            ),
+            json.dumps(
+                {
+                    "signal_action": "buy",
+                    "signal_reason": "momentum_strong",
+                    "wallet_name": "momentum_wallet",
+                    "signal_confidence": 0.8,
+                }
+            ),
+            json.dumps(
+                {
+                    "signal_action": "hold",
+                    "signal_reason": "cooldown_active",
+                    "wallet_name": "vbreak_wallet",
+                    "signal_confidence": 0.2,
+                }
+            ),
+            json.dumps(
+                {
+                    "signal_action": "sell",
+                    "signal_reason": "exit_trailing",
+                    "wallet_name": "vbreak_wallet",
+                    "signal_confidence": 0.9,
+                }
+            ),
         ]
         path.write_text("\n".join(runs))
         result = data_mod.load_signal_summary()
@@ -294,6 +329,7 @@ class TestNewTabData(unittest.TestCase):
         data_mod.ARTIFACTS_DIR = Path(self.tmpdir)
         try:
             import streamlit as st
+
             st.cache_data.clear()
         except Exception:
             pass
@@ -301,6 +337,7 @@ class TestNewTabData(unittest.TestCase):
     def tearDown(self) -> None:
         data_mod.ARTIFACTS_DIR = self._orig_dir
         import shutil
+
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_kill_switch_with_config(self) -> None:
@@ -363,24 +400,38 @@ class TestNewTabData(unittest.TestCase):
         assert result is not None
         ws = result["wallet_states"]
         self.assertIn("volume_spike_btc_wallet", ws)
-        self.assertEqual(ws["volume_spike_btc_wallet"]["positions"]["KRW-BTC"]["entry_price"], 90000000)
+        self.assertEqual(
+            ws["volume_spike_btc_wallet"]["positions"]["KRW-BTC"]["entry_price"], 90000000
+        )
 
     def test_volume_spike_signal_filtering(self) -> None:
         """Verify volume_spike signals can be filtered from strategy-runs."""
         path = Path(self.tmpdir) / "strategy-runs.jsonl"
         runs = [
-            json.dumps({
-                "signal_action": "buy", "wallet_name": "volume_spike_btc_wallet",
-                "signal_confidence": 0.85, "symbol": "KRW-BTC",
-            }),
-            json.dumps({
-                "signal_action": "hold", "wallet_name": "momentum_btc_wallet",
-                "signal_confidence": 0.3, "symbol": "KRW-BTC",
-            }),
-            json.dumps({
-                "signal_action": "hold", "wallet_name": "volume_spike_eth_wallet",
-                "signal_confidence": 0.4, "symbol": "KRW-ETH",
-            }),
+            json.dumps(
+                {
+                    "signal_action": "buy",
+                    "wallet_name": "volume_spike_btc_wallet",
+                    "signal_confidence": 0.85,
+                    "symbol": "KRW-BTC",
+                }
+            ),
+            json.dumps(
+                {
+                    "signal_action": "hold",
+                    "wallet_name": "momentum_btc_wallet",
+                    "signal_confidence": 0.3,
+                    "symbol": "KRW-BTC",
+                }
+            ),
+            json.dumps(
+                {
+                    "signal_action": "hold",
+                    "wallet_name": "volume_spike_eth_wallet",
+                    "signal_confidence": 0.4,
+                    "symbol": "KRW-ETH",
+                }
+            ),
         ]
         path.write_text("\n".join(runs))
         all_runs = data_mod.load_strategy_runs()
@@ -391,20 +442,30 @@ class TestNewTabData(unittest.TestCase):
     def test_paper_trades_volume_spike_filtering(self) -> None:
         path = Path(self.tmpdir) / "paper-trades.jsonl"
         trades = [
-            json.dumps({
-                "symbol": "KRW-BTC", "pnl": 50000, "pnl_pct": 1.5,
-                "wallet": "volume_spike_btc_wallet",
-                "entry_time": "2026-03-27T01:00:00+00:00",
-                "exit_time": "2026-03-27T05:00:00+00:00",
-                "entry_price": 90000000, "exit_price": 91350000,
-            }),
-            json.dumps({
-                "symbol": "KRW-ETH", "pnl": -10000, "pnl_pct": -0.5,
-                "wallet": "momentum_eth_wallet",
-                "entry_time": "2026-03-27T02:00:00+00:00",
-                "exit_time": "2026-03-27T06:00:00+00:00",
-                "entry_price": 3000000, "exit_price": 2985000,
-            }),
+            json.dumps(
+                {
+                    "symbol": "KRW-BTC",
+                    "pnl": 50000,
+                    "pnl_pct": 1.5,
+                    "wallet": "volume_spike_btc_wallet",
+                    "entry_time": "2026-03-27T01:00:00+00:00",
+                    "exit_time": "2026-03-27T05:00:00+00:00",
+                    "entry_price": 90000000,
+                    "exit_price": 91350000,
+                }
+            ),
+            json.dumps(
+                {
+                    "symbol": "KRW-ETH",
+                    "pnl": -10000,
+                    "pnl_pct": -0.5,
+                    "wallet": "momentum_eth_wallet",
+                    "entry_time": "2026-03-27T02:00:00+00:00",
+                    "exit_time": "2026-03-27T06:00:00+00:00",
+                    "entry_price": 3000000,
+                    "exit_price": 2985000,
+                }
+            ),
         ]
         path.write_text("\n".join(trades))
         all_trades = data_mod.load_paper_trades()

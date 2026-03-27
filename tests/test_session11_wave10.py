@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 10: volume-weighted momentum, multi-timeframe trend."""
+
 from __future__ import annotations
 
 import unittest
@@ -14,13 +15,20 @@ def _candles(closes: list[float], volumes: list[float] | None = None) -> list[Ca
     t = datetime(2025, 1, 1)
     vols = volumes or [1000.0] * len(closes)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=vols[i])
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=vols[i],
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Volume-weighted momentum ----------
+
 
 class TestVolumeWeightedMomentum(unittest.TestCase):
     def test_volume_ratio_in_buy_signal(self) -> None:
@@ -30,9 +38,12 @@ class TestVolumeWeightedMomentum(unittest.TestCase):
         candles = _candles(prices, volumes)
         strategy = MomentumStrategy(
             StrategyConfig(
-                momentum_lookback=3, momentum_entry_threshold=0.0,
-                rsi_period=5, rsi_oversold_floor=0.0,
-                rsi_recovery_ceiling=100.0, adx_threshold=0.0,
+                momentum_lookback=3,
+                momentum_entry_threshold=0.0,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+                adx_threshold=0.0,
             ),
         )
         signal = strategy.evaluate(candles)
@@ -51,9 +62,12 @@ class TestVolumeWeightedMomentum(unittest.TestCase):
 
         strategy = MomentumStrategy(
             StrategyConfig(
-                momentum_lookback=3, momentum_entry_threshold=0.0,
-                rsi_period=5, rsi_oversold_floor=0.0,
-                rsi_recovery_ceiling=100.0, adx_threshold=0.0,
+                momentum_lookback=3,
+                momentum_entry_threshold=0.0,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+                adx_threshold=0.0,
             ),
         )
         sig_high = strategy.evaluate(high_vol_candles)
@@ -64,6 +78,7 @@ class TestVolumeWeightedMomentum(unittest.TestCase):
 
 
 # ---------- Multi-timeframe trend in Composite ----------
+
 
 class TestMultiTimeframeTrend(unittest.TestCase):
     def test_ema50_in_indicators(self) -> None:

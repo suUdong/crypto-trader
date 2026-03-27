@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Walk-forward validation for strategy tuning on cached/live candle data."""
+
 from __future__ import annotations
 
 import argparse
@@ -9,32 +10,21 @@ import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-sys.path.insert(0, "src")
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root / "src"))
+sys.path.insert(0, str(_project_root))
 
 from crypto_trader.models import Candle  # noqa: E402
-
-try:
-    from scripts.auto_tune import (  # noqa: E402
-        DEFAULT_STRATEGIES,
-        SYMBOLS,
-        TuneResult,
-        collect_baseline_results,
-        evaluate_strategy_params,
-        fetch_candles,
-        tune_strategy,
-        write_optimized_toml,
-    )
-except ModuleNotFoundError:
-    from auto_tune import (  # type: ignore[no-redef]  # noqa: E402
-        DEFAULT_STRATEGIES,
-        SYMBOLS,
-        TuneResult,
-        collect_baseline_results,
-        evaluate_strategy_params,
-        fetch_candles,
-        tune_strategy,
-        write_optimized_toml,
-    )
+from scripts.auto_tune import (  # noqa: E402
+    DEFAULT_STRATEGIES,
+    SYMBOLS,
+    TuneResult,
+    collect_baseline_results,
+    evaluate_strategy_params,
+    fetch_candles,
+    tune_strategy,
+    write_optimized_toml,
+)
 
 
 @dataclass
@@ -381,12 +371,12 @@ def main() -> None:
     total_days = args.total_days
     train_bars = args.train_days * 24
     test_bars = args.test_days * 24
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(
         f"  WALK-FORWARD VALIDATION ({total_days}d total / "
         f"{args.train_days}d train / {args.test_days}d test)"
     )
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     candles_by_symbol: dict[str, list[Candle]] = {}
     for symbol in SYMBOLS:
@@ -404,9 +394,9 @@ def main() -> None:
     folds_by_strategy: dict[str, list[FoldResult]] = {strategy: [] for strategy in args.strategies}
 
     for strategy in args.strategies:
-        print(f"\n{'─'*60}")
+        print(f"\n{'─' * 60}")
         print(f"  Walk-forward: {strategy}")
-        print(f"{'─'*60}")
+        print(f"{'─' * 60}")
         for fold_index, (train_slice, test_slice) in enumerate(windows, start=1):
             print(f"  Fold #{fold_index}: tuning on train window")
             tuned = tune_strategy(strategy, train_slice, top_n=args.top_n, verbose=False)
@@ -435,14 +425,14 @@ def main() -> None:
                 f"test_return={fold.test_return_pct:+.2f}%"
             )
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  WALK-FORWARD SUMMARY")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(
         f"\n  {'Strategy':<20} {'Folds':>5} {'TrainSharpe':>12} "
         f"{'TestSharpe':>11} {'TestRet%':>10} {'TestMDD%':>9} {'Trades':>8}"
     )
-    print(f"  {'─'*81}")
+    print(f"  {'─' * 81}")
     for strategy in args.strategies:
         aggregate = aggregate_fold_results(folds_by_strategy[strategy])
         print(

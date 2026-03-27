@@ -1,10 +1,6 @@
 """Tests for enhanced daily PnL Telegram notification format."""
+
 from __future__ import annotations
-
-from unittest.mock import MagicMock, patch
-from pathlib import Path
-
-import pytest
 
 from crypto_trader.operator.pnl_report import (
     PnLReportGenerator,
@@ -18,18 +14,36 @@ def _make_report(strategies: list[StrategyPnLMetrics] | None = None) -> Portfoli
     if strategies is None:
         strategies = [
             StrategyPnLMetrics(
-                strategy="momentum", wallet="momentum_wallet",
-                total_return_pct=4.8, realized_pnl=48000, unrealized_pnl=0,
-                trade_count=12, win_count=7, loss_count=5,
-                win_rate=0.583, profit_factor=1.8, max_drawdown_pct=1.2,
-                sharpe_ratio=1.34, equity=1_048_000, initial_capital=1_000_000,
+                strategy="momentum",
+                wallet="momentum_wallet",
+                total_return_pct=4.8,
+                realized_pnl=48000,
+                unrealized_pnl=0,
+                trade_count=12,
+                win_count=7,
+                loss_count=5,
+                win_rate=0.583,
+                profit_factor=1.8,
+                max_drawdown_pct=1.2,
+                sharpe_ratio=1.34,
+                equity=1_048_000,
+                initial_capital=1_000_000,
             ),
             StrategyPnLMetrics(
-                strategy="obi", wallet="obi_wallet",
-                total_return_pct=-2.3, realized_pnl=-4600, unrealized_pnl=0,
-                trade_count=8, win_count=2, loss_count=6,
-                win_rate=0.25, profit_factor=0.4, max_drawdown_pct=3.5,
-                sharpe_ratio=-2.33, equity=195_400, initial_capital=200_000,
+                strategy="obi",
+                wallet="obi_wallet",
+                total_return_pct=-2.3,
+                realized_pnl=-4600,
+                unrealized_pnl=0,
+                trade_count=8,
+                win_count=2,
+                loss_count=6,
+                win_rate=0.25,
+                profit_factor=0.4,
+                max_drawdown_pct=3.5,
+                sharpe_ratio=-2.33,
+                equity=195_400,
+                initial_capital=200_000,
             ),
         ]
     return PortfolioPnLReport(
@@ -56,8 +70,10 @@ class TestEnhancedPnLNotification:
         paused: list[str] = []
         lines = [
             "[Crypto Trader] Daily PnL Report",
-            f"Equity: {report.total_equity:,.0f} KRW | Return: {report.portfolio_return_pct:+.2f}%",
-            f"Sharpe: {report.portfolio_sharpe:.2f} | Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
+            f"Equity: {report.total_equity:,.0f} KRW | "
+            f"Return: {report.portfolio_return_pct:+.2f}%",
+            f"Sharpe: {report.portfolio_sharpe:.2f} | "
+            f"Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
             "---",
         ]
         for s in sorted(report.strategies, key=lambda x: x.total_return_pct, reverse=True):
@@ -110,8 +126,10 @@ class TestEnhancedPnLNotification:
         report = PnLReportGenerator()._empty_report("daily")
         lines = [
             "[Crypto Trader] Daily PnL Report",
-            f"Equity: {report.total_equity:,.0f} KRW | Return: {report.portfolio_return_pct:+.2f}%",
-            f"Sharpe: {report.portfolio_sharpe:.2f} | Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
+            f"Equity: {report.total_equity:,.0f} KRW | "
+            f"Return: {report.portfolio_return_pct:+.2f}%",
+            f"Sharpe: {report.portfolio_sharpe:.2f} | "
+            f"Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
         ]
         msg = "\n".join(lines)
         assert "Equity: 0 KRW" in msg

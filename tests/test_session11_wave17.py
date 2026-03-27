@@ -1,11 +1,12 @@
 """Tests for Session #11 Wave 17: OBV indicator and integration."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.config import StrategyConfig
-from crypto_trader.models import Candle, SignalAction
+from crypto_trader.models import Candle
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.indicators import obv_slope, on_balance_volume
 from crypto_trader.strategy.momentum import MomentumStrategy
@@ -15,13 +16,20 @@ def _candles(closes: list[float], volumes: list[float] | None = None) -> list[Ca
     t = datetime(2025, 1, 1)
     vols = volumes or [1000.0] * len(closes)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=vols[i])
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=vols[i],
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- OBV Indicator ----------
+
 
 class TestOBV(unittest.TestCase):
     def test_obv_rising_on_up_moves(self) -> None:
@@ -66,6 +74,7 @@ class TestOBV(unittest.TestCase):
 
 # ---------- OBV Slope ----------
 
+
 class TestOBVSlope(unittest.TestCase):
     def test_positive_slope_on_accumulation(self) -> None:
         """Rising prices = positive OBV slope (accumulation)."""
@@ -94,6 +103,7 @@ class TestOBVSlope(unittest.TestCase):
 
 
 # ---------- OBV in Strategies ----------
+
 
 class TestOBVInStrategies(unittest.TestCase):
     def test_obv_slope_in_composite_indicators(self) -> None:

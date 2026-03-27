@@ -200,7 +200,7 @@ class WalkForwardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = Path(tmpdir) / "validated.toml"
             base_path = Path(tmpdir) / "base.toml"
-            base_path.write_text("[trading]\nexchange = \"upbit\"\n", encoding="utf-8")
+            base_path.write_text('[trading]\nexchange = "upbit"\n', encoding="utf-8")
             write_validated_config(
                 str(output_path),
                 (

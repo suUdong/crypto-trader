@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Strategy correlation analysis and portfolio weight optimization."""
+
 from __future__ import annotations
 
 import sys
@@ -24,7 +25,15 @@ from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from crypto_trader.wallet import create_strategy  # noqa: E402
 
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
-STRATEGIES = ["momentum", "mean_reversion", "composite", "kimchi_premium", "obi", "vpin", "volatility_breakout"]
+STRATEGIES = [
+    "momentum",
+    "mean_reversion",
+    "composite",
+    "kimchi_premium",
+    "obi",
+    "vpin",
+    "volatility_breakout",
+]
 INTERVAL = "minute60"
 
 
@@ -47,9 +56,7 @@ def fetch_candles(symbol: str, days: int) -> list[Candle]:
     while len(all_candles) < total_needed:
         remaining = total_needed - len(all_candles)
         batch_size = min(200, remaining)
-        df = pyupbit.get_ohlcv(
-            symbol, interval=INTERVAL, count=batch_size, to=to_dt
-        )
+        df = pyupbit.get_ohlcv(symbol, interval=INTERVAL, count=batch_size, to=to_dt)
         if df is None or df.empty:
             break
         batch: list[Candle] = []
@@ -83,12 +90,10 @@ def compute_correlation(curve_a: list[float], curve_b: list[float]) -> float:
         return 0.0
 
     returns_a = [
-        (curve_a[i] - curve_a[i - 1]) / max(1.0, curve_a[i - 1])
-        for i in range(1, min_len)
+        (curve_a[i] - curve_a[i - 1]) / max(1.0, curve_a[i - 1]) for i in range(1, min_len)
     ]
     returns_b = [
-        (curve_b[i] - curve_b[i - 1]) / max(1.0, curve_b[i - 1])
-        for i in range(1, min_len)
+        (curve_b[i] - curve_b[i - 1]) / max(1.0, curve_b[i - 1]) for i in range(1, min_len)
     ]
 
     n = len(returns_a)
@@ -161,9 +166,9 @@ def main() -> None:
     if len(sys.argv) > 1:
         days = int(sys.argv[1])
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  PORTFOLIO OPTIMIZER - {days}-day analysis")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     # Fetch candles
     candles_by_symbol: dict[str, list[Candle]] = {}
@@ -188,11 +193,15 @@ def main() -> None:
             config = StrategyConfig()
             regime = RegimeConfig()
             risk = RiskConfig()
-            bt_config = BacktestConfig(initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005)
+            bt_config = BacktestConfig(
+                initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005
+            )
 
             strategy = create_strategy(strategy_type, config, regime)
             rm = RiskManager(risk)
-            engine = BacktestEngine(strategy=strategy, risk_manager=rm, config=bt_config, symbol=symbol)
+            engine = BacktestEngine(
+                strategy=strategy, risk_manager=rm, config=bt_config, symbol=symbol
+            )
             result = engine.run(candles)
 
             returns_by_sym[symbol] = result.total_return_pct * 100
@@ -216,25 +225,27 @@ def main() -> None:
         all_curves[strategy_type] = curves_by_sym
 
     # Print strategy performance
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  STRATEGY PERFORMANCE")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"\n  {'Strategy':<16} {'Avg Return%':>12} {'Avg Sharpe':>12} {'Avg MDD%':>10}")
-    print(f"  {'-'*52}")
+    print(f"  {'-' * 52}")
     for m in sorted(all_metrics, key=lambda x: x.avg_sharpe, reverse=True):
-        print(f"  {m.strategy:<16} {m.avg_return:>+11.2f}% {m.avg_sharpe:>11.2f} {m.avg_mdd:>9.2f}%")
+        print(
+            f"  {m.strategy:<16} {m.avg_return:>+11.2f}% {m.avg_sharpe:>11.2f} {m.avg_mdd:>9.2f}%"
+        )
 
     # Correlation matrix
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  RETURN CORRELATION MATRIX")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
     # Compute average correlation across symbols
     header = f"  {'':>16}"
     for s in STRATEGIES:
         header += f" {s:>14}"
     print(header)
-    print(f"  {'-'*(16 + 15 * len(STRATEGIES))}")
+    print(f"  {'-' * (16 + 15 * len(STRATEGIES))}")
 
     for s1 in STRATEGIES:
         row = f"  {s1:>16}"
@@ -254,9 +265,9 @@ def main() -> None:
 
     # Optimal weights
     weights = optimize_weights(all_metrics)
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  RECOMMENDED PORTFOLIO WEIGHTS")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
     total_capital = len(STRATEGIES) * 1_000_000
     for strategy, weight in sorted(weights.items(), key=lambda x: x[1], reverse=True):

@@ -1,15 +1,21 @@
 """Tests for Session #12 Wave 20: CMF indicator, Keltner parity across strategies."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.config import StrategyConfig
-from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import chaikin_money_flow, keltner_channels
+from crypto_trader.models import Candle
+from crypto_trader.strategy.indicators import chaikin_money_flow
 
 
-def _candles(closes: list[float], volume: float = 1000.0, highs: list[float] | None = None, lows: list[float] | None = None) -> list[Candle]:
+def _candles(
+    closes: list[float],
+    volume: float = 1000.0,
+    highs: list[float] | None = None,
+    lows: list[float] | None = None,
+) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
         Candle(
@@ -25,6 +31,7 @@ def _candles(closes: list[float], volume: float = 1000.0, highs: list[float] | N
 
 
 # ---------- CMF indicator ----------
+
 
 class TestChaikinMoneyFlow(unittest.TestCase):
     def test_all_closes_at_high(self) -> None:
@@ -76,13 +83,17 @@ class TestChaikinMoneyFlow(unittest.TestCase):
     def test_cmf_range(self) -> None:
         """CMF should always be in [-1, 1]."""
         import random
+
         random.seed(42)
         n = 30
         for _ in range(10):
             base = [100.0 + random.uniform(-5, 5) for _ in range(n)]
             highs = [b + random.uniform(0.5, 3.0) for b in base]
             lows = [b - random.uniform(0.5, 3.0) for b in base]
-            closes = [l + random.uniform(0, h - l) for h, l in zip(highs, lows)]
+            closes = [
+                low + random.uniform(0, high - low)
+                for high, low in zip(highs, lows, strict=False)
+            ]
             volumes = [random.uniform(100, 5000) for _ in range(n)]
             cmf = chaikin_money_flow(highs, lows, closes, volumes, period=20)
             self.assertGreaterEqual(cmf, -1.0 - 1e-9)
@@ -91,9 +102,11 @@ class TestChaikinMoneyFlow(unittest.TestCase):
 
 # ---------- Keltner in MeanRev ----------
 
+
 class TestMeanRevKeltner(unittest.TestCase):
     def test_keltner_lower_in_indicators(self) -> None:
         from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
+
         cfg = StrategyConfig()
         strategy = MeanReversionStrategy(cfg)
         # Create enough candles for Keltner (need 21+)
@@ -105,9 +118,11 @@ class TestMeanRevKeltner(unittest.TestCase):
 
 # ---------- Keltner in VolBreakout ----------
 
+
 class TestVolBreakoutKeltner(unittest.TestCase):
     def test_keltner_upper_in_indicators(self) -> None:
         from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
+
         cfg = StrategyConfig()
         strategy = VolatilityBreakoutStrategy(cfg)
         closes = [100.0 + i * 0.1 for i in range(50)]
@@ -118,9 +133,11 @@ class TestVolBreakoutKeltner(unittest.TestCase):
 
 # ---------- Keltner in EMACross ----------
 
+
 class TestEMACrossKeltner(unittest.TestCase):
     def test_keltner_upper_in_indicators(self) -> None:
         from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
+
         cfg = StrategyConfig()
         strategy = EMACrossoverStrategy(cfg)
         closes = [100.0 + i * 0.1 for i in range(50)]

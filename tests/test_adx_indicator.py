@@ -1,4 +1,5 @@
 """Tests for US-026: ADX trend strength indicator and filter."""
+
 from __future__ import annotations
 
 import unittest
@@ -11,20 +12,24 @@ from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 
 
-def _build_trending_candles(count: int, start_price: float = 100.0, trend: float = 1.0) -> list[Candle]:
+def _build_trending_candles(
+    count: int, start_price: float = 100.0, trend: float = 1.0
+) -> list[Candle]:
     """Build candles with a clear trend (high ADX expected)."""
     start = datetime(2025, 1, 1)
     candles = []
     for i in range(count):
         price = start_price + i * trend
-        candles.append(Candle(
-            timestamp=start + timedelta(hours=i),
-            open=price - 0.3,
-            high=price + abs(trend) * 0.5,
-            low=price - abs(trend) * 0.5,
-            close=price,
-            volume=1000.0 + i * 10,
-        ))
+        candles.append(
+            Candle(
+                timestamp=start + timedelta(hours=i),
+                open=price - 0.3,
+                high=price + abs(trend) * 0.5,
+                low=price - abs(trend) * 0.5,
+                close=price,
+                volume=1000.0 + i * 10,
+            )
+        )
     return candles
 
 
@@ -36,14 +41,16 @@ def _build_choppy_candles(count: int, base_price: float = 100.0) -> list[Candle]
         # Oscillate around base price
         offset = 0.5 if i % 2 == 0 else -0.5
         price = base_price + offset
-        candles.append(Candle(
-            timestamp=start + timedelta(hours=i),
-            open=price - 0.2,
-            high=price + 0.8,
-            low=price - 0.8,
-            close=price,
-            volume=1000.0,
-        ))
+        candles.append(
+            Candle(
+                timestamp=start + timedelta(hours=i),
+                open=price - 0.2,
+                high=price + 0.8,
+                low=price - 0.8,
+                close=price,
+                volume=1000.0,
+            )
+        )
     return candles
 
 
@@ -164,7 +171,10 @@ class TestADXFilterVolatilityBreakout(unittest.TestCase):
             adx_threshold=30.0,
         )
         strategy = VolatilityBreakoutStrategy(
-            config, k_base=0.1, noise_lookback=5, ma_filter_period=5,
+            config,
+            k_base=0.1,
+            noise_lookback=5,
+            ma_filter_period=5,
         )
         candles = _build_choppy_candles(50)
         # Make last candle breakout above prev range

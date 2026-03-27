@@ -3,6 +3,7 @@
 Ranks strategies by a composite score (Sharpe-weighted, MDD-penalized)
 and reallocates capital from underperformers to top performers.
 """
+
 from __future__ import annotations
 
 import json
@@ -160,7 +161,7 @@ class CapitalAllocator:
             )
 
         # HHI concentration ratio
-        hhi = sum(a.weight ** 2 for a in allocations)
+        hhi = sum(a.weight**2 for a in allocations)
 
         return AllocationResult(
             generated_at=datetime.now(UTC).isoformat(),
@@ -280,13 +281,15 @@ class CapitalAllocator:
         """Generate TOML wallet sections from allocation result."""
         lines = []
         for a in allocations:
-            lines.extend([
-                "[[wallets]]",
-                f'name = "{a.strategy}_wallet"',
-                f'strategy = "{a.strategy}"',
-                f"initial_capital = {a.capital:.1f}",
-                "",
-            ])
+            lines.extend(
+                [
+                    "[[wallets]]",
+                    f'name = "{a.strategy}_wallet"',
+                    f'strategy = "{a.strategy}"',
+                    f"initial_capital = {a.capital:.1f}",
+                    "",
+                ]
+            )
         return "\n".join(lines)
 
     @staticmethod

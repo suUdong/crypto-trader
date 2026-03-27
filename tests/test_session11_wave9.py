@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 9: BB width, RAR metric."""
+
 from __future__ import annotations
 
 import unittest
@@ -16,13 +17,20 @@ from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrateg
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Bollinger Band Width ----------
+
 
 class TestBBWidth(unittest.TestCase):
     def test_bb_width_flat_market(self) -> None:
@@ -51,6 +59,7 @@ class TestBBWidth(unittest.TestCase):
 
 # ---------- BB width in VolatilityBreakout ----------
 
+
 class TestVolBreakoutSqueeze(unittest.TestCase):
     def test_bb_width_in_indicators(self) -> None:
         """VolatilityBreakout should include bb_width in indicators."""
@@ -58,7 +67,9 @@ class TestVolBreakoutSqueeze(unittest.TestCase):
         candles = _candles(prices)
         strategy = VolatilityBreakoutStrategy(
             StrategyConfig(adx_period=14, adx_threshold=0.0),
-            k_base=0.5, noise_lookback=20, ma_filter_period=20,
+            k_base=0.5,
+            noise_lookback=20,
+            ma_filter_period=20,
         )
         signal = strategy.evaluate(candles)
         self.assertIn("bb_width", signal.indicators)
@@ -66,17 +77,24 @@ class TestVolBreakoutSqueeze(unittest.TestCase):
 
 # ---------- Risk-Adjusted Return ----------
 
+
 class TestRiskAdjustedReturn(unittest.TestCase):
     def test_rar_on_backtest_result(self) -> None:
         """BacktestResult should include risk_adjusted_return."""
         candles = _candles([100.0] * 30)
-        strategy = CompositeStrategy(StrategyConfig(
-            momentum_lookback=3, bollinger_window=20, rsi_period=5,
-        ))
+        strategy = CompositeStrategy(
+            StrategyConfig(
+                momentum_lookback=3,
+                bollinger_window=20,
+                rsi_period=5,
+            )
+        )
         risk = RiskManager(RiskConfig())
         engine = BacktestEngine(
-            strategy=strategy, risk_manager=risk,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
         result = engine.run(candles)
         self.assertIsInstance(result.risk_adjusted_return, float)
@@ -92,13 +110,19 @@ class TestRiskAdjustedReturn(unittest.TestCase):
     def test_rar_zero_for_flat(self) -> None:
         """RAR should be 0 for flat equity (no return, no drawdown)."""
         candles = _candles([100.0] * 30)
-        strategy = CompositeStrategy(StrategyConfig(
-            momentum_lookback=3, bollinger_window=20, rsi_period=5,
-        ))
+        strategy = CompositeStrategy(
+            StrategyConfig(
+                momentum_lookback=3,
+                bollinger_window=20,
+                rsi_period=5,
+            )
+        )
         risk = RiskManager(RiskConfig())
         engine = BacktestEngine(
-            strategy=strategy, risk_manager=risk,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
         result = engine.run(candles)
         # No trades = no return = RAR 0

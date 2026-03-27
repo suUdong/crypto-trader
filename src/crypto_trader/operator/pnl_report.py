@@ -1,4 +1,5 @@
 """Automated PnL reporting with Sharpe, MDD, win rate calculations."""
+
 from __future__ import annotations
 
 import json
@@ -6,6 +7,9 @@ import math
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any, cast
+
+JsonDict = dict[str, Any]
 
 
 @dataclass(slots=True)
@@ -73,8 +77,8 @@ class PnLReportGenerator:
         if not cp_path.exists():
             return self._empty_report(period)
 
-        checkpoint = json.loads(cp_path.read_text(encoding="utf-8"))
-        wallet_states = checkpoint.get("wallet_states", {})
+        checkpoint = cast(JsonDict, json.loads(cp_path.read_text(encoding="utf-8")))
+        wallet_states = cast(dict[str, JsonDict], checkpoint.get("wallet_states", {}))
         source_generated_at = str(checkpoint.get("generated_at", ""))
         source_session_id = str(checkpoint.get("session_id", ""))
         source_config_path = str(checkpoint.get("config_path", ""))
@@ -94,7 +98,7 @@ class PnLReportGenerator:
         )
 
         # Load trade journal if available, with optional time filtering
-        trades_by_wallet: dict[str, list[dict]] = {}
+        trades_by_wallet: dict[str, list[JsonDict]] = {}
         cutoff: datetime | None = None
         if hours > 0:
             cutoff = datetime.now(UTC) - timedelta(hours=hours)
@@ -105,7 +109,7 @@ class PnLReportGenerator:
                 for line in tj_path.read_text(encoding="utf-8").strip().split("\n"):
                     if not line.strip():
                         continue
-                    trade = json.loads(line)
+                    trade = cast(JsonDict, json.loads(line))
                     # Time filtering
                     if cutoff is not None:
                         exit_time_str = trade.get("exit_time", "")
@@ -153,7 +157,11 @@ class PnLReportGenerator:
             win_rate = wins / max(1, wins + losses)
             gross_profit = sum(t.get("pnl", 0) for t in wallet_trades if t.get("pnl", 0) > 0)
             gross_loss = abs(sum(t.get("pnl", 0) for t in wallet_trades if t.get("pnl", 0) <= 0))
-            pf = gross_profit / gross_loss if gross_loss > 0 else (float("inf") if gross_profit > 0 else 0.0)
+            pf = (
+                gross_profit / gross_loss
+                if gross_loss > 0
+                else (float("inf") if gross_profit > 0 else 0.0)
+            )
 
             return_pct = (equity / initial_capital - 1.0) * 100.0
             unrealized = equity - initial_capital - realized
@@ -272,9 +280,13 @@ class PnLReportGenerator:
         ]
 
         if health is not None:
-            lines[lines.index("## Per-Wallet Breakdown"):lines.index("## Per-Wallet Breakdown")] = [
-                f"| Checkpoint Age | {health['checkpoint_age_display']} ({health['checkpoint_freshness']}) |",
-                f"| Heartbeat Age | {health['heartbeat_age_display']} ({health['heartbeat_freshness']}) |",
+            lines[
+                lines.index("## Per-Wallet Breakdown") : lines.index("## Per-Wallet Breakdown")
+            ] = [
+                f"| Checkpoint Age | {health['checkpoint_age_display']} "
+                f"({health['checkpoint_freshness']}) |",
+                f"| Heartbeat Age | {health['heartbeat_age_display']} "
+                f"({health['heartbeat_freshness']}) |",
                 f"| Freshness Status | {health['freshness_status']} |",
                 f"| Freshness Reason | {health['freshness_reason']} |",
                 f"| Artifact Health | {'healthy' if health['healthy'] else 'warning'} |",
@@ -290,13 +302,15 @@ class PnLReportGenerator:
                 f"{s.sharpe_ratio:.2f} |"
             )
 
-        lines.extend([
-            "",
-            "## Cumulative Realized PnL",
-            "",
-            "| Wallet | Strategy | Cumulative Realized PnL |",
-            "|--------|----------|------------------------|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Cumulative Realized PnL",
+                "",
+                "| Wallet | Strategy | Cumulative Realized PnL |",
+                "|--------|----------|------------------------|",
+            ]
+        )
         cumulative = 0.0
         for s in sorted(report.strategies, key=lambda x: x.realized_pnl, reverse=True):
             cumulative += s.realized_pnl
@@ -315,7 +329,7 @@ class PnLReportGenerator:
         target.write_text(md_content, encoding="utf-8")
 
         json_path = target.with_suffix(".json")
-        json_data = {
+        json_data: JsonDict = {
             "generated_at": report.generated_at,
             "period": report.period,
             "portfolio_return_pct": report.portfolio_return_pct,
@@ -339,39 +353,45 @@ class PnLReportGenerator:
                 "freshness_status": "unknown",
                 "freshness_reason": "not computed",
             },
-            "strategies": [],
+            "strategies": cast(list[JsonDict], []),
         }
+        artifact_context = cast(JsonDict, json_data["artifact_context"])
+        strategies_json = cast(list[JsonDict], json_data["strategies"])
         try:
             from crypto_trader.operator.artifact_health import summarize_artifact_health
 
             health = summarize_artifact_health(report)
-            json_data["artifact_context"].update({
-                "healthy": health["healthy"],
-                "headline_status": health["headline_status"],
-                "checkpoint_age_seconds": health["checkpoint_age_seconds"],
-                "heartbeat_age_seconds": health["heartbeat_age_seconds"],
-                "checkpoint_age_display": health["checkpoint_age_display"],
-                "heartbeat_age_display": health["heartbeat_age_display"],
-                "checkpoint_freshness": health["checkpoint_freshness"],
-                "heartbeat_freshness": health["heartbeat_freshness"],
-                "freshness_status": health["freshness_status"],
-                "freshness_reason": health["freshness_reason"],
-            })
+            artifact_context.update(
+                {
+                    "healthy": health["healthy"],
+                    "headline_status": health["headline_status"],
+                    "checkpoint_age_seconds": health["checkpoint_age_seconds"],
+                    "heartbeat_age_seconds": health["heartbeat_age_seconds"],
+                    "checkpoint_age_display": health["checkpoint_age_display"],
+                    "heartbeat_age_display": health["heartbeat_age_display"],
+                    "checkpoint_freshness": health["checkpoint_freshness"],
+                    "heartbeat_freshness": health["heartbeat_freshness"],
+                    "freshness_status": health["freshness_status"],
+                    "freshness_reason": health["freshness_reason"],
+                }
+            )
         except Exception:
             pass
         cumulative = 0.0
         for s in sorted(report.strategies, key=lambda x: x.realized_pnl, reverse=True):
             cumulative += s.realized_pnl
-            json_data["strategies"].append({
-                "wallet": s.wallet,
-                "strategy": s.strategy,
-                "return_pct": s.total_return_pct,
-                "realized_pnl": s.realized_pnl,
-                "cumulative_realized_pnl": cumulative,
-                "trade_count": s.trade_count,
-                "win_rate": s.win_rate,
-                "sharpe": s.sharpe_ratio,
-            })
+            strategies_json.append(
+                {
+                    "wallet": s.wallet,
+                    "strategy": s.strategy,
+                    "return_pct": s.total_return_pct,
+                    "realized_pnl": s.realized_pnl,
+                    "cumulative_realized_pnl": cumulative,
+                    "trade_count": s.trade_count,
+                    "win_rate": s.win_rate,
+                    "sharpe": s.sharpe_ratio,
+                }
+            )
         json_path.write_text(json.dumps(json_data, indent=2), encoding="utf-8")
 
         # Auto-append to snapshot history
@@ -424,7 +444,11 @@ class PnLReportGenerator:
                 "session_mismatch",
                 "checkpoint and heartbeat session ids differ",
             )
-        if checkpoint_wallet_names and heartbeat_wallet_names and checkpoint_wallet_names != heartbeat_wallet_names:
+        if (
+            checkpoint_wallet_names
+            and heartbeat_wallet_names
+            and checkpoint_wallet_names != heartbeat_wallet_names
+        ):
             return (
                 heartbeat_generated_at,
                 heartbeat_session_id,
@@ -477,7 +501,7 @@ class PnLSnapshotStore:
     def append(self, report: PortfolioPnLReport) -> None:
         """Append a single snapshot line from a PnL report."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        entry = {
+        entry: JsonDict = {
             "timestamp": report.generated_at,
             "period": report.period,
             "portfolio_return_pct": round(report.portfolio_return_pct, 4),
@@ -511,12 +535,12 @@ class PnLSnapshotStore:
         with self._path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
 
-    def load_history(self) -> list[dict]:
+    def load_history(self) -> list[JsonDict]:
         """Load all historical snapshots."""
         if not self._path.exists():
             return []
-        entries = []
+        entries: list[JsonDict] = []
         for line in self._path.read_text(encoding="utf-8").strip().split("\n"):
             if line.strip():
-                entries.append(json.loads(line))
+                entries.append(cast(JsonDict, json.loads(line)))
         return entries

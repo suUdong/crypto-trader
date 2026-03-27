@@ -1,4 +1,5 @@
 """Generate an offline strategy comparison report from research artifacts."""
+
 from __future__ import annotations
 
 import json
@@ -53,8 +54,8 @@ def _aggregate_baseline(results: list[dict[str, Any]]) -> dict[str, dict[str, fl
         aggregate = aggregates[strategy]
         aggregate["return_total"] = float(aggregate["return_total"]) + float(result["return_pct"])
         aggregate["mdd_total"] = float(aggregate["mdd_total"]) + float(result["max_drawdown"])
-        aggregate["profit_factor_total"] = (
-            float(aggregate["profit_factor_total"]) + float(result["profit_factor"])
+        aggregate["profit_factor_total"] = float(aggregate["profit_factor_total"]) + float(
+            result["profit_factor"]
         )
         aggregate["trade_total"] = int(aggregate["trade_total"]) + int(result["trade_count"])
         aggregate["count"] = int(aggregate["count"]) + 1

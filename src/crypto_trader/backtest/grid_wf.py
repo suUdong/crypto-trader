@@ -1,11 +1,10 @@
 """Grid search + walk-forward combo: find best params then validate OOS."""
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
-
-_logger = logging.getLogger(__name__)
+from typing import Any, cast
 
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.backtest.walk_forward import WalkForwardReport, WalkForwardValidator
@@ -14,10 +13,13 @@ from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.wallet import create_strategy
 
+_logger = logging.getLogger(__name__)
+
 
 @dataclass(slots=True)
 class GridCandidate:
     """A parameter set with its grid search score."""
+
     strategy_type: str
     params: dict[str, Any]
     avg_sharpe: float
@@ -30,6 +32,7 @@ class GridCandidate:
 @dataclass(slots=True)
 class GridWFResult:
     """Combined grid search + walk-forward result."""
+
     candidate: GridCandidate
     wf_report: WalkForwardReport
     validated: bool
@@ -38,6 +41,7 @@ class GridWFResult:
 @dataclass(slots=True)
 class GridWFSummary:
     """Summary of full grid-wf run."""
+
     strategy_type: str
     candidates_tested: int
     candidates_validated: int
@@ -69,7 +73,9 @@ class GridWFSummary:
                 }
                 for r in self.results
             ],
-            "best_validated": None if not self.best_validated else {
+            "best_validated": None
+            if not self.best_validated
+            else {
                 "params": self.best_validated.candidate.params,
                 "avg_sharpe": self.best_validated.candidate.avg_sharpe,
                 "avg_sortino": self.best_validated.candidate.avg_sortino,
@@ -94,7 +100,7 @@ def _approx_sharpe(equity_curve: list[float]) -> float:
     std_r = variance**0.5
     if std_r == 0:
         return 0.0
-    return (mean_r / std_r) * (8760**0.5)
+    return float((mean_r / std_r) * (8760**0.5))
 
 
 def bootstrap_return_ci(
@@ -177,7 +183,7 @@ def _approx_sortino(equity_curve: list[float]) -> float:
     downside_std = downside_variance**0.5
     if downside_std == 0:
         return 0.0
-    return (mean_r / downside_std) * (8760**0.5)
+    return float((mean_r / downside_std) * (8760**0.5))
 
 
 # Minimal param grids for quick in-CLI search
@@ -265,16 +271,18 @@ def _run_backtest_with_params(
     if strategy_type == "kimchi_premium":
         # Setup mock premium for backtest
         from unittest.mock import MagicMock
-        if hasattr(strategy, "_cached_premium"):
+
+        kimchi_strategy = cast(Any, strategy)
+        if hasattr(kimchi_strategy, "_cached_premium"):
             if len(candles) >= 50:
                 closes = [c.close for c in candles]
                 ma50 = sum(closes[-50:]) / 50.0
                 if ma50 > 0:
-                    strategy._cached_premium = (closes[-1] - ma50) / ma50
-            strategy._binance = MagicMock()
-            strategy._fx = MagicMock()
-            strategy._binance.get_btc_usdt_price.return_value = None
-            strategy._fx.get_usd_krw_rate.return_value = None
+                    kimchi_strategy._cached_premium = (closes[-1] - ma50) / ma50
+            kimchi_strategy._binance = MagicMock()
+            kimchi_strategy._fx = MagicMock()
+            kimchi_strategy._binance.get_btc_usdt_price.return_value = None
+            kimchi_strategy._fx.get_usd_krw_rate.return_value = None
 
     risk_config = RiskConfig()
     risk_manager = RiskManager(
@@ -282,11 +290,15 @@ def _run_backtest_with_params(
         atr_stop_multiplier=risk_config.atr_stop_multiplier,
     )
     backtest_config = BacktestConfig(
-        initial_capital=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005,
+        initial_capital=1_000_000.0,
+        fee_rate=0.0005,
+        slippage_pct=0.0005,
     )
     engine = BacktestEngine(
-        strategy=strategy, risk_manager=risk_manager,
-        config=backtest_config, symbol=symbol,
+        strategy=strategy,
+        risk_manager=risk_manager,
+        config=backtest_config,
+        symbol=symbol,
     )
     result = engine.run(candles)
     sharpe = _approx_sharpe(result.equity_curve)
@@ -318,15 +330,16 @@ def grid_search(
     import itertools
 
     if regime_filter:
-        from crypto_trader.strategy.regime import RegimeDetector
         from crypto_trader.config import RegimeConfig
+        from crypto_trader.strategy.regime import RegimeDetector
+
         detector = RegimeDetector(RegimeConfig())
         filtered_map: dict[str, list[Candle]] = {}
         for sym, candles in candles_by_symbol.items():
             # Keep candles where detected regime matches filter
             filtered: list[Candle] = []
             for i in range(30, len(candles)):
-                window = candles[max(0, i-30):i+1]
+                window = candles[max(0, i - 30) : i + 1]
                 if len(window) >= 10:
                     analysis = detector.analyze(window)
                     if analysis.regime.value == regime_filter:
@@ -366,7 +379,9 @@ def grid_search(
 
         if sharpes:
             avg_sharpe = sum(sharpes) / len(sharpes)
-            avg_sortino = sum(s for s in sortinos if s != float("inf")) / max(1, len([s for s in sortinos if s != float("inf")]))
+            avg_sortino = sum(s for s in sortinos if s != float("inf")) / max(
+                1, len([s for s in sortinos if s != float("inf")])
+            )
             avg_return = sum(returns) / len(returns)
             avg_profit_factor = sum(profit_factors) / len(profit_factors)
             scored.append((params, avg_sharpe, avg_return, trades, avg_profit_factor, avg_sortino))
@@ -414,24 +429,32 @@ def validate_with_walk_forward(
         if len(candles) < 100:
             continue
 
-        def _factory(sym: str = symbol, cndls: list[Candle] = candles) -> object:
+        def _factory(sym: str = symbol, cndls: list[Candle] = candles) -> Any:
             config_kwargs = {k: v for k, v in candidate.params.items() if k in config_fields}
             strategy_config = StrategyConfig(**config_kwargs)
             regime_config = RegimeConfig()
             strategy = create_strategy(
-                candidate.strategy_type, strategy_config, regime_config, candidate.params,
+                candidate.strategy_type,
+                strategy_config,
+                regime_config,
+                candidate.params,
             )
-            if candidate.strategy_type == "kimchi_premium" and hasattr(strategy, "_cached_premium"):
+            kimchi_strategy = cast(Any, strategy)
+            if (
+                candidate.strategy_type == "kimchi_premium"
+                and hasattr(kimchi_strategy, "_cached_premium")
+            ):
                 from unittest.mock import MagicMock
+
                 if len(cndls) >= 50:
                     closes = [c.close for c in cndls]
                     ma50 = sum(closes[-50:]) / 50.0
                     if ma50 > 0:
-                        strategy._cached_premium = (closes[-1] - ma50) / ma50
-                strategy._binance = MagicMock()
-                strategy._fx = MagicMock()
-                strategy._binance.get_btc_usdt_price.return_value = None
-                strategy._fx.get_usd_krw_rate.return_value = None
+                        kimchi_strategy._cached_premium = (closes[-1] - ma50) / ma50
+                kimchi_strategy._binance = MagicMock()
+                kimchi_strategy._fx = MagicMock()
+                kimchi_strategy._binance.get_btc_usdt_price.return_value = None
+                kimchi_strategy._fx.get_usd_krw_rate.return_value = None
             return strategy
 
         try:
@@ -479,12 +502,17 @@ def run_grid_wf(
     bc = backtest_config or BacktestConfig()
     rc = risk_config or RiskConfig()
 
-    candidates = grid_search(strategy_type, candles_by_symbol, top_n=top_n, regime_filter=regime_filter)
+    candidates = grid_search(
+        strategy_type, candles_by_symbol, top_n=top_n, regime_filter=regime_filter
+    )
 
     results: list[GridWFResult] = []
     for candidate in candidates:
         wf_result = validate_with_walk_forward(
-            candidate, candles_by_symbol, bc, rc,
+            candidate,
+            candles_by_symbol,
+            bc,
+            rc,
         )
         results.append(wf_result)
 

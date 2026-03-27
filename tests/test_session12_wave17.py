@@ -1,11 +1,12 @@
 """Tests for Session #12 Wave 17: weighted consensus, regime breakdown."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.backtest.engine import BacktestEngine
-from crypto_trader.config import BacktestConfig, RiskConfig, StrategyConfig
+from crypto_trader.config import BacktestConfig, RiskConfig
 from crypto_trader.models import Candle, Signal, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.consensus import ConsensusStrategy
@@ -14,14 +15,21 @@ from crypto_trader.strategy.consensus import ConsensusStrategy
 def _candles(closes: list[float], volume: float = 1000.0) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=volume)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=volume,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 class _MockStrategy:
     """Mock strategy returning configurable signals."""
+
     def __init__(self, action: SignalAction, confidence: float, reason: str = "mock"):
         self._action = action
         self._confidence = confidence
@@ -29,13 +37,15 @@ class _MockStrategy:
 
     def evaluate(self, candles, position=None):
         return Signal(
-            action=self._action, reason=self._reason,
+            action=self._action,
+            reason=self._reason,
             confidence=self._confidence,
             context={"market_regime": "sideways"},
         )
 
 
 # ---------- Weighted consensus ----------
+
 
 class TestWeightedConsensus(unittest.TestCase):
     def test_agreement_ratio_in_indicators(self) -> None:
@@ -94,7 +104,7 @@ class TestWeightedConsensus(unittest.TestCase):
         candles = _candles([100.0] * 10)
         signal = consensus.evaluate(candles)
         self.assertEqual(signal.action, SignalAction.BUY)
-        # With equal weights: weighted_conf = (1.0*0.6^2*3)/(3.0) = 0.36, + agree_ratio(1.0)*0.1 = 0.46
+        # Equal weights: weighted confidence is 0.36, then agree_ratio bonus lifts it to 0.46.
         self.assertGreater(signal.confidence, 0.4)
 
     def test_sell_still_conservative(self) -> None:
@@ -106,39 +116,49 @@ class TestWeightedConsensus(unittest.TestCase):
         consensus = ConsensusStrategy(strategies, min_agree=2)
         candles = _candles([100.0] * 10)
         from crypto_trader.models import Position
-        pos = Position(symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
-                       entry_time=datetime(2025, 1, 1))
+
+        pos = Position(
+            symbol="KRW-BTC", quantity=1.0, entry_price=100.0, entry_time=datetime(2025, 1, 1)
+        )
         signal = consensus.evaluate(candles, pos)
         self.assertEqual(signal.action, SignalAction.SELL)
 
 
 # ---------- Regime breakdown in BacktestResult ----------
 
+
 class TestRegimeBreakdown(unittest.TestCase):
     def test_regime_breakdown_populated(self) -> None:
         """BacktestResult should have regime_breakdown dict."""
+
         class RegimeStrategy:
             def evaluate(self, candles, position=None):
                 if position is None:
                     return Signal(
-                        action=SignalAction.BUY, reason="buy",
+                        action=SignalAction.BUY,
+                        reason="buy",
                         confidence=0.8,
                         context={"market_regime": "bull"},
                     )
                 return Signal(
-                    action=SignalAction.SELL, reason="sell",
+                    action=SignalAction.SELL,
+                    reason="sell",
                     confidence=0.9,
                     context={"market_regime": "bull"},
                 )
 
         prices = [100.0] * 50
         candles = _candles(prices)
-        risk = RiskManager(RiskConfig(
-            stop_loss_pct=0.05, take_profit_pct=0.10,
-            min_entry_confidence=0.5,
-        ))
+        risk = RiskManager(
+            RiskConfig(
+                stop_loss_pct=0.05,
+                take_profit_pct=0.10,
+                min_entry_confidence=0.5,
+            )
+        )
         engine = BacktestEngine(
-            strategy=RegimeStrategy(), risk_manager=risk,
+            strategy=RegimeStrategy(),
+            risk_manager=risk,
             config=BacktestConfig(initial_capital=1_000_000.0),
             symbol="KRW-BTC",
         )
@@ -153,6 +173,7 @@ class TestRegimeBreakdown(unittest.TestCase):
 
     def test_regime_breakdown_empty_no_trades(self) -> None:
         """With no trades, regime_breakdown should be empty."""
+
         class NeverBuy:
             def evaluate(self, candles, position=None):
                 return Signal(action=SignalAction.HOLD, reason="nope", confidence=0.1)
@@ -161,7 +182,8 @@ class TestRegimeBreakdown(unittest.TestCase):
         candles = _candles(prices)
         risk = RiskManager(RiskConfig())
         engine = BacktestEngine(
-            strategy=NeverBuy(), risk_manager=risk,
+            strategy=NeverBuy(),
+            risk_manager=risk,
             config=BacktestConfig(initial_capital=1_000_000.0),
             symbol="KRW-BTC",
         )
@@ -170,32 +192,40 @@ class TestRegimeBreakdown(unittest.TestCase):
 
     def test_multiple_regimes_tracked(self) -> None:
         """Should track different regimes separately."""
+
         class MultiRegimeStrategy:
             def __init__(self):
                 self._call = 0
+
             def evaluate(self, candles, position=None):
                 self._call += 1
                 regime = "bull" if self._call % 4 < 2 else "bear"
                 if position is None:
                     return Signal(
-                        action=SignalAction.BUY, reason="buy",
+                        action=SignalAction.BUY,
+                        reason="buy",
                         confidence=0.8,
                         context={"market_regime": regime},
                     )
                 return Signal(
-                    action=SignalAction.SELL, reason="sell",
+                    action=SignalAction.SELL,
+                    reason="sell",
                     confidence=0.9,
                     context={"market_regime": regime},
                 )
 
         prices = [100.0] * 60
         candles = _candles(prices)
-        risk = RiskManager(RiskConfig(
-            stop_loss_pct=0.05, take_profit_pct=0.10,
-            min_entry_confidence=0.5,
-        ))
+        risk = RiskManager(
+            RiskConfig(
+                stop_loss_pct=0.05,
+                take_profit_pct=0.10,
+                min_entry_confidence=0.5,
+            )
+        )
         engine = BacktestEngine(
-            strategy=MultiRegimeStrategy(), risk_manager=risk,
+            strategy=MultiRegimeStrategy(),
+            risk_manager=risk,
             config=BacktestConfig(initial_capital=1_000_000.0),
             symbol="KRW-BTC",
         )

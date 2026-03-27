@@ -16,11 +16,16 @@ from crypto_trader.macro.client import MacroClient
 from crypto_trader.models import PipelineResult, Position, RuntimeCheckpoint, StrategyRunRecord
 from crypto_trader.monitoring.structured_logger import StructuredLogger
 from crypto_trader.notifications.alert_manager import TradeAlertManager
+from crypto_trader.notifications.telegram import (
+    Notifier,
+    NullNotifier,
+    SlackNotifier,
+    TelegramNotifier,
+)
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradeJournal
-from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
-from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier, SlackNotifier
 from crypto_trader.operator.pnl_report import PnLReportGenerator
+from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
 from crypto_trader.risk.correlation_guard import CorrelationGuard
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig
 from crypto_trader.risk.slippage_monitor import SlippageMonitor
@@ -75,19 +80,25 @@ class MultiSymbolRuntime:
             # Only auto-load kill switch state for live trading
             self._kill_switch.load(self._kill_switch_path)
         self._total_starting_equity = sum(w.session_starting_equity for w in wallets)
-        self._prev_trade_count: dict[str, int] = {w.name: len(w.broker.closed_trades) for w in wallets}
-        self._regime_detector = RegimeDetector(RegimeConfig(
-            short_lookback=config.regime.short_lookback,
-            long_lookback=config.regime.long_lookback,
-            bull_threshold_pct=config.regime.bull_threshold_pct,
-            bear_threshold_pct=config.regime.bear_threshold_pct,
-        ))
+        self._prev_trade_count: dict[str, int] = {
+            w.name: len(w.broker.closed_trades) for w in wallets
+        }
+        self._regime_detector = RegimeDetector(
+            RegimeConfig(
+                short_lookback=config.regime.short_lookback,
+                long_lookback=config.regime.long_lookback,
+                bull_threshold_pct=config.regime.bull_threshold_pct,
+                bear_threshold_pct=config.regime.bear_threshold_pct,
+            )
+        )
         if config.macro.enabled:
             db_path = config.macro.db_path if config.macro.has_db else None
             self._macro_client = MacroClient(db_path)
             self._logger.info("Macro layer enabled (db=%s)", db_path or "default")
-        self._notifier = TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
-        notifiers = [self._notifier]
+        self._notifier = (
+            TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
+        )
+        notifiers: list[Notifier] = [self._notifier]
         if config.slack.enabled:
             notifiers.append(SlackNotifier(config.slack))
         self._alert_manager = TradeAlertManager(notifiers)
@@ -203,12 +214,12 @@ class MultiSymbolRuntime:
                 # Correlation guard: skip tick if no position and cluster is full
                 if not wallet.broker.positions:
                     positions_list = [
-                        (w.name, sym)
-                        for w in self._wallets
-                        for sym in w.broker.positions
+                        (w.name, sym) for w in self._wallets for sym in w.broker.positions
                     ]
                     cluster_exposure = self._correlation_guard.get_cluster_exposure(positions_list)
-                    check = self._correlation_guard.check_entry(symbol, wallet.name, cluster_exposure)
+                    check = self._correlation_guard.check_entry(
+                        symbol, wallet.name, cluster_exposure
+                    )
                     if not check.allowed:
                         self._logger.debug(
                             "[%s] %s entry blocked by correlation guard: %s",
@@ -222,7 +233,10 @@ class MultiSymbolRuntime:
                 if result.error:
                     self._logger.error(result.message)
                     self._structured_logger.log_error(
-                        wallet.name, wallet.strategy_type, symbol, result.error,
+                        wallet.name,
+                        wallet.strategy_type,
+                        symbol,
+                        result.error,
                     )
                     self._alert_manager.alert_error(wallet.name, symbol, result.error)
                 else:
@@ -267,10 +281,7 @@ class MultiSymbolRuntime:
                             fee_paid=result.order.fee_paid,
                             reason=result.order.reason,
                         )
-                    elif (
-                        result.signal.action.value in ("buy", "sell")
-                        and result.order is None
-                    ):
+                    elif result.signal.action.value in ("buy", "sell") and result.order is None:
                         self._structured_logger.log_rejection(
                             wallet_name=wallet.name,
                             strategy_type=wallet.strategy_type,
@@ -384,7 +395,8 @@ class MultiSymbolRuntime:
         adjustment = self._macro_adapter.compute(snapshot)
         for wallet in self._wallets:
             regime_weight = self._macro_adapter.strategy_weight(
-                wallet.strategy_type, self._current_market_regime,
+                wallet.strategy_type,
+                self._current_market_regime,
             )
             combined = adjustment.position_size_multiplier * regime_weight * weekend_mult
             wallet.set_macro_multiplier(combined)
@@ -415,7 +427,8 @@ class MultiSymbolRuntime:
         weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
         for wallet in self._wallets:
             regime_weight = self._macro_adapter.strategy_weight(
-                wallet.strategy_type, self._current_market_regime,
+                wallet.strategy_type,
+                self._current_market_regime,
             )
             wallet.set_macro_multiplier(regime_weight * weekend_mult)
 
@@ -551,13 +564,14 @@ class MultiSymbolRuntime:
             self._wallet_health.evaluate(wallet_names)
             newly_disabled = self._wallet_health.get_disabled_wallets()
             if newly_disabled:
-                msg = (
-                    "[Crypto Trader] Wallet Auto-Disable\n"
-                    + "\n".join(
-                        f"  {name}: DISABLED ({self._wallet_health.get_status(name).disabled_reason})"
-                        for name in newly_disabled
-                    )
-                )
+                disabled_lines = []
+                for name in newly_disabled:
+                    status = self._wallet_health.get_status(name)
+                    if status is not None:
+                        disabled_lines.append(
+                            f"  {name}: DISABLED ({status.disabled_reason})"
+                        )
+                msg = "[Crypto Trader] Wallet Auto-Disable\n" + "\n".join(disabled_lines)
                 self._notifier.send_message(msg)
                 self._logger.warning("Auto-disabled wallets: %s", newly_disabled)
             self._last_health_check = time.time()
@@ -573,14 +587,13 @@ class MultiSymbolRuntime:
                 self._config.runtime.paper_trade_journal_path,
             )
             disabled = self._wallet_health.get_disabled_wallets()
-            paused = [
-                w.name for w in self._wallets
-                if w.risk_manager.is_auto_paused
-            ]
+            paused = [w.name for w in self._wallets if w.risk_manager.is_auto_paused]
             lines = [
                 "[Crypto Trader] Daily PnL Report",
-                f"Equity: {report.total_equity:,.0f} KRW | Return: {report.portfolio_return_pct:+.2f}%",
-                f"Sharpe: {report.portfolio_sharpe:.2f} | Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
+                f"Equity: {report.total_equity:,.0f} KRW | "
+                f"Return: {report.portfolio_return_pct:+.2f}%",
+                f"Sharpe: {report.portfolio_sharpe:.2f} | "
+                f"Trades: {report.total_trades} | Win: {report.portfolio_win_rate:.0%}",
                 "---",
             ]
             for s in sorted(report.strategies, key=lambda x: x.total_return_pct, reverse=True):
@@ -624,13 +637,15 @@ class MultiSymbolRuntime:
         positions = []
         for wallet in self._wallets:
             for symbol, pos in wallet.broker.positions.items():
-                positions.append({
-                    "wallet": wallet.name,
-                    "symbol": symbol,
-                    "qty": pos.quantity,
-                    "entry_price": pos.entry_price,
-                    "side": "long",
-                })
+                positions.append(
+                    {
+                        "wallet": wallet.name,
+                        "symbol": symbol,
+                        "qty": pos.quantity,
+                        "entry_price": pos.entry_price,
+                        "side": "long",
+                    }
+                )
         payload = {
             "generated_at": datetime.now(UTC).isoformat(),
             "count": len(positions),
@@ -642,6 +657,7 @@ class MultiSymbolRuntime:
     def _refresh_portfolio_promotion(self) -> None:
         """Refresh portfolio-level promotion gate artifact."""
         from crypto_trader.operator.promotion import PortfolioPromotionGate
+
         gate = PortfolioPromotionGate()
         decision = gate.evaluate_from_checkpoint(
             checkpoint_path=self._config.runtime.runtime_checkpoint_path,
@@ -752,7 +768,9 @@ class MultiSymbolRuntime:
             "kill_switch": {
                 "warning_active": self._kill_switch.state.warning_active,
                 "position_size_penalty": self._kill_switch.state.position_size_penalty,
-                "portfolio_drawdown_pct": round(self._kill_switch.state.portfolio_drawdown_pct * 100, 2),
+                "portfolio_drawdown_pct": round(
+                    self._kill_switch.state.portfolio_drawdown_pct * 100, 2
+                ),
                 "daily_loss_pct": round(self._kill_switch.state.daily_loss_pct * 100, 2),
             },
         }

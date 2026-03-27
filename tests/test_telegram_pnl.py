@@ -5,7 +5,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from crypto_trader.config import (
     AppConfig,
@@ -33,7 +33,7 @@ def _make_config(
     checkpoint_path: str = "artifacts/runtime-checkpoint.json",
 ) -> AppConfig:
     with tempfile.TemporaryDirectory() as tmp:
-        cp_path = str(Path(tmp) / "checkpoint.json")
+        str(Path(tmp) / "checkpoint.json")
     return AppConfig(
         trading=TradingConfig(
             symbols=["KRW-BTC"],
@@ -162,6 +162,7 @@ class TestTelegramDisabled(unittest.TestCase):
 
     def test_telegram_enabled_uses_telegram_notifier(self) -> None:
         from crypto_trader.notifications.telegram import TelegramNotifier
+
         config = _make_config(bot_token="sometoken", chat_id="somechat")
         runtime = _make_runtime(config)
         self.assertIsInstance(runtime._notifier, TelegramNotifier)

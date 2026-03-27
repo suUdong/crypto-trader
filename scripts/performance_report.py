@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """72-hour performance report: PnL summary + micro-live readiness check."""
+
 from __future__ import annotations
 
 import argparse

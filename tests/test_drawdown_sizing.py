@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import unittest
+from typing import Any
 
 from crypto_trader.config import RiskConfig
 from crypto_trader.risk.manager import RiskManager
 
 
 class DrawdownSizingTests(unittest.TestCase):
-    def _make_manager(self, **kwargs) -> RiskManager:
-        defaults = dict(
+    def _make_manager(self, **kwargs: Any) -> RiskManager:
+        defaults: dict[str, Any] = dict(
             risk_per_trade_pct=0.01,
             stop_loss_pct=0.02,
             max_daily_loss_pct=0.05,

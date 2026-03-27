@@ -364,9 +364,17 @@ COLORS = {
 
 # Ordered palette for categorical data (pie charts, multi-series).
 PALETTE = [
-    COLORS["red"], COLORS["yellow"], COLORS["green"], COLORS["blue"],
-    COLORS["purple"], COLORS["pink"], COLORS["teal"], COLORS["orange"],
-    COLORS["indigo"], "#e879f9", COLORS["muted"],
+    COLORS["red"],
+    COLORS["yellow"],
+    COLORS["green"],
+    COLORS["blue"],
+    COLORS["purple"],
+    COLORS["pink"],
+    COLORS["teal"],
+    COLORS["orange"],
+    COLORS["indigo"],
+    "#e879f9",
+    COLORS["muted"],
 ]
 
 
@@ -378,27 +386,30 @@ def chart_layout(
     xaxis_title: str = "",
     show_legend: bool = True,
     legend_below: bool = True,
-) -> dict:
+) -> dict[str, object]:
     """Return a unified Plotly layout dict for dark-themed charts."""
-    layout: dict = {
+    layout: dict[str, object] = {
         "template": "plotly_dark",
         "plot_bgcolor": "rgba(0,0,0,0)",
         "paper_bgcolor": "rgba(0,0,0,0)",
-        "margin": dict(l=16, r=16, t=40 if title else 16, b=24),
+        "margin": {"l": 16, "r": 16, "t": 40 if title else 16, "b": 24},
         "height": height,
-        "font": dict(size=11, family="'Noto Sans KR', sans-serif"),
+        "font": {"size": 11, "family": "'Noto Sans KR', sans-serif"},
     }
     if title:
-        layout["title"] = dict(text=title, font=dict(size=14))
+        layout["title"] = {"text": title, "font": {"size": 14}}
     if yaxis_title:
         layout["yaxis_title"] = yaxis_title
     if xaxis_title:
         layout["xaxis_title"] = xaxis_title
     if show_legend and legend_below:
-        layout["legend"] = dict(
-            orientation="h", yanchor="bottom", y=-0.25,
-            xanchor="center", x=0.5,
-        )
+        layout["legend"] = {
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": -0.25,
+            "xanchor": "center",
+            "x": 0.5,
+        }
     elif not show_legend:
         layout["showlegend"] = False
     return layout

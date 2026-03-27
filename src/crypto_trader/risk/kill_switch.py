@@ -1,4 +1,5 @@
 """Kill switch for live trading safety."""
+
 from __future__ import annotations
 
 import json
@@ -108,9 +109,7 @@ class KillSwitch:
         if self._daily_start_equity > 0:
             daily_loss = (self._daily_start_equity - current_equity) / self._daily_start_equity
             self._state.daily_loss_pct = max(0.0, daily_loss)
-            self._apply_tiered_response(
-                daily_loss, self._config.max_daily_loss_pct, "daily_loss"
-            )
+            self._apply_tiered_response(daily_loss, self._config.max_daily_loss_pct, "daily_loss")
             if daily_loss >= self._config.max_daily_loss_pct:
                 self._trigger(
                     f"Daily loss {daily_loss:.2%} exceeds limit "
@@ -127,7 +126,8 @@ class KillSwitch:
 
             if self._state.consecutive_losses >= self._config.max_consecutive_losses:
                 self._trigger(
-                    f"max_consecutive_losses_exceeded: {self._state.consecutive_losses} consecutive losses "
+                    "max_consecutive_losses_exceeded: "
+                    f"{self._state.consecutive_losses} consecutive losses "
                     f"(limit {self._config.max_consecutive_losses})"
                 )
                 return self._state
@@ -135,7 +135,10 @@ class KillSwitch:
         return self._state
 
     def _apply_tiered_response(
-        self, current_pct: float, limit_pct: float, metric: str,
+        self,
+        current_pct: float,
+        limit_pct: float,
+        metric: str,
     ) -> None:
         """Apply tiered warning/reduce response before full halt."""
         if limit_pct <= 0:
@@ -150,7 +153,10 @@ class KillSwitch:
             logger.warning(
                 "RISK REDUCE: %s at %.1f%% of limit (%.2f%% / %.2f%%) — "
                 "position size reduced to %.0f%%",
-                metric, ratio * 100, current_pct * 100, limit_pct * 100,
+                metric,
+                ratio * 100,
+                current_pct * 100,
+                limit_pct * 100,
                 self._config.reduce_position_factor * 100,
             )
         elif ratio >= warn_thresh:
@@ -159,12 +165,16 @@ class KillSwitch:
             interp = (ratio - warn_thresh) / (reduce_thresh - warn_thresh)
             penalty = 1.0 - interp * (1.0 - self._config.reduce_position_factor)
             self._state.position_size_penalty = max(
-                self._config.reduce_position_factor, min(1.0, penalty),
+                self._config.reduce_position_factor,
+                min(1.0, penalty),
             )
             logger.warning(
                 "RISK WARNING: %s at %.1f%% of limit (%.2f%% / %.2f%%) — "
                 "position size penalty %.2f",
-                metric, ratio * 100, current_pct * 100, limit_pct * 100,
+                metric,
+                ratio * 100,
+                current_pct * 100,
+                limit_pct * 100,
                 self._state.position_size_penalty,
             )
 

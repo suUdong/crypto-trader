@@ -6,10 +6,12 @@ Designed for cron / CI usage.
 
 Usage:
     PYTHONPATH=src python3 scripts/micro_live_check.py
-    PYTHONPATH=src python3 scripts/micro_live_check.py --checkpoint artifacts/runtime-checkpoint.json
+    PYTHONPATH=src python3 scripts/micro_live_check.py
+        --checkpoint artifacts/runtime-checkpoint.json
     PYTHONPATH=src python3 scripts/micro_live_check.py --json-only
     PYTHONPATH=src python3 scripts/micro_live_check.py --notify  # sends via Telegram if configured
 """
+
 from __future__ import annotations
 
 import argparse
@@ -126,27 +128,37 @@ def format_human(result: dict) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Micro-live transition auto-check")
     parser.add_argument(
-        "--checkpoint", type=Path, default=_DEFAULT_CHECKPOINT,
+        "--checkpoint",
+        type=Path,
+        default=_DEFAULT_CHECKPOINT,
         help="Path to runtime-checkpoint.json",
     )
     parser.add_argument(
-        "--journal", type=Path, default=_DEFAULT_JOURNAL,
+        "--journal",
+        type=Path,
+        default=_DEFAULT_JOURNAL,
         help="Path to paper-trades.jsonl",
     )
     parser.add_argument(
-        "--strategy-runs", type=Path, default=_DEFAULT_STRATEGY_RUNS,
+        "--strategy-runs",
+        type=Path,
+        default=_DEFAULT_STRATEGY_RUNS,
         help="Path to strategy-runs.jsonl (for paper_days start date)",
     )
     parser.add_argument(
-        "--output", type=Path, default=_DEFAULT_OUTPUT,
+        "--output",
+        type=Path,
+        default=_DEFAULT_OUTPUT,
         help="Output path for JSON result",
     )
     parser.add_argument(
-        "--json-only", action="store_true",
+        "--json-only",
+        action="store_true",
         help="Output only JSON (no human summary)",
     )
     parser.add_argument(
-        "--notify", action="store_true",
+        "--notify",
+        action="store_true",
         help="Send result via Telegram (requires config/daemon.toml)",
     )
     args = parser.parse_args()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate a docs-ready offline strategy comparison report."""
+
 from __future__ import annotations
 
 import argparse

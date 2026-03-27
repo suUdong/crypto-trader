@@ -69,10 +69,14 @@ class DriftReportGenerator:
         if not reasons:
             status = DriftStatus.ON_TRACK
             reasons.append("paper behavior is directionally aligned with backtest")
-        elif paper_error_rate >= error_rate_threshold or _different_direction(
-            backtest_baseline.total_return_pct,
-            paper_realized_pnl_pct,
-        ) or major_return_gap:
+        elif (
+            paper_error_rate >= error_rate_threshold
+            or _different_direction(
+                backtest_baseline.total_return_pct,
+                paper_realized_pnl_pct,
+            )
+            or major_return_gap
+        ):
             status = DriftStatus.OUT_OF_SYNC
         else:
             status = DriftStatus.CAUTION

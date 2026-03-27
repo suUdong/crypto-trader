@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 7: RSI divergence, portfolio heat."""
+
 from __future__ import annotations
 
 import unittest
@@ -7,8 +8,8 @@ from crypto_trader.config import RiskConfig
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.indicators import rsi_divergence
 
-
 # ---------- RSI Divergence ----------
+
 
 class TestRSIDivergence(unittest.TestCase):
     def test_bullish_divergence(self) -> None:
@@ -59,6 +60,7 @@ class TestRSIDivergence(unittest.TestCase):
 
 
 # ---------- Portfolio Heat ----------
+
 
 class TestPortfolioHeat(unittest.TestCase):
     def test_heat_calculation(self) -> None:

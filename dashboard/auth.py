@@ -56,7 +56,7 @@ def render_login(
     st.markdown(
         '<div class="login-brand">'
         "<h2>크립토 트레이더</h2>"
-        '<p>실시간 자동매매 모니터링 대시보드</p>'
+        "<p>실시간 자동매매 모니터링 대시보드</p>"
         "</div>",
         unsafe_allow_html=True,
     )

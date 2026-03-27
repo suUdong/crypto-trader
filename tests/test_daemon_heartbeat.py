@@ -79,7 +79,7 @@ class TestDaemonHeartbeat(unittest.TestCase):
             self.assertGreaterEqual(data["uptime_seconds"], 0)
 
     def test_heartbeat_timestamp_is_valid_iso8601_utc(self) -> None:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime = self._make_runtime(tmpdir)

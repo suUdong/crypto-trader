@@ -1,16 +1,14 @@
 """Tests for WalletHealthMonitor auto-disable functionality."""
+
 from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import pytest
-
 from crypto_trader.risk.wallet_health import (
     WalletHealthConfig,
     WalletHealthMonitor,
-    WalletHealthStatus,
 )
 
 
@@ -47,7 +45,7 @@ class TestWalletHealthMonitor:
         _write_snapshots(snapshot_path, snapshots)
 
         monitor = WalletHealthMonitor(snapshot_path, WalletHealthConfig(negative_days_threshold=7))
-        statuses = monitor.evaluate(["loser_wallet", "winner_wallet"])
+        monitor.evaluate(["loser_wallet", "winner_wallet"])
 
         assert monitor.is_disabled("loser_wallet")
         assert not monitor.is_disabled("winner_wallet")
@@ -74,10 +72,7 @@ class TestWalletHealthMonitor:
         snapshot_path = tmp_path / "pnl-snapshots.jsonl"
 
         # First: 7 days negative -> disabled
-        snapshots = [
-            _make_snapshot(i, {"recoverer": -0.5})
-            for i in range(8, 0, -1)
-        ]
+        snapshots = [_make_snapshot(i, {"recoverer": -0.5}) for i in range(8, 0, -1)]
         _write_snapshots(snapshot_path, snapshots)
 
         monitor = WalletHealthMonitor(snapshot_path, WalletHealthConfig(negative_days_threshold=7))
@@ -99,16 +94,13 @@ class TestWalletHealthMonitor:
         """No snapshot file should return empty statuses without error."""
         snapshot_path = tmp_path / "nonexistent.jsonl"
         monitor = WalletHealthMonitor(snapshot_path)
-        statuses = monitor.evaluate(["any_wallet"])
+        monitor.evaluate(["any_wallet"])
         assert not monitor.is_disabled("any_wallet")
 
     def test_state_persistence(self, tmp_path: Path) -> None:
         """Health state should be saved and loaded across instances."""
         snapshot_path = tmp_path / "pnl-snapshots.jsonl"
-        snapshots = [
-            _make_snapshot(i, {"persistent_loser": -1.0})
-            for i in range(8, 0, -1)
-        ]
+        snapshots = [_make_snapshot(i, {"persistent_loser": -1.0}) for i in range(8, 0, -1)]
         _write_snapshots(snapshot_path, snapshots)
 
         # First instance disables the wallet
@@ -146,10 +138,7 @@ class TestWalletHealthInRuntime:
     def test_runtime_skips_disabled_wallet(self, tmp_path: Path) -> None:
         """Verify the is_disabled check works as a gate."""
         snapshot_path = tmp_path / "pnl-snapshots.jsonl"
-        snapshots = [
-            _make_snapshot(i, {"skip_me": -1.0, "keep_me": 1.0})
-            for i in range(8, 0, -1)
-        ]
+        snapshots = [_make_snapshot(i, {"skip_me": -1.0, "keep_me": 1.0}) for i in range(8, 0, -1)]
         _write_snapshots(snapshot_path, snapshots)
 
         monitor = WalletHealthMonitor(snapshot_path, WalletHealthConfig(negative_days_threshold=7))

@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import MagicMock
 
 try:
@@ -12,8 +12,6 @@ from crypto_trader.models import Candle
 
 
 @unittest.skipIf(pd is None, "pandas not installed")
-
-
 def _make_df():
     return pd.DataFrame(
         {
@@ -59,16 +57,17 @@ class TestPyUpbitMarketDataClient(unittest.TestCase):
     def test_to_datetime_with_datetime_input(self):
         dt = datetime(2025, 1, 1)
         result = _to_datetime(dt)
-        self.assertEqual(result, datetime(2025, 1, 1, tzinfo=timezone.utc))
+        self.assertEqual(result, datetime(2025, 1, 1, tzinfo=UTC))
         self.assertIsNotNone(result.tzinfo)
 
     def test_to_datetime_with_string_input(self):
         result = _to_datetime("2025-01-01T00:00:00")
-        self.assertEqual(result, datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
+        self.assertEqual(result, datetime(2025, 1, 1, 0, 0, 0, tzinfo=UTC))
         self.assertIsNotNone(result.tzinfo)
 
     def test_to_datetime_preserves_existing_tz(self):
-        from datetime import timezone, timedelta
+        from datetime import timedelta
+
         kst = timezone(timedelta(hours=9))
         dt = datetime(2025, 1, 1, 9, 0, 0, tzinfo=kst)
         result = _to_datetime(dt)

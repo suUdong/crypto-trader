@@ -1,4 +1,5 @@
 """Tests for regime-aware strategy weight auto-adjustment."""
+
 from __future__ import annotations
 
 import unittest
@@ -40,8 +41,14 @@ class RegimeWeightTests(unittest.TestCase):
 
     def test_all_regimes_have_all_strategies(self) -> None:
         strategies = [
-            "momentum", "mean_reversion", "obi", "vpin",
-            "composite", "kimchi_premium", "volatility_breakout", "consensus",
+            "momentum",
+            "mean_reversion",
+            "obi",
+            "vpin",
+            "composite",
+            "kimchi_premium",
+            "volatility_breakout",
+            "consensus",
         ]
         for regime in ["bull", "sideways", "bear"]:
             for strategy in strategies:

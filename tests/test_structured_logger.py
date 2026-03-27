@@ -1,4 +1,5 @@
 """Tests for StructuredLogger."""
+
 from __future__ import annotations
 
 import json
@@ -146,14 +147,24 @@ class TestStructuredLogger(unittest.TestCase):
 
     def test_per_wallet_file_isolation(self) -> None:
         self.logger.log_signal(
-            wallet_name="wallet_a", strategy_type="momentum",
-            symbol="KRW-BTC", action="buy", reason="r1",
-            confidence=0.7, indicators={}, market_regime="bull",
+            wallet_name="wallet_a",
+            strategy_type="momentum",
+            symbol="KRW-BTC",
+            action="buy",
+            reason="r1",
+            confidence=0.7,
+            indicators={},
+            market_regime="bull",
         )
         self.logger.log_signal(
-            wallet_name="wallet_b", strategy_type="obi",
-            symbol="KRW-ETH", action="sell", reason="r2",
-            confidence=0.6, indicators={}, market_regime="bear",
+            wallet_name="wallet_b",
+            strategy_type="obi",
+            symbol="KRW-ETH",
+            action="sell",
+            reason="r2",
+            confidence=0.6,
+            indicators={},
+            market_regime="bear",
         )
         a_events = self._read_wallet_events("wallet_a")
         b_events = self._read_wallet_events("wallet_b")

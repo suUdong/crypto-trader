@@ -8,7 +8,6 @@ from pathlib import Path
 from crypto_trader.models import PromotionStatus
 from crypto_trader.operator.promotion import PortfolioPromotionGate
 
-
 INITIAL_CAPITAL = 1_000_000.0
 
 
@@ -57,6 +56,7 @@ def _passing_wallet_states() -> dict:
 class TestMissingCheckpointReturnsDoNotPromote(unittest.TestCase):
     def test_missing_checkpoint_returns_do_not_promote(self, tmp_path=None) -> None:
         import tempfile
+
         with tempfile.TemporaryDirectory() as td:
             missing_path = Path(td) / "nonexistent_checkpoint.json"
             gate = PortfolioPromotionGate()
@@ -68,6 +68,7 @@ class TestMissingCheckpointReturnsDoNotPromote(unittest.TestCase):
 class TestStayInPaperWhenNoTrades(unittest.TestCase):
     def test_stay_in_paper_when_no_trades(self) -> None:
         import tempfile
+
         with tempfile.TemporaryDirectory() as td:
             cp = Path(td) / "checkpoint.json"
             wallet_states = {
@@ -97,6 +98,7 @@ class TestStayInPaperWhenNoTrades(unittest.TestCase):
 class TestStayInPaperWhenInsufficientProfitableWallets(unittest.TestCase):
     def test_stay_in_paper_when_insufficient_profitable_wallets(self) -> None:
         import tempfile
+
         with tempfile.TemporaryDirectory() as td:
             cp = Path(td) / "checkpoint.json"
             wallet_states = {
@@ -126,6 +128,7 @@ class TestStayInPaperWhenInsufficientProfitableWallets(unittest.TestCase):
 class TestStayInPaperWhenPortfolioReturnNegative(unittest.TestCase):
     def test_stay_in_paper_when_portfolio_return_negative(self) -> None:
         import tempfile
+
         with tempfile.TemporaryDirectory() as td:
             cp = Path(td) / "checkpoint.json"
             # Both wallets slightly below initial capital
@@ -156,6 +159,7 @@ class TestStayInPaperWhenPortfolioReturnNegative(unittest.TestCase):
 class TestCandidateWhenAllCriteriaMet(unittest.TestCase):
     def test_candidate_when_all_criteria_met(self) -> None:
         import tempfile
+
         with tempfile.TemporaryDirectory() as td:
             cp = Path(td) / "checkpoint.json"
             _write_checkpoint(cp, _passing_wallet_states(), _days_ago_iso(8))
@@ -170,6 +174,7 @@ class TestCandidateWhenAllCriteriaMet(unittest.TestCase):
 class TestSaveWritesJson(unittest.TestCase):
     def test_save_writes_json(self) -> None:
         import tempfile
+
         with tempfile.TemporaryDirectory() as td:
             cp = Path(td) / "checkpoint.json"
             out = Path(td) / "subdir" / "decision.json"
@@ -197,6 +202,7 @@ class TestSaveWritesJson(unittest.TestCase):
 class TestPerWalletBreakdownPopulated(unittest.TestCase):
     def test_per_wallet_breakdown_populated(self) -> None:
         import tempfile
+
         with tempfile.TemporaryDirectory() as td:
             cp = Path(td) / "checkpoint.json"
             wallet_states = _passing_wallet_states()
@@ -204,7 +210,7 @@ class TestPerWalletBreakdownPopulated(unittest.TestCase):
             decision = PortfolioPromotionGate().evaluate_from_checkpoint(cp)
 
             self.assertEqual(set(decision.per_wallet.keys()), set(wallet_states.keys()))
-            for name, entry in decision.per_wallet.items():
+            for _name, entry in decision.per_wallet.items():
                 self.assertIn("equity", entry)
                 self.assertIn("realized_pnl", entry)
                 self.assertIn("trades", entry)

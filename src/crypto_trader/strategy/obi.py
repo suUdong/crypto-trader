@@ -40,7 +40,11 @@ class OBIStrategy:
         self._obi_sell_threshold = obi_sell_threshold
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
     ) -> Signal:
         minimum = max(self._config.rsi_period + 1, self._config.momentum_lookback + 1)
         if len(candles) < minimum:
@@ -64,9 +68,7 @@ class OBIStrategy:
             context["obi_value"] = f"{obi_value:.4f}"
 
         if position is not None:
-            return self._evaluate_exit(
-                candles, position, obi_value, rsi_value, indicators, context
-            )
+            return self._evaluate_exit(candles, position, obi_value, rsi_value, indicators, context)
         return self._evaluate_entry(obi_value, rsi_value, indicators, context)
 
     def _evaluate_entry(
@@ -117,9 +119,7 @@ class OBIStrategy:
         context: dict[str, str],
     ) -> Signal:
         holding_bars = (
-            0
-            if position.entry_index is None
-            else len(candles) - position.entry_index - 1
+            0 if position.entry_index is None else len(candles) - position.entry_index - 1
         )
         if holding_bars >= self._config.max_holding_bars:
             return Signal(

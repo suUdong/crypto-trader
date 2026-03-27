@@ -1,11 +1,17 @@
 """Tests for Sortino ratio, Calmar ratio, and max_consecutive_losses metrics."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.backtest.engine import BacktestEngine
-from crypto_trader.backtest.grid_wf import _approx_calmar, _approx_sharpe, _approx_sortino, kelly_fraction
+from crypto_trader.backtest.grid_wf import (
+    _approx_calmar,
+    _approx_sharpe,
+    _approx_sortino,
+    kelly_fraction,
+)
 from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
 from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
@@ -149,6 +155,7 @@ class TestMaxConsecutiveLosses(unittest.TestCase):
     def test_backtest_result_has_mcl_field(self) -> None:
         """BacktestResult dataclass has max_consecutive_losses field."""
         from crypto_trader.models import BacktestResult
+
         self.assertTrue(hasattr(BacktestResult, "__dataclass_fields__"))
         self.assertIn("max_consecutive_losses", BacktestResult.__dataclass_fields__)
 
@@ -216,18 +223,26 @@ class TestTradeMetrics(unittest.TestCase):
 
     def test_backtest_result_has_new_fields(self) -> None:
         from crypto_trader.models import BacktestResult
+
         fields = BacktestResult.__dataclass_fields__
-        for name in ["max_consecutive_wins", "avg_trade_duration_bars", "max_trade_duration_bars", "payoff_ratio"]:
+        for name in [
+            "max_consecutive_wins",
+            "avg_trade_duration_bars",
+            "max_trade_duration_bars",
+            "payoff_ratio",
+        ]:
             self.assertIn(name, fields)
 
 
 class TestRecoveryAndTailRatio(unittest.TestCase):
     def test_recovery_factor_field_exists(self) -> None:
         from crypto_trader.models import BacktestResult
+
         self.assertIn("recovery_factor", BacktestResult.__dataclass_fields__)
 
     def test_tail_ratio_field_exists(self) -> None:
         from crypto_trader.models import BacktestResult
+
         self.assertIn("tail_ratio", BacktestResult.__dataclass_fields__)
 
     def test_recovery_and_tail_calculated(self) -> None:
@@ -237,11 +252,18 @@ class TestRecoveryAndTailRatio(unittest.TestCase):
         candles = _build_candles(closes)
         strategy = create_strategy(
             "momentum",
-            StrategyConfig(momentum_lookback=3, momentum_entry_threshold=-0.5, adx_threshold=0.0, volume_filter_mult=0.0),
+            StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                adx_threshold=0.0,
+                volume_filter_mult=0.0,
+            ),
             RegimeConfig(),
         )
         rm = RiskManager(RiskConfig(atr_stop_multiplier=0.0))
-        engine = BacktestEngine(strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC")
+        engine = BacktestEngine(
+            strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC"
+        )
         result = engine.run(candles)
         self.assertIsInstance(result.recovery_factor, float)
         self.assertIsInstance(result.tail_ratio, float)
@@ -251,6 +273,7 @@ class TestRecoveryAndTailRatio(unittest.TestCase):
 class TestExpectedValue(unittest.TestCase):
     def test_ev_positive_for_winning_strategy(self) -> None:
         from crypto_trader.models import BacktestResult
+
         self.assertIn("expected_value_per_trade", BacktestResult.__dataclass_fields__)
 
     def test_ev_calculated_in_engine(self) -> None:
@@ -260,11 +283,18 @@ class TestExpectedValue(unittest.TestCase):
         candles = _build_candles(closes)
         strategy = create_strategy(
             "momentum",
-            StrategyConfig(momentum_lookback=3, momentum_entry_threshold=-0.5, adx_threshold=0.0, volume_filter_mult=0.0),
+            StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                adx_threshold=0.0,
+                volume_filter_mult=0.0,
+            ),
             RegimeConfig(),
         )
         rm = RiskManager(RiskConfig(atr_stop_multiplier=0.0))
-        engine = BacktestEngine(strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC")
+        engine = BacktestEngine(
+            strategy=strategy, risk_manager=rm, config=BacktestConfig(), symbol="KRW-BTC"
+        )
         result = engine.run(candles)
         self.assertIsInstance(result.expected_value_per_trade, float)
 

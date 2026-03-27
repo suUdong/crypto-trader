@@ -32,7 +32,11 @@ def _build_candles(closes: list[float], symbol: str = "KRW-BTC") -> list[Candle]
     return [
         Candle(
             timestamp=start + timedelta(hours=i),
-            open=c, high=c * 1.01, low=c * 0.99, close=c, volume=1.0 + i,
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1.0 + i,
         )
         for i, c in enumerate(closes)
     ]
@@ -71,7 +75,8 @@ def _make_config(
             daemon_mode=daemon_mode,
         ),
         credentials=CredentialsConfig(),
-        wallets=wallets or [
+        wallets=wallets
+        or [
             WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
             WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
             WalletConfig("composite_wallet", "composite", 1_000_000.0),
@@ -83,9 +88,7 @@ class FakeMarketData(MarketDataClient):
     def __init__(self, candle_map: dict[str, list[Candle]]) -> None:
         self._candle_map = candle_map
 
-    def get_ohlcv(
-        self, symbol: str, interval: str = "minute60", count: int = 200
-    ) -> list[Candle]:
+    def get_ohlcv(self, symbol: str, interval: str = "minute60", count: int = 200) -> list[Candle]:
         return self._candle_map.get(symbol, [])
 
 
@@ -93,6 +96,7 @@ class TestMultiSymbolConfig(unittest.TestCase):
     def test_symbols_list_parsed_from_toml(self) -> None:
         import os
         import tempfile
+
         toml_content = """
 [trading]
 symbol = "KRW-BTC"
@@ -123,6 +127,7 @@ paper_trading = true
     def test_single_symbol_backward_compat(self) -> None:
         import os
         import tempfile
+
         toml_content = """
 [trading]
 symbol = "KRW-ETH"
@@ -151,6 +156,7 @@ paper_trading = true
     def test_wallets_parsed_from_toml(self) -> None:
         import os
         import tempfile
+
         toml_content = """
 [trading]
 symbol = "KRW-BTC"
@@ -186,6 +192,7 @@ initial_capital = 500000.0
     def test_daemon_mode_default_true(self) -> None:
         import os
         import tempfile
+
         toml_content = """
 [trading]
 symbol = "KRW-BTC"
@@ -247,6 +254,7 @@ class TestIndividualStrategies(unittest.TestCase):
         self.assertIsInstance(create_strategy("momentum", sc, rc), MomentumStrategy)
         self.assertIsInstance(create_strategy("mean_reversion", sc, rc), MeanReversionStrategy)
         from crypto_trader.strategy.composite import CompositeStrategy
+
         self.assertIsInstance(create_strategy("composite", sc, rc), CompositeStrategy)
 
 
@@ -278,10 +286,12 @@ class TestMultiSymbolRuntime(unittest.TestCase):
     def test_runtime_processes_all_symbol_wallet_pairs(self) -> None:
         btc_candles = _build_candles([100.0] * 25)
         eth_candles = _build_candles([50.0] * 25)
-        market_data = FakeMarketData({
-            "KRW-BTC": btc_candles,
-            "KRW-ETH": eth_candles,
-        })
+        market_data = FakeMarketData(
+            {
+                "KRW-BTC": btc_candles,
+                "KRW-ETH": eth_candles,
+            }
+        )
         config = _make_config(
             symbols=["KRW-BTC", "KRW-ETH"],
             max_iterations=2,
@@ -343,6 +353,7 @@ class TestStrategyComparisonReport(unittest.TestCase):
     def test_report_save_writes_file(self) -> None:
         import os
         import tempfile
+
         config = _make_config()
         wallets = build_wallets(config)
         report = StrategyComparisonReport().generate(
@@ -367,10 +378,12 @@ class TestIntegrationMultiSymbolPaperTrading(unittest.TestCase):
         eth_closes = [50.0] * 20 + [45.0, 44.0, 43.0, 48.0, 50.0]
         btc_candles = _build_candles(btc_closes)
         eth_candles = _build_candles(eth_closes)
-        market_data = FakeMarketData({
-            "KRW-BTC": btc_candles,
-            "KRW-ETH": eth_candles,
-        })
+        market_data = FakeMarketData(
+            {
+                "KRW-BTC": btc_candles,
+                "KRW-ETH": eth_candles,
+            }
+        )
         config = _make_config(
             symbols=["KRW-BTC", "KRW-ETH"],
             max_iterations=3,

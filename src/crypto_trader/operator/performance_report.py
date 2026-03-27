@@ -1,4 +1,5 @@
 """72-hour performance report helpers with micro-live readiness checks."""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,8 @@ def build_artifact_health_section(report: PortfolioPnLReport) -> str:
         "| Metric | Value |",
         "|--------|-------|",
         f"| Checkpoint generated | {report.source_generated_at or 'n/a'} |",
-        f"| Checkpoint age | {health['checkpoint_age_display']} ({health['checkpoint_freshness']}) |",
+        f"| Checkpoint age | {health['checkpoint_age_display']} "
+        f"({health['checkpoint_freshness']}) |",
         f"| Checkpoint session | {report.source_session_id or 'n/a'} |",
         f"| Heartbeat generated | {report.heartbeat_generated_at or 'n/a'} |",
         f"| Heartbeat age | {health['heartbeat_age_display']} ({health['heartbeat_freshness']}) |",
@@ -38,10 +40,13 @@ def build_artifact_health_section(report: PortfolioPnLReport) -> str:
         f"| Freshness reason | {health['freshness_reason']} |",
     ]
     if not health["healthy"]:
-        lines.extend([
-            "",
-            "This report should be treated as a point-in-time diagnostic summary, not a clean executive performance narrative.",
-        ])
+        lines.extend(
+            [
+                "",
+                "This report should be treated as a point-in-time diagnostic summary, "
+                "not a clean executive performance narrative.",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -113,9 +118,7 @@ def build_readiness_section(
     max_drawdown = report.portfolio_mdd / 100.0
     profit_factor = compute_profit_factor(journal_path)
     positive_strategies = sum(1 for strategy in report.strategies if strategy.total_return_pct > 0)
-    positive_strategies_pass = (
-        positive_strategies >= MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES
-    )
+    positive_strategies_pass = positive_strategies >= MicroLiveCriteria.MINIMUM_POSITIVE_STRATEGIES
 
     ready, reasons = MicroLiveCriteria.evaluate(
         paper_days=paper_days,

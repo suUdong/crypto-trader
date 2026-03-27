@@ -1,4 +1,5 @@
 """Tests for Session #12 Wave 19b: max drawdown duration, Keltner Channels."""
+
 from __future__ import annotations
 
 import unittest
@@ -14,13 +15,20 @@ from crypto_trader.strategy.indicators import keltner_channels
 def _candles(closes: list[float], volume: float = 1000.0) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=volume)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=volume,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Max drawdown duration ----------
+
 
 class TestMaxDrawdownDuration(unittest.TestCase):
     def test_no_drawdown(self) -> None:
@@ -51,6 +59,7 @@ class TestMaxDrawdownDuration(unittest.TestCase):
         class BuyOnce:
             def __init__(self):
                 self._done = False
+
             def evaluate(self, candles, position=None):
                 if position is None and not self._done:
                     self._done = True
@@ -59,12 +68,18 @@ class TestMaxDrawdownDuration(unittest.TestCase):
 
         prices = [100.0] * 20 + [95.0] * 10 + [100.0] * 10
         candles = _candles(prices)
-        risk = RiskManager(RiskConfig(
-            stop_loss_pct=0.1, take_profit_pct=0.15, min_entry_confidence=0.5,
-        ))
+        risk = RiskManager(
+            RiskConfig(
+                stop_loss_pct=0.1,
+                take_profit_pct=0.15,
+                min_entry_confidence=0.5,
+            )
+        )
         engine = BacktestEngine(
-            strategy=BuyOnce(), risk_manager=risk,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=BuyOnce(),
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
         result = engine.run(candles)
         self.assertIsInstance(result.max_drawdown_duration_bars, int)
@@ -72,6 +87,7 @@ class TestMaxDrawdownDuration(unittest.TestCase):
 
 
 # ---------- Keltner Channels ----------
+
 
 class TestKeltnerChannels(unittest.TestCase):
     def test_basic_calculation(self) -> None:

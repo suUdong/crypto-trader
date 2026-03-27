@@ -185,8 +185,23 @@ class VolatilityBreakoutStrategyTests(unittest.TestCase):
         signal_trending = strategy.evaluate(trending_candles)
 
         # High noise: choppy / flat
-        flat_closes = [100.0, 101.0, 100.0, 101.0, 100.0, 101.0, 100.0, 101.0, 100.0, 101.0,
-                       100.0, 101.0, 100.0, 101.0, 100.0]
+        flat_closes = [
+            100.0,
+            101.0,
+            100.0,
+            101.0,
+            100.0,
+            101.0,
+            100.0,
+            101.0,
+            100.0,
+            101.0,
+            100.0,
+            101.0,
+            100.0,
+            101.0,
+            100.0,
+        ]
         flat_candles = build_candles(flat_closes)
         signal_flat = strategy.evaluate(flat_candles)
 

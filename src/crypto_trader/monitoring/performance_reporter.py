@@ -1,10 +1,14 @@
 """Per-strategy daily/weekly performance auto-report from JSONL artifacts."""
+
 from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any, cast
+
+JsonDict = dict[str, Any]
 
 
 @dataclass(slots=True)
@@ -70,13 +74,13 @@ class PerformanceReporter:
         trade_records = self._load_trade_records(cutoff)
 
         # Group strategy runs by (wallet_name, strategy_type)
-        groups: dict[tuple[str, str], list[dict]] = {}
+        groups: dict[tuple[str, str], list[JsonDict]] = {}
         for rec in strategy_records:
             key = (rec.get("wallet_name", "unknown"), rec.get("strategy_type", "unknown"))
             groups.setdefault(key, []).append(rec)
 
         # Group trades by wallet
-        trades_by_wallet: dict[str, list[dict]] = {}
+        trades_by_wallet: dict[str, list[JsonDict]] = {}
         for trade in trade_records:
             wallet = trade.get("wallet", "unknown")
             trades_by_wallet.setdefault(wallet, []).append(trade)
@@ -162,17 +166,17 @@ class PerformanceReporter:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _load_strategy_records(self, cutoff: datetime) -> list[dict]:
+    def _load_strategy_records(self, cutoff: datetime) -> list[JsonDict]:
         """Load strategy-run records newer than cutoff."""
         if not self._strategy_path.exists():
             return []
-        records: list[dict] = []
+        records: list[JsonDict] = []
         for line in self._strategy_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line:
                 continue
             try:
-                rec = json.loads(line)
+                rec = cast(JsonDict, json.loads(line))
             except json.JSONDecodeError:
                 continue
             recorded_at_str = rec.get("recorded_at", "")
@@ -189,17 +193,17 @@ class PerformanceReporter:
             records.append(rec)
         return records
 
-    def _load_trade_records(self, cutoff: datetime) -> list[dict]:
+    def _load_trade_records(self, cutoff: datetime) -> list[JsonDict]:
         """Load trade records whose exit_time is newer than cutoff."""
         if not self._trade_path.exists():
             return []
-        records: list[dict] = []
+        records: list[JsonDict] = []
         for line in self._trade_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line:
                 continue
             try:
-                rec = json.loads(line)
+                rec = cast(JsonDict, json.loads(line))
             except json.JSONDecodeError:
                 continue
             exit_time_str = rec.get("exit_time", "")
@@ -223,8 +227,8 @@ class PerformanceReporter:
         period: str,
         period_start: str,
         period_end: str,
-        runs: list[dict],
-        wallet_trades: list[dict],
+        runs: list[JsonDict],
+        wallet_trades: list[JsonDict],
     ) -> StrategyPerformance:
         """Derive StrategyPerformance from per-run and per-trade records."""
         # Signal counts
@@ -236,9 +240,9 @@ class PerformanceReporter:
         # Executed vs rejected orders
         trades_executed = sum(1 for r in runs if r.get("order_status") == "filled")
         trades_rejected = sum(
-            1 for r in runs
-            if r.get("signal_action") in ("buy", "sell")
-            and r.get("order_status") != "filled"
+            1
+            for r in runs
+            if r.get("signal_action") in ("buy", "sell") and r.get("order_status") != "filled"
         )
 
         # Confidence

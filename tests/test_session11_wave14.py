@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 14: ADX in EMA crossover, noise ratio filter."""
+
 from __future__ import annotations
 
 import unittest
@@ -13,13 +14,20 @@ from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrateg
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- ADX in EMA Crossover ----------
+
 
 class TestEMACrossoverADX(unittest.TestCase):
     def test_adx_in_indicators(self) -> None:
@@ -47,6 +55,7 @@ class TestEMACrossoverADX(unittest.TestCase):
 
 # ---------- Noise ratio filter in vol breakout ----------
 
+
 class TestNoiseRatioFilter(unittest.TestCase):
     def test_noise_ratio_in_indicators(self) -> None:
         """VolatilityBreakout should include noise_ratio in indicators."""
@@ -54,7 +63,9 @@ class TestNoiseRatioFilter(unittest.TestCase):
         candles = _candles(prices)
         strategy = VolatilityBreakoutStrategy(
             StrategyConfig(adx_period=14, adx_threshold=0.0),
-            k_base=0.5, noise_lookback=20, ma_filter_period=20,
+            k_base=0.5,
+            noise_lookback=20,
+            ma_filter_period=20,
         )
         signal = strategy.evaluate(candles)
         self.assertIn("noise_ratio", signal.indicators)
@@ -68,14 +79,18 @@ class TestNoiseRatioFilter(unittest.TestCase):
         candles = _candles(prices)
         strategy = VolatilityBreakoutStrategy(
             StrategyConfig(adx_period=14, adx_threshold=0.0),
-            k_base=0.1, noise_lookback=20, ma_filter_period=20,
+            k_base=0.1,
+            noise_lookback=20,
+            ma_filter_period=20,
         )
         signal = strategy.evaluate(candles)
         nr = signal.indicators.get("noise_ratio", 0)
         # High noise should block or at minimum have high noise_ratio
         if nr > 0.8 and signal.action == SignalAction.HOLD:
-            self.assertIn(signal.reason, ["noise_too_high", "below_ma_filter",
-                                          "entry_conditions_not_met", "adx_too_weak"])
+            self.assertIn(
+                signal.reason,
+                ["noise_too_high", "below_ma_filter", "entry_conditions_not_met", "adx_too_weak"],
+            )
 
     def test_low_noise_allows_entry(self) -> None:
         """Strong trend (low noise) should not block entries."""
@@ -84,7 +99,9 @@ class TestNoiseRatioFilter(unittest.TestCase):
         candles = _candles(prices)
         strategy = VolatilityBreakoutStrategy(
             StrategyConfig(adx_period=14, adx_threshold=0.0),
-            k_base=0.1, noise_lookback=20, ma_filter_period=20,
+            k_base=0.1,
+            noise_lookback=20,
+            ma_filter_period=20,
         )
         signal = strategy.evaluate(candles)
         nr = signal.indicators.get("noise_ratio", 1.0)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Grid search for optimal strategy parameters using real Upbit data."""
+
 from __future__ import annotations
 
 import itertools
@@ -257,7 +258,10 @@ def run_grid_for_strategy(
 
         for symbol, candles in candles_by_symbol.items():
             strategy = _create_strategy_for_grid(
-                strategy_type, params, strategy_config, regime_config,
+                strategy_type,
+                params,
+                strategy_config,
+                regime_config,
             )
             # For kimchi_premium, simulate premium from price data
             if strategy_type == "kimchi_premium":
@@ -300,10 +304,7 @@ def summarize_param_sets(results: list[GridResult]) -> list[ParamSetSummary]:
     for group in grouped.values():
         first = group[0]
         count = len(group)
-        score = sum(
-            r.sharpe_approx * (1.0 - r.max_drawdown / 100.0)
-            for r in group
-        ) / max(1, count)
+        score = sum(r.sharpe_approx * (1.0 - r.max_drawdown / 100.0) for r in group) / max(1, count)
         summaries.append(
             ParamSetSummary(
                 strategy=first.strategy,
@@ -363,9 +364,9 @@ def main() -> None:
     if len(sys.argv) > 2:
         strategy_filter = sys.argv[2]
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  GRID SEARCH - {days}-day hourly candles from Upbit")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     # Fetch candles for all symbols
     candles_by_symbol: dict[str, list[Candle]] = {}
@@ -409,7 +410,7 @@ def main() -> None:
             f"\n  {'Symbol':<12} {'Return%':>9} {'WinRate%':>9} "
             f"{'PF':>7} {'MDD%':>7} {'Sharpe':>8} {'Trades':>7}"
         )
-        print(f"  {'-'*63}")
+        print(f"  {'-' * 63}")
         for symbol in SYMBOLS:
             if symbol in best_per_symbol:
                 r = best_per_symbol[symbol]
@@ -427,9 +428,9 @@ def main() -> None:
         )
         print(f"\n  Avg Return: {avg_return:+.2f}%  Avg Sharpe: {avg_sharpe:.2f}")
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  Grid search complete.")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
 
 if __name__ == "__main__":

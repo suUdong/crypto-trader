@@ -8,9 +8,9 @@ from crypto_trader.strategy.indicators import average_true_range
 
 
 class RiskManager:
-    _MIN_DRAWDOWN_SCALE = 0.1
-    _MAX_WIN_STREAK_MULT = 1.2
-    _MIN_LOSS_STREAK_MULT = 0.4
+    _MIN_DRAWDOWN_SCALE: float = 0.1
+    _MAX_WIN_STREAK_MULT: float = 1.2
+    _MIN_LOSS_STREAK_MULT: float = 0.4
 
     def __init__(
         self,
@@ -191,7 +191,8 @@ class RiskManager:
             return 1.0
         drawdown_ratio = min(1.0, drawdown_pct / max_daily_loss_pct)
         exponent = 1.0 + (self._config.drawdown_reduction_pct * 2.0)
-        return max(self._MIN_DRAWDOWN_SCALE, (1.0 - drawdown_ratio) ** exponent)
+        scaled = max(self._MIN_DRAWDOWN_SCALE, (1.0 - drawdown_ratio) ** exponent)
+        return float(scaled)
 
     def _streak_multiplier(self) -> float:
         multiplier = 1.0

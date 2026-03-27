@@ -1,4 +1,5 @@
 """Strategy signal correlation — detect redundant wallets and find optimal combos."""
+
 from __future__ import annotations
 
 import itertools
@@ -90,9 +91,7 @@ def optimal_combo(
             # Compute avg pairwise correlation for this combo
             pair_corrs: list[float] = []
             for ci, cj in itertools.combinations(combo, 2):
-                corr = _binary_correlation(
-                    combo_vectors[names[ci]], combo_vectors[names[cj]]
-                )
+                corr = _binary_correlation(combo_vectors[names[ci]], combo_vectors[names[cj]])
                 pair_corrs.append(corr)
 
             avg_corr = sum(pair_corrs) / len(pair_corrs) if pair_corrs else 0.0
@@ -161,7 +160,10 @@ def correlation_matrix_report(
     elif div_score >= 0.4:
         lines.append("Good diversification - moderate strategy overlap.")
     else:
-        lines.append("Poor diversification - strategies are highly correlated. Consider replacing redundant ones.")
+        lines.append(
+            "Poor diversification - strategies are highly correlated. "
+            "Consider replacing redundant ones."
+        )
     lines.append("")
 
     # Optimal combos (top 5)
@@ -182,7 +184,10 @@ def correlation_matrix_report(
             if i < j:
                 corr = corr_data.get((name_a, name_b), 0.0)
                 if corr > 0.7:
-                    lines.append(f"- **HIGH CORRELATION** ({corr:.3f}): {name_a} <-> {name_b} — consider dropping one")
+                    lines.append(
+                        f"- **HIGH CORRELATION** ({corr:.3f}): {name_a} <-> {name_b}"
+                        " — consider dropping one"
+                    )
                     warnings_found = True
     if not warnings_found:
         lines.append("No high-correlation pairs detected.")

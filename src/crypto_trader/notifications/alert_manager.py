@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 from crypto_trader.notifications.telegram import Notifier
 
@@ -36,10 +36,7 @@ class TradeAlertManager:
         side: str,
         reason: str,
     ) -> None:
-        message = (
-            f"\u26a0\ufe0f REJECTED | {wallet_name}\n"
-            f"{side.upper()} {symbol} \u2014 {reason}"
-        )
+        message = f"\u26a0\ufe0f REJECTED | {wallet_name}\n{side.upper()} {symbol} \u2014 {reason}"
         self._send(message)
 
     def alert_error(
@@ -48,10 +45,7 @@ class TradeAlertManager:
         symbol: str,
         error_message: str,
     ) -> None:
-        message = (
-            f"\u274c ERROR | {wallet_name}\n"
-            f"{symbol}: {error_message}"
-        )
+        message = f"\u274c ERROR | {wallet_name}\n{symbol}: {error_message}"
         self._send(message)
 
     def alert_kill_switch(

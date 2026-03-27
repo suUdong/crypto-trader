@@ -1,4 +1,5 @@
 """Auto-disable wallets that have been losing for N consecutive days."""
+
 from __future__ import annotations
 
 import json
@@ -6,18 +7,23 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any, cast
+
+JsonDict = dict[str, Any]
 
 
 @dataclass(slots=True)
 class WalletHealthConfig:
     """Configuration for wallet health monitoring."""
+
     negative_days_threshold: int = 7  # Days of negative return to trigger disable
-    check_interval_hours: int = 24    # How often to re-evaluate
+    check_interval_hours: int = 24  # How often to re-evaluate
 
 
 @dataclass(slots=True)
 class WalletHealthStatus:
     """Health status for a single wallet."""
+
     wallet_name: str
     disabled: bool = False
     disabled_reason: str = ""
@@ -118,7 +124,7 @@ class WalletHealthMonitor:
                     daily_returns.setdefault(date_key, {})[wname] = ret
 
         # Determine which wallets to check
-        all_wallet_names = set()
+        all_wallet_names: set[str] = set()
         for day_data in daily_returns.values():
             all_wallet_names.update(day_data.keys())
         if wallet_names:
@@ -128,9 +134,7 @@ class WalletHealthMonitor:
             # Get returns across available days, sorted by date
             sorted_dates = sorted(daily_returns.keys())
             wallet_returns = [
-                daily_returns[d].get(wname, 0.0)
-                for d in sorted_dates
-                if wname in daily_returns[d]
+                daily_returns[d].get(wname, 0.0) for d in sorted_dates if wname in daily_returns[d]
             ]
 
             # Count consecutive negative days from the most recent
@@ -153,7 +157,9 @@ class WalletHealthMonitor:
                 )
                 status.disabled_at = now.isoformat()
                 self._logger.warning(
-                    "Auto-disabling wallet %s: %s", wname, status.disabled_reason,
+                    "Auto-disabling wallet %s: %s",
+                    wname,
+                    status.disabled_reason,
                 )
             elif consecutive_neg < threshold_days and status.disabled:
                 # Re-enable if wallet recovers (return to positive for enough days)
@@ -181,15 +187,15 @@ class WalletHealthMonitor:
         """Get health status for a specific wallet."""
         return self._statuses.get(wallet_name)
 
-    def _load_snapshots(self) -> list[dict]:
+    def _load_snapshots(self) -> list[JsonDict]:
         """Load PnL snapshots from JSONL file."""
         if not self._snapshot_path.exists():
             return []
-        entries = []
+        entries: list[JsonDict] = []
         for line in self._snapshot_path.read_text(encoding="utf-8").strip().split("\n"):
             if line.strip():
                 try:
-                    entries.append(json.loads(line))
+                    entries.append(cast(JsonDict, json.loads(line)))
                 except json.JSONDecodeError:
                     continue
         return entries

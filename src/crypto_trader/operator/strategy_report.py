@@ -48,15 +48,17 @@ class StrategyComparisonReport:
                 f"{len(wallet.broker.positions)} | {equity:,.0f} | "
                 f"{trade_count} | {win_rate:.1%} |"
             )
-            wallet_metrics.append({
-                "name": wallet.name,
-                "strategy": wallet.strategy_type,
-                "equity": equity,
-                "return_pct": return_pct,
-                "trade_count": trade_count,
-                "win_rate": win_rate,
-                "realized_pnl": wallet.broker.realized_pnl,
-            })
+            wallet_metrics.append(
+                {
+                    "name": wallet.name,
+                    "strategy": wallet.strategy_type,
+                    "equity": equity,
+                    "return_pct": return_pct,
+                    "trade_count": trade_count,
+                    "win_rate": win_rate,
+                    "realized_pnl": wallet.broker.realized_pnl,
+                }
+            )
 
         lines.append("\n## Per-Symbol Positions\n")
         for wallet in wallets:
@@ -80,18 +82,14 @@ class StrategyComparisonReport:
             )
             lines.append("### By Return %\n")
             for i, m in enumerate(by_return, 1):
-                lines.append(
-                    f"{i}. **{m['name']}** ({m['strategy']}): {m['return_pct']:+.4f}%"
-                )
+                lines.append(f"{i}. **{m['name']}** ({m['strategy']}): {m['return_pct']:+.4f}%")
 
             by_trades = sorted(
                 wallet_metrics, key=lambda m: int(str(m["trade_count"])), reverse=True
             )
             lines.append("\n### By Trade Count\n")
             for i, m in enumerate(by_trades, 1):
-                lines.append(
-                    f"{i}. **{m['name']}** ({m['strategy']}): {m['trade_count']} trades"
-                )
+                lines.append(f"{i}. **{m['name']}** ({m['strategy']}): {m['trade_count']} trades")
 
         return "\n".join(lines)
 

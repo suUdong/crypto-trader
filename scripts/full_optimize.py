@@ -4,6 +4,7 @@
 Grid search across key parameters, compare return/win-rate/MDD/Sharpe,
 output best params per strategy+symbol for daemon.toml update.
 """
+
 from __future__ import annotations
 
 import itertools
@@ -11,21 +12,11 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
-sys.path.insert(0, "src")
-sys.path.insert(0, os.path.dirname(__file__))
-
-from grid_search import (  # noqa: E402
-    STRATEGY_GRIDS,
-    SYMBOLS,
-    GridResult,
-    ParamSetSummary,
-    _approx_sharpe,
-    fetch_candles,
-    run_grid_for_strategy,
-    summarize_param_sets,
-    top_param_sets,
-)
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root / "src"))
+sys.path.insert(0, str(_project_root))
 
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
 from crypto_trader.config import (  # noqa: E402
@@ -38,6 +29,17 @@ from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy  # noqa: E402
 from crypto_trader.strategy.vpin import VPINStrategy  # noqa: E402
+from scripts.grid_search import (  # noqa: E402
+    STRATEGY_GRIDS,
+    SYMBOLS,
+    GridResult,
+    ParamSetSummary,
+    _approx_sharpe,
+    fetch_candles,
+    run_grid_for_strategy,
+    summarize_param_sets,
+    top_param_sets,
+)
 
 # ── Tight grids centered on production params (~50 combos each) ──
 
@@ -156,7 +158,7 @@ def run_custom_grid(
             )
 
         if (i + 1) % 100 == 0:
-            print(f"    ... {i+1}/{len(combos)} combos done")
+            print(f"    ... {i + 1}/{len(combos)} combos done")
 
     print(f"    Done: {len(results)} results")
     return results
@@ -177,15 +179,19 @@ def print_results(strategy_type: str, results: list[GridResult]) -> ParamSetSumm
         print("  BEST params:")
         for k, v in sorted(best.params.items()):
             print(f"    {k}: {v}")
-        print(f"  Score: {best.score:.4f} | Sharpe: {best.avg_sharpe:.2f} | "
-              f"Return: {best.avg_return_pct:+.2f}% | MDD: {best.avg_max_drawdown:.2f}% | "
-              f"WR: {best.avg_win_rate:.1f}% | Trades: {best.total_trades}")
+        print(
+            f"  Score: {best.score:.4f} | Sharpe: {best.avg_sharpe:.2f} | "
+            f"Return: {best.avg_return_pct:+.2f}% | MDD: {best.avg_max_drawdown:.2f}% | "
+            f"WR: {best.avg_win_rate:.1f}% | Trades: {best.total_trades}"
+        )
 
     print("\n  Top 5:")
     for idx, c in enumerate(top_candidates, 1):
-        print(f"    #{idx} score={c.score:.4f} sharpe={c.avg_sharpe:.2f} "
-              f"ret={c.avg_return_pct:+.2f}% mdd={c.avg_max_drawdown:.2f}% "
-              f"wr={c.avg_win_rate:.1f}% trades={c.total_trades}")
+        print(
+            f"    #{idx} score={c.score:.4f} sharpe={c.avg_sharpe:.2f} "
+            f"ret={c.avg_return_pct:+.2f}% mdd={c.avg_max_drawdown:.2f}% "
+            f"wr={c.avg_win_rate:.1f}% trades={c.total_trades}"
+        )
 
     # Per-symbol best
     print("\n  Best per-symbol:")
@@ -248,6 +254,7 @@ def main() -> None:
             vpin_rsi_ceiling=float(params.get("vpin_rsi_ceiling", 78.0)),
             vpin_rsi_floor=float(params.get("vpin_rsi_floor", 22.0)),
         )
+
     print(f"\n{'=' * 80}\n  Running VPIN...")
     r = run_custom_grid("vpin", STRATEGY_GRIDS["vpin"], candles_by_symbol, make_vpin)
     all_results["vpin"] = r
@@ -274,6 +281,7 @@ def main() -> None:
             volume_window=int(params.get("volume_window", 20)),
             min_body_ratio=float(params.get("min_body_ratio", 0.4)),
         )
+
     print(f"\n{'=' * 80}\n  Running VOLUME SPIKE...")
     r = run_custom_grid("volume_spike", VOLUME_SPIKE_GRID, candles_by_symbol, make_volspike)
     all_results["volume_spike"] = r

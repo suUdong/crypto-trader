@@ -1,4 +1,5 @@
 """Tests for ConsensusStrategy — multi-strategy agreement filter."""
+
 from __future__ import annotations
 
 import unittest
@@ -149,7 +150,9 @@ class TestConsensusCreateStrategy(unittest.TestCase):
         config = StrategyConfig()
         regime = RegimeConfig()
         strategy = create_strategy(
-            "consensus", config, regime,
+            "consensus",
+            config,
+            regime,
             extra_params={"sub_strategies": ["momentum", "vpin"], "min_agree": 2},
         )
         self.assertIsInstance(strategy, ConsensusStrategy)

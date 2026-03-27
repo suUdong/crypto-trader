@@ -1,4 +1,5 @@
 """Volume Spike strategy: enters on abnormal volume with price confirmation."""
+
 from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
@@ -146,14 +147,31 @@ class VolumeSpikeStrategy:
 
         if position is not None:
             return self._evaluate_exit(
-                candles, position, effective, momentum_value, rsi_value,
-                vol_ratio, indicators, context,
+                candles,
+                position,
+                effective,
+                momentum_value,
+                rsi_value,
+                vol_ratio,
+                indicators,
+                context,
             )
 
         return self._evaluate_entry(
-            effective, momentum_value, rsi_value, vol_ratio, body_ratio,
-            macd_bullish, adx_value, obv_trend, cmf_value, vwap_value,
-            macro_trend_up, closes[-1], indicators, context,
+            effective,
+            momentum_value,
+            rsi_value,
+            vol_ratio,
+            body_ratio,
+            macd_bullish,
+            adx_value,
+            obv_trend,
+            cmf_value,
+            vwap_value,
+            macro_trend_up,
+            closes[-1],
+            indicators,
+            context,
         )
 
     def _evaluate_entry(

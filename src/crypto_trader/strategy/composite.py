@@ -24,7 +24,9 @@ class CompositeStrategy:
         self._config = config
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
 
-    def evaluate(self, candles: list[Candle], position: Position | None = None, *, symbol: str = "") -> Signal:
+    def evaluate(
+        self, candles: list[Candle], position: Position | None = None, *, symbol: str = ""
+    ) -> Signal:
         regime = self._regime_detector.detect(candles)
         effective = self._regime_detector.adjust(self._config, regime)
         minimum = max(
@@ -157,9 +159,7 @@ class CompositeStrategy:
             entry_ready = (
                 momentum_value >= effective.momentum_entry_threshold
                 and near_lower_band
-                and effective.rsi_oversold_floor
-                <= rsi_value
-                <= effective.rsi_recovery_ceiling
+                and effective.rsi_oversold_floor <= rsi_value <= effective.rsi_recovery_ceiling
             )
             if entry_ready:
                 # ADX filter: skip entry in choppy/trendless markets
@@ -222,9 +222,7 @@ class CompositeStrategy:
             )
 
         holding_bars = (
-            0
-            if position.entry_index is None
-            else len(candles) - position.entry_index - 1
+            0 if position.entry_index is None else len(candles) - position.entry_index - 1
         )
         if holding_bars >= effective.max_holding_bars:
             return Signal(

@@ -1,4 +1,5 @@
 """Tests for walk-forward CLI integration."""
+
 from __future__ import annotations
 
 import unittest
@@ -65,6 +66,7 @@ class TestWalkForwardCLIIntegration(unittest.TestCase):
 
         def kimchi_factory():
             from unittest.mock import MagicMock as MM
+
             strat = create_strategy("kimchi_premium", strategy_config, regime_config)
             strat._cached_premium = 0.02  # 2% premium
             strat._binance = MM()
@@ -96,8 +98,13 @@ class TestWalkForwardCLIIntegration(unittest.TestCase):
         strategy_config = StrategyConfig()
         regime_config = RegimeConfig()
         strategy_types = [
-            "momentum", "momentum_pullback", "mean_reversion", "composite",
-            "obi", "vpin", "volatility_breakout",
+            "momentum",
+            "momentum_pullback",
+            "mean_reversion",
+            "composite",
+            "obi",
+            "vpin",
+            "volatility_breakout",
         ]
 
         for st in strategy_types:

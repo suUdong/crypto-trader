@@ -1,4 +1,5 @@
 """Tests for TradeAlertManager."""
+
 from __future__ import annotations
 
 import unittest
@@ -79,8 +80,13 @@ class TestTradeAlertManager(unittest.TestCase):
         notifier2 = _RecordingNotifier()
         manager = TradeAlertManager([self.notifier, notifier2])
         manager.alert_trade(
-            wallet_name="w", symbol="KRW-BTC", side="sell",
-            quantity=1.0, fill_price=100.0, fee_paid=0.0, reason="tp",
+            wallet_name="w",
+            symbol="KRW-BTC",
+            side="sell",
+            quantity=1.0,
+            fill_price=100.0,
+            fee_paid=0.0,
+            reason="tp",
         )
         self.assertEqual(len(self.notifier.messages), 1)
         self.assertEqual(len(notifier2.messages), 1)
@@ -91,8 +97,13 @@ class TestTradeAlertManager(unittest.TestCase):
         notifier2 = _RecordingNotifier()
         manager = TradeAlertManager([failing, notifier2])
         manager.alert_trade(
-            wallet_name="w", symbol="KRW-BTC", side="buy",
-            quantity=1.0, fill_price=100.0, fee_paid=0.0, reason="entry",
+            wallet_name="w",
+            symbol="KRW-BTC",
+            side="buy",
+            quantity=1.0,
+            fill_price=100.0,
+            fee_paid=0.0,
+            reason="entry",
         )
         # Second notifier should still receive
         self.assertEqual(len(notifier2.messages), 1)
@@ -101,8 +112,13 @@ class TestTradeAlertManager(unittest.TestCase):
         manager = TradeAlertManager([])
         # Should not raise
         manager.alert_trade(
-            wallet_name="w", symbol="KRW-BTC", side="buy",
-            quantity=1.0, fill_price=100.0, fee_paid=0.0, reason="entry",
+            wallet_name="w",
+            symbol="KRW-BTC",
+            side="buy",
+            quantity=1.0,
+            fill_price=100.0,
+            fee_paid=0.0,
+            reason="entry",
         )
 
 

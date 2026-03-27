@@ -1,4 +1,5 @@
 """Tests for US-030: Time-decay exit for stale underwater positions."""
+
 from __future__ import annotations
 
 import unittest

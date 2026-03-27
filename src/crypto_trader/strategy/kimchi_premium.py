@@ -42,7 +42,11 @@ class KimchiPremiumStrategy:
         self._last_trade_time: dict[str, datetime] = {}
 
     def evaluate(
-        self, candles: list[Candle], position: Position | None = None, *, symbol: str = "",
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
     ) -> Signal:
         minimum = self._config.rsi_period + 1
         if len(candles) < minimum:
@@ -71,9 +75,7 @@ class KimchiPremiumStrategy:
         cooldown_key = symbol or str(round(upbit_price, -6))
 
         if position is not None:
-            signal = self._evaluate_exit(
-                candles, position, premium, rsi_value, indicators, context
-            )
+            signal = self._evaluate_exit(candles, position, premium, rsi_value, indicators, context)
             if signal.action is SignalAction.SELL:
                 self._last_trade_bar[cooldown_key] = current_bar
                 self._last_trade_time[cooldown_key] = current_time
@@ -102,7 +104,9 @@ class KimchiPremiumStrategy:
             self._last_trade_time[cooldown_key] = current_time
         return signal
 
-    def _is_cooldown_active(self, current_bar: int, current_time: datetime, cooldown_key: str = "") -> bool:
+    def _is_cooldown_active(
+        self, current_bar: int, current_time: datetime, cooldown_key: str = ""
+    ) -> bool:
         """Check cooldown using both bar-based and time-based logic (per-symbol)."""
         last_time = self._last_trade_time.get(cooldown_key)
         if last_time is not None:
@@ -151,11 +155,7 @@ class KimchiPremiumStrategy:
                 context=context,
             )
 
-        if (
-            self._config.rsi_oversold_floor
-            <= rsi_value
-            <= self._config.rsi_recovery_ceiling
-        ):
+        if self._config.rsi_oversold_floor <= rsi_value <= self._config.rsi_recovery_ceiling:
             return Signal(
                 action=SignalAction.BUY,
                 reason="kimchi_premium_safe_zone_rsi_entry",

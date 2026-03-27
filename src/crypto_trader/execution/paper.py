@@ -15,7 +15,9 @@ class PaperBroker:
         self.realized_pnl = 0.0
         self._sequence = 0
 
-    def submit_order(self, request: OrderRequest, market_price: float, candle_index: int | None = None) -> OrderResult:
+    def submit_order(
+        self, request: OrderRequest, market_price: float, candle_index: int | None = None
+    ) -> OrderResult:
         self._sequence += 1
         fill_price = self._apply_slippage(request.side, market_price)
         notional = fill_price * request.quantity
@@ -85,8 +87,7 @@ class PaperBroker:
                 quantity=request.quantity,
                 pnl=pnl,
                 pnl_pct=(
-                    pnl
-                    / max(1.0, (position.entry_price * request.quantity) + entry_fee_allocated)
+                    pnl / max(1.0, (position.entry_price * request.quantity) + entry_fee_allocated)
                 ),
                 exit_reason=request.reason,
             )
@@ -124,9 +125,7 @@ class PaperBroker:
 
     def unrealized_positions(self, prices: Mapping[str, float]) -> dict[str, float]:
         return {
-            symbol: (
-                prices.get(symbol, position.entry_price) - position.entry_price
-            )
+            symbol: (prices.get(symbol, position.entry_price) - position.entry_price)
             * position.quantity
             for symbol, position in self.positions.items()
         }

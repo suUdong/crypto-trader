@@ -64,9 +64,7 @@ Reasons:
             f"- Overall regime: `{regime}` (confidence: `{confidence:.0%}`)",
         ]
         for name, layer in layers.items():
-            lines.append(
-                f"- {name}: `{layer['regime']}` (confidence: `{layer['confidence']:.0%}`)"
-            )
+            lines.append(f"- {name}: `{layer['regime']}` (confidence: `{layer['confidence']:.0%}`)")
 
         btc_dom = crypto_signals.get("btc_dominance")
         kimchi = crypto_signals.get("kimchi_premium")

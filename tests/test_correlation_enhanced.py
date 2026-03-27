@@ -1,4 +1,5 @@
 """Tests for enhanced correlation analysis — diversification score, optimal combos, report."""
+
 from __future__ import annotations
 
 import unittest
@@ -40,6 +41,7 @@ class _AlwaysHold:
 
 class _AlternateBuy:
     """BUY on even indices, HOLD on odd."""
+
     def evaluate(self, candles, position=None, *, symbol=""):
         if len(candles) % 2 == 0:
             return Signal(action=SignalAction.BUY, reason="even", confidence=0.6)
@@ -79,8 +81,11 @@ class TestOptimalCombo(unittest.TestCase):
     def test_returns_ranked_combos(self) -> None:
         strategies = [_AlwaysBuy(), _AlternateBuy(), _AlwaysHold()]
         combos = optimal_combo(
-            strategies, _build_candles(), ["buy", "alternate", "hold"],
-            min_size=2, max_size=3,
+            strategies,
+            _build_candles(),
+            ["buy", "alternate", "hold"],
+            min_size=2,
+            max_size=3,
         )
         self.assertGreater(len(combos), 0)
         # Should be sorted by div_score descending
@@ -98,7 +103,9 @@ class TestCorrelationReport(unittest.TestCase):
     def test_report_is_markdown(self) -> None:
         strategies = [_AlwaysBuy(), _AlternateBuy(), _AlwaysHold()]
         report = correlation_matrix_report(
-            strategies, _build_candles(), ["momentum", "vpin", "ema"],
+            strategies,
+            _build_candles(),
+            ["momentum", "vpin", "ema"],
         )
         self.assertIn("# Strategy Correlation Report", report)
         self.assertIn("## Signal Activity", report)

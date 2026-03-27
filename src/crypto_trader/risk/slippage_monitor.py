@@ -1,9 +1,10 @@
 """Slippage and spread monitoring for trade execution quality."""
+
 from __future__ import annotations
 
 import logging
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -84,8 +85,12 @@ class SlippageMonitor:
             logger.warning(
                 "SLIPPAGE ANOMALY: %s %s market=%.2f fill=%.2f "
                 "actual=%.4f%% expected=%.4f%% cost=%.2f",
-                side.upper(), symbol, market_price, fill_price,
-                actual_pct * 100, self._expected_slippage_pct * 100,
+                side.upper(),
+                symbol,
+                market_price,
+                fill_price,
+                actual_pct * 100,
+                self._expected_slippage_pct * 100,
                 slippage_cost,
             )
 
@@ -99,9 +104,7 @@ class SlippageMonitor:
 
         slippages = [r.actual_slippage_pct for r in records]
         anomalies = sum(1 for r in records if r.is_anomaly)
-        costs = sum(
-            abs(r.fill_price - r.market_price) for r in records
-        )
+        costs = sum(abs(r.fill_price - r.market_price) for r in records)
         return SlippageStats(
             total_trades=len(records),
             anomaly_count=anomalies,

@@ -167,7 +167,9 @@ class StrategyWallet:
                     starting_equity=self.session_starting_equity,
                 ):
                     quantity = self.risk_manager.size_position(
-                        self.broker.cash, latest_price, self._macro_multiplier,
+                        self.broker.cash,
+                        latest_price,
+                        self._macro_multiplier,
                     )
                     if quantity > 0:
                         now = candles[-1].timestamp
@@ -184,8 +186,16 @@ class StrategyWallet:
                         )
             elif position is not None:
                 # Circuit breaker: force-close when daily loss limit hit
+                marked_equity = self.broker.cash
+                for open_symbol, open_position in self.broker.positions.items():
+                    mark_price = (
+                        latest_price if open_symbol == symbol else open_position.entry_price
+                    )
+                    marked_equity += open_position.quantity * mark_price
                 if self.risk_manager.should_force_exit(
-                    self.broker.realized_pnl, self.session_starting_equity,
+                    self.broker.realized_pnl,
+                    self.session_starting_equity,
+                    marked_equity,
                 ):
                     now = candles[-1].timestamp
                     order = self.broker.submit_order(
@@ -227,11 +237,12 @@ class StrategyWallet:
                     )
 
                 holding_bars = (
-                    0 if position.entry_index is None
-                    else len(candles) - position.entry_index - 1
+                    0 if position.entry_index is None else len(candles) - position.entry_index - 1
                 )
                 exit_reason = self.risk_manager.exit_reason(
-                    position, latest_price, holding_bars=holding_bars,
+                    position,
+                    latest_price,
+                    holding_bars=holding_bars,
                 )
                 should_sell = signal.action is SignalAction.SELL or exit_reason is not None
                 if should_sell:
@@ -343,8 +354,6 @@ def _strategy_config_for_wallet(
 def _risk_config_for_wallet(config: AppConfig, wallet_config: WalletConfig) -> RiskConfig:
     risk_fields = set(type(config.risk).__dataclass_fields__)
     overrides = {
-        key: value
-        for key, value in wallet_config.risk_overrides.items()
-        if key in risk_fields
+        key: value for key, value in wallet_config.risk_overrides.items() if key in risk_fields
     }
     return replace(config.risk, **overrides)

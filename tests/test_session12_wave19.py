@@ -1,4 +1,5 @@
 """Tests for Session #12 Wave 19: VWAP indicator + VWAP in all strategies."""
+
 from __future__ import annotations
 
 import unittest
@@ -15,13 +16,20 @@ from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrateg
 def _candles(closes: list[float], volume: float = 1000.0) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=volume)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=volume,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ========== VWAP indicator tests ==========
+
 
 class TestVWAP(unittest.TestCase):
     def test_uniform_volume(self) -> None:
@@ -103,14 +111,19 @@ class TestRollingVWAP(unittest.TestCase):
 
 # ========== VWAP in MeanReversion ==========
 
+
 class TestMeanRevVWAP(unittest.TestCase):
     def test_vwap_in_indicators(self) -> None:
         """MeanRev should include vwap in indicators."""
         prices = [100.0 + (-1) ** i * 2 for i in range(50)]
         candles = _candles(prices)
-        strategy = MeanReversionStrategy(StrategyConfig(
-            bollinger_window=20, rsi_period=5, noise_lookback=20,
-        ))
+        strategy = MeanReversionStrategy(
+            StrategyConfig(
+                bollinger_window=20,
+                rsi_period=5,
+                noise_lookback=20,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertIn("vwap", signal.indicators)
 
@@ -118,14 +131,19 @@ class TestMeanRevVWAP(unittest.TestCase):
         """VWAP should not crash with short data."""
         prices = [100.0] * 10
         candles = _candles(prices)
-        strategy = MeanReversionStrategy(StrategyConfig(
-            bollinger_window=5, rsi_period=3, noise_lookback=3,
-        ))
+        strategy = MeanReversionStrategy(
+            StrategyConfig(
+                bollinger_window=5,
+                rsi_period=3,
+                noise_lookback=3,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertIsNotNone(signal)
 
 
 # ========== VWAP in VolatilityBreakout ==========
+
 
 class TestVolBreakoutVWAP(unittest.TestCase):
     def test_vwap_in_indicators(self) -> None:
@@ -147,6 +165,7 @@ class TestVolBreakoutVWAP(unittest.TestCase):
 
 # ========== VWAP in EMACrossover ==========
 
+
 class TestEMACrossVWAP(unittest.TestCase):
     def test_vwap_in_indicators(self) -> None:
         """EMA crossover should include vwap in indicators."""
@@ -165,18 +184,34 @@ class TestEMACrossVWAP(unittest.TestCase):
         )
         dummy = _candles([100.0 + i * 0.5 for i in range(30)])
         sig_no_vwap = strategy._evaluate_entry(
-            dummy, cross_up=True, spread=0.01,
-            rsi_value=55.0, stoch_rsi_value=40.0,
-            macd_bullish=False, adx_value=None,
-            indicators={"ema_fast": 110.0}, context={"strategy": "ema_crossover"},
-            obv_trend=None, nr_value=0.3, ema50_value=None, vwap_value=None,
+            dummy,
+            cross_up=True,
+            spread=0.01,
+            rsi_value=55.0,
+            stoch_rsi_value=40.0,
+            macd_bullish=False,
+            adx_value=None,
+            indicators={"ema_fast": 110.0},
+            context={"strategy": "ema_crossover"},
+            obv_trend=None,
+            nr_value=0.3,
+            ema50_value=None,
+            vwap_value=None,
         )
         sig_with_vwap = strategy._evaluate_entry(
-            dummy, cross_up=True, spread=0.01,
-            rsi_value=55.0, stoch_rsi_value=40.0,
-            macd_bullish=False, adx_value=None,
-            indicators={"ema_fast": 110.0}, context={"strategy": "ema_crossover"},
-            obv_trend=None, nr_value=0.3, ema50_value=None, vwap_value=105.0,
+            dummy,
+            cross_up=True,
+            spread=0.01,
+            rsi_value=55.0,
+            stoch_rsi_value=40.0,
+            macd_bullish=False,
+            adx_value=None,
+            indicators={"ema_fast": 110.0},
+            context={"strategy": "ema_crossover"},
+            obv_trend=None,
+            nr_value=0.3,
+            ema50_value=None,
+            vwap_value=105.0,
         )
         self.assertEqual(sig_no_vwap.action, SignalAction.BUY)
         self.assertEqual(sig_with_vwap.action, SignalAction.BUY)
@@ -184,6 +219,7 @@ class TestEMACrossVWAP(unittest.TestCase):
 
 
 # ========== All strategies VWAP coverage ==========
+
 
 class TestVWAPCoverageAll(unittest.TestCase):
     def test_all_strategies_have_vwap(self) -> None:
@@ -195,21 +231,49 @@ class TestVWAPCoverageAll(unittest.TestCase):
         candles = _candles(prices)
 
         strategies = [
-            ("composite", CompositeStrategy(StrategyConfig(
-                momentum_lookback=5, bollinger_window=20, rsi_period=5,
-            ))),
-            ("momentum", MomentumStrategy(StrategyConfig(
-                momentum_lookback=5, rsi_period=5, adx_threshold=0.0,
-            ))),
-            ("mean_reversion", MeanReversionStrategy(StrategyConfig(
-                bollinger_window=20, rsi_period=5, noise_lookback=20,
-            ))),
-            ("volatility_breakout", VolatilityBreakoutStrategy(
-                StrategyConfig(), noise_lookback=20,
-            )),
-            ("ema_crossover", EMACrossoverStrategy(
-                StrategyConfig(rsi_period=5, adx_threshold=0.0),
-            )),
+            (
+                "composite",
+                CompositeStrategy(
+                    StrategyConfig(
+                        momentum_lookback=5,
+                        bollinger_window=20,
+                        rsi_period=5,
+                    )
+                ),
+            ),
+            (
+                "momentum",
+                MomentumStrategy(
+                    StrategyConfig(
+                        momentum_lookback=5,
+                        rsi_period=5,
+                        adx_threshold=0.0,
+                    )
+                ),
+            ),
+            (
+                "mean_reversion",
+                MeanReversionStrategy(
+                    StrategyConfig(
+                        bollinger_window=20,
+                        rsi_period=5,
+                        noise_lookback=20,
+                    )
+                ),
+            ),
+            (
+                "volatility_breakout",
+                VolatilityBreakoutStrategy(
+                    StrategyConfig(),
+                    noise_lookback=20,
+                ),
+            ),
+            (
+                "ema_crossover",
+                EMACrossoverStrategy(
+                    StrategyConfig(rsi_period=5, adx_threshold=0.0),
+                ),
+            ),
         ]
         for name, strat in strategies:
             signal = strat.evaluate(candles)

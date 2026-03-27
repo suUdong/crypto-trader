@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Focused parameter optimization for ADX, momentum entry, kimchi cooldown, vbreak k_base."""
+
 from __future__ import annotations
 
-import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "src")
-sys.path.insert(0, os.path.dirname(__file__))
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root / "src"))
+sys.path.insert(0, str(_project_root))
 
-from grid_search import (  # noqa: E402
+from scripts.grid_search import (  # noqa: E402
     STRATEGY_GRIDS,
     SYMBOLS,
     _param_key,

@@ -1,14 +1,15 @@
 """Tests for Session #11 Wave 2: breakeven stop, MACD momentum, correlation guard."""
+
 from __future__ import annotations
 
 import unittest
 from datetime import datetime, timedelta
 
-from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
+from crypto_trader.config import RiskConfig, StrategyConfig
 from crypto_trader.models import Candle, Position
 from crypto_trader.risk.manager import RiskManager
-from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.indicators import rolling_correlation
+from crypto_trader.strategy.momentum import MomentumStrategy
 
 
 def _candles(closes: list[float], start: datetime | None = None) -> list[Candle]:
@@ -27,6 +28,7 @@ def _candles(closes: list[float], start: datetime | None = None) -> list[Candle]
 
 
 # ---------- Breakeven stop ----------
+
 
 class TestBreakevenStop(unittest.TestCase):
     def test_breakeven_triggers_after_gain_then_reversal(self) -> None:
@@ -102,6 +104,7 @@ class TestBreakevenStop(unittest.TestCase):
 
 # ---------- MACD in MomentumStrategy ----------
 
+
 class TestMomentumMACDIntegration(unittest.TestCase):
     def test_macd_indicators_present(self) -> None:
         """MomentumStrategy should include MACD indicators in signal."""
@@ -148,6 +151,7 @@ class TestMomentumMACDIntegration(unittest.TestCase):
 
 # ---------- Correlation guard ----------
 
+
 class TestCorrelationGuard(unittest.TestCase):
     def test_identical_curves_have_high_correlation(self) -> None:
         """Identical equity curves should have correlation ~1.0."""
@@ -166,6 +170,7 @@ class TestCorrelationGuard(unittest.TestCase):
     def test_uncorrelated_curves(self) -> None:
         """Very different curves should have low correlation magnitude."""
         import math
+
         curve_a = [1000.0 + i * 10.0 for i in range(50)]
         curve_b = [1000.0 + 50 * math.sin(i * 0.3) for i in range(50)]
         corr = rolling_correlation(curve_a, curve_b, 50)

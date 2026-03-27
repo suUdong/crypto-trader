@@ -4,6 +4,7 @@
 Targets: momentum, vpin, volatility_breakout, kimchi_premium
 Based on tuned parameters from commit 6dffded.
 """
+
 from __future__ import annotations
 
 import itertools
@@ -14,7 +15,9 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-sys.path.insert(0, "src")
+_project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_project_root / "src"))
+sys.path.insert(0, str(_project_root))
 
 from crypto_trader.backtest.candle_cache import fetch_upbit_candles  # noqa: E402
 from crypto_trader.backtest.engine import BacktestEngine  # noqa: E402
@@ -26,19 +29,11 @@ from crypto_trader.config import (  # noqa: E402
 )
 from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
-
-try:
-    from scripts.grid_search import (  # noqa: E402
-        _approx_sharpe,
-        _create_strategy_for_grid,
-        _setup_kimchi_premium_mock,
-    )
-except ModuleNotFoundError:
-    from grid_search import (  # type: ignore[no-redef]  # noqa: E402
-        _approx_sharpe,
-        _create_strategy_for_grid,
-        _setup_kimchi_premium_mock,
-    )
+from scripts.grid_search import (  # noqa: E402
+    _approx_sharpe,
+    _create_strategy_for_grid,
+    _setup_kimchi_premium_mock,
+)
 
 SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 INTERVAL = "minute60"
@@ -308,16 +303,18 @@ def find_top_n_params(results: list[StrategyResult], n: int = 5) -> list[dict]:
     top = []
     for avg_score, group in scored[:n]:
         first = group[0]
-        top.append({
-            "params": first.params,
-            "avg_score": round(avg_score, 4),
-            "avg_return_pct": round(sum(r.return_pct for r in group) / len(group), 2),
-            "avg_win_rate": round(sum(r.win_rate for r in group) / len(group), 1),
-            "avg_profit_factor": round(sum(r.profit_factor for r in group) / len(group), 2),
-            "avg_max_drawdown": round(sum(r.max_drawdown for r in group) / len(group), 2),
-            "avg_sharpe": round(sum(r.sharpe for r in group) / len(group), 2),
-            "total_trades": sum(r.trade_count for r in group),
-        })
+        top.append(
+            {
+                "params": first.params,
+                "avg_score": round(avg_score, 4),
+                "avg_return_pct": round(sum(r.return_pct for r in group) / len(group), 2),
+                "avg_win_rate": round(sum(r.win_rate for r in group) / len(group), 1),
+                "avg_profit_factor": round(sum(r.profit_factor for r in group) / len(group), 2),
+                "avg_max_drawdown": round(sum(r.max_drawdown for r in group) / len(group), 2),
+                "avg_sharpe": round(sum(r.sharpe for r in group) / len(group), 2),
+                "total_trades": sum(r.trade_count for r in group),
+            }
+        )
     return top
 
 
@@ -441,13 +438,15 @@ def generate_report(
         )
 
     # Optimal params section
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## 2. Optimal Parameters (Grid Search Results)",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 2. Optimal Parameters (Grid Search Results)",
+            "",
+        ]
+    )
 
     for strategy_type in TARGET_STRATEGIES:
         opt = optimal_params.get(strategy_type, {})
@@ -478,7 +477,7 @@ def generate_report(
             lines.append("| Symbol | Return% | WinRate% | PF | MDD% | Sharpe | Trades |")
             lines.append("|--------|--------:|---------:|---:|-----:|-------:|-------:|")
             for sym, data in opt["per_symbol"].items():
-                pf = f"{data['profit_factor']:.2f}" if data['profit_factor'] < 1000 else "∞"
+                pf = f"{data['profit_factor']:.2f}" if data["profit_factor"] < 1000 else "∞"
                 lines.append(
                     f"| {sym} | {data['return_pct']:+.2f} | {data['win_rate']:.1f} | "
                     f"{pf} | {data['max_drawdown']:.2f} | {data['sharpe']:.2f} | "
@@ -494,7 +493,9 @@ def generate_report(
             lines.append(
                 "| Rank | Score | Return% | WinRate% | MDD% | Sharpe | Trades | Key Params |"
             )
-            lines.append("|-----:|------:|--------:|---------:|-----:|-------:|-------:|------------|")
+            lines.append(
+                "|-----:|------:|--------:|---------:|-----:|-------:|-------:|------------|"
+            )
             for i, t in enumerate(top, 1):
                 key_params = ", ".join(f"{k}={v}" for k, v in sorted(t["params"].items()))
                 lines.append(
@@ -505,14 +506,16 @@ def generate_report(
             lines.append("")
 
     # Risk optimization
-    lines.extend([
-        "---",
-        "",
-        "## 3. Risk Profile Optimization",
-        "",
-        "| Strategy | Profile | Score | Return% | WinRate% | MDD% | Sharpe | Trades |",
-        "|----------|---------|------:|--------:|---------:|-----:|-------:|-------:|",
-    ])
+    lines.extend(
+        [
+            "---",
+            "",
+            "## 3. Risk Profile Optimization",
+            "",
+            "| Strategy | Profile | Score | Return% | WinRate% | MDD% | Sharpe | Trades |",
+            "|----------|---------|------:|--------:|---------:|-----:|-------:|-------:|",
+        ]
+    )
     for strategy_type in TARGET_STRATEGIES:
         rr = risk_results.get(strategy_type, {})
         profiles = rr.get("profiles", {})
@@ -527,13 +530,15 @@ def generate_report(
             )
 
     # Recommendations
-    lines.extend([
-        "",
-        "---",
-        "",
-        "## 4. Recommendations",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 4. Recommendations",
+            "",
+        ]
+    )
 
     for strategy_type in TARGET_STRATEGIES:
         opt = optimal_params.get(strategy_type, {})
@@ -544,37 +549,34 @@ def generate_report(
         if opt:
             lines.append(f"- **Deploy with:** optimal params above + **{best_risk}** risk profile")
             if opt["avg_sharpe"] > 1.0:
-                lines.append(
-                    f"- **Status:** ✅ Production-ready (Sharpe {opt['avg_sharpe']:.2f})"
-                )
+                lines.append(f"- **Status:** ✅ Production-ready (Sharpe {opt['avg_sharpe']:.2f})")
             elif opt["avg_sharpe"] > 0.5:
                 lines.append(
-                    f"- **Status:** ⚠️ Viable but needs monitoring "
-                    f"(Sharpe {opt['avg_sharpe']:.2f})"
+                    f"- **Status:** ⚠️ Viable but needs monitoring (Sharpe {opt['avg_sharpe']:.2f})"
                 )
             else:
                 lines.append(
-                    f"- **Status:** ❌ Needs further optimization "
-                    f"(Sharpe {opt['avg_sharpe']:.2f})"
+                    f"- **Status:** ❌ Needs further optimization (Sharpe {opt['avg_sharpe']:.2f})"
                 )
             if opt["avg_max_drawdown"] > 10:
                 lines.append(
-                    f"- **Warning:** High MDD ({opt['avg_max_drawdown']:.1f}%) "
-                    "— tighten stops"
+                    f"- **Warning:** High MDD ({opt['avg_max_drawdown']:.1f}%) — tighten stops"
                 )
         else:
             lines.append("- **Status:** ❌ No viable parameters found")
         lines.append("")
 
     # Final config recommendations
-    lines.extend([
-        "---",
-        "",
-        "## 5. Recommended daemon.toml Updates",
-        "",
-        "```toml",
-        "[strategy]",
-    ])
+    lines.extend(
+        [
+            "---",
+            "",
+            "## 5. Recommended daemon.toml Updates",
+            "",
+            "```toml",
+            "[strategy]",
+        ]
+    )
     # Merge optimal params into config recommendation
     for strategy_type in TARGET_STRATEGIES:
         opt = optimal_params.get(strategy_type, {})
@@ -672,9 +674,9 @@ def main() -> None:
     json_path.write_text(json.dumps(json_data, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"  JSON results written to: {json_path}")
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"  ANALYSIS COMPLETE in {elapsed:.1f}s")
-    print(f"{'='*80}\n")
+    print(f"{'=' * 80}\n")
 
 
 if __name__ == "__main__":

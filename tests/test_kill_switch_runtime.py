@@ -1,4 +1,5 @@
 """Tests for kill switch integration with MultiSymbolRuntime."""
+
 from __future__ import annotations
 
 import unittest
@@ -36,11 +37,13 @@ class TestKillSwitchDailyLoss(unittest.TestCase):
 
 class TestKillSwitchConsecutiveLosses(unittest.TestCase):
     def test_triggers_on_consecutive_losses(self) -> None:
-        ks = KillSwitch(KillSwitchConfig(
-            max_consecutive_losses=3,
-            max_portfolio_drawdown_pct=1.0,
-            max_daily_loss_pct=1.0,
-        ))
+        ks = KillSwitch(
+            KillSwitchConfig(
+                max_consecutive_losses=3,
+                max_portfolio_drawdown_pct=1.0,
+                max_daily_loss_pct=1.0,
+            )
+        )
         ks.check(1_000_000, 1_000_000, 0.0, trade_won=False)
         ks.check(1_000_000, 1_000_000, 0.0, trade_won=False)
         state = ks.check(1_000_000, 1_000_000, 0.0, trade_won=False)
@@ -48,11 +51,13 @@ class TestKillSwitchConsecutiveLosses(unittest.TestCase):
         self.assertIn("consecutive", state.trigger_reason.lower())
 
     def test_win_resets_counter(self) -> None:
-        ks = KillSwitch(KillSwitchConfig(
-            max_consecutive_losses=3,
-            max_portfolio_drawdown_pct=1.0,
-            max_daily_loss_pct=1.0,
-        ))
+        ks = KillSwitch(
+            KillSwitchConfig(
+                max_consecutive_losses=3,
+                max_portfolio_drawdown_pct=1.0,
+                max_daily_loss_pct=1.0,
+            )
+        )
         ks.check(1_000_000, 1_000_000, 0.0, trade_won=False)
         ks.check(1_000_000, 1_000_000, 0.0, trade_won=False)
         ks.check(1_000_000, 1_000_000, 0.0, trade_won=True)  # reset
@@ -120,6 +125,7 @@ class TestRiskGridOptimization(unittest.TestCase):
         import itertools
 
         from scripts.auto_tune import RISK_GRID
+
         risk_combos = list(itertools.product(*RISK_GRID.values()))
         valid_count = 0
         for combo in risk_combos:
@@ -133,6 +139,7 @@ class TestRiskGridOptimization(unittest.TestCase):
 
     def test_risk_grid_has_expected_params(self) -> None:
         from scripts.auto_tune import RISK_GRID
+
         self.assertIn("stop_loss_pct", RISK_GRID)
         self.assertIn("take_profit_pct", RISK_GRID)
         self.assertIn("risk_per_trade_pct", RISK_GRID)

@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 15: entry confidence tracking, regime profit factor."""
+
 from __future__ import annotations
 
 import unittest
@@ -14,13 +15,20 @@ from crypto_trader.strategy.composite import CompositeStrategy
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Entry confidence in TradeRecord ----------
+
 
 class TestEntryConfidence(unittest.TestCase):
     def test_trade_record_has_entry_confidence(self) -> None:
@@ -73,8 +81,10 @@ class TestEntryConfidence(unittest.TestCase):
             RiskConfig(stop_loss_pct=0.15, take_profit_pct=0.30, cooldown_bars=0),
         )
         engine = BacktestEngine(
-            strategy=strategy, risk_manager=risk,
-            config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC",
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
         )
         result = engine.run(candles)
         for trade in result.trade_log:
@@ -83,6 +93,7 @@ class TestEntryConfidence(unittest.TestCase):
 
 
 # ---------- Regime profit factor ----------
+
 
 class TestRegimeProfitFactor(unittest.TestCase):
     def test_regime_pf_calculation(self) -> None:

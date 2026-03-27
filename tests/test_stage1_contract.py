@@ -3,12 +3,15 @@ from __future__ import annotations
 import tomllib
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "specs" / "trading_system_contract.toml"
 
 
 class TradingSystemContractTests(unittest.TestCase):
+    contract: ClassVar[dict[str, object]]
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = tomllib.loads(CONTRACT_PATH.read_text(encoding="utf-8"))

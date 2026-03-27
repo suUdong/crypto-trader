@@ -30,7 +30,9 @@ def bollinger_bands(
 
 
 def bollinger_band_width(
-    values: list[float], window: int, stddev_multiplier: float,
+    values: list[float],
+    window: int,
+    stddev_multiplier: float,
 ) -> float:
     """Bollinger Band Width: (upper - lower) / middle.
 
@@ -79,9 +81,7 @@ def stochastic_rsi(
     """Normalize recent RSI readings into a 0-100 oscillator."""
     min_len = rsi_period + stoch_period + 1
     if len(values) < min_len:
-        raise ValueError(
-            f"Need at least {min_len} values for Stochastic RSI, got {len(values)}"
-        )
+        raise ValueError(f"Need at least {min_len} values for Stochastic RSI, got {len(values)}")
 
     rsi_values: list[float] = []
     for i in range(stoch_period + 1):
@@ -120,7 +120,10 @@ def average_true_range(
 
 
 def average_directional_index(
-    highs: list[float], lows: list[float], closes: list[float], period: int = 14,
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    period: int = 14,
 ) -> float:
     """Average Directional Index (ADX) — measures trend strength (0-100).
 
@@ -244,7 +247,9 @@ def macd(
 
 
 def rsi_divergence(
-    closes: list[float], rsi_period: int = 14, lookback: int = 20,
+    closes: list[float],
+    rsi_period: int = 14,
+    lookback: int = 20,
 ) -> tuple[bool, bool]:
     """Detect RSI divergence over the last `lookback` bars.
 
@@ -265,7 +270,7 @@ def rsi_divergence(
         else:
             rsi_values.append(50.0)
 
-    price_window = closes[-lookback - 1:]
+    price_window = closes[-lookback - 1 :]
 
     # Find local lows and highs (simple: compare with neighbors)
     price_lows: list[tuple[int, float]] = []
@@ -299,7 +304,10 @@ def rsi_divergence(
 
 
 def vwap(
-    highs: list[float], lows: list[float], closes: list[float], volumes: list[float],
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    volumes: list[float],
 ) -> float:
     """Volume Weighted Average Price over the given bars.
 
@@ -316,15 +324,25 @@ def vwap(
     if total_vol <= 0:
         return closes[-1] if closes else 0.0
     tp_vol_sum = sum(
-        ((h + l + c) / 3.0) * v
-        for h, l, c, v in zip(highs, lows, closes, volumes)
+        ((high + low + close) / 3.0) * volume
+        for high, low, close, volume in zip(
+            highs,
+            lows,
+            closes,
+            volumes,
+            strict=False,
+        )
     )
     return tp_vol_sum / total_vol
 
 
 def keltner_channels(
-    highs: list[float], lows: list[float], closes: list[float],
-    ema_period: int = 20, atr_period: int = 14, atr_multiplier: float = 1.5,
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    ema_period: int = 20,
+    atr_period: int = 14,
+    atr_multiplier: float = 1.5,
 ) -> tuple[float, float, float]:
     """Keltner Channels: EMA +/- ATR * multiplier.
 
@@ -346,8 +364,11 @@ def keltner_channels(
 
 
 def rolling_vwap(
-    highs: list[float], lows: list[float], closes: list[float],
-    volumes: list[float], window: int = 20,
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    volumes: list[float],
+    window: int = 20,
 ) -> float:
     """Rolling VWAP over the last `window` bars."""
     if len(highs) < window:
@@ -399,8 +420,7 @@ def noise_ratio(closes: list[float], lookback: int) -> float:
         raise ValueError("Not enough values for noise_ratio")
     net_move = abs(closes[-1] - closes[-lookback - 1])
     gross_move = sum(
-        abs(closes[i] - closes[i - 1])
-        for i in range(len(closes) - lookback, len(closes))
+        abs(closes[i] - closes[i - 1]) for i in range(len(closes) - lookback, len(closes))
     )
     if gross_move == 0:
         return 1.0
@@ -408,8 +428,11 @@ def noise_ratio(closes: list[float], lookback: int) -> float:
 
 
 def chaikin_money_flow(
-    highs: list[float], lows: list[float], closes: list[float],
-    volumes: list[float], period: int = 20,
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    volumes: list[float],
+    period: int = 20,
 ) -> float:
     """Chaikin Money Flow: measures buying/selling pressure over a period.
 
@@ -436,7 +459,10 @@ def chaikin_money_flow(
 
 
 def williams_percent_r(
-    highs: list[float], lows: list[float], closes: list[float], period: int = 14,
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    period: int = 14,
 ) -> float:
     """Williams %R: momentum oscillator measuring overbought/oversold levels.
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -31,13 +31,16 @@ def load_data_freshness() -> dict[str, Any]:
       - files: dict[filename, {mtime_iso, age_seconds, is_stale}]
       - overall_fresh: True if primary files updated within 5 minutes
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     files_info: dict[str, dict[str, Any]] = {}
     primary_fresh = True
 
     for fname in _PRIMARY_FILES + [
-        "positions.json", "health.json", "daily-performance.json",
-        "regime-report.json", "paper-trades.jsonl",
+        "positions.json",
+        "health.json",
+        "daily-performance.json",
+        "regime-report.json",
+        "paper-trades.jsonl",
     ]:
         path = ARTIFACTS_DIR / fname
         if not path.exists():
@@ -45,7 +48,7 @@ def load_data_freshness() -> dict[str, Any]:
             if fname in _PRIMARY_FILES:
                 primary_fresh = False
             continue
-        mtime = datetime.fromtimestamp(os.path.getmtime(path), tz=timezone.utc)
+        mtime = datetime.fromtimestamp(os.path.getmtime(path), tz=UTC)
         age = (now - mtime).total_seconds()
         is_stale = age > 300  # 5 minutes
         files_info[fname] = {
@@ -58,6 +61,7 @@ def load_data_freshness() -> dict[str, Any]:
             primary_fresh = False
 
     return {"files": files_info, "overall_fresh": primary_fresh}
+
 
 # ── 종목코드 → 한글명 매핑 ──────────────────────────────────
 SYMBOL_KR: dict[str, str] = {
@@ -126,7 +130,7 @@ def strategy_kr(name: str) -> str:
     # Try extracting strategy from per-symbol wallet (e.g. momentum_btc → momentum)
     for strategy_name, kr_name in STRATEGY_KR.items():
         if key.startswith(strategy_name + "_"):
-            suffix = key[len(strategy_name) + 1:].upper()
+            suffix = key[len(strategy_name) + 1 :].upper()
             return f"{kr_name} ({suffix})"
     return key.replace("_", " ").title()
 
@@ -272,8 +276,11 @@ def load_signal_summary() -> dict[str, Any]:
         # Per-wallet aggregation
         if wallet not in by_wallet:
             by_wallet[wallet] = {
-                "buy": 0, "sell": 0, "hold": 0,
-                "total": 0, "conf_sum": 0.0,
+                "buy": 0,
+                "sell": 0,
+                "hold": 0,
+                "total": 0,
+                "conf_sum": 0.0,
             }
         w = by_wallet[wallet]
         w["total"] += 1

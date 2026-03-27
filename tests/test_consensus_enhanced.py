@@ -1,4 +1,5 @@
 """Tests for enhanced ConsensusStrategy — weighted voting, quorum, exit modes."""
+
 from __future__ import annotations
 
 import unittest
@@ -123,7 +124,10 @@ class TestQuorumThreshold(unittest.TestCase):
         ]
         # weight=[5.0, 1.0], total=6.0, weighted_score = 5.0 * 0.7 / 6.0 = 0.583
         consensus = ConsensusStrategy(
-            strategies, min_agree=2, weights=[5.0, 1.0], quorum_threshold=0.5,
+            strategies,
+            min_agree=2,
+            weights=[5.0, 1.0],
+            quorum_threshold=0.5,
         )
         signal = consensus.evaluate(_build_candles(), None)
         self.assertEqual(signal.action, SignalAction.BUY)
@@ -143,8 +147,11 @@ class TestQuorumThreshold(unittest.TestCase):
 class TestExitModes(unittest.TestCase):
     def _position(self) -> Position:
         return Position(
-            symbol="KRW-BTC", quantity=0.01,
-            entry_price=100_000.0, entry_time=datetime(2025, 1, 1), entry_index=0,
+            symbol="KRW-BTC",
+            quantity=0.01,
+            entry_price=100_000.0,
+            entry_time=datetime(2025, 1, 1),
+            entry_index=0,
         )
 
     def test_any_exit_mode_default(self) -> None:
@@ -191,7 +198,10 @@ class TestExitModes(unittest.TestCase):
         ]
         # Weight SELL strategy at 5, others at 1. Total=7, sell_weight=5 > 3.5
         consensus = ConsensusStrategy(
-            strategies, min_agree=2, weights=[5.0, 1.0, 1.0], exit_mode="majority",
+            strategies,
+            min_agree=2,
+            weights=[5.0, 1.0, 1.0],
+            exit_mode="majority",
         )
         signal = consensus.evaluate(_build_candles(), self._position())
         self.assertEqual(signal.action, SignalAction.SELL)

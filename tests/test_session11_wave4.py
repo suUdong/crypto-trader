@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 4: dynamic stop tightening, Sortino ratio."""
+
 from __future__ import annotations
 
 import unittest
@@ -14,13 +15,20 @@ from crypto_trader.strategy.composite import CompositeStrategy
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Dynamic stop tightening ----------
+
 
 class TestDynamicStopTightening(unittest.TestCase):
     def test_stop_tightens_after_3_losses(self) -> None:
@@ -63,7 +71,9 @@ class TestDynamicStopTightening(unittest.TestCase):
         risk.record_trade(-0.02)
         risk.record_trade(-0.02)
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
             entry_time=datetime(2025, 1, 1),
         )
         # Price at -4.5%: within tightened stop (4%) but outside normal (5%)
@@ -77,7 +87,9 @@ class TestDynamicStopTightening(unittest.TestCase):
             atr_stop_multiplier=0.0,
         )
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
             entry_time=datetime(2025, 1, 1),
         )
         # Price at -4.5%: within normal 5% stop, should NOT trigger
@@ -86,6 +98,7 @@ class TestDynamicStopTightening(unittest.TestCase):
 
 
 # ---------- Sortino ratio ----------
+
 
 class TestSortinoRatio(unittest.TestCase):
     def test_sortino_positive_for_uptrend(self) -> None:
@@ -114,16 +127,23 @@ class TestSortinoRatio(unittest.TestCase):
 
     def test_backtest_result_has_sortino(self) -> None:
         candles = _candles([100.0] * 30)
-        strategy = CompositeStrategy(StrategyConfig(momentum_lookback=3, bollinger_window=20, rsi_period=5))
+        strategy = CompositeStrategy(
+            StrategyConfig(momentum_lookback=3, bollinger_window=20, rsi_period=5)
+        )
         risk = RiskManager(RiskConfig())
-        engine = BacktestEngine(strategy=strategy, risk_manager=risk,
-                                config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC")
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
+        )
         result = engine.run(candles)
         self.assertIsInstance(result.sortino_ratio, float)
 
     def test_sortino_greater_than_sharpe_for_low_downside(self) -> None:
         """Sortino should be >= Sharpe when downside is smaller than total vol."""
         from crypto_trader.backtest.engine import _sharpe_ratio
+
         # Mostly up with few dips
         curve = [1000.0]
         for i in range(100):

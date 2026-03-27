@@ -1,4 +1,5 @@
 """Tests for US-028: Volume-weighted entry confirmation."""
+
 from __future__ import annotations
 
 import unittest
@@ -12,7 +13,8 @@ from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrateg
 
 
 def _build_candles_with_volume(
-    closes: list[float], volumes: list[float],
+    closes: list[float],
+    volumes: list[float],
 ) -> list[Candle]:
     start = datetime(2025, 1, 1)
     return [
@@ -119,7 +121,10 @@ class TestVBreakVolumeFilter(unittest.TestCase):
             volume_filter_mult=1.5,
         )
         strategy = VolatilityBreakoutStrategy(
-            config, k_base=0.1, noise_lookback=5, ma_filter_period=5,
+            config,
+            k_base=0.1,
+            noise_lookback=5,
+            ma_filter_period=5,
         )
         # Build candles with breakout on last bar but weak volume
         closes = [100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 110.0]

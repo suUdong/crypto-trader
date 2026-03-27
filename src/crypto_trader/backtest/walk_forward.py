@@ -3,21 +3,31 @@
 Splits candle data into rolling train/test windows and runs backtests on each.
 Only strategies that perform consistently on out-of-sample (OOS) data pass.
 """
+
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from typing import Protocol
 
 from crypto_trader.config import BacktestConfig, RiskConfig
-from crypto_trader.models import BacktestResult, Candle
+from crypto_trader.models import BacktestResult, Candle, Position, Signal
 from crypto_trader.risk.manager import RiskManager
 
 
 class _StrategyFactory(Protocol):
     """Creates a fresh strategy instance for each fold."""
 
-    def __call__(self) -> object: ...
+    def __call__(self) -> _StrategyProtocol: ...
+
+
+class _StrategyProtocol(Protocol):
+    def evaluate(
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal: ...
 
 
 @dataclass(slots=True)

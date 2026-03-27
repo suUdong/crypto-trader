@@ -1,4 +1,5 @@
 """Tests for Session #12 Wave 13: regime-aware EMA, macro trend momentum, partial TP engine."""
+
 from __future__ import annotations
 
 import unittest
@@ -15,13 +16,20 @@ from crypto_trader.strategy.momentum import MomentumStrategy
 def _candles(closes: list[float], volume: float = 1000.0) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=volume)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=volume,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- EMA crossover regime awareness ----------
+
 
 class TestEMACrossoverRegime(unittest.TestCase):
     def test_regime_in_context(self) -> None:
@@ -72,8 +80,11 @@ class TestEMACrossoverRegime(unittest.TestCase):
         prices = [100.0] * 60
         candles = _candles(prices)
         pos = Position(
-            symbol="KRW-BTC", quantity=1.0, entry_price=100.0,
-            entry_time=datetime(2025, 1, 1), entry_index=0,
+            symbol="KRW-BTC",
+            quantity=1.0,
+            entry_price=100.0,
+            entry_time=datetime(2025, 1, 1),
+            entry_index=0,
         )
         strategy = EMACrossoverStrategy(
             StrategyConfig(rsi_period=5, max_holding_bars=48, adx_threshold=0.0),
@@ -86,14 +97,19 @@ class TestEMACrossoverRegime(unittest.TestCase):
 
 # ---------- Momentum EMA(50) macro trend ----------
 
+
 class TestMomentumMacroTrend(unittest.TestCase):
     def test_ema50_in_indicators(self) -> None:
         """Momentum should include ema50 when enough data."""
         prices = [100.0 + i * 0.3 for i in range(60)]
         candles = _candles(prices)
-        strategy = MomentumStrategy(StrategyConfig(
-            momentum_lookback=5, rsi_period=5, adx_threshold=0.0,
-        ))
+        strategy = MomentumStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                rsi_period=5,
+                adx_threshold=0.0,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertIn("ema50", signal.indicators)
 
@@ -101,9 +117,12 @@ class TestMomentumMacroTrend(unittest.TestCase):
         """Momentum should not have ema50 with < 50 candles."""
         prices = [100.0] * 30
         candles = _candles(prices)
-        strategy = MomentumStrategy(StrategyConfig(
-            momentum_lookback=5, rsi_period=5,
-        ))
+        strategy = MomentumStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                rsi_period=5,
+            )
+        )
         signal = strategy.evaluate(candles)
         self.assertNotIn("ema50", signal.indicators)
 
@@ -112,11 +131,16 @@ class TestMomentumMacroTrend(unittest.TestCase):
         # Create clear uptrend above EMA(50)
         prices = [80.0 + i * 0.5 for i in range(55)]
         candles = _candles(prices)
-        strategy = MomentumStrategy(StrategyConfig(
-            momentum_lookback=5, momentum_entry_threshold=0.001,
-            rsi_period=5, rsi_oversold_floor=0.0, rsi_recovery_ceiling=100.0,
-            adx_threshold=0.0,
-        ))
+        strategy = MomentumStrategy(
+            StrategyConfig(
+                momentum_lookback=5,
+                momentum_entry_threshold=0.001,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+                adx_threshold=0.0,
+            )
+        )
         signal = strategy.evaluate(candles)
         if signal.action == SignalAction.BUY:
             # Confidence should be boosted by macro trend
@@ -125,14 +149,18 @@ class TestMomentumMacroTrend(unittest.TestCase):
 
 # ---------- Partial take-profit in backtest engine ----------
 
+
 class TestBacktestPartialTP(unittest.TestCase):
     def test_partial_tp_creates_two_trades(self) -> None:
         """Partial TP should create a partial trade, then final exit trade."""
+
         class BuyThenHold:
             def __init__(self):
                 self._bought = False
+
             def evaluate(self, candles, position=None):
                 from crypto_trader.models import Signal, SignalAction
+
                 if position is None and not self._bought:
                     self._bought = True
                     return Signal(action=SignalAction.BUY, reason="buy", confidence=0.8)
@@ -141,11 +169,15 @@ class TestBacktestPartialTP(unittest.TestCase):
         # Price rises to trigger partial TP then full TP
         prices = [100.0] * 20 + [103.0] * 5 + [106.5] * 5
         candles = _candles(prices)
-        risk = RiskManager(RiskConfig(
-            stop_loss_pct=0.05, take_profit_pct=0.06,
-            partial_tp_pct=0.5, atr_stop_multiplier=0.0,
-            min_entry_confidence=0.5,
-        ))
+        risk = RiskManager(
+            RiskConfig(
+                stop_loss_pct=0.05,
+                take_profit_pct=0.06,
+                partial_tp_pct=0.5,
+                atr_stop_multiplier=0.0,
+                min_entry_confidence=0.5,
+            )
+        )
         engine = BacktestEngine(
             strategy=BuyThenHold(),
             risk_manager=risk,
@@ -162,9 +194,11 @@ class TestBacktestPartialTP(unittest.TestCase):
 
     def test_partial_tp_only_triggers_once(self) -> None:
         """Partial TP should not re-trigger after already taken."""
+
         class AlwaysBuy:
             def evaluate(self, candles, position=None):
                 from crypto_trader.models import Signal, SignalAction
+
                 if position is None:
                     return Signal(action=SignalAction.BUY, reason="buy", confidence=0.8)
                 return Signal(action=SignalAction.HOLD, reason="hold", confidence=0.5)
@@ -172,11 +206,15 @@ class TestBacktestPartialTP(unittest.TestCase):
         # Price rises and stays in partial TP zone
         prices = [100.0] * 20 + [103.0] * 20
         candles = _candles(prices)
-        risk = RiskManager(RiskConfig(
-            stop_loss_pct=0.05, take_profit_pct=0.06,
-            partial_tp_pct=0.5, atr_stop_multiplier=0.0,
-            min_entry_confidence=0.5,
-        ))
+        risk = RiskManager(
+            RiskConfig(
+                stop_loss_pct=0.05,
+                take_profit_pct=0.06,
+                partial_tp_pct=0.5,
+                atr_stop_multiplier=0.0,
+                min_entry_confidence=0.5,
+            )
+        )
         engine = BacktestEngine(
             strategy=AlwaysBuy(),
             risk_manager=risk,
@@ -190,20 +228,26 @@ class TestBacktestPartialTP(unittest.TestCase):
 
     def test_partial_tp_disabled_when_zero(self) -> None:
         """partial_tp_pct=0 should not create any partial trades."""
+
         class AlwaysBuy:
             def evaluate(self, candles, position=None):
                 from crypto_trader.models import Signal, SignalAction
+
                 if position is None:
                     return Signal(action=SignalAction.BUY, reason="buy", confidence=0.8)
                 return Signal(action=SignalAction.HOLD, reason="hold", confidence=0.5)
 
         prices = [100.0] * 20 + [103.0] * 10 + [106.5] * 5
         candles = _candles(prices)
-        risk = RiskManager(RiskConfig(
-            stop_loss_pct=0.05, take_profit_pct=0.06,
-            partial_tp_pct=0.0, atr_stop_multiplier=0.0,
-            min_entry_confidence=0.5,
-        ))
+        risk = RiskManager(
+            RiskConfig(
+                stop_loss_pct=0.05,
+                take_profit_pct=0.06,
+                partial_tp_pct=0.0,
+                atr_stop_multiplier=0.0,
+                min_entry_confidence=0.5,
+            )
+        )
         engine = BacktestEngine(
             strategy=AlwaysBuy(),
             risk_manager=risk,
@@ -216,20 +260,26 @@ class TestBacktestPartialTP(unittest.TestCase):
 
     def test_partial_tp_preserves_equity(self) -> None:
         """Total equity after partial TP + final exit should be consistent."""
+
         class AlwaysBuy:
             def evaluate(self, candles, position=None):
                 from crypto_trader.models import Signal, SignalAction
+
                 if position is None:
                     return Signal(action=SignalAction.BUY, reason="buy", confidence=0.8)
                 return Signal(action=SignalAction.HOLD, reason="hold", confidence=0.5)
 
         prices = [100.0] * 20 + [103.0] * 5 + [106.5] * 5
         candles = _candles(prices)
-        risk = RiskManager(RiskConfig(
-            stop_loss_pct=0.05, take_profit_pct=0.06,
-            partial_tp_pct=0.5, atr_stop_multiplier=0.0,
-            min_entry_confidence=0.5,
-        ))
+        risk = RiskManager(
+            RiskConfig(
+                stop_loss_pct=0.05,
+                take_profit_pct=0.06,
+                partial_tp_pct=0.5,
+                atr_stop_multiplier=0.0,
+                min_entry_confidence=0.5,
+            )
+        )
         engine = BacktestEngine(
             strategy=AlwaysBuy(),
             risk_manager=risk,

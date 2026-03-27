@@ -1,4 +1,5 @@
 """Tests for VolumeSpikeStrategy."""
+
 from __future__ import annotations
 
 import random
@@ -31,7 +32,10 @@ def _build_candles(
         candles.append(
             Candle(
                 timestamp=base + timedelta(hours=i),
-                open=o, high=h, low=low_price, close=c,
+                open=o,
+                high=h,
+                low=low_price,
+                close=c,
                 volume=base_volume + rng.uniform(-100, 100),
             )
         )
@@ -53,7 +57,10 @@ def _spike_last_candle(candles: list[Candle], volume_mult: float = 3.0) -> list[
     avg_vol = sum(c_.volume for c_ in candles[-21:-1]) / 20
     result[-1] = Candle(
         timestamp=last.timestamp,
-        open=o, high=h, low=low_price, close=c,
+        open=o,
+        high=h,
+        low=low_price,
+        close=c,
         volume=avg_vol * volume_mult,
     )
     return result
@@ -94,7 +101,10 @@ class TestVolumeSpikeEntry(unittest.TestCase):
     def setUp(self) -> None:
         self.config = StrategyConfig()
         self.strategy = VolumeSpikeStrategy(
-            self.config, spike_mult=2.5, volume_window=20, min_body_ratio=0.3,
+            self.config,
+            spike_mult=2.5,
+            volume_window=20,
+            min_body_ratio=0.3,
         )
 
     def test_volume_spike_triggers_buy(self) -> None:
@@ -152,8 +162,10 @@ class TestVolumeSpikeExit(unittest.TestCase):
 
     def _position(self, entry_index: int = 10) -> Position:
         return Position(
-            symbol="KRW-BTC", quantity=0.01,
-            entry_price=101_000.0, entry_time=datetime(2025, 1, 1, 10),
+            symbol="KRW-BTC",
+            quantity=0.01,
+            entry_price=101_000.0,
+            entry_time=datetime(2025, 1, 1, 10),
             entry_index=entry_index,
         )
 
@@ -207,7 +219,9 @@ class TestVolumeSpikeFactory(unittest.TestCase):
         config = StrategyConfig()
         regime = RegimeConfig()
         strategy = create_strategy(
-            "volume_spike", config, regime,
+            "volume_spike",
+            config,
+            regime,
             extra_params={"spike_mult": 3.0, "volume_window": 15},
         )
         self.assertIsInstance(strategy, VolumeSpikeStrategy)

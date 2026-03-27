@@ -1,4 +1,5 @@
 """Tests for Session #11 Wave 5: Calmar ratio, MACD mean reversion, ema_crossover grids."""
+
 from __future__ import annotations
 
 import unittest
@@ -6,7 +7,7 @@ from datetime import datetime, timedelta
 
 from crypto_trader.backtest.engine import BacktestEngine, _calmar_ratio
 from crypto_trader.backtest.grid_wf import PARAM_GRIDS
-from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, StrategyConfig
+from crypto_trader.config import BacktestConfig, RiskConfig, StrategyConfig
 from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
@@ -16,13 +17,20 @@ from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 def _candles(closes: list[float]) -> list[Candle]:
     t = datetime(2025, 1, 1)
     return [
-        Candle(timestamp=t + timedelta(hours=i), open=c, high=c * 1.01,
-               low=c * 0.99, close=c, volume=1000.0)
+        Candle(
+            timestamp=t + timedelta(hours=i),
+            open=c,
+            high=c * 1.01,
+            low=c * 0.99,
+            close=c,
+            volume=1000.0,
+        )
         for i, c in enumerate(closes)
     ]
 
 
 # ---------- Calmar ratio ----------
+
 
 class TestCalmarRatio(unittest.TestCase):
     def test_calmar_positive_for_uptrend(self) -> None:
@@ -50,15 +58,22 @@ class TestCalmarRatio(unittest.TestCase):
 
     def test_backtest_result_has_calmar(self) -> None:
         candles = _candles([100.0] * 30)
-        strategy = CompositeStrategy(StrategyConfig(momentum_lookback=3, bollinger_window=20, rsi_period=5))
+        strategy = CompositeStrategy(
+            StrategyConfig(momentum_lookback=3, bollinger_window=20, rsi_period=5)
+        )
         risk = RiskManager(RiskConfig())
-        engine = BacktestEngine(strategy=strategy, risk_manager=risk,
-                                config=BacktestConfig(initial_capital=1_000_000.0), symbol="KRW-BTC")
+        engine = BacktestEngine(
+            strategy=strategy,
+            risk_manager=risk,
+            config=BacktestConfig(initial_capital=1_000_000.0),
+            symbol="KRW-BTC",
+        )
         result = engine.run(candles)
         self.assertIsInstance(result.calmar_ratio, float)
 
 
 # ---------- MACD in MeanReversionStrategy ----------
+
 
 class TestMeanReversionMACD(unittest.TestCase):
     def test_macd_histogram_in_indicators(self) -> None:
@@ -83,6 +98,7 @@ class TestMeanReversionMACD(unittest.TestCase):
 
 # ---------- EMA crossover param grids ----------
 
+
 class TestEMACrossoverParamGrids(unittest.TestCase):
     def test_ema_crossover_in_param_grids(self) -> None:
         self.assertIn("ema_crossover", PARAM_GRIDS)
@@ -93,10 +109,18 @@ class TestEMACrossoverParamGrids(unittest.TestCase):
         self.assertIn("max_holding_bars", grid)
 
     def test_all_strategies_have_grids(self) -> None:
-        """All 9 strategy types should have param grids."""
+        """All supported strategy types should have param grids."""
         expected = {
-            "momentum", "mean_reversion", "vpin", "volatility_breakout",
-            "composite", "kimchi_premium", "obi", "ema_crossover", "consensus",
+            "momentum",
+            "momentum_pullback",
+            "mean_reversion",
+            "vpin",
+            "volatility_breakout",
+            "composite",
+            "kimchi_premium",
+            "obi",
+            "ema_crossover",
+            "consensus",
         }
         self.assertEqual(set(PARAM_GRIDS.keys()), expected)
 

@@ -1,4 +1,5 @@
 """Tests for grid-wf (grid search + walk-forward combo)."""
+
 from __future__ import annotations
 
 import math
@@ -108,8 +109,12 @@ class TestValidateWithWalkForward(unittest.TestCase):
         candles = _build_candles(_trending_with_pullbacks(400))
         candidate = GridCandidate(
             strategy_type="momentum",
-            params={"momentum_lookback": 15, "momentum_entry_threshold": 0.005,
-                    "rsi_period": 14, "max_holding_bars": 48},
+            params={
+                "momentum_lookback": 15,
+                "momentum_entry_threshold": 0.005,
+                "rsi_period": 14,
+                "max_holding_bars": 48,
+            },
             avg_sharpe=1.5,
             avg_return_pct=3.0,
             total_trades=20,
@@ -130,8 +135,12 @@ class TestValidateWithWalkForward(unittest.TestCase):
         candles_eth = _build_candles(_sideways(400), start=datetime(2025, 2, 1))
         candidate = GridCandidate(
             strategy_type="momentum",
-            params={"momentum_lookback": 15, "momentum_entry_threshold": 0.005,
-                    "rsi_period": 14, "max_holding_bars": 48},
+            params={
+                "momentum_lookback": 15,
+                "momentum_entry_threshold": 0.005,
+                "rsi_period": 14,
+                "max_holding_bars": 48,
+            },
             avg_sharpe=1.5,
             avg_return_pct=3.0,
             total_trades=20,
@@ -217,8 +226,16 @@ class TestGridWFSummaryToDict(unittest.TestCase):
     def test_to_dict_result_keys(self) -> None:
         summary = self._make_summary(validated=True)
         r = summary.to_dict()["results"][0]
-        for key in ("params", "avg_sharpe", "avg_return_pct", "total_trades",
-                    "avg_profit_factor", "validated", "wf_avg_efficiency_ratio", "wf_oos_win_rate"):
+        for key in (
+            "params",
+            "avg_sharpe",
+            "avg_return_pct",
+            "total_trades",
+            "avg_profit_factor",
+            "validated",
+            "wf_avg_efficiency_ratio",
+            "wf_oos_win_rate",
+        ):
             self.assertIn(key, r)
 
     def test_to_dict_best_validated_none_when_no_pass(self) -> None:
@@ -235,6 +252,7 @@ class TestGridWFSummaryToDict(unittest.TestCase):
 
     def test_to_dict_is_json_serializable(self) -> None:
         import json
+
         summary = self._make_summary(validated=True)
         # Should not raise
         json.dumps(summary.to_dict())
