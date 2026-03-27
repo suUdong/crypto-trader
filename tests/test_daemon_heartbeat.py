@@ -8,6 +8,7 @@ import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from crypto_trader.models import Candle
 from crypto_trader.multi_runtime import MultiSymbolRuntime
@@ -181,6 +182,22 @@ class TestDaemonHeartbeat(unittest.TestCase):
             self.assertEqual(positions["positions"], [])
             self.assertEqual(daily["trade_count"], 0)
             self.assertEqual(daily["mode"], "multi_symbol")
+
+    def test_promotion_gate_refreshes_on_first_tick(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = self._make_runtime(tmpdir)
+            with patch.object(runtime, "_refresh_portfolio_promotion") as refresh:
+                runtime._iteration = 0
+                runtime._maybe_refresh_artifacts()
+            refresh.assert_called_once()
+
+    def test_promotion_gate_skips_non_boundary_ticks_after_startup(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = self._make_runtime(tmpdir)
+            with patch.object(runtime, "_refresh_portfolio_promotion") as refresh:
+                runtime._iteration = 1
+                runtime._maybe_refresh_artifacts()
+            refresh.assert_not_called()
 
 
 if __name__ == "__main__":

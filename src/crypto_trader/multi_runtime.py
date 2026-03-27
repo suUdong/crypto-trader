@@ -628,13 +628,14 @@ class MultiSymbolRuntime:
 
     def _maybe_refresh_artifacts(self) -> None:
         """Periodically refresh heavier artifacts that do not need every tick."""
-        if self._iteration % 60 != 0 or self._iteration == 0:
+        current_iteration = self._iteration + 1
+        if current_iteration != 1 and current_iteration % 60 != 0:
             return
         try:
             self._refresh_portfolio_promotion()
             self._logger.info(
                 "Periodic heavy artifact refresh completed (iteration %d)",
-                self._iteration,
+                current_iteration,
             )
         except Exception as exc:
             self._logger.error("Artifact refresh failed: %s", exc)
