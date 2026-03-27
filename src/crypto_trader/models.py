@@ -68,6 +68,7 @@ class Position:
     entry_time: datetime
     entry_index: int | None = None
     entry_fee_paid: float = 0.0
+    entry_confidence: float = 0.0
     high_watermark: float = 0.0
     partial_tp_taken: bool = False
 
@@ -87,6 +88,7 @@ class OrderRequest:
     quantity: float
     requested_at: datetime
     reason: str
+    confidence: float = 0.0
 
 
 @dataclass(slots=True)

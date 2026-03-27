@@ -104,10 +104,48 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
     # ------------------------------------------------------------------
     # 4. Safe zone BUY: 0% < premium < 5%, RSI in range
     # ------------------------------------------------------------------
-    def test_safe_zone_buy_with_rsi(self) -> None:
-        """Premium ~2% with open RSI window -> BUY safe zone."""
-        # global_krw = 78.0 * 1300.0 = 101_400
-        # upbit = 103_428 → premium = (103_428 - 101_400) / 101_400 ≈ +0.02 (2%)
+    def test_safe_zone_buy_with_deep_rsi_reset(self) -> None:
+        """Small premium + deeper RSI reset -> BUY safe zone."""
+        closes = [
+            103_500.0,
+            103_200.0,
+            102_900.0,
+            102_600.0,
+            102_300.0,
+            102_000.0,
+            101_800.0,
+            101_700.0,
+            101_650.0,
+            101_600.0,
+            101_550.0,
+            101_500.0,
+            101_450.0,
+            101_420.0,
+            101_390.0,
+            101_410.0,
+            101_430.0,
+            101_460.0,
+            101_500.0,
+            101_550.0,
+        ]
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            rsi_period=14,
+            rsi_oversold_floor=20.0,
+            rsi_recovery_ceiling=75.0,
+        )
+        candles = build_candles(closes)
+        signal = strategy.evaluate(candles)
+        self.assertEqual(signal.action, SignalAction.BUY)
+        self.assertEqual(signal.reason, "kimchi_premium_safe_zone_rsi_entry")
+        premium = signal.indicators["kimchi_premium"]
+        self.assertGreater(premium, 0.0)
+        self.assertLess(premium, 0.003)
+        self.assertLess(signal.indicators["rsi"], 40.0)
+
+    def test_safe_zone_blocks_when_premium_is_too_high(self) -> None:
+        """Safe-zone entry should stay HOLD when premium is too wide."""
         upbit_price = 103_428.0
         strategy = _make_strategy(
             binance_price=78.0,
@@ -118,11 +156,102 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         )
         candles = build_candles(_flat_closes(upbit_price))
         signal = strategy.evaluate(candles)
-        self.assertEqual(signal.action, SignalAction.BUY)
-        self.assertEqual(signal.reason, "kimchi_premium_safe_zone_rsi_entry")
-        premium = signal.indicators["kimchi_premium"]
-        self.assertGreater(premium, 0.0)
-        self.assertLess(premium, 0.05)
+        self.assertEqual(signal.action, SignalAction.HOLD)
+        self.assertEqual(signal.reason, "safe_zone_premium_too_high")
+
+    def test_safe_zone_blocks_when_rsi_not_reset_enough(self) -> None:
+        """Small premium alone is not enough when RSI is still too elevated."""
+        closes = [
+            102_500.0,
+            102_200.0,
+            101_900.0,
+            101_700.0,
+            101_500.0,
+            101_300.0,
+            101_200.0,
+            101_100.0,
+            101_000.0,
+            100_950.0,
+            100_900.0,
+            100_850.0,
+            100_900.0,
+            100_980.0,
+            101_050.0,
+            101_120.0,
+            101_200.0,
+            101_280.0,
+            101_360.0,
+            101_520.0,
+        ]
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            rsi_period=14,
+            rsi_oversold_floor=20.0,
+            rsi_recovery_ceiling=75.0,
+        )
+        signal = strategy.evaluate(build_candles(closes))
+        self.assertEqual(signal.action, SignalAction.HOLD)
+        self.assertEqual(signal.reason, "safe_zone_rsi_not_reset")
+
+    def test_safe_zone_confidence_rewards_deeper_reset(self) -> None:
+        """Deeper reset and stronger discount should score higher confidence."""
+        stronger = [
+            103_500.0,
+            103_200.0,
+            102_900.0,
+            102_600.0,
+            102_300.0,
+            102_000.0,
+            101_800.0,
+            101_700.0,
+            101_650.0,
+            101_600.0,
+            101_550.0,
+            101_500.0,
+            101_450.0,
+            101_420.0,
+            101_390.0,
+            101_410.0,
+            101_430.0,
+            101_460.0,
+            101_500.0,
+            101_550.0,
+        ]
+        marginal = [
+            103_500.0,
+            103_200.0,
+            102_900.0,
+            102_600.0,
+            102_300.0,
+            102_000.0,
+            101_800.0,
+            101_650.0,
+            101_540.0,
+            101_480.0,
+            101_430.0,
+            101_390.0,
+            101_360.0,
+            101_330.0,
+            101_300.0,
+            101_320.0,
+            101_340.0,
+            101_380.0,
+            101_500.0,
+            101_640.0,
+        ]
+        strategy = _make_strategy(
+            binance_price=78.0,
+            fx_rate=1300.0,
+            rsi_period=14,
+            rsi_oversold_floor=20.0,
+            rsi_recovery_ceiling=75.0,
+        )
+        stronger_signal = strategy.evaluate(build_candles(stronger))
+        marginal_signal = strategy.evaluate(build_candles(marginal))
+        self.assertEqual(stronger_signal.action, SignalAction.BUY)
+        self.assertEqual(marginal_signal.action, SignalAction.BUY)
+        self.assertGreater(stronger_signal.confidence, marginal_signal.confidence)
 
     # ------------------------------------------------------------------
     # 5. SELL when position open and premium >= 7%
@@ -161,6 +290,14 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
         signal = strategy.evaluate(candles)
         self.assertEqual(signal.action, SignalAction.HOLD)
         self.assertEqual(signal.reason, "premium_data_unavailable")
+
+    def test_hold_when_premium_is_outlier(self) -> None:
+        """Extreme premium values should be treated as suspect feed data."""
+        strategy = _make_strategy(binance_price=2_500.0, fx_rate=1300.0)
+        candles = build_candles(_flat_closes(100_000.0))
+        signal = strategy.evaluate(candles)
+        self.assertEqual(signal.action, SignalAction.HOLD)
+        self.assertEqual(signal.reason, "premium_outlier")
 
     # ------------------------------------------------------------------
     # 7. SELL on max_holding_bars regardless of premium
@@ -286,18 +423,37 @@ class TestKimchiPremiumStrategy(unittest.TestCase):
     # ------------------------------------------------------------------
     def test_confidence_filter_blocks_low_confidence(self) -> None:
         """Safe-zone entry with low confidence < min_confidence → HOLD."""
-        # Premium ~2%, RSI in range → safe zone buy with confidence ~ 0.4 + 0.03*5 = 0.55
-        # Set min_confidence=0.8 to block it
+        closes = [
+            103_500.0,
+            103_200.0,
+            102_900.0,
+            102_600.0,
+            102_300.0,
+            102_000.0,
+            101_800.0,
+            101_650.0,
+            101_540.0,
+            101_480.0,
+            101_430.0,
+            101_390.0,
+            101_360.0,
+            101_330.0,
+            101_300.0,
+            101_320.0,
+            101_340.0,
+            101_380.0,
+            101_500.0,
+            101_640.0,
+        ]
         strategy = _make_strategy(
             binance_price=78.0,
             fx_rate=1300.0,
             rsi_period=14,
-            rsi_oversold_floor=0.0,
-            rsi_recovery_ceiling=100.0,
-            min_confidence=0.8,
+            rsi_oversold_floor=20.0,
+            rsi_recovery_ceiling=75.0,
+            min_confidence=0.5,
         )
-        upbit_price = 103_428.0  # premium ~2%
-        candles = build_candles(_flat_closes(upbit_price))
+        candles = build_candles(closes)
         signal = strategy.evaluate(candles)
         self.assertEqual(signal.action, SignalAction.HOLD)
         self.assertEqual(signal.reason, "confidence_below_threshold")

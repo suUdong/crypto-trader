@@ -45,6 +45,7 @@ class PaperBroker:
                 entry_time=request.requested_at,
                 entry_index=candle_index if candle_index is not None else self._sequence,
                 entry_fee_paid=fee,
+                entry_confidence=request.confidence,
             )
             return OrderResult(
                 order_id=f"paper-{self._sequence}",
@@ -90,6 +91,7 @@ class PaperBroker:
                     pnl / max(1.0, (position.entry_price * request.quantity) + entry_fee_allocated)
                 ),
                 exit_reason=request.reason,
+                entry_confidence=position.entry_confidence,
             )
         )
         remaining = position.quantity - request.quantity
@@ -103,6 +105,7 @@ class PaperBroker:
                 entry_time=position.entry_time,
                 entry_index=position.entry_index,
                 entry_fee_paid=position.entry_fee_paid - entry_fee_allocated,
+                entry_confidence=position.entry_confidence,
             )
 
         return OrderResult(

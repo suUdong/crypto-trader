@@ -19,6 +19,12 @@ class KimchiPremiumStrategy:
     Premium > 5%: avoid new entries.
     """
 
+    _PREMIUM_OUTLIER_ABS = 0.20
+    _SAFE_ZONE_PREMIUM_MAX = 0.003
+    _SAFE_ZONE_RSI_MAX = 40.0
+    _SAFE_ZONE_STRONG_DISCOUNT = 0.0015
+    _SAFE_ZONE_DEEP_RESET_RSI = 30.0
+
     def __init__(
         self,
         config: StrategyConfig,
@@ -137,6 +143,15 @@ class KimchiPremiumStrategy:
                 context=context,
             )
 
+        if abs(premium) >= self._PREMIUM_OUTLIER_ABS:
+            return Signal(
+                action=SignalAction.HOLD,
+                reason="premium_outlier",
+                confidence=0.0,
+                indicators=indicators,
+                context=context,
+            )
+
         if premium <= self._contrarian_buy_threshold:
             return Signal(
                 action=SignalAction.BUY,
@@ -156,10 +171,39 @@ class KimchiPremiumStrategy:
             )
 
         if self._config.rsi_oversold_floor <= rsi_value <= self._config.rsi_recovery_ceiling:
+            if premium > self._SAFE_ZONE_PREMIUM_MAX:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="safe_zone_premium_too_high",
+                    confidence=0.2,
+                    indicators=indicators,
+                    context=context,
+                )
+            safe_zone_rsi_max = min(self._SAFE_ZONE_RSI_MAX, self._config.rsi_recovery_ceiling)
+            if rsi_value > safe_zone_rsi_max:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="safe_zone_rsi_not_reset",
+                    confidence=0.2,
+                    indicators=indicators,
+                    context=context,
+                )
+
+            premium_score = max(
+                0.0,
+                min(1.0, (self._SAFE_ZONE_PREMIUM_MAX - premium) / self._SAFE_ZONE_PREMIUM_MAX),
+            )
+            reset_span = max(1.0, safe_zone_rsi_max - self._config.rsi_oversold_floor)
+            rsi_score = max(0.0, min(1.0, (safe_zone_rsi_max - rsi_value) / reset_span))
+            confidence = 0.36 + premium_score * 0.18 + rsi_score * 0.16
+            if premium <= self._SAFE_ZONE_STRONG_DISCOUNT:
+                confidence += 0.05
+            if rsi_value <= self._SAFE_ZONE_DEEP_RESET_RSI:
+                confidence += 0.05
             return Signal(
                 action=SignalAction.BUY,
                 reason="kimchi_premium_safe_zone_rsi_entry",
-                confidence=min(1.0, 0.4 + (0.05 - premium) * 5),
+                confidence=min(0.85, confidence),
                 indicators=indicators,
                 context=context,
             )

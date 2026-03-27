@@ -191,6 +191,7 @@ class StrategyWallet:
                                 quantity=quantity,
                                 requested_at=now,
                                 reason=signal.reason,
+                                confidence=signal.confidence,
                             ),
                             latest_price,
                             candle_index=len(candles) - 1,
