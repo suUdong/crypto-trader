@@ -1,4 +1,4 @@
-"""Mobile-first responsive CSS for the dashboard."""
+"""Unified responsive styles for the dashboard."""
 
 from __future__ import annotations
 
@@ -6,374 +6,307 @@ import streamlit as st
 
 MOBILE_CSS = """
 <style>
-/* ── Import Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── CSS Custom Properties ── */
 :root {
-    --bg-card: rgba(255, 255, 255, 0.04);
-    --bg-card-hover: rgba(255, 255, 255, 0.07);
-    --border-card: rgba(255, 255, 255, 0.08);
-    --border-card-hover: rgba(255, 255, 255, 0.16);
-    --text-primary: #f3f4f6;
-    --text-muted: #9ca3af;
-    --text-secondary: #6b7280;
-    --green: #4ade80;
-    --green-bg: #0d5f2c;
-    --red: #f87171;
-    --red-bg: #7f1d1d;
-    --yellow: #fbbf24;
-    --yellow-bg: #5c4d1a;
-    --blue: #60a5fa;
-    --bg-app: #0e1117;
-    --font-body: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    --bg-app: #09121b;
+    --bg-app-alt: #0f1d2a;
+    --bg-card: rgba(10, 22, 33, 0.78);
+    --bg-card-strong: rgba(12, 27, 41, 0.92);
+    --bg-card-hover: rgba(17, 37, 56, 0.95);
+    --border-card: rgba(137, 196, 244, 0.18);
+    --border-card-hover: rgba(137, 196, 244, 0.32);
+    --text-primary: #edf5fb;
+    --text-muted: #9fb4c7;
+    --text-secondary: #7b95ab;
+    --green: #61f2a2;
+    --green-bg: rgba(11, 93, 54, 0.42);
+    --red: #ff7d8e;
+    --red-bg: rgba(122, 28, 49, 0.42);
+    --yellow: #ffc75f;
+    --yellow-bg: rgba(118, 83, 16, 0.42);
+    --blue: #77b8ff;
+    --blue-soft: rgba(119, 184, 255, 0.18);
+    --teal: #42d9c8;
+    --purple: #97a2ff;
+    --mono: 'JetBrains Mono', monospace;
+    --font-body: 'Noto Sans KR', sans-serif;
+    --font-display: 'Space Grotesk', 'Noto Sans KR', sans-serif;
 }
 
-/* ── Base Reset ── */
 html, body, [data-testid="stAppViewContainer"] {
     font-family: var(--font-body) !important;
-    font-size: 16px;
-    -webkit-text-size-adjust: 100%;
+    color: var(--text-primary);
+    background:
+        radial-gradient(circle at top left, rgba(66, 217, 200, 0.12), transparent 26%),
+        radial-gradient(circle at top right, rgba(119, 184, 255, 0.18), transparent 24%),
+        linear-gradient(180deg, #071018 0%, #0b1723 55%, #0c1a28 100%);
 }
 
-/* ── Monospace for numbers ── */
+.stApp {
+    background: transparent;
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--font-display) !important;
+    letter-spacing: -0.03em;
+}
+
 [data-testid="stMetricValue"] {
-    font-family: var(--font-mono) !important;
+    font-family: var(--mono) !important;
     font-variant-numeric: tabular-nums;
 }
 
-/* ── Centered Layout ── */
 .block-container {
-    max-width: 100% !important;
-    padding: 1rem !important;
+    max-width: 1180px !important;
+    padding: 1.1rem 1rem 2.4rem !important;
 }
 
-/* ── Touch Targets (WCAG 2.5.8 — 48px minimum) ── */
 button, [role="tab"], .stSelectbox, .stButton > button {
-    min-height: 48px !important;
-    min-width: 48px !important;
-    font-size: 1rem !important;
+    min-height: 46px !important;
+    border-radius: 14px !important;
 }
 
-/* ── Tab Navigation: horizontal scroll on mobile ── */
+.dashboard-hero {
+    display: grid;
+    grid-template-columns: 1.5fr 0.9fr;
+    gap: 1rem;
+    padding: 1.35rem;
+    margin: 0.4rem 0 1rem;
+    border: 1px solid var(--border-card);
+    border-radius: 24px;
+    background:
+        linear-gradient(135deg, rgba(18, 40, 58, 0.95), rgba(8, 21, 33, 0.95)),
+        radial-gradient(circle at top right, rgba(119, 184, 255, 0.22), transparent 35%);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+}
+
+.dashboard-hero h2 {
+    margin: 0.1rem 0 0.55rem;
+    font-size: 1.7rem;
+}
+
+.dashboard-hero p {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+    color: var(--teal);
+}
+
+.hero-chip-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    justify-content: center;
+}
+
+.hero-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 0.95rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.dashboard-panel {
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.65rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 18px;
+    line-height: 1.7;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.dashboard-panel:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-card-hover);
+    transform: translateY(-1px);
+}
+
+[data-testid="stMetric"] {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 18px;
+    padding: 1rem;
+    min-width: 0;
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--text-muted) !important;
+}
+
+[data-testid="stMetricValue"] {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+}
+
 [data-testid="stTabs"] [role="tablist"] {
-    gap: 0 !important;
+    gap: 0.35rem !important;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex-wrap: nowrap;
-    position: relative;
+    padding-bottom: 0.2rem;
 }
+
 [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {
     display: none;
 }
+
 [data-testid="stTabs"] [role="tab"] {
-    min-height: 48px !important;
-    padding: 0.5rem 0.75rem !important;
-    font-size: 0.875rem !important;
-    white-space: nowrap;
-    transition: color 0.15s ease;
+    padding: 0.65rem 1rem !important;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-muted) !important;
 }
 
-/* ── Tab Content Transition ── */
+[data-testid="stTabs"] [aria-selected="true"] {
+    color: var(--text-primary) !important;
+    border-color: rgba(119, 184, 255, 0.35) !important;
+    background:
+        linear-gradient(180deg, rgba(119, 184, 255, 0.18), rgba(119, 184, 255, 0.06))
+        !important;
+}
+
 [data-testid="stTabContent"] {
     animation: fadeIn 0.2s ease-in;
 }
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Metric Cards ── */
-[data-testid="stMetric"] {
-    background: var(--bg-card);
-    border: 1px solid var(--border-card);
-    border-radius: 12px;
-    padding: 1rem;
-    min-width: 0;
-    overflow: hidden;
-    transition: border-color 0.2s ease, background 0.2s ease;
-}
-[data-testid="stMetric"]:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--border-card-hover);
-}
-[data-testid="stMetricLabel"] {
-    font-size: 0.8125rem !important;
-    color: var(--text-muted) !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-[data-testid="stMetricValue"] {
-    font-size: 1.5rem !important;
-    font-weight: 700 !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-[data-testid="stMetricDelta"] {
-    font-size: 0.75rem !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* ── Status Badges ── */
-.regime-badge {
-    display: inline-block;
-    padding: 0.375rem 1rem;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-.regime-bull { background: var(--green-bg); color: var(--green); }
-.regime-sideways { background: var(--yellow-bg); color: var(--yellow); }
-.regime-bear { background: var(--red-bg); color: var(--red); }
-
 .status-badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.85rem;
     border-radius: 999px;
-    font-size: 0.8125rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 700;
 }
+
 .status-ok { background: var(--green-bg); color: var(--green); }
 .status-warn { background: var(--yellow-bg); color: var(--yellow); }
 .status-fail { background: var(--red-bg); color: var(--red); }
 
-/* ── Signal Colors ── */
-.signal-buy { color: var(--green); font-weight: 600; }
-.signal-sell { color: var(--red); font-weight: 600; }
-.signal-hold { color: var(--text-muted); }
-
-/* ── Signal timeline compact on mobile ── */
-.signal-row {
-    padding: 0.625rem 0;
-    line-height: 1.6;
-    font-size: 0.9375rem;
-    border-bottom: 1px solid var(--border-card);
-}
-.signal-row:last-child {
-    border-bottom: none;
-}
-.signal-container {
-    max-height: 65vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* ── Confidence Bar ── */
-.conf-track {
-    display: inline-block;
-    width: 3rem;
-    height: 4px;
-    background: #333;
-    border-radius: 2px;
-    vertical-align: middle;
-    margin-left: 0.25rem;
-}
-.conf-fill {
-    display: block;
-    height: 100%;
-    border-radius: 2px;
-}
-
-/* ── DataFrames: horizontal scroll, compact font ── */
-[data-testid="stDataFrame"], .dataframe-container {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    font-size: 0.8125rem !important;
-}
-[data-testid="stDataFrame"] table {
-    font-size: 0.8125rem !important;
-    min-width: 100%;
-}
-
-/* ── Position cards: full-width on mobile ── */
-.position-card {
-    background: var(--bg-card);
+[data-testid="stDataFrame"] {
+    background: var(--bg-card-strong);
     border: 1px solid var(--border-card);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.6;
-    font-size: 0.9375rem;
-    transition: border-color 0.2s ease;
-}
-.position-card:hover {
-    border-color: var(--border-card-hover);
+    border-radius: 18px;
+    overflow: hidden;
 }
 
-/* ── Login Card ── */
-.login-container {
-    max-width: 380px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
-}
-.login-brand {
-    text-align: center;
-    padding: 3rem 1rem 1.5rem;
-}
-.login-brand h2 {
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.25rem;
-}
-.login-brand p {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
+[data-testid="stDataFrame"] table {
+    font-size: 0.84rem !important;
 }
 
-/* ── Header Layout ── */
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-/* ── Responsive: Mobile < 600px (base) ── */
-@media (max-width: 599px) {
-    .block-container {
-        max-width: 100% !important;
-        padding: 0.5rem !important;
-    }
-    [data-testid="stTabs"] [role="tab"] {
-        padding: 0.5rem 0.5rem !important;
-        font-size: 0.75rem !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.125rem !important;
-    }
-    [data-testid="stMetricDelta"] {
-        font-size: 0.6875rem !important;
-    }
-    /* 3 cols → 1 col stack */
-    [data-testid="stHorizontalBlock"] {
-        flex-direction: column !important;
-        gap: 0.5rem !important;
-    }
-    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
-        width: 100% !important;
-        min-width: 100% !important;
-    }
-    .js-plotly-plot .plotly {
-        height: 220px !important;
-    }
-}
-
-/* ── Galaxy Z Fold7 cover (≤375px) ── */
-@media (max-width: 375px) {
-    .block-container {
-        padding: 0.375rem !important;
-    }
-    [data-testid="stTabs"] [role="tab"] {
-        padding: 0.375rem 0.4rem !important;
-        font-size: 0.6875rem !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1rem !important;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 0.6875rem !important;
-    }
-    [data-testid="stMetricDelta"] {
-        font-size: 0.625rem !important;
-    }
-    .signal-row { font-size: 0.8125rem; }
-    h2, h3 { font-size: 1.1rem !important; }
-    h4 { font-size: 0.9375rem !important; }
-}
-
-/* ── Tablet 600-768px ── */
-@media (min-width: 600px) and (max-width: 768px) {
-    .block-container {
-        max-width: 100% !important;
-        padding: 0.75rem !important;
-    }
-    /* 3 cols → 2 cols */
-    [data-testid="stHorizontalBlock"] {
-        flex-wrap: wrap !important;
-    }
-    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
-        flex: 1 1 calc(50% - 0.5rem) !important;
-        min-width: calc(50% - 0.5rem) !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.25rem !important;
-    }
-}
-
-/* ── Tablet 768-960px ── */
-@media (min-width: 769px) and (max-width: 959px) {
-    .block-container {
-        max-width: 720px !important;
-        margin: 0 auto !important;
-        padding: 1rem !important;
-    }
-}
-
-/* ── Desktop 960px+ ── */
-@media (min-width: 960px) {
-    .block-container {
-        max-width: 960px !important;
-        margin: 0 auto !important;
-        padding: 1.5rem 2rem !important;
-    }
-}
-
-/* ── Plotly Charts Responsive ── */
 .js-plotly-plot, .plotly {
     width: 100% !important;
 }
 
-/* ── Hide Streamlit Branding ── */
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-header { visibility: hidden; }
+#MainMenu, footer, header {
+    visibility: hidden;
+}
+
+@media (max-width: 900px) {
+    .dashboard-hero {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .block-container {
+        padding: 0.65rem 0.5rem 1.4rem !important;
+    }
+
+    .dashboard-hero {
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .dashboard-hero h2 {
+        font-size: 1.3rem;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 1.12rem !important;
+    }
+
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        gap: 0.55rem !important;
+    }
+
+    [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+
+    .dashboard-panel {
+        padding: 0.8rem 0.85rem;
+        border-radius: 14px;
+    }
+}
+
+@media (max-width: 375px) {
+    .dashboard-hero h2 {
+        font-size: 1.14rem;
+    }
+
+    [data-testid="stTabs"] [role="tab"] {
+        padding: 0.55rem 0.75rem !important;
+        font-size: 0.76rem !important;
+    }
+}
 </style>
 """
 
 
 def inject_css() -> None:
-    """Inject mobile-first responsive CSS into the page."""
     st.markdown(MOBILE_CSS, unsafe_allow_html=True)
 
 
-# ── Unified Chart Theme ─────────────────────────────────────
-# Consistent color palette for all Plotly charts.
 COLORS = {
-    "green": "#4ade80",
-    "green_bg": "#0d5f2c",
-    "red": "#f87171",
-    "red_bg": "#7f1d1d",
-    "blue": "#60a5fa",
-    "yellow": "#fbbf24",
-    "purple": "#a78bfa",
-    "pink": "#f472b6",
-    "teal": "#34d399",
-    "orange": "#fb923c",
-    "indigo": "#818cf8",
-    "muted": "#6b7280",
-    "bg_dark": "#1f2937",
+    "green": "#61f2a2",
+    "green_bg": "rgba(11, 93, 54, 0.42)",
+    "red": "#ff7d8e",
+    "red_bg": "rgba(122, 28, 49, 0.42)",
+    "blue": "#77b8ff",
+    "yellow": "#ffc75f",
+    "purple": "#97a2ff",
+    "pink": "#ff8ccf",
+    "teal": "#42d9c8",
+    "orange": "#ff9d5c",
+    "indigo": "#8b92ff",
+    "muted": "#7b95ab",
+    "bg_dark": "#122334",
 }
 
-# Ordered palette for categorical data (pie charts, multi-series).
 PALETTE = [
-    COLORS["red"],
-    COLORS["yellow"],
-    COLORS["green"],
     COLORS["blue"],
+    COLORS["teal"],
+    COLORS["green"],
+    COLORS["yellow"],
     COLORS["purple"],
     COLORS["pink"],
-    COLORS["teal"],
     COLORS["orange"],
     COLORS["indigo"],
-    "#e879f9",
+    COLORS["red"],
     COLORS["muted"],
 ]
 
@@ -387,17 +320,16 @@ def chart_layout(
     show_legend: bool = True,
     legend_below: bool = True,
 ) -> dict[str, object]:
-    """Return a unified Plotly layout dict for dark-themed charts."""
     layout: dict[str, object] = {
         "template": "plotly_dark",
         "plot_bgcolor": "rgba(0,0,0,0)",
         "paper_bgcolor": "rgba(0,0,0,0)",
-        "margin": {"l": 16, "r": 16, "t": 40 if title else 16, "b": 24},
+        "margin": {"l": 18, "r": 18, "t": 42 if title else 18, "b": 28},
         "height": height,
         "font": {"size": 11, "family": "'Noto Sans KR', sans-serif"},
     }
     if title:
-        layout["title"] = {"text": title, "font": {"size": 14}}
+        layout["title"] = {"text": title, "font": {"size": 15}}
     if yaxis_title:
         layout["yaxis_title"] = yaxis_title
     if xaxis_title:
@@ -406,7 +338,7 @@ def chart_layout(
         layout["legend"] = {
             "orientation": "h",
             "yanchor": "bottom",
-            "y": -0.25,
+            "y": -0.24,
             "xanchor": "center",
             "x": 0.5,
         }
@@ -416,10 +348,4 @@ def chart_layout(
 
 
 def pnl_color(value: float) -> str:
-    """Return green for positive, red for negative values."""
     return COLORS["green"] if value >= 0 else COLORS["red"]
-
-
-def pnl_colors(values: list[float]) -> list[str]:
-    """Return color list based on sign of each value."""
-    return [pnl_color(v) for v in values]
