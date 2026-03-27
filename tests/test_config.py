@@ -214,3 +214,72 @@ take_profit_pct = 0.04
             consensus.strategy_overrides["sub_strategies"],
             ["momentum", "kimchi_premium"],
         )
+
+    def test_consensus_wallet_accepts_weights_override(self) -> None:
+        toml_content = """
+[trading]
+[strategy]
+[regime]
+[drift]
+[risk]
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "consensus_wallet"
+strategy = "consensus"
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+sub_strategies = ["momentum", "kimchi_premium", "volume_spike"]
+min_agree = 2
+min_confidence_sum = 1.0
+weights = [2.0, 1.0, 0.5]
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                config = load_config(f.name, {})
+            finally:
+                os.unlink(f.name)
+
+        consensus_wallet = config.wallets[0]
+        self.assertEqual(consensus_wallet.strategy_overrides["weights"], [2.0, 1.0, 0.5])
+
+    def test_volume_spike_wallet_accepts_strategy_specific_overrides(self) -> None:
+        toml_content = """
+[trading]
+[strategy]
+[regime]
+[drift]
+[risk]
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "volume_spike_wallet"
+strategy = "volume_spike"
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+spike_mult = 2.8
+volume_window = 24
+min_body_ratio = 0.55
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                config = load_config(f.name, {})
+            finally:
+                os.unlink(f.name)
+
+        volume_spike_wallet = config.wallets[0]
+        self.assertEqual(volume_spike_wallet.strategy_overrides["spike_mult"], 2.8)
+        self.assertEqual(volume_spike_wallet.strategy_overrides["volume_window"], 24)
+        self.assertEqual(volume_spike_wallet.strategy_overrides["min_body_ratio"], 0.55)

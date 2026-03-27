@@ -55,7 +55,14 @@ fi
 # 3. Start daemon
 echo ""
 echo "[3/5] Starting daemon..."
-nohup python3 -m crypto_trader.cli run-multi --config "$CONFIG" >> "$LOG" 2>&1 &
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
+if [ ! -x "$VENV_PYTHON" ]; then
+    VENV_PYTHON=python3
+fi
+export PYTHONPATH="$PROJECT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+nohup "$VENV_PYTHON" -m crypto_trader.cli run-multi --config "$CONFIG" >> "$LOG" 2>&1 &
 NEW_PID=$!
 echo "  New PID=$NEW_PID"
 
