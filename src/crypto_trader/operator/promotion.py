@@ -72,6 +72,7 @@ class MicroLiveCriteria:
         cls,
         checkpoint_path: str | Path,
         journal_path: str | Path | None = None,
+        strategy_runs_path: str | Path | None = None,
     ) -> tuple[bool, list[str], dict]:
         """Evaluate micro-live readiness from runtime artifacts.
 
@@ -101,26 +102,60 @@ class MicroLiveCriteria:
                     except Exception:
                         pass
 
-        # paper_days: days from first trade timestamp to now, or checkpoint generated_at to now
+        # paper_days: use earliest timestamp from journal, checkpoint, or strategy-runs
         now = datetime.now(UTC)
-        if trades:
-            first_ts_str = trades[0].get("timestamp", "")
-            try:
-                first_dt = datetime.fromisoformat(first_ts_str)
-                paper_days = max(0, (now - first_dt).days)
-            except Exception:
-                paper_days = 0
-        else:
-            try:
-                generated_at = datetime.fromisoformat(generated_at_str)
-                paper_days = max(0, (now - generated_at).days)
-            except Exception:
-                paper_days = 0
+        earliest_dt: datetime | None = None
 
-        # total_trades: sum of trade_count across wallets
-        total_trades = sum(
+        # Try checkpoint generated_at
+        try:
+            candidate = datetime.fromisoformat(generated_at_str)
+            if earliest_dt is None or candidate < earliest_dt:
+                earliest_dt = candidate
+        except Exception:
+            pass
+
+        # Try journal first trade entry_time
+        if trades:
+            for ts_key in ("entry_time", "timestamp", "recorded_at"):
+                ts_str = trades[0].get(ts_key, "")
+                if ts_str:
+                    try:
+                        candidate = datetime.fromisoformat(ts_str)
+                        if earliest_dt is None or candidate < earliest_dt:
+                            earliest_dt = candidate
+                        break
+                    except Exception:
+                        pass
+
+        # Try strategy-runs.jsonl first entry for earliest paper start
+        sr_path = Path(strategy_runs_path) if strategy_runs_path is not None else None
+        if sr_path is None:
+            # Auto-detect from checkpoint path sibling
+            sr_candidate = cp_path.parent / "strategy-runs.jsonl"
+            if sr_candidate.exists():
+                sr_path = sr_candidate
+        if sr_path is not None and sr_path.exists():
+            try:
+                with sr_path.open(encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                if first_line:
+                    first_run = json.loads(first_line)
+                    ts_str = first_run.get("recorded_at", "")
+                    if ts_str:
+                        candidate = datetime.fromisoformat(ts_str)
+                        if earliest_dt is None or candidate < earliest_dt:
+                            earliest_dt = candidate
+            except Exception:
+                pass
+
+        paper_days = max(0, (now - earliest_dt).days) if earliest_dt else 0
+
+        # total_trades: use journal closed trades count, fall back to checkpoint trade_count
+        checkpoint_trades = sum(
             w.get("trade_count", 0) for w in wallet_states.values()
         )
+        journal_trades = len(trades)
+        total_trades = max(checkpoint_trades, journal_trades)
 
         # win_rate from journal pnl
         if trades:

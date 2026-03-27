@@ -25,17 +25,20 @@ from crypto_trader.operator.promotion import MicroLiveCriteria
 _ARTIFACTS = Path(__file__).resolve().parent.parent / "artifacts"
 _DEFAULT_CHECKPOINT = _ARTIFACTS / "runtime-checkpoint.json"
 _DEFAULT_JOURNAL = _ARTIFACTS / "paper-trades.jsonl"
+_DEFAULT_STRATEGY_RUNS = _ARTIFACTS / "strategy-runs.jsonl"
 _DEFAULT_OUTPUT = _ARTIFACTS / "micro-live-check.json"
 
 
 def run_check(
     checkpoint_path: Path,
     journal_path: Path,
+    strategy_runs_path: Path | None = None,
 ) -> dict:
     """Evaluate micro-live readiness and return structured result."""
     ready, reasons, metrics = MicroLiveCriteria.evaluate_from_artifacts(
         checkpoint_path=checkpoint_path,
         journal_path=journal_path,
+        strategy_runs_path=strategy_runs_path,
     )
 
     thresholds = {
@@ -131,6 +134,10 @@ def main() -> None:
         help="Path to paper-trades.jsonl",
     )
     parser.add_argument(
+        "--strategy-runs", type=Path, default=_DEFAULT_STRATEGY_RUNS,
+        help="Path to strategy-runs.jsonl (for paper_days start date)",
+    )
+    parser.add_argument(
         "--output", type=Path, default=_DEFAULT_OUTPUT,
         help="Output path for JSON result",
     )
@@ -144,7 +151,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    result = run_check(args.checkpoint, args.journal)
+    result = run_check(args.checkpoint, args.journal, args.strategy_runs)
 
     # Save JSON
     args.output.parent.mkdir(parents=True, exist_ok=True)
