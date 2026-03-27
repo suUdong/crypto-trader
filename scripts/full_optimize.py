@@ -41,52 +41,53 @@ from crypto_trader.strategy.vpin import VPINStrategy  # noqa: E402
 
 # ── Fine-grained grids for all 5 strategies ──
 
+# Compact grids — ~2000 total combos for practical runtime
 STRATEGY_GRIDS["momentum"] = {
-    "momentum_lookback": [10, 12, 15, 18],
-    "momentum_entry_threshold": [0.0005, 0.001, 0.0015, 0.002, 0.003],
-    "rsi_period": [12, 14, 18],
-    "rsi_overbought": [68.0, 72.0, 75.0],
-    "max_holding_bars": [36, 48, 60],
-    "adx_threshold": [15.0, 18.0, 20.0, 22.0, 25.0],
+    "momentum_lookback": [10, 12, 15],
+    "momentum_entry_threshold": [0.0005, 0.001, 0.002, 0.003],
+    "rsi_period": [12, 14],
+    "rsi_overbought": [70.0, 72.0, 75.0],
+    "max_holding_bars": [36, 48],
+    "adx_threshold": [15.0, 18.0, 20.0, 25.0],
 }
 
 STRATEGY_GRIDS["vpin"] = {
     "rsi_period": [10, 14],
     "momentum_lookback": [10, 12, 15],
     "max_holding_bars": [36, 48],
-    "vpin_low_threshold": [0.45, 0.50, 0.55, 0.60],
-    "vpin_high_threshold": [0.70, 0.75, 0.80, 0.85],
+    "vpin_low_threshold": [0.45, 0.50, 0.55],
+    "vpin_high_threshold": [0.70, 0.80, 0.85],
     "vpin_momentum_threshold": [0.0005, 0.001, 0.002],
     "bucket_count": [15, 20],
 }
 
 STRATEGY_GRIDS["volatility_breakout"] = {
-    "k_base": [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50],
-    "noise_lookback": [10, 12, 15, 20],
-    "ma_filter_period": [5, 8, 10, 15],
+    "k_base": [0.15, 0.20, 0.25, 0.30, 0.40, 0.50],
+    "noise_lookback": [10, 12, 15],
+    "ma_filter_period": [5, 8, 10],
     "max_holding_bars": [24, 36, 48],
 }
 
 STRATEGY_GRIDS["kimchi_premium"] = {
-    "rsi_period": [10, 14, 18],
-    "rsi_recovery_ceiling": [45.0, 50.0, 55.0, 60.0],
-    "rsi_overbought": [70.0, 75.0, 80.0],
+    "rsi_period": [10, 14],
+    "rsi_recovery_ceiling": [45.0, 50.0, 60.0],
+    "rsi_overbought": [70.0, 75.0],
     "max_holding_bars": [18, 24, 36],
-    "min_trade_interval_bars": [6, 12, 18, 24],
+    "min_trade_interval_bars": [6, 12, 18],
     "min_confidence": [0.3, 0.4, 0.5],
-    "cooldown_hours": [4.0, 8.0, 12.0, 24.0],
+    "cooldown_hours": [4.0, 8.0, 16.0],
 }
 
-# Volume spike needs custom grid runner since grid_search.py doesn't handle it
+# Volume spike — custom grid runner since grid_search.py doesn't handle it
 VOLUME_SPIKE_GRID = {
     "spike_mult": [1.5, 2.0, 2.5, 3.0],
     "volume_window": [15, 20, 25],
-    "min_body_ratio": [0.25, 0.35, 0.4, 0.5],
+    "min_body_ratio": [0.25, 0.35, 0.4],
     "momentum_lookback": [10, 12, 15],
     "rsi_period": [12, 14],
     "rsi_overbought": [70.0, 75.0],
     "max_holding_bars": [36, 48],
-    "adx_threshold": [15.0, 18.0, 20.0],
+    "adx_threshold": [15.0, 20.0, 25.0],
 }
 
 
