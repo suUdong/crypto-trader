@@ -198,7 +198,10 @@ textColor = "#fafafa"
 # SSH 포트 포워딩
 ssh -L 8501:localhost:8501 user@server
 
-# 외부 접속 허용
+# 외부 접속 허용 (⚠️ 보안 주의: 방화벽/VPN 없이 사용 금지)
+# 0.0.0.0 바인딩은 모든 네트워크 인터페이스에 노출됩니다.
+# 반드시 DASHBOARD_TOKEN 환경변수를 설정하고,
+# 방화벽 또는 리버스 프록시(nginx) 뒤에서 운영하세요.
 streamlit run dashboard/app.py --server.address 0.0.0.0
 ```
 

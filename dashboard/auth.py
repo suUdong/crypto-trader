@@ -2,14 +2,18 @@
 
 Reusable across multiple dashboards (crypto-trader, y2i, etc.).
 Uses st.session_state to persist login across reruns.
-Token is checked against the DASHBOARD_TOKEN env var (default: "demo").
+Token is checked against the DASHBOARD_TOKEN env var.
 """
 
 from __future__ import annotations
 
+import hmac
+import logging
 import os
 
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_TOKEN = "demo"
 
@@ -67,7 +71,13 @@ def render_login(
 
     if submitted:
         expected = os.environ.get(env_var, default_token)
-        if password == expected:
+        if expected == DEFAULT_TOKEN:
+            logger.warning(
+                "DASHBOARD_TOKEN is not set — using insecure default. "
+                "Set the %s environment variable for production.",
+                env_var,
+            )
+        if hmac.compare_digest(password, expected):
             st.session_state[session_key] = True
             st.rerun()
         else:
