@@ -1,6 +1,9 @@
 """Password-based login authentication for dashboards.
 
-Reusable across multiple dashboards (crypto-trader, y2i, etc.).
+NOTE: Auth gate bypassed for crypto-trader — authentication is now
+delegated to Cloudflare Access (see commit ff00553).  This module is
+retained for reuse by other dashboards (y2i, etc.).
+
 Uses st.session_state to persist login across reruns.
 Token is checked against the DASHBOARD_TOKEN env var.
 """
