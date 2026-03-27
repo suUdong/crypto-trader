@@ -1,7 +1,6 @@
 """Tests for VolumeSpikeStrategy."""
 from __future__ import annotations
 
-import math
 import random
 import unittest
 from datetime import datetime, timedelta
@@ -28,11 +27,11 @@ def _build_candles(
         o = price
         c = price + change
         h = max(o, c) + rng.uniform(30, 80)
-        l = min(o, c) - rng.uniform(30, 80)
+        low_price = min(o, c) - rng.uniform(30, 80)
         candles.append(
             Candle(
                 timestamp=base + timedelta(hours=i),
-                open=o, high=h, low=l, close=c,
+                open=o, high=h, low=low_price, close=c,
                 volume=base_volume + rng.uniform(-100, 100),
             )
         )
@@ -50,14 +49,45 @@ def _spike_last_candle(candles: list[Candle], volume_mult: float = 3.0) -> list[
     o = last.low + abs(last.high - last.low) * 0.1
     c = o + body
     h = c + 50
-    l = o - 50
+    low_price = o - 50
     avg_vol = sum(c_.volume for c_ in candles[-21:-1]) / 20
     result[-1] = Candle(
         timestamp=last.timestamp,
-        open=o, high=h, low=l, close=c,
+        open=o, high=h, low=low_price, close=c,
         volume=avg_vol * volume_mult,
     )
     return result
+
+
+def _build_consensus_integration_candles() -> list[Candle]:
+    """Build candles where momentum and volume spike align on the final bar."""
+    candles = _build_candles(80)
+    adjustments = [-30.0, -10.0, 5.0, 10.0, 20.0]
+    for offset, step in zip(range(-6, -1), adjustments, strict=False):
+        current = candles[offset]
+        close = current.close + step
+        candles[offset] = Candle(
+            timestamp=current.timestamp,
+            open=current.open,
+            high=max(current.high, close + 25.0),
+            low=min(current.low, close - 25.0),
+            close=close,
+            volume=current.volume,
+        )
+
+    last = candles[-1]
+    avg_vol = sum(c.volume for c in candles[-21:-1]) / 20
+    open_price = last.close
+    close_price = open_price + 40.0
+    candles[-1] = Candle(
+        timestamp=last.timestamp,
+        open=open_price,
+        high=close_price + 50.0,
+        low=open_price - 30.0,
+        close=close_price,
+        volume=avg_vol * 3.0,
+    )
+    return candles
 
 
 class TestVolumeSpikeEntry(unittest.TestCase):
@@ -163,7 +193,10 @@ class TestVolumeSpikeExit(unittest.TestCase):
         signal = self.strategy.evaluate(candles, position)
         self.assertEqual(signal.action, SignalAction.SELL)
         # Could be bearish_volume_spike or momentum_reversal — both valid exits
-        self.assertIn(signal.reason, ["bearish_volume_spike", "momentum_reversal", "rsi_overbought"])
+        self.assertIn(
+            signal.reason,
+            ["bearish_volume_spike", "momentum_reversal", "rsi_overbought"],
+        )
 
 
 class TestVolumeSpikeFactory(unittest.TestCase):
@@ -178,6 +211,39 @@ class TestVolumeSpikeFactory(unittest.TestCase):
             extra_params={"spike_mult": 3.0, "volume_window": 15},
         )
         self.assertIsInstance(strategy, VolumeSpikeStrategy)
+
+    def test_consensus_factory_integrates_volume_spike_with_momentum(self) -> None:
+        from crypto_trader.wallet import create_strategy
+
+        config = StrategyConfig(
+            momentum_lookback=5,
+            momentum_entry_threshold=0.0,
+            rsi_oversold_floor=0.0,
+            rsi_recovery_ceiling=80.0,
+            rsi_overbought=90.0,
+            adx_threshold=0.0,
+        )
+        regime = RegimeConfig()
+        strategy = create_strategy(
+            "consensus",
+            config,
+            regime,
+            extra_params={
+                "sub_strategies": ["volume_spike", "momentum"],
+                "min_agree": 2,
+                "spike_mult": 2.5,
+                "volume_window": 20,
+                "min_body_ratio": 0.3,
+            },
+        )
+
+        signal = strategy.evaluate(_build_consensus_integration_candles(), None)
+
+        self.assertEqual(signal.action, SignalAction.BUY)
+        self.assertIn("volume_spike_bullish", signal.reason)
+        self.assertIn("momentum_rsi_alignment", signal.reason)
+        self.assertIn("volume_volume_ratio", signal.indicators)
+        self.assertIn("momentum_rsi", signal.indicators)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 import unittest
 
-from crypto_trader.risk.correlation_guard import CorrelationGuard, ExposureCheck
+from crypto_trader.risk.correlation_guard import CorrelationGuard
 
 
 class TestCorrelationGuard(unittest.TestCase):
@@ -25,7 +25,11 @@ class TestCorrelationGuard(unittest.TestCase):
         self.assertIn("exposure_3/3", result.reason)
 
     def test_allows_unknown_symbol(self) -> None:
-        result = self.guard.check_entry("KRW-DOGE", "doge_wallet", {"major_crypto": ["a", "b", "c"]})
+        result = self.guard.check_entry(
+            "KRW-DOGE",
+            "doge_wallet",
+            {"major_crypto": ["a", "b", "c"]},
+        )
         self.assertTrue(result.allowed)
         self.assertEqual(result.reason, "symbol_not_in_cluster")
 
@@ -49,6 +53,30 @@ class TestCorrelationGuard(unittest.TestCase):
         exposure = self.guard.get_cluster_exposure(positions)
         self.assertEqual(len(exposure["major_crypto"]), 1)
         self.assertEqual(exposure["major_crypto"], ["kimchi"])
+
+    def test_deduplicated_exposure_allows_entry_below_limit(self) -> None:
+        positions = [
+            ("kimchi", "KRW-BTC"),
+            ("kimchi", "KRW-ETH"),
+            ("vpin_eth", "KRW-ETH"),
+        ]
+        exposure = self.guard.get_cluster_exposure(positions)
+        result = self.guard.check_entry("KRW-SOL", "momentum_sol", exposure)
+        self.assertTrue(result.allowed)
+        self.assertEqual(result.current_exposure, 2)
+
+    def test_deduplicated_exposure_blocks_at_limit(self) -> None:
+        positions = [
+            ("kimchi", "KRW-BTC"),
+            ("kimchi", "KRW-ETH"),
+            ("vpin_eth", "KRW-ETH"),
+            ("ema_xrp", "KRW-XRP"),
+        ]
+        exposure = self.guard.get_cluster_exposure(positions)
+        result = self.guard.check_entry("KRW-SOL", "momentum_sol", exposure)
+        self.assertFalse(result.allowed)
+        self.assertEqual(result.current_exposure, 3)
+        self.assertIn("exposure_3/3", result.reason)
 
     def test_custom_clusters(self) -> None:
         guard = CorrelationGuard(

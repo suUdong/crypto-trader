@@ -29,7 +29,13 @@ class _FakeStrategy:
         self._confidence = confidence
         self._reason = reason
 
-    def evaluate(self, candles: list[Candle], position: Position | None = None, *, symbol: str = "") -> Signal:
+    def evaluate(
+        self,
+        candles: list[Candle],
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal:
         return Signal(action=self._action, reason=self._reason, confidence=self._confidence)
 
 
@@ -68,6 +74,22 @@ class TestWeightedVoting(unittest.TestCase):
 
 
 class TestQuorumThreshold(unittest.TestCase):
+    def test_quorum_exact_threshold_triggers_buy(self) -> None:
+        """Exact quorum boundary should pass because the comparison is inclusive."""
+        strategies = [
+            _FakeStrategy(SignalAction.BUY, 0.5, "edge"),
+            _FakeStrategy(SignalAction.HOLD, 0.1, "filler"),
+        ]
+        consensus = ConsensusStrategy(
+            strategies,
+            min_agree=2,
+            weights=[1.0, 1.0],
+            quorum_threshold=0.25,
+        )
+        signal = consensus.evaluate(_build_candles(), None)
+        self.assertEqual(signal.action, SignalAction.BUY)
+        self.assertEqual(signal.context["weighted_score"], "0.250")
+
     def test_quorum_triggers_buy(self) -> None:
         """Weighted quorum mode: high confidence BUY triggers even with only 1/3 strategies."""
         strategies = [
@@ -173,6 +195,23 @@ class TestExitModes(unittest.TestCase):
         )
         signal = consensus.evaluate(_build_candles(), self._position())
         self.assertEqual(signal.action, SignalAction.SELL)
+
+    def test_majority_exit_requires_strictly_more_than_half_weight(self) -> None:
+        """Exactly half SELL weight is not a majority and should not exit."""
+        strategies = [
+            _FakeStrategy(SignalAction.SELL, 0.9, "seller"),
+            _FakeStrategy(SignalAction.HOLD, 0.2, "filler1"),
+            _FakeStrategy(SignalAction.HOLD, 0.2, "filler2"),
+        ]
+        consensus = ConsensusStrategy(
+            strategies,
+            min_agree=2,
+            weights=[2.0, 1.0, 1.0],
+            exit_mode="majority",
+        )
+        signal = consensus.evaluate(_build_candles(), self._position())
+        self.assertEqual(signal.action, SignalAction.HOLD)
+        self.assertEqual(signal.reason, "consensus_hold_position")
 
     def test_invalid_exit_mode_raises(self) -> None:
         with self.assertRaises(ValueError):
