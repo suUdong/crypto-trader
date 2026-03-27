@@ -167,6 +167,7 @@ class OfflineStrategyReportTests(unittest.TestCase):
             live_checkpoint_path=None,
         )
         self.assertIn("# Strategy Performance Comparison Report", report)
+        self.assertIn("**Scope**: 2-strategy offline comparison", report)
         self.assertIn("## Comparison Matrix", report)
         self.assertIn(
             "| momentum | +2.00% | 1.20 | +5.00% | 1.40 | +3.00% | "
@@ -189,6 +190,7 @@ class OfflineStrategyReportTests(unittest.TestCase):
         )
         self.assertIn("## Live Snapshot Scope Note", report)
         self.assertIn("Extra live-only strategies: `consensus`", report)
+        self.assertIn("same 2-strategy matrix", report)
 
     def test_save_report_writes_output(self) -> None:
         output = self.tmp / "docs" / "report.md"

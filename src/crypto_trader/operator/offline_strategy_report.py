@@ -176,6 +176,7 @@ def _live_snapshot_note(
 
     missing = sorted(strategy_universe - live_strategies)
     extra = sorted(live_strategies - strategy_universe)
+    universe_size = len(strategy_universe)
     lines = [
         "## Live Snapshot Scope Note",
         "",
@@ -189,7 +190,7 @@ def _live_snapshot_note(
     if extra:
         lines.append(f"- Extra live-only strategies: `{', '.join(extra)}`")
     lines.append(
-        "- Reason: the live wallet mix is not the same 7-strategy matrix, "
+        f"- Reason: the live wallet mix is not the same {universe_size}-strategy matrix, "
         "so including it would distort cross-strategy comparison."
     )
     return lines
@@ -274,6 +275,7 @@ def generate_offline_strategy_report(
         for row in sorted(rows, key=lambda item: item.walk_forward_sharpe)[:3]
         if row.strategy != walk_forward_leader.strategy
     ]
+    universe_size = len(rows)
     timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     baseline_days = int(baseline.get("days", 0))
     walk_forward_days = int(walk_forward.get("dataset_days", 0))
@@ -283,7 +285,8 @@ def generate_offline_strategy_report(
         "",
         f"**Generated**: {timestamp}",
         (
-            f"**Scope**: 7-strategy offline comparison across `{baseline_days}`-day baseline, "
+            f"**Scope**: {universe_size}-strategy offline comparison across "
+            f"`{baseline_days}`-day baseline, "
             f"tuned in-sample search, and `{walk_forward_days}`-day walk-forward validation"
         ),
         (
