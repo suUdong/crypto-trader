@@ -246,9 +246,9 @@ name = "volspike_btc_wallet"
 strategy = "volume_spike"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
-# BTC volume spike — conservative multiplier for lower-vol asset
+# BTC volume spike — lowered multiplier for sideways market signal frequency
 [wallets.strategy_overrides]
-spike_mult = 2.5
+spike_mult = 1.8
 volume_window = 20
 min_body_ratio = 0.4
 momentum_lookback = 12
@@ -266,9 +266,9 @@ name = "volspike_eth_wallet"
 strategy = "volume_spike"
 initial_capital = 1_000_000.0
 symbols = ["KRW-ETH"]
-# ETH volume spike — slightly lower threshold for higher-vol asset
+# ETH volume spike — aggressive threshold for higher-vol asset in sideways market
 [wallets.strategy_overrides]
-spike_mult = 2.0
+spike_mult = 1.5
 volume_window = 20
 min_body_ratio = 0.35
 momentum_lookback = 12
@@ -295,17 +295,17 @@ sub_strategies = ["momentum", "vpin", "volume_spike"]
 weights = [1.0, 1.0, 0.8]
 min_agree = 1
 momentum_lookback = 12
-momentum_entry_threshold = 0.001
+momentum_entry_threshold = 0.0005
 rsi_period = 14
 rsi_recovery_ceiling = 70.0
-adx_threshold = 15.0
+adx_threshold = 12.0
 max_holding_bars = 48
-# VPIN sub-strategy: lower momentum requirement for consensus context
-vpin_momentum_threshold = 0.003
+# VPIN sub-strategy: relaxed thresholds for consensus context
+vpin_momentum_threshold = 0.001
 vpin_low_threshold = 0.50
 vpin_rsi_ceiling = 75.0
-# Volume spike sub-strategy: lower spike requirement for consensus context
-spike_mult = 1.8
+# Volume spike sub-strategy: lower spike for sideways market signal frequency
+spike_mult = 1.5
 min_body_ratio = 0.3
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
