@@ -128,6 +128,7 @@ class MultiSymbolRuntime:
         self._wallet_health = WalletHealthMonitor(snapshot_path)
         self._last_health_check: float = 0.0
         self._health_check_interval = 86400  # 24h
+        self._notified_disabled_wallets: set[str] = set()
         self._correlation_guard = CorrelationGuard(max_cluster_exposure=6)
         self._slippage_monitor = SlippageMonitor(
             expected_slippage_pct=config.backtest.slippage_pct,
@@ -295,7 +296,10 @@ class MultiSymbolRuntime:
                 self._is_weekend = analysis.is_weekend
         except Exception as exc:
             self._logger.error("Failed to fetch candles for %s: %s", first, exc)
-            self._record_tick_error(exc)
+            if self._is_recoverable_error(exc):
+                self._record_tick_error(exc)
+            else:
+                raise
 
         # Refresh macro/regime-aware multipliers after regime detection
         self._refresh_macro()
@@ -310,8 +314,10 @@ class MultiSymbolRuntime:
                     )
                 except Exception as exc:
                     self._logger.error("Failed to fetch candles for %s: %s", symbol, exc)
-                    self._record_tick_error(exc)
-                    continue
+                    if self._is_recoverable_error(exc):
+                        self._record_tick_error(exc)
+                        continue
+                    raise
 
             candles = candle_cache[symbol]
             if not candles:
@@ -347,9 +353,11 @@ class MultiSymbolRuntime:
                         wallet.name,
                         symbol,
                     )
-                    self._record_tick_error(exc)
-                    self._alert_manager.alert_error(wallet.name, symbol, str(exc))
-                    continue
+                    if self._is_recoverable_error(exc):
+                        self._record_tick_error(exc)
+                        self._alert_manager.alert_error(wallet.name, symbol, str(exc))
+                        continue
+                    raise
                 results.append(result)
                 if result.error:
                     self._logger.error(result.message)
@@ -518,9 +526,11 @@ class MultiSymbolRuntime:
             snapshot = self._macro_client.get_snapshot()
         except Exception as exc:
             self._logger.error("Macro snapshot refresh failed: %s", exc)
-            self._record_tick_error(exc)
-            self._apply_regime_weights()
-            return
+            if self._is_recoverable_error(exc):
+                self._record_tick_error(exc)
+                self._apply_regime_weights()
+                return
+            raise
         adjustment = self._macro_adapter.compute(snapshot)
         for wallet in self._wallets:
             regime_weight = self._macro_adapter.strategy_weight(
@@ -705,7 +715,8 @@ class MultiSymbolRuntime:
         try:
             wallet_names = [w.name for w in self._wallets]
             self._wallet_health.evaluate(wallet_names)
-            newly_disabled = self._wallet_health.get_disabled_wallets()
+            disabled_wallets = set(self._wallet_health.get_disabled_wallets())
+            newly_disabled = sorted(disabled_wallets - self._notified_disabled_wallets)
             if newly_disabled:
                 disabled_lines = []
                 for name in newly_disabled:
@@ -717,10 +728,14 @@ class MultiSymbolRuntime:
                 msg = "[Crypto Trader] Wallet Auto-Disable\n" + "\n".join(disabled_lines)
                 self._notifier.send_message(msg)
                 self._logger.warning("Auto-disabled wallets: %s", newly_disabled)
+                self._notified_disabled_wallets.update(newly_disabled)
             self._last_health_check = time.time()
         except Exception as exc:
             self._logger.error("Wallet health check failed: %s", exc)
-            self._record_tick_error(exc)
+            if self._is_recoverable_error(exc):
+                self._record_tick_error(exc)
+            else:
+                raise
 
     def _maybe_send_pnl_notify(self) -> None:
         if time.time() - self._last_pnl_notify < self.PNL_NOTIFY_INTERVAL:
@@ -759,7 +774,10 @@ class MultiSymbolRuntime:
             self._last_pnl_notify = time.time()
         except Exception as exc:
             self._logger.error("Failed to send PnL notification: %s", exc)
-            self._record_tick_error(exc)
+            if self._is_recoverable_error(exc):
+                self._record_tick_error(exc)
+            else:
+                raise
 
     def _maybe_refresh_artifacts(self) -> None:
         """Periodically refresh heavier artifacts that do not need every tick."""
@@ -774,7 +792,10 @@ class MultiSymbolRuntime:
             )
         except Exception as exc:
             self._logger.error("Artifact refresh failed: %s", exc)
-            self._record_tick_error(exc)
+            if self._is_recoverable_error(exc):
+                self._record_tick_error(exc)
+            else:
+                raise
 
     def _refresh_runtime_artifacts(self) -> None:
         """Keep dashboard/runtime snapshots current on every checkpoint."""
@@ -784,7 +805,10 @@ class MultiSymbolRuntime:
             self._refresh_daily_performance()
         except Exception as exc:
             self._logger.error("Runtime artifact refresh failed: %s", exc)
-            self._record_tick_error(exc)
+            if self._is_recoverable_error(exc):
+                self._record_tick_error(exc)
+            else:
+                raise
 
     def _refresh_position_snapshot(self) -> None:
         """Save current open positions to positions.json."""

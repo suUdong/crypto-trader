@@ -47,12 +47,14 @@ class ConfigTests(unittest.TestCase):
                 "CT_RESTART_BACKOFF_SECONDS": "9",
                 "CT_MAX_RESTART_ATTEMPTS": "3",
                 "CT_NETWORK_RECOVERY_BACKOFF_SECONDS": "12",
+                "CT_DAEMON_ALERT_COOLDOWN_SECONDS": "45",
             },
         )
         self.assertTrue(config.runtime.auto_restart_enabled)
         self.assertEqual(config.runtime.restart_backoff_seconds, 9)
         self.assertEqual(config.runtime.max_restart_attempts, 3)
         self.assertEqual(config.runtime.network_recovery_backoff_seconds, 12)
+        self.assertEqual(config.runtime.daemon_alert_cooldown_seconds, 45)
 
     def test_live_trading_requires_credentials(self) -> None:
         with self.assertRaisesRegex(ValueError, "credentials"):

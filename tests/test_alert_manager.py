@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from crypto_trader.notifications.alert_manager import TradeAlertManager
 from crypto_trader.notifications.telegram import Notifier
@@ -135,6 +136,20 @@ class TestTradeAlertManager(unittest.TestCase):
             fee_paid=0.0,
             reason="entry",
         )
+
+    def test_duplicate_error_alerts_are_throttled(self) -> None:
+        with patch("crypto_trader.notifications.alert_manager.time.monotonic", side_effect=[0.0, 10.0]):
+            self.manager.alert_error(
+                wallet_name="test_wallet",
+                symbol="KRW-BTC",
+                error_message="API timeout",
+            )
+            self.manager.alert_error(
+                wallet_name="test_wallet",
+                symbol="KRW-BTC",
+                error_message="API timeout",
+            )
+        self.assertEqual(len(self.notifier.messages), 1)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Sequence
 
 from crypto_trader.notifications.telegram import Notifier
@@ -9,8 +10,13 @@ _log = logging.getLogger(__name__)
 
 
 class TradeAlertManager:
+    _ERROR_ALERT_COOLDOWN_SECONDS = 300
+    _REJECTION_ALERT_COOLDOWN_SECONDS = 300
+    _DAEMON_ALERT_COOLDOWN_SECONDS = 300
+
     def __init__(self, notifiers: Sequence[Notifier]) -> None:
         self._notifiers = list(notifiers)
+        self._last_sent_at: dict[str, float] = {}
 
     def alert_trade(
         self,
@@ -37,7 +43,11 @@ class TradeAlertManager:
         reason: str,
     ) -> None:
         message = f"\u26a0\ufe0f REJECTED | {wallet_name}\n{side.upper()} {symbol} \u2014 {reason}"
-        self._send(message)
+        self._send_with_cooldown(
+            f"rejection:{wallet_name}:{symbol}:{side}:{reason}",
+            message,
+            self._REJECTION_ALERT_COOLDOWN_SECONDS,
+        )
 
     def alert_error(
         self,
@@ -46,7 +56,11 @@ class TradeAlertManager:
         error_message: str,
     ) -> None:
         message = f"\u274c ERROR | {wallet_name}\n{symbol}: {error_message}"
-        self._send(message)
+        self._send_with_cooldown(
+            f"error:{wallet_name}:{symbol}:{error_message}",
+            message,
+            self._ERROR_ALERT_COOLDOWN_SECONDS,
+        )
 
     def alert_kill_switch(
         self,
@@ -83,7 +97,11 @@ class TradeAlertManager:
             f"Restarts: {restart_count} | {retry}\n"
             f"Recovery: {action}"
         )
-        self._send(message)
+        self._send_with_cooldown(
+            f"daemon:{status}:{error_message}",
+            message,
+            self._DAEMON_ALERT_COOLDOWN_SECONDS,
+        )
 
     def _send(self, message: str) -> None:
         for notifier in self._notifiers:
@@ -91,3 +109,11 @@ class TradeAlertManager:
                 notifier.send_message(message)
             except Exception as exc:
                 _log.warning("Notification failed (%s): %s", type(notifier).__name__, exc)
+
+    def _send_with_cooldown(self, key: str, message: str, cooldown_seconds: int) -> None:
+        now = time.monotonic()
+        last_sent = self._last_sent_at.get(key)
+        if last_sent is not None and now - last_sent < cooldown_seconds:
+            return
+        self._last_sent_at[key] = now
+        self._send(message)

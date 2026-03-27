@@ -452,6 +452,21 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         self.assertIsNotNone(health["last_failure_at"])
         self.assertIsNotNone(health["last_success_at"])
 
+    def test_runtime_re_raises_non_recoverable_fetch_errors(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        market_data = MagicMock()
+        market_data.get_ohlcv.side_effect = ValueError("bad parser state")
+        runtime = MultiSymbolRuntime(wallets=wallets, market_data=market_data, config=config)
+
+        with self.assertRaisesRegex(ValueError, "bad parser state"):
+            runtime.run()
+
 
 class TestStrategyComparisonReport(unittest.TestCase):
     def test_report_contains_all_wallets(self) -> None:

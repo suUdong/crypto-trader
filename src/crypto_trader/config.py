@@ -129,6 +129,7 @@ class RuntimeConfig:
     restart_backoff_seconds: int = 15
     max_restart_attempts: int = 0
     network_recovery_backoff_seconds: int = 15
+    daemon_alert_cooldown_seconds: int = 300
     kill_switch_path: str = "artifacts/kill-switch.json"
     healthcheck_path: str = "artifacts/health.json"
     runtime_checkpoint_path: str = "artifacts/runtime-checkpoint.json"
@@ -503,6 +504,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
                 15,
             )
         ),
+        daemon_alert_cooldown_seconds=int(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "daemon_alert_cooldown_seconds",
+                "CT_DAEMON_ALERT_COOLDOWN_SECONDS",
+                300,
+            )
+        ),
         kill_switch_path=str(
             _read_value(
                 raw,
@@ -874,6 +885,8 @@ def _validate_config(config: AppConfig) -> None:
         errors.append("runtime.max_restart_attempts must be zero or positive")
     if config.runtime.network_recovery_backoff_seconds <= 0:
         errors.append("runtime.network_recovery_backoff_seconds must be positive")
+    if config.runtime.daemon_alert_cooldown_seconds <= 0:
+        errors.append("runtime.daemon_alert_cooldown_seconds must be positive")
     if not config.runtime.kill_switch_path.strip():
         errors.append("runtime.kill_switch_path must not be empty")
     if not config.runtime.healthcheck_path.strip():

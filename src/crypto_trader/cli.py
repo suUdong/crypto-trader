@@ -1386,6 +1386,7 @@ def main() -> None:
             auto_restart_enabled=config.runtime.auto_restart_enabled,
             restart_backoff_seconds=config.runtime.restart_backoff_seconds,
             max_restart_attempts=config.runtime.max_restart_attempts,
+            daemon_alert_cooldown_seconds=config.runtime.daemon_alert_cooldown_seconds,
         )
         supervisor.run()
         return

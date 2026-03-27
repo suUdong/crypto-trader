@@ -16,8 +16,9 @@ restart 스크립트 동작:
 1. 기존 데몬 PID 확인 후 SIGTERM (30초 대기, 실패 시 SIGKILL)
 2. 체크포인트 확인 (월렛 수, 오픈 포지션 수)
 3. `python -m crypto_trader.cli run-multi --config <config>` 실행 (nohup)
-4. 하트비트 확인 (최대 30초)
-5. 포지션 복원 검증
+4. `run-multi` 내부 supervisor가 비정상 종료 시 자동 재시작
+5. 하트비트 확인 (최대 30초)
+6. 포지션 복원 검증
 
 ### 중지
 
@@ -66,6 +67,11 @@ config/
 - `CT_TELEGRAM_BOT_TOKEN` / `CT_TELEGRAM_CHAT_ID` — Telegram 알림
 - `CT_SLACK_WEBHOOK_URL` — Slack 알림
 - `CT_POLL_INTERVAL_SECONDS` — 폴링 주기
+- `CT_AUTO_RESTART_ENABLED` — 비정상 종료 시 자동 재시작
+- `CT_RESTART_BACKOFF_SECONDS` — 재시작 대기 시간
+- `CT_MAX_RESTART_ATTEMPTS` — 최대 재시작 횟수 (`0` = 무제한)
+- `CT_NETWORK_RECOVERY_BACKOFF_SECONDS` — 네트워크 오류 후 재시도 대기 시간
+- `CT_DAEMON_ALERT_COOLDOWN_SECONDS` — restart loop 알림 최소 간격
 - `CT_HEALTHCHECK_PATH` — 헬스체크 경로
 
 ### 월렛별 전략 파라미터
@@ -133,7 +139,7 @@ python scripts/auto_tune.py                                         # 자동 튜
 | 파일 | 용도 | 갱신 주기 |
 |------|------|----------|
 | `daemon-heartbeat.json` | PID, 마지막 하트비트 | 매 틱 (60초) |
-| `health.json` | 시스템 헬스 (성공 플래그, 에러, 잔고) | 매 틱 |
+| `health.json` | 시스템 헬스 (status, failure streak, restart metadata 포함) | 매 틱 |
 | `runtime-checkpoint.json` | 월렛 상태, 포지션, 자본 (재시작 복구용) | 매 틱 |
 | `strategy-runs.jsonl` | 전략 평가 기록 (시그널 + 컨텍스트) | 시그널 발생 시 |
 | `paper-trades.jsonl` | 클로즈된 트레이드 저널 | 트레이드 종료 시 |

@@ -51,7 +51,7 @@ python -m crypto_trader.cli backtest --config config/example.toml
 # 전체 전략 백테스트
 python -m crypto_trader.cli backtest-all --config config/daemon.toml
 
-# 데몬 시작 (페이퍼 트레이딩)
+# 데몬 시작 (페이퍼 트레이딩, 내부 auto-restart 포함)
 scripts/restart_daemon.sh config/daemon.toml
 
 # 대시보드
@@ -78,7 +78,7 @@ src/crypto_trader/
 config/                 # TOML 설정 파일
 dashboard/              # Streamlit 대시보드
 scripts/                # 운영 스크립트
-artifacts/              # 런타임 아티팩트 (heartbeat, checkpoint, 리포트)
+artifacts/              # 런타임 아티팩트 (heartbeat, health, checkpoint, 리포트)
 ```
 
 ## 개발
