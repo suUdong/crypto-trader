@@ -1,0 +1,157 @@
+{
+  "dataset_days": 90,
+  "symbols": [
+    "KRW-BTC",
+    "KRW-ETH",
+    "KRW-SOL",
+    "KRW-XRP"
+  ],
+  "strategies": [
+    {
+      "strategy": "momentum",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": -4.046708655823883,
+        "avg_return_pct": -0.49534020144890445,
+        "avg_profit_factor": 0.7943027895136747,
+        "total_trades": 54,
+        "validated": false,
+        "wf_avg_efficiency_ratio": -1.6999917198361458,
+        "wf_oos_win_rate": 0.25,
+        "avg_train_return_pct": -0.2830155917203943
+      }
+    },
+    {
+      "strategy": "momentum_pullback",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": 0.1388923266349028,
+        "avg_return_pct": 0.006806427473328899,
+        "avg_profit_factor": 3.2067074013582166,
+        "total_trades": 8,
+        "validated": false,
+        "wf_avg_efficiency_ratio": -5.4429084256312485,
+        "wf_oos_win_rate": 0.25,
+        "avg_train_return_pct": -0.4241175419805389
+      }
+    },
+    {
+      "strategy": "mean_reversion",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": -6.160482584622549,
+        "avg_return_pct": -0.5453038742169986,
+        "avg_profit_factor": 0.3040989987761629,
+        "total_trades": 42,
+        "validated": false,
+        "wf_avg_efficiency_ratio": 0.5916135068967683,
+        "wf_oos_win_rate": 0.16666666666666666,
+        "avg_train_return_pct": -0.22447582565385168
+      }
+    },
+    {
+      "strategy": "composite",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": 0.0,
+        "avg_return_pct": 0.0,
+        "avg_profit_factor": 0.0,
+        "total_trades": 0,
+        "validated": false,
+        "wf_avg_efficiency_ratio": 0.0,
+        "wf_oos_win_rate": 0.0,
+        "avg_train_return_pct": 0.01538669021646048
+      }
+    },
+    {
+      "strategy": "kimchi_premium",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": -6.5942940812505775,
+        "avg_return_pct": -0.9118799943524806,
+        "avg_profit_factor": 0.4933653852205832,
+        "total_trades": 81,
+        "validated": false,
+        "wf_avg_efficiency_ratio": -5.772626968603795,
+        "wf_oos_win_rate": 0.16666666666666666,
+        "avg_train_return_pct": 0.6262875688337037
+      }
+    },
+    {
+      "strategy": "obi",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": -6.53392395458829,
+        "avg_return_pct": -0.6175889035573756,
+        "avg_profit_factor": 0.4998352123356674,
+        "total_trades": 68,
+        "validated": false,
+        "wf_avg_efficiency_ratio": 2.0102293623534404,
+        "wf_oos_win_rate": 0.25,
+        "avg_train_return_pct": -0.4882077901579768
+      }
+    },
+    {
+      "strategy": "vpin",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": -9.138351787789077,
+        "avg_return_pct": -1.0481275520701634,
+        "avg_profit_factor": 0.15537561222715623,
+        "total_trades": 60,
+        "validated": false,
+        "wf_avg_efficiency_ratio": -1.3109647920602414,
+        "wf_oos_win_rate": 0.0,
+        "avg_train_return_pct": -0.33355456923466476
+      }
+    },
+    {
+      "strategy": "volatility_breakout",
+      "candidates_tested": 1,
+      "candidates_validated": 0,
+      "best": {
+        "params": {},
+        "avg_sharpe": -8.643674322950815,
+        "avg_return_pct": -0.5531573166260129,
+        "avg_profit_factor": 0.30795906653752225,
+        "total_trades": 35,
+        "validated": false,
+        "wf_avg_efficiency_ratio": -2.9630289178490345,
+        "wf_oos_win_rate": 0.08333333333333333,
+        "avg_train_return_pct": -0.48069376652862816
+      }
+    }
+  ],
+  "validated_count": 0,
+  "best_validated": null,
+  "best_research_candidate": {
+    "strategy": "momentum_pullback",
+    "candidates_tested": 1,
+    "candidates_validated": 0,
+    "best": {
+      "params": {},
+      "avg_sharpe": 0.1388923266349028,
+      "avg_return_pct": 0.006806427473328899,
+      "avg_profit_factor": 3.2067074013582166,
+      "total_trades": 8,
+      "validated": false,
+      "wf_avg_efficiency_ratio": -5.4429084256312485,
+      "wf_oos_win_rate": 0.25,
+      "avg_train_return_pct": -0.4241175419805389
+    }
+  }
+}

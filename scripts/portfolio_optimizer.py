@@ -99,29 +99,33 @@ def _normalize_walk_forward_results(
 
 
 def build_portfolio_allocations(
-    tuned_payload: dict[str, Any],
+    tuned_payload: dict[str, Any] | None,
     walk_forward_payload: dict[str, Any],
     capital_per_strategy: float,
 ) -> tuple[list[PortfolioAllocation], str, float]:
-    tuned = _normalize_tuned_results(tuned_payload)
+    tuned = _normalize_tuned_results(tuned_payload) if tuned_payload is not None else {}
     walk_forward = _normalize_walk_forward_results(walk_forward_payload)
-    strategy_names = sorted(set(tuned) & set(walk_forward))
+    strategy_names = sorted(set(walk_forward) | set(tuned))
     if not strategy_names:
-        raise ValueError("No overlapping strategies found across tuned and walk-forward inputs.")
+        raise ValueError("No strategies found in tuned or walk-forward inputs.")
 
     base_rows: list[dict[str, float | bool | str]] = []
     for strategy in strategy_names:
-        tuned_row = tuned[strategy]
-        walk_forward_row = walk_forward[strategy]
+        tuned_row = tuned.get(strategy, {})
+        walk_forward_row = walk_forward.get(strategy, {})
         base_rows.append(
             {
                 "strategy": strategy,
-                "tuned_sharpe": float(tuned_row["tuned_sharpe"]),
-                "tuned_return_pct": float(tuned_row["tuned_return_pct"]),
-                "walk_forward_sharpe": float(walk_forward_row["walk_forward_sharpe"]),
-                "walk_forward_return_pct": float(walk_forward_row["walk_forward_return_pct"]),
-                "walk_forward_profit_factor": float(walk_forward_row["walk_forward_profit_factor"]),
-                "validated": bool(walk_forward_row["validated"]),
+                "tuned_sharpe": float(tuned_row.get("tuned_sharpe", 0.0)),
+                "tuned_return_pct": float(tuned_row.get("tuned_return_pct", 0.0)),
+                "walk_forward_sharpe": float(walk_forward_row.get("walk_forward_sharpe", 0.0)),
+                "walk_forward_return_pct": float(
+                    walk_forward_row.get("walk_forward_return_pct", 0.0)
+                ),
+                "walk_forward_profit_factor": float(
+                    walk_forward_row.get("walk_forward_profit_factor", 0.0)
+                ),
+                "validated": bool(walk_forward_row.get("validated", False)),
             }
         )
 
@@ -164,7 +168,7 @@ def write_portfolio_json(
     allocations: list[PortfolioAllocation],
     score_basis: str,
     total_capital: float,
-    tuned_path: Path,
+    tuned_path: Path | None,
     walk_forward_path: Path,
 ) -> None:
     payload = {
@@ -172,7 +176,7 @@ def write_portfolio_json(
         "score_basis": score_basis,
         "total_capital_krw": total_capital,
         "input_paths": {
-            "tuned": tuned_path.as_posix(),
+            "tuned": tuned_path.as_posix() if tuned_path is not None else None,
             "walk_forward": walk_forward_path.as_posix(),
         },
         "weights": [asdict(allocation) for allocation in allocations],
@@ -249,8 +253,9 @@ def main() -> None:
     parser.add_argument("--output-toml", dest="output_toml", type=Path, default=DEFAULT_OUTPUT_TOML)
     args = parser.parse_args()
 
+    tuned_payload = _read_json(args.tuned) if args.tuned.exists() else None
     allocations, score_basis, total_capital = build_portfolio_allocations(
-        tuned_payload=_read_json(args.tuned),
+        tuned_payload=tuned_payload,
         walk_forward_payload=_read_json(args.walk_forward),
         capital_per_strategy=args.capital_per_strategy,
     )
@@ -259,7 +264,7 @@ def main() -> None:
         allocations,
         score_basis,
         total_capital,
-        args.tuned,
+        args.tuned if tuned_payload is not None else None,
         args.walk_forward,
     )
     write_portfolio_markdown(args.output_md, allocations, score_basis, total_capital)

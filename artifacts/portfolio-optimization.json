@@ -1,0 +1,115 @@
+{
+  "generated_at": "2026-03-27T08:45:17.368204+00:00",
+  "score_basis": "walk_forward_sharpe",
+  "total_capital_krw": 8000000.0,
+  "input_paths": {
+    "tuned": null,
+    "walk_forward": "artifacts/walk-forward-90d/grid-wf-summary.json"
+  },
+  "weights": [
+    {
+      "strategy": "momentum_pullback",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": 0.1388923266349028,
+      "walk_forward_return_pct": 0.006806427473328899,
+      "walk_forward_profit_factor": 3.2067074013582166,
+      "validated": false,
+      "score": 0.1388923266349028,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 1.0,
+      "allocation_krw": 8000000.0
+    },
+    {
+      "strategy": "composite",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": 0.0,
+      "walk_forward_return_pct": 0.0,
+      "walk_forward_profit_factor": 0.0,
+      "validated": false,
+      "score": 0.0,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 0.0,
+      "allocation_krw": 0.0
+    },
+    {
+      "strategy": "momentum",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": -4.046708655823883,
+      "walk_forward_return_pct": -0.49534020144890445,
+      "walk_forward_profit_factor": 0.7943027895136747,
+      "validated": false,
+      "score": 0.0,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 0.0,
+      "allocation_krw": 0.0
+    },
+    {
+      "strategy": "mean_reversion",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": -6.160482584622549,
+      "walk_forward_return_pct": -0.5453038742169986,
+      "walk_forward_profit_factor": 0.3040989987761629,
+      "validated": false,
+      "score": 0.0,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 0.0,
+      "allocation_krw": 0.0
+    },
+    {
+      "strategy": "obi",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": -6.53392395458829,
+      "walk_forward_return_pct": -0.6175889035573756,
+      "walk_forward_profit_factor": 0.4998352123356674,
+      "validated": false,
+      "score": 0.0,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 0.0,
+      "allocation_krw": 0.0
+    },
+    {
+      "strategy": "kimchi_premium",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": -6.5942940812505775,
+      "walk_forward_return_pct": -0.9118799943524806,
+      "walk_forward_profit_factor": 0.4933653852205832,
+      "validated": false,
+      "score": 0.0,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 0.0,
+      "allocation_krw": 0.0
+    },
+    {
+      "strategy": "volatility_breakout",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": -8.643674322950815,
+      "walk_forward_return_pct": -0.5531573166260129,
+      "walk_forward_profit_factor": 0.30795906653752225,
+      "validated": false,
+      "score": 0.0,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 0.0,
+      "allocation_krw": 0.0
+    },
+    {
+      "strategy": "vpin",
+      "tuned_sharpe": 0.0,
+      "tuned_return_pct": 0.0,
+      "walk_forward_sharpe": -9.138351787789077,
+      "walk_forward_return_pct": -1.0481275520701634,
+      "walk_forward_profit_factor": 0.15537561222715623,
+      "validated": false,
+      "score": 0.0,
+      "score_basis": "walk_forward_sharpe",
+      "weight": 0.0,
+      "allocation_krw": 0.0
+    }
+  ]
+}
