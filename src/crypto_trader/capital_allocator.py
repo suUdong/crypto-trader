@@ -24,6 +24,7 @@ class StrategyPerformance:
     equity: float
     initial_capital: float
     composite_score_override: float | None = None
+    strategy_type: str | None = None
 
     @property
     def score(self) -> float:
@@ -52,6 +53,7 @@ class StrategyAllocation:
     previous_capital: float
     score: float
     rank: int
+    strategy_type: str | None = None
 
 
 class CapitalAllocator:
@@ -103,6 +105,7 @@ class CapitalAllocator:
             allocations = [
                 StrategyAllocation(
                     strategy=p.strategy,
+                    strategy_type=p.strategy_type,
                     weight=equal_w,
                     capital=total_capital * equal_w,
                     previous_capital=p.initial_capital,
@@ -152,6 +155,7 @@ class CapitalAllocator:
             allocations.append(
                 StrategyAllocation(
                     strategy=p.strategy,
+                    strategy_type=p.strategy_type,
                     weight=w,
                     capital=round(total_capital * w, 0),
                     previous_capital=p.initial_capital,
@@ -223,6 +227,7 @@ class CapitalAllocator:
             performances.append(
                 StrategyPerformance(
                     strategy=r["strategy"],
+                    strategy_type=r["strategy"],
                     return_pct=r.get("return_pct", 0.0),
                     sharpe=r.get("sharpe", 0.0),
                     mdd_pct=r.get("max_drawdown_pct", 0.0),
@@ -263,7 +268,8 @@ class CapitalAllocator:
 
             performances.append(
                 StrategyPerformance(
-                    strategy=state.get("strategy_type", wallet_name),
+                    strategy=wallet_name,
+                    strategy_type=state.get("strategy_type", wallet_name),
                     return_pct=return_pct,
                     sharpe=sharpe,
                     mdd_pct=mdd,
@@ -281,11 +287,13 @@ class CapitalAllocator:
         """Generate TOML wallet sections from allocation result."""
         lines = []
         for a in allocations:
+            wallet_name = a.strategy if a.strategy.endswith("_wallet") else f"{a.strategy}_wallet"
+            strategy_type = a.strategy_type or a.strategy.removesuffix("_wallet")
             lines.extend(
                 [
                     "[[wallets]]",
-                    f'name = "{a.strategy}_wallet"',
-                    f'strategy = "{a.strategy}"',
+                    f'name = "{wallet_name}"',
+                    f'strategy = "{strategy_type}"',
                     f"initial_capital = {a.capital:.1f}",
                     "",
                 ]
@@ -305,6 +313,7 @@ class CapitalAllocator:
                 {
                     "rank": a.rank,
                     "strategy": a.strategy,
+                    "strategy_type": a.strategy_type,
                     "weight": round(a.weight, 4),
                     "capital": a.capital,
                     "previous_capital": a.previous_capital,

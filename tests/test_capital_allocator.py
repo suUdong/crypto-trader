@@ -249,9 +249,10 @@ class TestFromCheckpoint:
         perfs = CapitalAllocator.from_checkpoint(cp_path)
         assert len(perfs) == 2
         by_strat = {p.strategy: p for p in perfs}
-        assert by_strat["momentum"].return_pct == pytest.approx(5.0)
-        assert by_strat["obi"].return_pct == pytest.approx(-2.0)
-        assert by_strat["momentum"].trade_count == 15
+        assert by_strat["momentum_wallet"].return_pct == pytest.approx(5.0)
+        assert by_strat["obi_wallet"].return_pct == pytest.approx(-2.0)
+        assert by_strat["momentum_wallet"].trade_count == 15
+        assert by_strat["momentum_wallet"].strategy_type == "momentum"
 
     def test_missing_checkpoint_returns_empty(self, tmp_path: Path):
         perfs = CapitalAllocator.from_checkpoint(tmp_path / "nope.json")
@@ -266,8 +267,8 @@ class TestFromCheckpoint:
 class TestToTomlWallets:
     def test_generates_valid_toml(self):
         allocations = [
-            StrategyAllocation("momentum", 0.4, 2_800_000, 1_000_000, 2.5, 1),
-            StrategyAllocation("obi", 0.6, 4_200_000, 1_000_000, 1.0, 2),
+            StrategyAllocation("momentum_wallet", 0.4, 2_800_000, 1_000_000, 2.5, 1, "momentum"),
+            StrategyAllocation("obi_wallet", 0.6, 4_200_000, 1_000_000, 1.0, 2, "obi"),
         ]
         toml = CapitalAllocator.to_toml_wallets(allocations)
         assert "[[wallets]]" in toml
