@@ -27,12 +27,33 @@
 
 All three wallets that were blocked by the config validation error are now evaluating signals correctly.
 
-## 3. Volume Spike Strategy Signal Check
+## 3. Volume Spike Strategy — Deep Signal Analysis
 
-- `volspike_btc_wallet` KRW-BTC: no volume spike detected (volume_ratio=0.46, spike_mult threshold=2.5)
-- `volspike_eth_wallet` KRW-ETH: no volume spike detected (volume_ratio=0.46, spike_mult threshold=2.0)
-- Market is sideways with low volume — no spike signal expected
-- Strategy is correctly evaluating: checking volume_ratio, body_ratio, momentum, RSI, ADX
+### Status: ACTIVE, correctly evaluating (30+ ticks since restart)
+
+**Trigger thresholds vs current values:**
+
+| Indicator | BTC Current | BTC Threshold | ETH Current | ETH Threshold | Met? |
+|-----------|------------|---------------|------------|---------------|------|
+| volume_ratio | 0.93 | > 2.50 (spike_mult) | 0.57 | > 2.00 (spike_mult) | NO |
+| body_ratio | 0.02 | > 0.40 (min_body_ratio) | 0.17 | > 0.35 (min_body_ratio) | NO |
+| momentum | -0.0065 | > 0 (bullish) | -0.0038 | > 0 (bullish) | NO |
+| rsi | 42.7 | < 72.0 (not overbought) | 45.8 | < 72.0 (not overbought) | YES |
+| adx | 21.8 | > 20.0 (trending) | 31.5 | > 18.0 (trending) | YES |
+
+**Why no signal:** Three conditions blocking simultaneously:
+1. Volume ratio far below spike threshold (BTC 0.93x vs 2.5x needed, ETH 0.57x vs 2.0x needed)
+2. Negative momentum — both BTC and ETH in mild downtrend
+3. Weak candle bodies — BTC body_ratio 0.02 (doji), ETH 0.17 (weak)
+
+**Supporting indicators (for when spike occurs):**
+- MACD histogram: BTC slightly positive (501-1204), ETH positive (2175) — mild bullish bias
+- OBV slope: BTC 0.40 (accumulation), ETH 0.11 (flat)
+- CMF: Both negative (-0.05 to -0.07) — slight distribution
+- VWAP: Both trading below VWAP — bearish intraday
+- EMA50: Both below EMA50 — macro bearish
+
+**Conclusion:** Strategy is correctly waiting for a volume spike event. All indicator calculations verified working. Signal will trigger when volume exceeds 2-2.5x average with bullish candle body confirmation.
 
 ## 4. Wallet Performance Summary (All-Time)
 
