@@ -19,6 +19,7 @@ class OfflineStrategyReportTests(unittest.TestCase):
         self.tuned = self.tmp / "combined.json"
         self.walk_forward = self.tmp / "grid-wf-summary.json"
         self.live = self.tmp / "runtime-checkpoint.json"
+        self.portfolio = self.tmp / "portfolio-optimization.json"
 
         self.baseline.write_text(
             json.dumps(
@@ -129,6 +130,31 @@ class OfflineStrategyReportTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        self.portfolio.write_text(
+            json.dumps(
+                {
+                    "score_basis": "walk_forward_sharpe",
+                    "total_capital_krw": 2_000_000,
+                    "weights": [
+                        {
+                            "strategy": "momentum",
+                            "weight": 0.7,
+                            "allocation_krw": 1_400_000,
+                            "walk_forward_sharpe": 0.3,
+                            "walk_forward_return_pct": 0.8,
+                        },
+                        {
+                            "strategy": "vpin",
+                            "weight": 0.3,
+                            "allocation_krw": 600_000,
+                            "walk_forward_sharpe": -0.8,
+                            "walk_forward_return_pct": -1.2,
+                        },
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
 
     def tearDown(self) -> None:
         self._tmp.cleanup()
@@ -168,3 +194,13 @@ class OfflineStrategyReportTests(unittest.TestCase):
         output = self.tmp / "docs" / "report.md"
         save_offline_strategy_report("# test", output)
         self.assertEqual(output.read_text(encoding="utf-8"), "# test")
+
+    def test_generate_report_includes_portfolio_section_when_present(self) -> None:
+        report = generate_offline_strategy_report(
+            baseline_path=self.baseline,
+            tuned_path=self.tuned,
+            walk_forward_path=self.walk_forward,
+            portfolio_path=self.portfolio,
+        )
+        self.assertIn("## Recommended Wallet Mix", report)
+        self.assertIn("| momentum | 70.0% | 1,400,000 KRW | 0.30 | +0.80% |", report)

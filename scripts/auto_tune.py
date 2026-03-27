@@ -61,6 +61,7 @@ class TuneResult:
 
 DEFAULT_STRATEGIES = [
     "momentum",
+    "momentum_pullback",
     "mean_reversion",
     "composite",
     "kimchi_premium",

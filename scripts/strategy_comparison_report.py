@@ -19,7 +19,8 @@ DEFAULT_BASELINE = ROOT / "artifacts" / "backtest-grid-90d" / "baseline.json"
 DEFAULT_TUNED = ROOT / "artifacts" / "backtest-grid-90d" / "combined.json"
 DEFAULT_WALK_FORWARD = ROOT / "artifacts" / "walk-forward-90d" / "grid-wf-summary.json"
 DEFAULT_LIVE_CHECKPOINT = ROOT / "artifacts" / "runtime-checkpoint.json"
-DEFAULT_OUTPUT = ROOT / "docs" / "strategy-performance-comparison.md"
+DEFAULT_PORTFOLIO = ROOT / "artifacts" / "portfolio-optimization.json"
+DEFAULT_OUTPUT = ROOT / "artifacts" / "strategy-performance-comparison.md"
 
 
 def main() -> None:
@@ -38,6 +39,7 @@ def main() -> None:
         type=Path,
         default=DEFAULT_LIVE_CHECKPOINT,
     )
+    parser.add_argument("--portfolio", type=Path, default=DEFAULT_PORTFOLIO)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
@@ -46,6 +48,7 @@ def main() -> None:
         tuned_path=args.tuned,
         walk_forward_path=args.walk_forward,
         live_checkpoint_path=args.live_checkpoint,
+        portfolio_path=args.portfolio,
     )
     save_offline_strategy_report(report, args.output)
     print(args.output)

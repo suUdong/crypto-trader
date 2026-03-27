@@ -212,6 +212,95 @@ def validation_gate_status(
     return len(reasons) == 0, reasons
 
 
+def walk_forward_efficiency_ratio(aggregate: dict[str, float | int]) -> float:
+    """Approximate generalization efficiency via test/train Sharpe ratio."""
+    train_sharpe = float(aggregate["avg_train_sharpe"])
+    test_sharpe = float(aggregate["avg_test_sharpe"])
+    if train_sharpe == 0.0:
+        return 0.0 if test_sharpe == 0.0 else float("inf")
+    return test_sharpe / train_sharpe
+
+
+def write_grid_summary_json(
+    output_path: str,
+    folds_by_strategy: dict[str, list[FoldResult]],
+    total_days: int,
+    symbols: list[str],
+    top_n: int,
+    gate_thresholds: tuple[float, float, int],
+) -> None:
+    """Write a legacy-compatible walk-forward summary for downstream reporting."""
+    min_test_sharpe, min_test_return_pct, min_total_trades = gate_thresholds
+    strategy_rows: list[dict[str, object]] = []
+
+    for strategy, folds in sorted(folds_by_strategy.items()):
+        aggregate = aggregate_fold_results(folds)
+        gate_passed, _ = validation_gate_status(
+            aggregate,
+            min_test_sharpe,
+            min_test_return_pct,
+            min_total_trades,
+        )
+        latest_fold = max(folds, key=lambda fold: fold.fold_index) if folds else None
+        best = None
+        if latest_fold is not None:
+            best = {
+                "params": latest_fold.tuned_params,
+                "risk_params": latest_fold.tuned_risk_params,
+                "avg_sharpe": float(aggregate["avg_test_sharpe"]),
+                "avg_return_pct": float(aggregate["avg_test_return_pct"]),
+                "total_trades": int(aggregate["total_test_trades"]),
+                "avg_profit_factor": float(aggregate["avg_test_profit_factor"]),
+                "validated": gate_passed,
+                "wf_avg_efficiency_ratio": walk_forward_efficiency_ratio(aggregate),
+                "wf_oos_win_rate": float(aggregate["avg_test_win_rate"]) / 100.0,
+            }
+
+        strategy_rows.append(
+            {
+                "strategy": strategy,
+                "candidates_tested": top_n,
+                "candidates_validated": 1 if gate_passed else 0,
+                "best": best,
+                "aggregate": aggregate,
+            }
+        )
+
+    validated_rows = [
+        row
+        for row in strategy_rows
+        if isinstance(row.get("best"), dict) and row["best"]["validated"]
+    ]
+    ranked_rows = [
+        row
+        for row in strategy_rows
+        if isinstance(row.get("best"), dict)
+    ]
+
+    def _rank_key(row: dict[str, object]) -> tuple[float, float, int]:
+        best = row["best"]
+        assert isinstance(best, dict)
+        return (
+            float(best["avg_sharpe"]),
+            float(best["avg_return_pct"]),
+            int(best["total_trades"]),
+        )
+
+    payload = {
+        "dataset_days": total_days,
+        "symbols": symbols,
+        "strategies": strategy_rows,
+        "validated_count": len(validated_rows),
+        "best_validated": max(validated_rows, key=_rank_key) if validated_rows else None,
+        "best_research_candidate": max(ranked_rows, key=_rank_key) if ranked_rows else None,
+    }
+    Path(output_path).write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(f"Walk-forward summary written to: {output_path}")
+
+
 def write_walk_forward_markdown(
     output_path: str,
     folds_by_strategy: dict[str, list[FoldResult]],
@@ -341,6 +430,11 @@ def main() -> None:
     parser.add_argument("--test-days", dest="test_days", type=int, default=15)
     parser.add_argument("--top-n", dest="top_n", type=int, default=3)
     parser.add_argument("--json-out", dest="json_out", default="artifacts/walk-forward.json")
+    parser.add_argument(
+        "--grid-summary-out",
+        dest="grid_summary_out",
+        default="artifacts/walk-forward-90d/grid-wf-summary.json",
+    )
     parser.add_argument("--report-out", dest="report_out", default="docs/walk-forward-results.md")
     parser.add_argument(
         "--validated-config-out",
@@ -477,6 +571,14 @@ def main() -> None:
         args.test_days,
         selection,
         gate_result,
+        (args.min_test_sharpe, args.min_test_return_pct, args.min_total_trades),
+    )
+    write_grid_summary_json(
+        args.grid_summary_out,
+        folds_by_strategy,
+        total_days,
+        sorted(candles_by_symbol),
+        args.top_n,
         (args.min_test_sharpe, args.min_test_return_pct, args.min_total_trades),
     )
     write_validated_config(

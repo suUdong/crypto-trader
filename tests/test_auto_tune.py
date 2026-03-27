@@ -20,11 +20,12 @@ from tests.test_grid_search import _build_candles, _trending_down
 
 
 class TestAutoTuneOutputs(unittest.TestCase):
-    def test_default_strategies_cover_all_seven_supported_strategies(self) -> None:
+    def test_default_strategies_cover_all_supported_strategies(self) -> None:
         self.assertEqual(
             DEFAULT_STRATEGIES,
             [
                 "momentum",
+                "momentum_pullback",
                 "mean_reversion",
                 "composite",
                 "kimchi_premium",

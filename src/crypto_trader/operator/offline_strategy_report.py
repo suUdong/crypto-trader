@@ -195,11 +195,48 @@ def _live_snapshot_note(
     return lines
 
 
+def _portfolio_note(portfolio_path: Path | None) -> list[str]:
+    if portfolio_path is None or not portfolio_path.exists():
+        return []
+
+    portfolio = _read_json(portfolio_path)
+    weights = portfolio.get("weights", [])
+    if not isinstance(weights, list) or not weights:
+        return []
+
+    lines = [
+        "## Recommended Wallet Mix",
+        "",
+        (
+            f"- Weighting basis: `{portfolio.get('score_basis', 'unknown')}` "
+            f"across `{len(weights)}` strategies"
+        ),
+        (
+            f"- Total capital: `{float(portfolio.get('total_capital_krw', 0.0)):,.0f} KRW`"
+        ),
+        "",
+        "| Strategy | Weight | Allocation | WF Sharpe | WF Return |",
+        "| --- | ---: | ---: | ---: | ---: |",
+    ]
+    for row in weights:
+        if not isinstance(row, dict):
+            continue
+        lines.append(
+            f"| {row.get('strategy', 'unknown')} | "
+            f"{float(row.get('weight', 0.0)):.1%} | "
+            f"{float(row.get('allocation_krw', 0.0)):,.0f} KRW | "
+            f"{float(row.get('walk_forward_sharpe', 0.0)):.2f} | "
+            f"{float(row.get('walk_forward_return_pct', 0.0)):+.2f}% |"
+        )
+    return lines
+
+
 def generate_offline_strategy_report(
     baseline_path: Path,
     tuned_path: Path,
     walk_forward_path: Path,
     live_checkpoint_path: Path | None = None,
+    portfolio_path: Path | None = None,
 ) -> str:
     baseline = _read_json(baseline_path)
     tuned = _read_json(tuned_path)
@@ -369,6 +406,9 @@ def generate_offline_strategy_report(
     live_note = _live_snapshot_note(live_checkpoint_path, {row.strategy for row in rows})
     if live_note:
         lines.extend(["", *live_note])
+    portfolio_note = _portfolio_note(portfolio_path)
+    if portfolio_note:
+        lines.extend(["", *portfolio_note])
     lines.append("")
     return "\n".join(lines)
 
