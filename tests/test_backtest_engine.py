@@ -17,7 +17,7 @@ from crypto_trader.config import (
     TelegramConfig,
     TradingConfig,
 )
-from crypto_trader.models import Candle
+from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
 
@@ -38,6 +38,37 @@ def build_candles(closes: list[float]) -> list[Candle]:
 
 
 class BacktestEngineTests(unittest.TestCase):
+    def test_backtest_supports_short_positions_for_short_capable_strategies(self) -> None:
+        class _ShortStrategy:
+            supports_short_positions = True
+
+            def evaluate(
+                self,
+                candles: list[Candle],
+                position: Position | None = None,
+                *,
+                symbol: str = "",
+            ) -> Signal:
+                if len(candles) < 23:
+                    return Signal(action=SignalAction.HOLD, reason="warmup", confidence=0.0)
+                if position is None and candles[-1].close >= 105.0:
+                    return Signal(action=SignalAction.SELL, reason="open_short", confidence=0.9)
+                if position is not None and position.side == "short" and candles[-1].close <= 95.0:
+                    return Signal(action=SignalAction.BUY, reason="cover_short", confidence=0.9)
+                return Signal(action=SignalAction.HOLD, reason="hold_short", confidence=0.2)
+
+        candles = build_candles([100.0] * 20 + [102.0, 104.0, 105.0, 103.0, 98.0, 94.0, 93.0])
+        engine = BacktestEngine(
+            strategy=_ShortStrategy(),
+            risk_manager=RiskManager(RiskConfig(stop_loss_pct=0.05, take_profit_pct=0.08)),
+            config=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            symbol="KRW-BTC",
+        )
+        result = engine.run(candles)
+        self.assertTrue(result.trade_log)
+        self.assertEqual(result.trade_log[0].position_side, "short")
+        self.assertGreater(result.final_equity, result.initial_capital)
+
     def test_backtest_trade_log_pnl_sum_matches_fee_adjusted_final_equity(self) -> None:
         candles = build_candles([100.0] * 20 + [90.0, 89.0, 93.0, 96.0, 100.0])
         strategy = CompositeStrategy(

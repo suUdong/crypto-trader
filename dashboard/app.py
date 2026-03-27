@@ -220,7 +220,7 @@ def _render_open_positions(wallets: list[dict[str, Any]]) -> None:
             continue
         st.markdown(f"#### {wallet['display_name']}")
         for position in wallet["positions"]:
-            latest_price = wallet["latest_price"] or position["entry_price"]
+            latest_price = position.get("latest_price") or position["entry_price"]
             unrealized = (latest_price - position["entry_price"]) * position["quantity"]
             unrealized_pct = (
                 ((latest_price - position["entry_price"]) / position["entry_price"]) * 100.0

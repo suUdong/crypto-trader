@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import replace
+from datetime import UTC
 from typing import Any, Protocol
 
 from crypto_trader.config import (
@@ -29,6 +30,7 @@ from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.consensus import ConsensusStrategy
 from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
 from crypto_trader.strategy.evaluator import evaluate_strategy
+from crypto_trader.strategy.funding_rate import FundingRateStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
@@ -82,6 +84,20 @@ def create_strategy(
             vpin_momentum_threshold=float(params.get("vpin_momentum_threshold", 0.01)),
             vpin_rsi_ceiling=float(params.get("vpin_rsi_ceiling", 70.0)),
             vpin_rsi_floor=float(params.get("vpin_rsi_floor", 30.0)),
+        )
+    if strategy_type == "funding_rate":
+        return FundingRateStrategy(
+            strategy_config,
+            high_funding_threshold=float(params.get("high_funding_threshold", 0.0003)),
+            extreme_funding_threshold=float(params.get("extreme_funding_threshold", 0.0005)),
+            negative_funding_threshold=float(params.get("negative_funding_threshold", -0.0001)),
+            deep_negative_threshold=float(params.get("deep_negative_threshold", -0.0003)),
+            rsi_oversold=float(params.get("rsi_oversold", 35.0)),
+            rsi_overbought=float(params.get("rsi_overbought", 70.0)),
+            momentum_lookback=int(params.get("momentum_lookback", 10)),
+            min_confidence=float(params.get("min_confidence", 0.5)),
+            max_holding_bars=int(params.get("max_holding_bars", 48)),
+            cooldown_bars=int(params.get("cooldown_bars", 6)),
         )
     if strategy_type == "ema_crossover":
         return EMACrossoverStrategy(strategy_config)
@@ -192,8 +208,7 @@ class StrategyWallet:
                 ts = candles[-1].timestamp
                 # Ensure we use UTC hour; fall back to raw hour if tz-naive
                 if ts.tzinfo is not None:
-                    from datetime import timezone as _tz
-                    utc_hour = ts.astimezone(_tz.utc).hour
+                    utc_hour = ts.astimezone(UTC).hour
                 else:
                     utc_hour = ts.hour
             vol_ratio = self._volume_ratio(candles)

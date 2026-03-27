@@ -337,7 +337,7 @@ class RiskManager:
         # Update high watermark for trailing stop
         position.update_watermark(price)
 
-        pnl_pct = (price - position.entry_price) / position.entry_price
+        pnl_pct = position.pnl_pct(price)
 
         # Time-decay exit: graduated — close sooner if deeper underwater
         if holding_bars > 0 and self._max_holding_bars > 0:
@@ -350,34 +350,62 @@ class RiskManager:
                 return "time_decay_exit"
 
         # Breakeven stop: if position ever gained >= 1.2% (watermark), stop at entry
-        watermark_gain = (position.high_watermark - position.entry_price) / position.entry_price
-        if watermark_gain >= 0.012 and price <= position.entry_price:
+        if position.is_short:
+            watermark_gain = (position.entry_price - position.high_watermark) / position.entry_price
+            breakeven_touched = price >= position.entry_price
+        else:
+            watermark_gain = (position.high_watermark - position.entry_price) / position.entry_price
+            breakeven_touched = price <= position.entry_price
+        if watermark_gain >= 0.012 and breakeven_touched:
             return "breakeven_stop"
 
         # ATR-based dynamic stops (if ATR available and multiplier set)
         if self._atr_stop_multiplier > 0 and self._current_atr > 0:
             atr_stop_distance = self._current_atr * self._atr_stop_multiplier
-            atr_stop_price = position.entry_price - atr_stop_distance
-            atr_tp_price = position.entry_price + atr_stop_distance * 2.0  # 2:1 reward:risk
-            if price <= atr_stop_price:
+            if position.is_short:
+                atr_stop_price = position.entry_price + atr_stop_distance
+                atr_tp_price = position.entry_price - atr_stop_distance * 2.0
+                stop_hit = price >= atr_stop_price
+                tp_hit = price <= atr_tp_price
+            else:
+                atr_stop_price = position.entry_price - atr_stop_distance
+                atr_tp_price = position.entry_price + atr_stop_distance * 2.0  # 2:1 reward:risk
+                stop_hit = price <= atr_stop_price
+                tp_hit = price >= atr_tp_price
+            if stop_hit:
                 return "atr_stop_loss"
-            if price >= atr_tp_price:
+            if tp_hit:
                 return "atr_take_profit"
         else:
             # Fixed percentage stops (tightened on losing streaks)
-            stop_loss_price = position.entry_price * (1.0 - self.effective_stop_loss_pct)
-            take_profit_price = position.entry_price * (1.0 + self._config.take_profit_pct)
-            if price <= stop_loss_price:
+            if position.is_short:
+                stop_loss_price = position.entry_price * (1.0 + self.effective_stop_loss_pct)
+                take_profit_price = position.entry_price * (1.0 - self._config.take_profit_pct)
+                stop_hit = price >= stop_loss_price
+                take_profit_hit = price <= take_profit_price
+                half_tp_price = position.entry_price * (
+                    1.0 - self._config.take_profit_pct * 0.5
+                )
+                half_tp_hit = price <= half_tp_price
+            else:
+                stop_loss_price = position.entry_price * (1.0 - self.effective_stop_loss_pct)
+                take_profit_price = position.entry_price * (1.0 + self._config.take_profit_pct)
+                stop_hit = price <= stop_loss_price
+                take_profit_hit = price >= take_profit_price
+                half_tp_price = position.entry_price * (
+                    1.0 + self._config.take_profit_pct * 0.5
+                )
+                half_tp_hit = price >= half_tp_price
+            if stop_hit:
                 return "stop_loss"
 
             # Partial take-profit: sell a fraction at halfway to TP target
             partial_tp_pct = self._config.partial_tp_pct
             if partial_tp_pct > 0:
-                half_tp_price = position.entry_price * (1.0 + self._config.take_profit_pct * 0.5)
-                if price >= half_tp_price and not position.partial_tp_taken:
+                if half_tp_hit and not position.partial_tp_taken:
                     return "partial_take_profit"
 
-            if price >= take_profit_price:
+            if take_profit_hit:
                 return "take_profit"
 
         # Trailing stop: exit when price drops trailing_pct below high watermark
@@ -385,16 +413,26 @@ class RiskManager:
         effective_trailing = self._trailing_stop_pct
         if position.partial_tp_taken and effective_trailing <= 0:
             effective_trailing = 0.02  # 2% trailing after partial TP
-        if effective_trailing > 0 and position.high_watermark > position.entry_price:
-            trailing_stop_price = position.high_watermark * (1.0 - effective_trailing)
-            if price <= trailing_stop_price:
-                return "trailing_stop"
+        if effective_trailing > 0:
+            if position.is_short and position.high_watermark < position.entry_price:
+                trailing_stop_price = position.high_watermark * (1.0 + effective_trailing)
+                if price >= trailing_stop_price:
+                    return "trailing_stop"
+            if not position.is_short and position.high_watermark > position.entry_price:
+                trailing_stop_price = position.high_watermark * (1.0 - effective_trailing)
+                if price <= trailing_stop_price:
+                    return "trailing_stop"
 
         # Profit-lock trailing: after 3%+ gain with no trailing stop configured,
         # activate tight 1.5% trailing from watermark to lock profits
         if effective_trailing <= 0 and watermark_gain >= 0.03:
-            profit_lock_price = position.high_watermark * (1.0 - 0.015)
-            if price <= profit_lock_price:
-                return "profit_lock_trailing"
+            if position.is_short:
+                profit_lock_price = position.high_watermark * (1.0 + 0.015)
+                if price >= profit_lock_price:
+                    return "profit_lock_trailing"
+            else:
+                profit_lock_price = position.high_watermark * (1.0 - 0.015)
+                if price <= profit_lock_price:
+                    return "profit_lock_trailing"
 
         return None

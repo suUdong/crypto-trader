@@ -503,7 +503,15 @@ class TestAllStrategiesCreateSuccessfully(unittest.TestCase):
     def test_create_all_strategies(self) -> None:
         config = StrategyConfig()
         regime = RegimeConfig()
-        for name in ["momentum", "momentum_pullback", "mean_reversion", "composite", "obi", "vpin"]:
+        for name in [
+            "momentum",
+            "momentum_pullback",
+            "mean_reversion",
+            "composite",
+            "obi",
+            "vpin",
+            "funding_rate",
+        ]:
             strategy = create_strategy(name, config, regime)
             self.assertIsNotNone(strategy)
             self.assertTrue(hasattr(strategy, "evaluate"))
@@ -521,6 +529,21 @@ class TestAllStrategiesCreateSuccessfully(unittest.TestCase):
         mock_f = MagicMock()
         strategy = KimchiPremiumStrategy(config, binance_client=mock_b, fx_client=mock_f)
         self.assertTrue(hasattr(strategy, "evaluate"))
+
+    def test_grid_factory_forwards_funding_rate_extra_params(self) -> None:
+        from scripts.grid_search import _create_strategy_for_grid
+
+        strategy = _create_strategy_for_grid(
+            "funding_rate",
+            {
+                "high_funding_threshold": 0.00055,
+                "cooldown_bars": 9,
+            },
+            StrategyConfig(),
+            RegimeConfig(),
+        )
+        self.assertEqual(strategy._high_funding, 0.00055)
+        self.assertEqual(strategy._cooldown_bars, 9)
 
 
 class TestGridParamCoverage(unittest.TestCase):
@@ -583,6 +606,25 @@ class TestGridParamCoverage(unittest.TestCase):
         for k in BOLLINGER_RSI_GRID:
             self.assertIn(k, config_fields)
 
+    def test_funding_rate_grid_params_valid(self) -> None:
+        from scripts.grid_search import FUNDING_RATE_GRID
+
+        valid_params = {
+            "high_funding_threshold",
+            "extreme_funding_threshold",
+            "negative_funding_threshold",
+            "deep_negative_threshold",
+            "rsi_oversold",
+            "rsi_overbought",
+            "momentum_lookback",
+            "min_confidence",
+            "max_holding_bars",
+            "cooldown_bars",
+        }
+        config_fields = set(StrategyConfig.__dataclass_fields__)
+        for k in FUNDING_RATE_GRID:
+            self.assertIn(k, valid_params | config_fields)
+
     def test_all_supported_strategies_have_grids(self) -> None:
         from scripts.grid_search import STRATEGY_GRIDS
 
@@ -596,6 +638,7 @@ class TestGridParamCoverage(unittest.TestCase):
             "obi",
             "volatility_breakout",
             "kimchi_premium",
+            "funding_rate",
         }
         self.assertEqual(set(STRATEGY_GRIDS.keys()), expected)
 

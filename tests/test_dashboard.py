@@ -857,6 +857,143 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(result["portfolio"]["portfolio_sharpe"], 1.23)
         self.assertEqual(result["portfolio"]["portfolio_mdd"], 2.34)
 
+    def test_load_wallet_analytics_uses_position_level_latest_prices(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "kimchi_premium_wallet": {
+                            "equity": 1_020_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 10_000,
+                            "trade_count": 2,
+                            "open_positions": 2,
+                            "positions": {
+                                "KRW-BTC": {"entry_price": 90_000_000, "quantity": 0.001},
+                                "KRW-ETH": {"entry_price": 3_000_000, "quantity": 0.1},
+                            },
+                            "strategy_type": "kimchi_premium",
+                        }
+                    },
+                }
+            )
+        )
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T07:59:00+00:00",
+                            "wallet_name": "kimchi_premium_wallet",
+                            "strategy_type": "kimchi_premium",
+                            "signal_action": "buy",
+                            "signal_reason": "spread_wide",
+                            "signal_confidence": 0.82,
+                            "latest_price": 91_000_000,
+                            "symbol": "KRW-BTC",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T07:58:00+00:00",
+                            "wallet_name": "kimchi_premium_wallet",
+                            "strategy_type": "kimchi_premium",
+                            "signal_action": "hold",
+                            "signal_reason": "carry",
+                            "signal_confidence": 0.55,
+                            "latest_price": 3_200_000,
+                            "symbol": "KRW-ETH",
+                        }
+                    ),
+                ]
+            )
+        )
+
+        result = data_mod.load_wallet_analytics()
+
+        positions = result["wallets"][0]["positions"]
+        price_by_symbol = {position["symbol"]: position["latest_price"] for position in positions}
+        self.assertEqual(price_by_symbol["KRW-BTC"], 91_000_000)
+        self.assertEqual(price_by_symbol["KRW-ETH"], 3_200_000)
+
+    def test_load_wallet_analytics_defaults_missing_position_price_to_entry_price(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "kimchi_premium_wallet": {
+                            "equity": 1_020_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 10_000,
+                            "trade_count": 2,
+                            "open_positions": 2,
+                            "positions": {
+                                "KRW-BTC": {"entry_price": 90_000_000, "quantity": 0.001},
+                                "KRW-ETH": {"entry_price": 3_000_000, "quantity": 0.1},
+                            },
+                            "strategy_type": "kimchi_premium",
+                        }
+                    },
+                }
+            )
+        )
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            json.dumps(
+                {
+                    "recorded_at": "2026-03-27T07:59:00+00:00",
+                    "wallet_name": "kimchi_premium_wallet",
+                    "strategy_type": "kimchi_premium",
+                    "signal_action": "buy",
+                    "signal_reason": "spread_wide",
+                    "signal_confidence": 0.82,
+                    "latest_price": 91_000_000,
+                    "symbol": "KRW-BTC",
+                }
+            )
+        )
+
+        result = data_mod.load_wallet_analytics()
+
+        positions = result["wallets"][0]["positions"]
+        price_by_symbol = {position["symbol"]: position["latest_price"] for position in positions}
+        self.assertEqual(price_by_symbol["KRW-BTC"], 91_000_000)
+        self.assertEqual(price_by_symbol["KRW-ETH"], 3_000_000)
+
+    def test_load_wallet_analytics_falls_back_to_daily_report_for_portfolio_metrics(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "equity": 1_020_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 12_000,
+                            "trade_count": 2,
+                            "open_positions": 0,
+                            "positions": {},
+                            "strategy_type": "momentum",
+                        }
+                    },
+                }
+            )
+        )
+        (Path(self.tmpdir) / "daily-report.json").write_text(
+            json.dumps(
+                {
+                    "portfolio_sharpe": 1.91,
+                    "portfolio_mdd_pct": 2.72,
+                }
+            )
+        )
+
+        result = data_mod.load_wallet_analytics()
+
+        self.assertEqual(result["portfolio"]["portfolio_sharpe"], 1.91)
+        self.assertEqual(result["portfolio"]["portfolio_mdd"], 2.72)
+
     def test_load_wallet_analytics_infers_initial_capital_when_missing(self) -> None:
         (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
             json.dumps(

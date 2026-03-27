@@ -128,6 +128,19 @@ KIMCHI_PREMIUM_GRID = {
     "min_confidence": [0.4, 0.6, 0.8],
 }
 
+FUNDING_RATE_GRID = {
+    "high_funding_threshold": [0.0003, 0.0004],
+    "extreme_funding_threshold": [0.0005, 0.0007],
+    "negative_funding_threshold": [-0.0001, -0.0002],
+    "deep_negative_threshold": [-0.0003, -0.0005],
+    "rsi_oversold": [30.0, 35.0, 40.0],
+    "rsi_overbought": [65.0, 70.0],
+    "momentum_lookback": [8, 10, 12],
+    "min_confidence": [0.45, 0.55],
+    "max_holding_bars": [24, 36, 48],
+    "cooldown_bars": [4, 6, 8],
+}
+
 COMPOSITE_GRID = {
     "bollinger_window": [15, 20, 25],
     "bollinger_stddev": [1.5, 1.8, 2.0],
@@ -158,6 +171,7 @@ STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
     "obi": OBI_GRID,
     "volatility_breakout": VOLATILITY_BREAKOUT_GRID,
     "kimchi_premium": KIMCHI_PREMIUM_GRID,
+    "funding_rate": FUNDING_RATE_GRID,
 }
 
 
@@ -214,7 +228,7 @@ def _create_strategy_for_grid(
             min_confidence=float(params.get("min_confidence", 0.6)),
             cooldown_hours=float(params.get("cooldown_hours", 24.0)),
         )
-    return create_strategy(strategy_type, strategy_config, regime_config)
+    return create_strategy(strategy_type, strategy_config, regime_config, params)
 
 
 def _setup_kimchi_premium_mock(strategy: KimchiPremiumStrategy, candles: list[Candle]) -> None:
@@ -280,6 +294,8 @@ def run_grid_for_strategy(
             # For kimchi_premium, simulate premium from price data
             if strategy_type == "kimchi_premium":
                 _setup_kimchi_premium_mock(strategy, candles)
+            if strategy_type == "funding_rate" and hasattr(strategy, "prime_backtest_funding"):
+                strategy.prime_backtest_funding(symbol, candles)
 
             risk_manager = RiskManager(risk_config)
             engine = BacktestEngine(

@@ -21,6 +21,7 @@ from crypto_trader.models import Candle, Position, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
 from crypto_trader.strategy.composite import CompositeStrategy
+from crypto_trader.strategy.funding_rate import FundingRateStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
@@ -115,6 +116,10 @@ class TestCreateStrategy(unittest.TestCase):
     def test_create_strategy_composite_explicit(self) -> None:
         strategy = create_strategy("composite", self.strategy_config, self.regime_config)
         self.assertIsInstance(strategy, CompositeStrategy)
+
+    def test_create_strategy_funding_rate(self) -> None:
+        strategy = create_strategy("funding_rate", self.strategy_config, self.regime_config)
+        self.assertIsInstance(strategy, FundingRateStrategy)
 
     def test_create_strategy_unknown_defaults_to_composite(self) -> None:
         strategy = create_strategy("unknown_type", self.strategy_config, self.regime_config)
@@ -228,6 +233,19 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
         wallet.run_once("KRW-BTC", _make_candles([100.0, 101.0, 102.0, 103.0, 104.0, 105.0]))
 
         self.assertEqual(risk_manager.current_equities, [950_000.0])
+
+    def test_wallet_does_not_open_short_positions_for_funding_rate_sell_signal(self) -> None:
+        closes = [100.0] * 20 + [100.0 + i * 2.5 for i in range(12)]
+        candles = _make_candles(closes)
+        wallet = self._make_wallet("funding_rate")
+        assert isinstance(wallet.strategy, FundingRateStrategy)
+        wallet.strategy.set_funding_rate(0.0007)
+
+        result = wallet.run_once("KRW-BTC", candles)
+
+        self.assertEqual(result.signal.action, SignalAction.SELL)
+        self.assertIsNone(result.order)
+        self.assertEqual(wallet.broker.positions, {})
 
 
 class TestBuildWallets(unittest.TestCase):

@@ -103,14 +103,21 @@ class TestWalkForwardCLIIntegration(unittest.TestCase):
             "bollinger_rsi",
             "mean_reversion",
             "composite",
+            "funding_rate",
             "obi",
             "vpin",
             "volatility_breakout",
         ]
 
         for st in strategy_types:
+            def _factory(name: str = st):
+                strategy = create_strategy(name, strategy_config, regime_config)
+                if name == "funding_rate":
+                    strategy.set_funding_rate(-0.0002)
+                return strategy
+
             report = validator.validate(
-                strategy_factory=lambda s=st: create_strategy(s, strategy_config, regime_config),
+                strategy_factory=_factory,
                 candles=candles,
                 symbol="KRW-BTC",
                 strategy_name=st,

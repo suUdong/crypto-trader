@@ -252,6 +252,18 @@ PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
         "min_confidence": [0.3, 0.4, 0.5],
         "max_holding_bars": [12, 24, 36],
     },
+    "funding_rate": {
+        "high_funding_threshold": [0.0003, 0.0004],
+        "extreme_funding_threshold": [0.0005, 0.0007],
+        "negative_funding_threshold": [-0.0001, -0.0002],
+        "deep_negative_threshold": [-0.0003, -0.0005],
+        "rsi_oversold": [30.0, 35.0, 40.0],
+        "rsi_overbought": [65.0, 70.0],
+        "momentum_lookback": [8, 10, 12],
+        "min_confidence": [0.45, 0.55],
+        "max_holding_bars": [24, 36, 48],
+        "cooldown_bars": [4, 6, 8],
+    },
     "obi": {
         "rsi_period": [14, 18],
         "momentum_lookback": [10, 15, 20],
@@ -299,6 +311,8 @@ def _run_backtest_with_params(
             kimchi_strategy._fx = MagicMock()
             kimchi_strategy._binance.get_btc_usdt_price.return_value = None
             kimchi_strategy._fx.get_usd_krw_rate.return_value = None
+    if strategy_type == "funding_rate" and hasattr(strategy, "prime_backtest_funding"):
+        strategy.prime_backtest_funding(symbol, candles)
 
     risk_config = RiskConfig()
     risk_manager = RiskManager(
@@ -471,6 +485,11 @@ def validate_with_walk_forward(
                 kimchi_strategy._fx = MagicMock()
                 kimchi_strategy._binance.get_btc_usdt_price.return_value = None
                 kimchi_strategy._fx.get_usd_krw_rate.return_value = None
+            if (
+                candidate.strategy_type == "funding_rate"
+                and hasattr(strategy, "prime_backtest_funding")
+            ):
+                strategy.prime_backtest_funding(sym, cndls)
             return strategy
 
         try:

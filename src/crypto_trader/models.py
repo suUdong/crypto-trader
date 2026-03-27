@@ -71,14 +71,40 @@ class Position:
     entry_confidence: float = 0.0
     high_watermark: float = 0.0
     partial_tp_taken: bool = False
+    side: str = "long"
 
     def __post_init__(self) -> None:
         if self.high_watermark <= 0:
             self.high_watermark = self.entry_price
 
     def update_watermark(self, price: float) -> None:
+        if self.side == "short":
+            if price < self.high_watermark:
+                self.high_watermark = price
+            return
         if price > self.high_watermark:
             self.high_watermark = price
+
+    @property
+    def is_short(self) -> bool:
+        return self.side == "short"
+
+    def unrealized_pnl(self, price: float) -> float:
+        if self.is_short:
+            return (self.entry_price - price) * self.quantity
+        return (price - self.entry_price) * self.quantity
+
+    def pnl_pct(self, price: float) -> float:
+        if self.entry_price <= 0:
+            return 0.0
+        if self.is_short:
+            return (self.entry_price - price) / self.entry_price
+        return (price - self.entry_price) / self.entry_price
+
+    def marked_value(self, price: float) -> float:
+        if self.is_short:
+            return -self.quantity * price
+        return self.quantity * price
 
 
 @dataclass(slots=True)
@@ -118,6 +144,7 @@ class TradeRecord:
     wallet: str = ""
     entry_confidence: float = 0.0
     session_id: str = ""
+    position_side: str = "long"
 
 
 @dataclass(slots=True)

@@ -769,6 +769,7 @@ def load_wallet_analytics() -> dict[str, Any]:
         trades_by_wallet[_trade_wallet_name(trade, wallet_states)].append(trade)
 
     latest_runs: dict[str, dict[str, Any]] = {}
+    latest_prices_by_wallet_symbol: dict[tuple[str, str], tuple[datetime, float]] = {}
     for run in strategy_runs:
         wallet_name = _run_wallet_name(run, wallet_states)
         if wallet_name not in wallet_states:
@@ -778,6 +779,13 @@ def load_wallet_analytics() -> dict[str, Any]:
         current_dt = _parse_dt(current_run.get("recorded_at"))
         if current_dt is None or run_dt >= current_dt:
             latest_runs[wallet_name] = run
+        symbol = str(run.get("symbol", "") or "")
+        latest_price = run.get("latest_price")
+        if symbol and isinstance(latest_price, (int, float)):
+            key = (wallet_name, symbol)
+            previous = latest_prices_by_wallet_symbol.get(key)
+            if previous is None or run_dt >= previous[0]:
+                latest_prices_by_wallet_symbol[key] = (run_dt, float(latest_price))
 
     wallets: list[dict[str, Any]] = []
     portfolio_timeline: list[dict[str, Any]] = []
@@ -837,6 +845,10 @@ def load_wallet_analytics() -> dict[str, Any]:
                     "symbol_display": symbol_kr(symbol),
                     "entry_price": float(position.get("entry_price", 0.0)),
                     "quantity": float(position.get("quantity", 0.0)),
+                    "latest_price": latest_prices_by_wallet_symbol.get(
+                        (wallet_name, symbol),
+                        (generated_at, float(position.get("entry_price", 0.0))),
+                    )[1],
                 }
                 for symbol, position in position_map.items()
             ],
@@ -862,6 +874,7 @@ def load_wallet_analytics() -> dict[str, Any]:
     wallets.sort(key=lambda wallet: wallet["return_pct"], reverse=True)
 
     pnl_report = load_pnl_report() or {}
+    daily_report = load_daily_report() or {}
     portfolio = {
         "wallet_count": len(wallets),
         "total_equity": portfolio_total_equity,
@@ -873,8 +886,14 @@ def load_wallet_analytics() -> dict[str, Any]:
             if portfolio_initial > 0
             else 0.0
         ),
-        "portfolio_sharpe": float(pnl_report.get("portfolio_sharpe", 0.0) or 0.0),
-        "portfolio_mdd": float(pnl_report.get("portfolio_mdd", 0.0) or 0.0),
+        "portfolio_sharpe": _numeric_value(
+            pnl_report.get("portfolio_sharpe"),
+            fallback=daily_report.get("portfolio_sharpe"),
+        ),
+        "portfolio_mdd": _numeric_value(
+            pnl_report.get("portfolio_mdd"),
+            fallback=daily_report.get("portfolio_mdd_pct"),
+        ),
         "top_wallet": wallets[0]["wallet_name"] if wallets else None,
         "bottom_wallet": wallets[-1]["wallet_name"] if wallets else None,
         "generated_at": generated_at.isoformat(),
@@ -916,6 +935,14 @@ def _legacy_daily_performance_from_report(report: dict[str, Any]) -> dict[str, A
         "portfolio_mdd_pct": float(report.get("portfolio_mdd_pct", 0.0) or 0.0),
         "mode": "multi_symbol",
     }
+
+
+def _numeric_value(value: Any, *, fallback: Any = 0.0) -> float:
+    candidate = value if value is not None else fallback
+    try:
+        return float(candidate or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 @st.cache_data(ttl=30)

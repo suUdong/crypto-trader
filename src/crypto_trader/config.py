@@ -230,6 +230,18 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "vpin_rsi_ceiling",
         "vpin_rsi_floor",
     },
+    "funding_rate": {
+        "high_funding_threshold",
+        "extreme_funding_threshold",
+        "negative_funding_threshold",
+        "deep_negative_threshold",
+        "rsi_oversold",
+        "rsi_overbought",
+        "momentum_lookback",
+        "min_confidence",
+        "max_holding_bars",
+        "cooldown_bars",
+    },
 }
 
 
@@ -937,6 +949,7 @@ def _validate_config(config: AppConfig) -> None:
         "ema_crossover",
         "consensus",
         "volume_spike",
+        "funding_rate",
     }
     for wc in config.wallets:
         if not wc.name.strip():

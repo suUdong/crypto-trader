@@ -30,6 +30,7 @@ class TestAutoTuneOutputs(unittest.TestCase):
                 "mean_reversion",
                 "composite",
                 "kimchi_premium",
+                "funding_rate",
                 "obi",
                 "vpin",
                 "volatility_breakout",

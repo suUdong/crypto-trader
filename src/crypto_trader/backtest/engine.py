@@ -78,28 +78,39 @@ class BacktestEngine:
                     open_position,
                     symbol=self._symbol,
                 )
-                if exit_reason is None and signal.action is SignalAction.SELL:
+                if exit_reason is None and _is_close_signal(open_position, signal.action):
                     exit_reason = signal.reason
 
                 if exit_reason is not None:
                     if exit_reason == "partial_take_profit" and not open_position.partial_tp_taken:
                         # Partial TP: sell a fraction, keep the rest
                         partial_frac = self._risk_manager._config.partial_tp_pct
-                        sell_qty = open_position.quantity * partial_frac
-                        keep_qty = open_position.quantity - sell_qty
-                        exit_price = market_price * (1.0 - self._config.slippage_pct)
-                        gross = sell_qty * exit_price
-                        exit_fee = gross * self._config.fee_rate
-                        cash += gross - exit_fee
-                        partial_entry_cost = open_position.entry_price * sell_qty
-                        partial_entry_fee = open_position.entry_fee_paid * partial_frac
-                        pnl = (
-                            (exit_price - open_position.entry_price) * sell_qty
-                            - exit_fee
-                            - partial_entry_fee
+                        close_qty = open_position.quantity * partial_frac
+                        keep_qty = open_position.quantity - close_qty
+                        exit_price = _exit_fill_price(
+                            open_position,
+                            market_price,
+                            self._config.slippage_pct,
                         )
+                        exit_notional = close_qty * exit_price
+                        exit_fee = exit_notional * self._config.fee_rate
+                        partial_entry_fee = open_position.entry_fee_paid * partial_frac
+                        pnl = _trade_pnl(
+                            open_position,
+                            exit_price,
+                            close_qty,
+                            exit_fee,
+                            partial_entry_fee,
+                        )
+                        if open_position.is_short:
+                            cash -= exit_notional + exit_fee
+                        else:
+                            cash += exit_notional - exit_fee
                         realized_pnl += pnl
-                        pnl_pct = pnl / max(1.0, partial_entry_cost + partial_entry_fee)
+                        pnl_pct = pnl / max(
+                            1.0,
+                            (open_position.entry_price * close_qty) + partial_entry_fee,
+                        )
                         trades.append(
                             TradeRecord(
                                 symbol=self._symbol,
@@ -107,11 +118,12 @@ class BacktestEngine:
                                 exit_time=current.timestamp,
                                 entry_price=open_position.entry_price,
                                 exit_price=exit_price,
-                                quantity=sell_qty,
+                                quantity=close_qty,
                                 pnl=pnl,
                                 pnl_pct=pnl_pct,
                                 exit_reason=exit_reason,
                                 entry_confidence=entry_confidence,
+                                position_side=open_position.side,
                             )
                         )
                         self._risk_manager.record_trade(pnl_pct)
@@ -120,14 +132,23 @@ class BacktestEngine:
                         open_position.entry_fee_paid *= 1.0 - partial_frac
                         open_position.partial_tp_taken = True
                     else:
-                        exit_price = market_price * (1.0 - self._config.slippage_pct)
-                        gross = open_position.quantity * exit_price
-                        exit_fee = gross * self._config.fee_rate
-                        cash += gross - exit_fee
-                        pnl = (
-                            (exit_price - open_position.entry_price) * open_position.quantity
-                            - exit_fee
-                            - open_position.entry_fee_paid
+                        exit_price = _exit_fill_price(
+                            open_position,
+                            market_price,
+                            self._config.slippage_pct,
+                        )
+                        exit_notional = open_position.quantity * exit_price
+                        exit_fee = exit_notional * self._config.fee_rate
+                        if open_position.is_short:
+                            cash -= exit_notional + exit_fee
+                        else:
+                            cash += exit_notional - exit_fee
+                        pnl = _trade_pnl(
+                            open_position,
+                            exit_price,
+                            open_position.quantity,
+                            exit_fee,
+                            open_position.entry_fee_paid,
                         )
                         realized_pnl += pnl
                         pnl_pct = pnl / max(
@@ -147,6 +168,7 @@ class BacktestEngine:
                                 pnl_pct=pnl_pct,
                                 exit_reason=exit_reason,
                                 entry_confidence=entry_confidence,
+                                position_side=open_position.side,
                             )
                         )
                         self._risk_manager.record_trade(pnl_pct)
@@ -162,15 +184,23 @@ class BacktestEngine:
                     starting_equity=self._config.initial_capital,
                 )
                 bars_since_exit = index - last_exit_bar
+                supports_short = bool(getattr(self._strategy, "supports_short_positions", False))
+                should_open_long = signal.action is SignalAction.BUY
+                should_open_short = signal.action is SignalAction.SELL and supports_short
                 if (
                     can_open
                     and not self._risk_manager.in_cooldown
                     and not self._risk_manager.is_auto_paused
                     and bars_since_exit >= min_bars_between_trades
-                    and signal.action is SignalAction.BUY
+                    and (should_open_long or should_open_short)
                     and signal.confidence >= self._risk_manager.effective_min_confidence
                 ):
-                    fill_price = market_price * (1.0 + self._config.slippage_pct)
+                    position_side = "short" if should_open_short else "long"
+                    fill_price = _entry_fill_price(
+                        position_side,
+                        market_price,
+                        self._config.slippage_pct,
+                    )
                     regime_mult = 1.0
                     if self._regime_aware and self._regime_detector is not None and index >= 31:
                         regime = self._regime_detector.detect(window)
@@ -180,7 +210,21 @@ class BacktestEngine:
                         gross = quantity * fill_price
                         fee = gross * self._config.fee_rate
                         total_cost = gross + fee
-                        if total_cost <= cash:
+                        if position_side == "short":
+                            cash += gross - fee
+                            entry_bar = index
+                            entry_confidence = signal.confidence
+                            entry_regime = signal.context.get("market_regime", "unknown")
+                            open_position = Position(
+                                symbol=self._symbol,
+                                quantity=quantity,
+                                entry_price=fill_price,
+                                entry_time=current.timestamp,
+                                entry_index=index,
+                                entry_fee_paid=fee,
+                                side=position_side,
+                            )
+                        elif total_cost <= cash:
                             cash -= total_cost
                             entry_bar = index
                             entry_confidence = signal.confidence
@@ -192,23 +236,33 @@ class BacktestEngine:
                                 entry_time=current.timestamp,
                                 entry_index=index,
                                 entry_fee_paid=fee,
+                                side=position_side,
                             )
 
             marked_equity = cash
             if open_position is not None:
-                marked_equity += open_position.quantity * market_price
+                marked_equity += open_position.marked_value(market_price)
             equity_curve.append(marked_equity)
 
         if open_position is not None:
             final_candle = candles[-1]
-            exit_price = final_candle.close * (1.0 - self._config.slippage_pct)
-            gross = open_position.quantity * exit_price
-            exit_fee = gross * self._config.fee_rate
-            cash += gross - exit_fee
-            pnl = (
-                (exit_price - open_position.entry_price) * open_position.quantity
-                - exit_fee
-                - open_position.entry_fee_paid
+            exit_price = _exit_fill_price(
+                open_position,
+                final_candle.close,
+                self._config.slippage_pct,
+            )
+            exit_notional = open_position.quantity * exit_price
+            exit_fee = exit_notional * self._config.fee_rate
+            if open_position.is_short:
+                cash -= exit_notional + exit_fee
+            else:
+                cash += exit_notional - exit_fee
+            pnl = _trade_pnl(
+                open_position,
+                exit_price,
+                open_position.quantity,
+                exit_fee,
+                open_position.entry_fee_paid,
             )
             trades.append(
                 TradeRecord(
@@ -229,6 +283,7 @@ class BacktestEngine:
                     ),
                     exit_reason="forced_close_end_of_backtest",
                     entry_confidence=entry_confidence,
+                    position_side=open_position.side,
                 )
             )
             trade_regimes.append(entry_regime)
@@ -371,6 +426,38 @@ class BacktestEngine:
             max_drawdown_duration_bars=max_dd_duration,
             regime_breakdown=regime_breakdown,
         )
+
+
+def _is_close_signal(position: Position, action: SignalAction) -> bool:
+    if position.is_short:
+        return action is SignalAction.BUY
+    return action is SignalAction.SELL
+
+
+def _entry_fill_price(position_side: str, market_price: float, slippage_pct: float) -> float:
+    if position_side == "short":
+        return market_price * (1.0 - slippage_pct)
+    return market_price * (1.0 + slippage_pct)
+
+
+def _exit_fill_price(position: Position, market_price: float, slippage_pct: float) -> float:
+    if position.is_short:
+        return market_price * (1.0 + slippage_pct)
+    return market_price * (1.0 - slippage_pct)
+
+
+def _trade_pnl(
+    position: Position,
+    exit_price: float,
+    quantity: float,
+    exit_fee: float,
+    entry_fee: float,
+) -> float:
+    if position.is_short:
+        gross_pnl = (position.entry_price - exit_price) * quantity
+    else:
+        gross_pnl = (exit_price - position.entry_price) * quantity
+    return gross_pnl - exit_fee - entry_fee
 
 
 def _sharpe_ratio(equity_curve: list[float], periods_per_year: float = 8760.0) -> float:

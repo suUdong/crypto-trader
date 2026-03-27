@@ -42,6 +42,7 @@ class TestBacktestAllStrategies(unittest.TestCase):
             "mean_reversion",
             "vpin",
             "volatility_breakout",
+            "funding_rate",
         ]
         candles = _build_candles(200)
         for strat_name in strategies:
@@ -49,6 +50,8 @@ class TestBacktestAllStrategies(unittest.TestCase):
                 strat_config = StrategyConfig(adx_threshold=0.0, volume_filter_mult=0.0)
                 regime_config = RegimeConfig()
                 strategy = create_strategy(strat_name, strat_config, regime_config)
+                if strat_name == "funding_rate":
+                    strategy.set_funding_rate(-0.0002)
                 risk_config = RiskConfig(atr_stop_multiplier=0.0)
                 rm = RiskManager(risk_config)
                 engine = BacktestEngine(

@@ -62,6 +62,27 @@ def _build_alert_manager(config) -> TradeAlertManager:
     return TradeAlertManager(notifiers)
 
 
+def _prime_strategy_for_backtest(strategy, strategy_type: str, symbol: str, candles) -> None:
+    if strategy_type == "kimchi_premium":
+        from unittest.mock import MagicMock
+
+        if len(candles) >= 50:
+            closes = [c.close for c in candles]
+            ma50 = sum(closes[-50:]) / 50.0
+            if ma50 > 0 and hasattr(strategy, "_cached_premium"):
+                strategy._cached_premium = (closes[-1] - ma50) / ma50
+        if hasattr(strategy, "_binance"):
+            strategy._binance = MagicMock()
+            strategy._binance.get_btc_usdt_price.return_value = None
+        if hasattr(strategy, "_fx"):
+            strategy._fx = MagicMock()
+            strategy._fx.get_usd_krw_rate.return_value = None
+        return
+
+    if strategy_type == "funding_rate" and hasattr(strategy, "prime_backtest_funding"):
+        strategy.prime_backtest_funding(symbol, candles)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crypto trader control plane")
     parser.add_argument(
@@ -108,6 +129,7 @@ def main() -> None:
             "mean_reversion",
             "composite",
             "kimchi_premium",
+            "funding_rate",
             "obi",
             "vpin",
             "volatility_breakout",
@@ -163,6 +185,12 @@ def main() -> None:
             config.trading.symbol,
             interval=config.trading.interval,
             count=config.trading.candle_count,
+        )
+        _prime_strategy_for_backtest(
+            backtest_strategy,
+            args.strategy,
+            config.trading.symbol,
+            candles,
         )
         engine = BacktestEngine(
             strategy=backtest_strategy,
@@ -575,21 +603,8 @@ def main() -> None:
         for sym, candles in candles_map.items():
 
             def _factory(s=sym, cs=candles):
-                from unittest.mock import MagicMock
-
                 strat = create_strategy(strategy_type, config.strategy, config.regime)
-                if strategy_type == "kimchi_premium":
-                    # Simulate premium using MA deviation
-                    if len(cs) >= 50:
-                        closes = [c.close for c in cs]
-                        ma50 = sum(closes[-50:]) / 50.0
-                        if ma50 > 0:
-                            deviation = (closes[-1] - ma50) / ma50
-                            strat._cached_premium = deviation
-                            strat._binance = MagicMock()
-                            strat._fx = MagicMock()
-                            strat._binance.get_btc_usdt_price.return_value = None
-                            strat._fx.get_usd_krw_rate.return_value = None
+                _prime_strategy_for_backtest(strat, strategy_type, s, cs)
                 return strat
 
             report = validator.validate(
@@ -845,6 +860,7 @@ def main() -> None:
             "vpin",
             "volatility_breakout",
             "kimchi_premium",
+            "funding_rate",
             "obi",
             "ema_crossover",
             "consensus",
@@ -904,6 +920,7 @@ def main() -> None:
 
                 for sym, candles in candles_map.items():
                     bt_strategy = create_strategy(strat_name, config.strategy, config.regime)
+                    _prime_strategy_for_backtest(bt_strategy, strat_name, sym, candles)
                     bt_risk = _build_risk_manager(config)
                     engine = BacktestEngine(
                         strategy=bt_strategy,
@@ -1080,6 +1097,7 @@ def main() -> None:
                     curves: list[list[float]] = []
                     for sym, candle_list in candles_map.items():
                         bt_s = create_strategy(strat_name2, config.strategy, config.regime)
+                        _prime_strategy_for_backtest(bt_s, strat_name2, sym, candle_list)
                         bt_r = _build_risk_manager(config)
                         eng = BacktestEngine(
                             strategy=bt_s,
@@ -1145,6 +1163,7 @@ def main() -> None:
             "momentum_pullback",
             "mean_reversion",
             "kimchi_premium",
+            "funding_rate",
             "vpin",
             "volatility_breakout",
             "obi",
