@@ -119,6 +119,24 @@ risk_per_trade_pct = 0.015
 atr_stop_multiplier = 3.0
 
 [[wallets]]
+name = "momentum_sol_wallet"
+strategy = "momentum"
+initial_capital = 1_000_000.0
+symbols = ["KRW-SOL"]
+# SOL grid-opt: Sharpe 2.23, Return +2.69%, WR 59%, PF 1.77, 39 trades
+[wallets.strategy_overrides]
+momentum_lookback = 15
+momentum_entry_threshold = 0.002
+rsi_period = 14
+rsi_overbought = 72.0
+max_holding_bars = 36
+adx_threshold = 20.0
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.01
+
+[[wallets]]
 name = "kimchi_premium_wallet"
 strategy = "kimchi_premium"
 initial_capital = 1_000_000.0
@@ -238,6 +256,22 @@ stop_loss_pct = 0.02
 take_profit_pct = 0.06
 risk_per_trade_pct = 0.015
 atr_stop_multiplier = 3.0
+
+[[wallets]]
+name = "vbreak_xrp_wallet"
+strategy = "volatility_breakout"
+initial_capital = 1_000_000.0
+symbols = ["KRW-XRP"]
+# XRP grid-opt: Sharpe 1.50, Return +1.39%, WR 47.2%, PF 1.45, 36 trades
+[wallets.strategy_overrides]
+k_base = 0.40
+noise_lookback = 15
+ma_filter_period = 5
+max_holding_bars = 36
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.01
 
 # --- Volume Spike wallets (institutional accumulation detection) ---
 
