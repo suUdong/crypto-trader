@@ -1,7 +1,7 @@
-# Production daemon config — per-symbol optimized 6-wallet portfolio
-# Deployed: 2026-03-26
-# Wallets: momentum_btc(2.51) + momentum_eth(4.86) + kimchi(1.22) + vpin_btc(3.40) + vpin_eth(2.05) + vpin_sol(2.55)
-# All per-symbol Sharpe > 1.0 | Total 90d backtest return: ~+54% across 6 wallets
+# Production daemon config — 5-strategy grid-search optimized portfolio
+# Deployed: 2026-03-27 (re-optimized via 90d grid search)
+# Strategies: momentum, vpin, volatility_breakout, kimchi_premium, volume_spike
+# Per-symbol params from full_optimize.py grid search (342 combos × 4 symbols)
 
 [trading]
 exchange = "upbit"
@@ -11,14 +11,14 @@ interval = "minute60"
 candle_count = 200
 paper_trading = true
 
-# Global strategy params — tuned for trade frequency + profitability balance
+# Global strategy params — grid-search optimized defaults
 [strategy]
-momentum_lookback = 15
+momentum_lookback = 12
 momentum_entry_threshold = 0.001
 momentum_exit_threshold = -0.01
 bollinger_window = 20
 bollinger_stddev = 1.8
-rsi_period = 18
+rsi_period = 14
 rsi_oversold_floor = 20.0
 rsi_recovery_ceiling = 75.0
 rsi_overbought = 72.0
@@ -86,13 +86,13 @@ name = "momentum_btc_wallet"
 strategy = "momentum"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
-# BTC-optimized: Sharpe 2.51, Return +1.82%, WR 56.9%, PF 1.68, 51 trades
+# BTC grid-opt: Sharpe 1.03, Return +0.54%, WR 56%, PF 1.36, 25 trades
 [wallets.strategy_overrides]
-momentum_lookback = 15
-momentum_entry_threshold = 0.002
+momentum_lookback = 12
+momentum_entry_threshold = 0.001
 rsi_period = 14
 rsi_overbought = 72.0
-max_holding_bars = 48
+max_holding_bars = 36
 adx_threshold = 20.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.04
@@ -104,14 +104,14 @@ name = "momentum_eth_wallet"
 strategy = "momentum"
 initial_capital = 1_000_000.0
 symbols = ["KRW-ETH"]
-# ETH-optimized: Sharpe 4.86, Return +15.14%, WR 53.9%, PF 3.22, 76 trades
+# ETH grid-opt: Sharpe 1.64, Return +0.94%, WR 42.9%, PF 1.47, 35 trades
 [wallets.strategy_overrides]
-momentum_lookback = 12
-momentum_entry_threshold = 0.002
+momentum_lookback = 15
+momentum_entry_threshold = 0.003
 rsi_period = 14
-rsi_overbought = 72.0
-max_holding_bars = 48
-adx_threshold = 20.0
+rsi_overbought = 70.0
+max_holding_bars = 36
+adx_threshold = 15.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
 take_profit_pct = 0.04
@@ -123,14 +123,14 @@ name = "kimchi_premium_wallet"
 strategy = "kimchi_premium"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
-# Per-wallet overrides from 90-day grid search (Sharpe 1.22, WR 51%, PF 1.49)
+# Grid-opt: Sharpe 0.08 avg, ETH best 1.11, SOL 0.98 | interval=6, conf=0.3, ceiling=45
 [wallets.strategy_overrides]
 rsi_period = 14
-rsi_recovery_ceiling = 50.0
+rsi_recovery_ceiling = 45.0
 rsi_overbought = 75.0
 max_holding_bars = 24
-min_trade_interval_bars = 18
-min_confidence = 0.4
+min_trade_interval_bars = 6
+min_confidence = 0.3
 cooldown_hours = 8.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
@@ -144,13 +144,13 @@ name = "vpin_btc_wallet"
 strategy = "vpin"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
-# BTC-optimized: Sharpe 3.40, Return +6.63%, WR 53%, PF 2.38, 59 trades
+# BTC grid-opt: Sharpe 1.23, Return +0.87%, WR 54.8%, PF 1.50, 31 trades
 [wallets.strategy_overrides]
 rsi_period = 14
 momentum_lookback = 12
 max_holding_bars = 48
-vpin_low_threshold = 0.55
-vpin_high_threshold = 0.80
+vpin_low_threshold = 0.45
+vpin_high_threshold = 0.75
 vpin_momentum_threshold = 0.001
 vpin_rsi_ceiling = 78.0
 vpin_rsi_floor = 22.0
@@ -166,14 +166,14 @@ name = "vpin_eth_wallet"
 strategy = "vpin"
 initial_capital = 1_000_000.0
 symbols = ["KRW-ETH"]
-# ETH-optimized: Sharpe 2.05, Return +8.18%, WR 55%, PF 1.41, 75 trades
+# ETH grid-opt: Sharpe 0.83, Return +0.43%, WR 48.6%, PF 1.28, 37 trades
 [wallets.strategy_overrides]
 rsi_period = 14
-momentum_lookback = 12
-max_holding_bars = 48
-vpin_low_threshold = 0.55
-vpin_high_threshold = 0.80
-vpin_momentum_threshold = 0.001
+momentum_lookback = 10
+max_holding_bars = 36
+vpin_low_threshold = 0.45
+vpin_high_threshold = 0.75
+vpin_momentum_threshold = 0.0005
 vpin_rsi_ceiling = 78.0
 vpin_rsi_floor = 22.0
 bucket_count = 20
@@ -187,14 +187,14 @@ name = "vpin_sol_wallet"
 strategy = "vpin"
 initial_capital = 1_000_000.0
 symbols = ["KRW-SOL"]
-# SOL-optimized: Sharpe 2.55, Return +7.85%, WR 63%, PF 1.91, 89 trades
+# SOL grid-opt: Sharpe 1.60, Return +2.13%, WR 57.9%, PF 1.57, 38 trades
 [wallets.strategy_overrides]
 rsi_period = 14
-momentum_lookback = 12
-max_holding_bars = 48
-vpin_low_threshold = 0.55
-vpin_high_threshold = 0.80
-vpin_momentum_threshold = 0.001
+momentum_lookback = 10
+max_holding_bars = 36
+vpin_low_threshold = 0.45
+vpin_high_threshold = 0.75
+vpin_momentum_threshold = 0.0005
 vpin_rsi_ceiling = 78.0
 vpin_rsi_floor = 22.0
 bucket_count = 20
@@ -211,9 +211,9 @@ name = "vbreak_btc_wallet"
 strategy = "volatility_breakout"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
-# BTC volatility breakout with tight k for trend-following
+# BTC grid-opt: best k=0.50, noise=15, ma=10 (Sharpe -0.92, low signal)
 [wallets.strategy_overrides]
-k_base = 0.40
+k_base = 0.50
 noise_lookback = 15
 ma_filter_period = 10
 max_holding_bars = 36
@@ -227,11 +227,11 @@ name = "vbreak_eth_wallet"
 strategy = "volatility_breakout"
 initial_capital = 1_000_000.0
 symbols = ["KRW-ETH"]
-# ETH volatility breakout — wider range for higher volatility
+# ETH grid-opt: Sharpe 0.48, Return +0.20%, k=0.50, noise=15, ma=5
 [wallets.strategy_overrides]
-k_base = 0.25
-noise_lookback = 12
-ma_filter_period = 8
+k_base = 0.50
+noise_lookback = 15
+ma_filter_period = 5
 max_holding_bars = 36
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
@@ -246,15 +246,15 @@ name = "volspike_btc_wallet"
 strategy = "volume_spike"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
-# BTC volume spike — lowered multiplier for sideways market signal frequency
+# BTC grid-opt: Sharpe 3.01, Return +1.11%, WR 71.4%, PF 7.76, 7 trades
 [wallets.strategy_overrides]
-spike_mult = 1.8
+spike_mult = 3.0
 volume_window = 20
-min_body_ratio = 0.4
+min_body_ratio = 0.3
 momentum_lookback = 12
 rsi_period = 14
 rsi_overbought = 72.0
-max_holding_bars = 48
+max_holding_bars = 36
 adx_threshold = 20.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
@@ -266,16 +266,16 @@ name = "volspike_eth_wallet"
 strategy = "volume_spike"
 initial_capital = 1_000_000.0
 symbols = ["KRW-ETH"]
-# ETH volume spike — aggressive threshold for higher-vol asset in sideways market
+# ETH grid-opt: Sharpe -0.21 (weak), spike=3.0, body=0.3, adx=15
 [wallets.strategy_overrides]
-spike_mult = 1.5
+spike_mult = 3.0
 volume_window = 20
-min_body_ratio = 0.35
+min_body_ratio = 0.3
 momentum_lookback = 12
 rsi_period = 14
-rsi_overbought = 70.0
+rsi_overbought = 72.0
 max_holding_bars = 36
-adx_threshold = 18.0
+adx_threshold = 15.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
 take_profit_pct = 0.06
