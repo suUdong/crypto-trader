@@ -99,7 +99,7 @@ def create_strategy(
         sub_strategy_names = params.get("sub_strategies", ["momentum", "vpin", "ema_crossover"])
         min_agree = int(params.get("min_agree", 2))
         sub_strategies = [
-            create_strategy(name, strategy_config, regime_config)
+            create_strategy(name, strategy_config, regime_config, extra_params=params)
             for name in sub_strategy_names
             if name != "consensus"  # prevent recursion
         ]

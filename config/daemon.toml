@@ -297,7 +297,16 @@ min_agree = 1
 momentum_lookback = 12
 momentum_entry_threshold = 0.001
 rsi_period = 14
+rsi_recovery_ceiling = 70.0
+adx_threshold = 15.0
 max_holding_bars = 48
+# VPIN sub-strategy: lower momentum requirement for consensus context
+vpin_momentum_threshold = 0.003
+vpin_low_threshold = 0.50
+vpin_rsi_ceiling = 75.0
+# Volume spike sub-strategy: lower spike requirement for consensus context
+spike_mult = 1.8
+min_body_ratio = 0.3
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
 take_profit_pct = 0.08
