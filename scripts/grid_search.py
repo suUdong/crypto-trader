@@ -141,6 +141,17 @@ FUNDING_RATE_GRID = {
     "cooldown_bars": [4, 6, 8],
 }
 
+VOLUME_SPIKE_GRID = {
+    "spike_mult": [1.5, 2.0, 2.5, 3.0],
+    "volume_window": [20],
+    "min_body_ratio": [0.3, 0.4],
+    "momentum_lookback": [12],
+    "rsi_period": [14],
+    "rsi_overbought": [72.0],
+    "max_holding_bars": [36, 48],
+    "adx_threshold": [15.0, 20.0, 25.0],
+}
+
 COMPOSITE_GRID = {
     "bollinger_window": [15, 20, 25],
     "bollinger_stddev": [1.5, 1.8, 2.0],
@@ -172,6 +183,7 @@ STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
     "volatility_breakout": VOLATILITY_BREAKOUT_GRID,
     "kimchi_premium": KIMCHI_PREMIUM_GRID,
     "funding_rate": FUNDING_RATE_GRID,
+    "volume_spike": VOLUME_SPIKE_GRID,
 }
 
 
@@ -249,8 +261,23 @@ def _setup_kimchi_premium_mock(strategy: KimchiPremiumStrategy, candles: list[Ca
     # Inject simulated premium via cached value
     strategy._cached_premium = simulated_premium
     # Make external calls return None so _calculate_premium uses cached
-    strategy._binance.get_btc_usdt_price.return_value = None
-    strategy._fx.get_usd_krw_rate.return_value = None
+    binance_get_usdt_price = getattr(strategy._binance, "get_usdt_price", None)
+    if hasattr(binance_get_usdt_price, "return_value"):
+        binance_get_usdt_price.return_value = None
+    else:
+        strategy._binance.get_usdt_price = lambda *_args, **_kwargs: None
+
+    binance_get_btc_usdt_price = getattr(strategy._binance, "get_btc_usdt_price", None)
+    if hasattr(binance_get_btc_usdt_price, "return_value"):
+        binance_get_btc_usdt_price.return_value = None
+    elif callable(binance_get_btc_usdt_price):
+        strategy._binance.get_btc_usdt_price = lambda: None
+
+    fx_get_usd_krw_rate = getattr(strategy._fx, "get_usd_krw_rate", None)
+    if hasattr(fx_get_usd_krw_rate, "return_value"):
+        fx_get_usd_krw_rate.return_value = None
+    else:
+        strategy._fx.get_usd_krw_rate = lambda: None
 
 
 def run_grid_for_strategy(

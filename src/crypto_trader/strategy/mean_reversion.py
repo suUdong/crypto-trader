@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from crypto_trader.config import RegimeConfig, StrategyConfig
+from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     _ema,
@@ -17,13 +20,138 @@ from crypto_trader.strategy.indicators import (
     volume_sma,
     williams_percent_r,
 )
-from crypto_trader.strategy.regime import RegimeDetector
+from crypto_trader.strategy.regime import MarketRegime, RegimeDetector
 
 
 class MeanReversionStrategy:
-    def __init__(self, config: StrategyConfig, regime_config: RegimeConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: StrategyConfig,
+        regime_config: RegimeConfig | None = None,
+        *,
+        weekend_bollinger_window: int | None = None,
+        weekend_bollinger_stddev: float | None = None,
+        weekend_rsi_period: int | None = None,
+        weekend_rsi_oversold_floor: float | None = None,
+        weekend_rsi_recovery_ceiling: float | None = None,
+        weekend_noise_lookback: int | None = None,
+        weekend_adx_threshold: float | None = None,
+        weekend_max_holding_bars: int | None = None,
+        weekend_volume_filter_mult: float | None = None,
+        fear_greed_extreme_threshold: int | None = None,
+        fear_greed_entry_rsi_ceiling: float | None = None,
+        fear_greed_band_buffer_pct: float = 0.0,
+        fear_greed_confidence_boost: float = 0.0,
+    ) -> None:
         self._config = config
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
+        self._weekend_overrides = {
+            "bollinger_window": weekend_bollinger_window,
+            "bollinger_stddev": weekend_bollinger_stddev,
+            "rsi_period": weekend_rsi_period,
+            "rsi_oversold_floor": weekend_rsi_oversold_floor,
+            "rsi_recovery_ceiling": weekend_rsi_recovery_ceiling,
+            "noise_lookback": weekend_noise_lookback,
+            "adx_threshold": weekend_adx_threshold,
+            "max_holding_bars": weekend_max_holding_bars,
+            "volume_filter_mult": weekend_volume_filter_mult,
+        }
+        self._fear_greed_extreme_threshold = fear_greed_extreme_threshold
+        self._fear_greed_entry_rsi_ceiling = fear_greed_entry_rsi_ceiling
+        self._fear_greed_band_buffer_pct = max(0.0, fear_greed_band_buffer_pct)
+        self._fear_greed_confidence_boost = max(0.0, fear_greed_confidence_boost)
+        self._macro_snapshot: MacroSnapshot | None = None
+
+    def set_macro_snapshot(self, snapshot: MacroSnapshot | None) -> None:
+        self._macro_snapshot = snapshot
+
+    @staticmethod
+    def _build_context(
+        regime: MarketRegime,
+        *,
+        is_weekend: bool,
+        fear_greed_index: int | None,
+    ) -> dict[str, str]:
+        context = {
+            "market_regime": regime.value,
+            "strategy": "mean_reversion",
+            "is_weekend": str(is_weekend).lower(),
+        }
+        if fear_greed_index is not None:
+            context["fear_greed_index"] = str(fear_greed_index)
+        return context
+
+    def _apply_weekend_overrides(self, config: StrategyConfig) -> StrategyConfig:
+        effective = config
+        if self._weekend_overrides["bollinger_window"] is not None:
+            effective = replace(
+                effective,
+                bollinger_window=int(self._weekend_overrides["bollinger_window"]),
+            )
+        if self._weekend_overrides["bollinger_stddev"] is not None:
+            effective = replace(
+                effective,
+                bollinger_stddev=float(self._weekend_overrides["bollinger_stddev"]),
+            )
+        if self._weekend_overrides["rsi_period"] is not None:
+            effective = replace(
+                effective,
+                rsi_period=int(self._weekend_overrides["rsi_period"]),
+            )
+        if self._weekend_overrides["rsi_oversold_floor"] is not None:
+            effective = replace(
+                effective,
+                rsi_oversold_floor=float(self._weekend_overrides["rsi_oversold_floor"]),
+            )
+        if self._weekend_overrides["rsi_recovery_ceiling"] is not None:
+            effective = replace(
+                effective,
+                rsi_recovery_ceiling=float(self._weekend_overrides["rsi_recovery_ceiling"]),
+            )
+        if self._weekend_overrides["noise_lookback"] is not None:
+            effective = replace(
+                effective,
+                noise_lookback=int(self._weekend_overrides["noise_lookback"]),
+            )
+        if self._weekend_overrides["adx_threshold"] is not None:
+            effective = replace(
+                effective,
+                adx_threshold=float(self._weekend_overrides["adx_threshold"]),
+            )
+        if self._weekend_overrides["max_holding_bars"] is not None:
+            effective = replace(
+                effective,
+                max_holding_bars=int(self._weekend_overrides["max_holding_bars"]),
+            )
+        if self._weekend_overrides["volume_filter_mult"] is not None:
+            effective = replace(
+                effective,
+                volume_filter_mult=float(self._weekend_overrides["volume_filter_mult"]),
+            )
+        return effective
+
+    def _effective_config(self, candles: list[Candle]) -> tuple[StrategyConfig, MarketRegime, bool]:
+        analysis = self._regime_detector.analyze(candles)
+        effective = self._regime_detector.adjust(
+            self._config,
+            analysis.regime,
+            is_weekend=analysis.is_weekend,
+        )
+        if analysis.is_weekend:
+            effective = self._apply_weekend_overrides(effective)
+        return effective, analysis.regime, analysis.is_weekend
+
+    def _extreme_fear_active(self, regime: MarketRegime) -> tuple[bool, int | None]:
+        fear_greed_index = (
+            self._macro_snapshot.fear_greed_index if self._macro_snapshot is not None else None
+        )
+        if fear_greed_index is None or self._fear_greed_extreme_threshold is None:
+            return False, fear_greed_index
+        return (
+            fear_greed_index <= self._fear_greed_extreme_threshold
+            and regime is not MarketRegime.BULL,
+            fear_greed_index,
+        )
 
     def evaluate(
         self,
@@ -32,15 +160,20 @@ class MeanReversionStrategy:
         *,
         symbol: str = "",
     ) -> Signal:
-        regime = self._regime_detector.detect(candles)
-        effective = self._regime_detector.adjust(self._config, regime)
+        effective, regime, is_weekend = self._effective_config(candles)
         minimum = max(effective.bollinger_window + 1, effective.rsi_period + 1)
+        extreme_fear_active, fear_greed_index = self._extreme_fear_active(regime)
+        context = self._build_context(
+            regime,
+            is_weekend=is_weekend,
+            fear_greed_index=fear_greed_index,
+        )
         if len(candles) < minimum:
             return Signal(
                 action=SignalAction.HOLD,
                 reason="insufficient_data",
                 confidence=0.0,
-                context={"market_regime": regime.value, "strategy": "mean_reversion"},
+                context=context,
             )
 
         closes = [c.close for c in candles]
@@ -81,7 +214,8 @@ class MeanReversionStrategy:
             "rsi_bullish_divergence": 1.0 if bullish_div else 0.0,
             "rsi_bearish_divergence": 1.0 if bearish_div else 0.0,
         }
-        context = {"market_regime": regime.value, "strategy": "mean_reversion"}
+        if fear_greed_index is not None:
+            indicators["fear_greed_index"] = float(fear_greed_index)
 
         # Band distance scoring: how far below lower band (deeper = better entry)
         band_width = upper_band - lower_band
@@ -172,6 +306,10 @@ class MeanReversionStrategy:
 
         crossed_back_above_lower = previous_close < previous_lower and latest_close > lower_band
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
+        fear_greed_band_ok = extreme_fear_active and latest_close <= lower_band * (
+            1.0 + self._fear_greed_band_buffer_pct
+        )
+        entry_band_ok = near_lower_band or fear_greed_band_ok
 
         if position is None:
             # Use a tunable ceiling while staying close to the prior hard stop at ~40 ADX.
@@ -214,7 +352,10 @@ class MeanReversionStrategy:
                 effective.rsi_recovery_ceiling,
                 effective.rsi_oversold_floor + 12.0,
             )
-            if near_lower_band and rsi_value <= rsi_entry_limit:
+            original_rsi_entry_limit = rsi_entry_limit
+            if extreme_fear_active and self._fear_greed_entry_rsi_ceiling is not None:
+                rsi_entry_limit = max(rsi_entry_limit, self._fear_greed_entry_rsi_ceiling)
+            if entry_band_ok and rsi_value <= rsi_entry_limit:
                 base_conf = min(1.0, 0.5 + (middle_band - latest_close) / max(1.0, middle_band))
                 if macd_bullish:
                     base_conf = min(1.0, base_conf + 0.1)
@@ -241,9 +382,18 @@ class MeanReversionStrategy:
                 # Williams %R oversold confirmation (< -80 = deeply oversold)
                 if wpr_value is not None and wpr_value < -80.0:
                     base_conf = min(1.0, base_conf + 0.05)
+                used_fear_greed_override = extreme_fear_active and (
+                    fear_greed_band_ok or rsi_entry_limit > original_rsi_entry_limit
+                )
+                if used_fear_greed_override and self._fear_greed_confidence_boost > 0:
+                    base_conf = min(1.0, base_conf + self._fear_greed_confidence_boost)
                 return Signal(
                     action=SignalAction.BUY,
-                    reason="bollinger_mean_reversion",
+                    reason=(
+                        "fear_greed_contrarian_buy"
+                        if used_fear_greed_override
+                        else "bollinger_mean_reversion"
+                    ),
                     confidence=base_conf,
                     indicators=indicators,
                     context=context,

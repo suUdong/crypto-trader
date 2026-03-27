@@ -11,6 +11,8 @@ from crypto_trader.config import BacktestConfig, RegimeConfig, RiskConfig, Strat
 from crypto_trader.models import Candle
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.wallet import create_strategy
+from scripts import backtest_all
+from scripts.grid_search import _setup_kimchi_premium_mock
 
 
 def _build_candles(count: int = 200, base_price: float = 100.0) -> list[Candle]:
@@ -35,14 +37,40 @@ def _build_candles(count: int = 200, base_price: float = 100.0) -> list[Candle]:
 class TestBacktestAllStrategies(unittest.TestCase):
     """Integration test: run backtest for each strategy to verify they all work."""
 
+    def test_strategy_list_includes_latest_supported_research_strategies(self) -> None:
+        self.assertEqual(
+            backtest_all.STRATEGIES,
+            [
+                "momentum",
+                "momentum_pullback",
+                "bollinger_rsi",
+                "mean_reversion",
+                "composite",
+                "kimchi_premium",
+                "funding_rate",
+                "volume_spike",
+                "obi",
+                "vpin",
+                "volatility_breakout",
+                "ema_crossover",
+                "consensus",
+            ],
+        )
+
     def test_all_strategies_backtest_without_error(self) -> None:
         strategies = [
             "momentum",
+            "momentum_pullback",
             "bollinger_rsi",
             "mean_reversion",
+            "composite",
+            "kimchi_premium",
             "vpin",
+            "volume_spike",
             "volatility_breakout",
             "funding_rate",
+            "ema_crossover",
+            "consensus",
         ]
         candles = _build_candles(200)
         for strat_name in strategies:
@@ -50,6 +78,8 @@ class TestBacktestAllStrategies(unittest.TestCase):
                 strat_config = StrategyConfig(adx_threshold=0.0, volume_filter_mult=0.0)
                 regime_config = RegimeConfig()
                 strategy = create_strategy(strat_name, strat_config, regime_config)
+                if strat_name == "kimchi_premium":
+                    _setup_kimchi_premium_mock(strategy, candles)
                 if strat_name == "funding_rate":
                     strategy.set_funding_rate(-0.0002)
                 risk_config = RiskConfig(atr_stop_multiplier=0.0)

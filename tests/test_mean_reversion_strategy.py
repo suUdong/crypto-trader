@@ -4,12 +4,20 @@ import unittest
 from datetime import datetime, timedelta
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
+from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import Candle, Position, SignalAction
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
+from crypto_trader.strategy.regime import KST
 
 
-def build_candles(closes: list[float]) -> list[Candle]:
-    start = datetime(2025, 1, 1)
+def build_candles(
+    closes: list[float],
+    *,
+    start: datetime | None = None,
+    volumes: list[float] | None = None,
+) -> list[Candle]:
+    start = start or datetime(2025, 1, 1)
+    volumes = volumes or [1000.0] * len(closes)
     return [
         Candle(
             timestamp=start + timedelta(hours=i),
@@ -17,7 +25,7 @@ def build_candles(closes: list[float]) -> list[Candle]:
             high=c * 1.01,
             low=c * 0.99,
             close=c,
-            volume=1000.0,
+            volume=volumes[i],
         )
         for i, c in enumerate(closes)
     ]
@@ -154,6 +162,73 @@ class TestMeanReversionStrategy(unittest.TestCase):
         self.assertEqual(signal.action, SignalAction.SELL)
         # middle_band_target fires first when price >= middle band with 2%+ profit
         self.assertIn(signal.reason, ["mean_reversion_target", "middle_band_target"])
+
+    def test_weekend_profile_can_relax_volume_filter(self) -> None:
+        strategy = MeanReversionStrategy(
+            _small_config(
+                bollinger_stddev=1.5,
+                rsi_recovery_ceiling=100.0,
+                volume_filter_mult=1.1,
+            ),
+            _flat_regime_config(),
+            weekend_volume_filter_mult=0.7,
+        )
+        closes = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 70.0]
+        volumes = [1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 950.0]
+
+        weekday_signal = strategy.evaluate(
+            build_candles(
+                closes,
+                start=datetime(2026, 3, 25, 0, 0, tzinfo=KST),
+                volumes=volumes,
+            )
+        )
+        weekend_signal = strategy.evaluate(
+            build_candles(
+                closes,
+                start=datetime(2026, 3, 28, 0, 0, tzinfo=KST),
+                volumes=volumes,
+            )
+        )
+
+        self.assertEqual(weekday_signal.reason, "volume_too_low")
+        self.assertEqual(weekend_signal.action, SignalAction.BUY)
+        self.assertTrue(weekend_signal.context.get("is_weekend"))
+
+    def test_extreme_fear_can_unlock_contrarian_buy(self) -> None:
+        strategy = MeanReversionStrategy(
+            _small_config(bollinger_stddev=1.5, rsi_recovery_ceiling=25.0),
+            _flat_regime_config(),
+            fear_greed_extreme_threshold=20,
+            fear_greed_entry_rsi_ceiling=40.0,
+            fear_greed_band_buffer_pct=0.05,
+            fear_greed_confidence_boost=0.1,
+        )
+        candles = build_candles([100.0, 99.0, 98.0, 97.0, 96.0, 95.0, 95.5])
+
+        baseline_signal = strategy.evaluate(candles)
+        strategy.set_macro_snapshot(
+            MacroSnapshot(
+                overall_regime="neutral",
+                overall_confidence=0.7,
+                us_regime="neutral",
+                us_confidence=0.7,
+                kr_regime="neutral",
+                kr_confidence=0.7,
+                crypto_regime="neutral",
+                crypto_confidence=0.7,
+                crypto_signals={},
+                btc_dominance=55.0,
+                kimchi_premium=2.0,
+                fear_greed_index=12,
+            )
+        )
+        fear_signal = strategy.evaluate(candles)
+
+        self.assertEqual(baseline_signal.reason, "entry_conditions_not_met")
+        self.assertEqual(fear_signal.action, SignalAction.BUY)
+        self.assertEqual(fear_signal.reason, "fear_greed_contrarian_buy")
+        self.assertEqual(fear_signal.context.get("fear_greed_index"), "12")
 
 
 if __name__ == "__main__":

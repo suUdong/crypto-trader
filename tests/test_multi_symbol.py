@@ -348,6 +348,26 @@ class TestStrategyWallet(unittest.TestCase):
 
 
 class TestMultiSymbolRuntime(unittest.TestCase):
+    def test_refresh_macro_propagates_snapshot_to_mean_reversion_strategy(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("mean_rev_wallet", "mean_reversion", 1_000_000.0)],
+        )
+        config.macro.enabled = True
+        config.macro.base_url = "http://macro.local"
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 40)}),
+            config=config,
+        )
+        runtime._macro_client = SequenceMacroClient([_make_macro_snapshot(fear_greed_index=12)])
+
+        runtime._refresh_macro()
+
+        strategy = wallets[0].strategy
+        self.assertEqual(strategy._macro_snapshot.fear_greed_index, 12)
+
     def test_runtime_processes_all_symbol_wallet_pairs(self) -> None:
         btc_candles = _build_candles([100.0] * 25)
         eth_candles = _build_candles([50.0] * 25)

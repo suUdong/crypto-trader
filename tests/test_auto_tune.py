@@ -31,6 +31,7 @@ class TestAutoTuneOutputs(unittest.TestCase):
                 "composite",
                 "kimchi_premium",
                 "funding_rate",
+                "volume_spike",
                 "obi",
                 "vpin",
                 "volatility_breakout",

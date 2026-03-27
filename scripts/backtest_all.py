@@ -36,9 +36,13 @@ STRATEGIES = [
     "mean_reversion",
     "composite",
     "kimchi_premium",
+    "funding_rate",
+    "volume_spike",
     "obi",
     "vpin",
     "volatility_breakout",
+    "ema_crossover",
+    "consensus",
 ]
 INTERVAL = "minute60"
 
@@ -75,6 +79,8 @@ def run_backtest(
     )
     if strategy_type == "kimchi_premium":
         _setup_kimchi_premium_mock(strategy, candles)
+    if strategy_type == "funding_rate" and hasattr(strategy, "prime_backtest_funding"):
+        strategy.prime_backtest_funding(symbol, candles)
     risk_manager = RiskManager(risk_config)
     engine = BacktestEngine(
         strategy=strategy,

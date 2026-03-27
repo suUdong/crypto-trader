@@ -15,6 +15,7 @@ from crypto_trader.config import (
     WalletConfig,
 )
 from crypto_trader.execution.paper import PaperBroker
+from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import (
     Candle,
     OrderRequest,
@@ -67,7 +68,67 @@ def create_strategy(
     if strategy_type == "bollinger_rsi":
         return BollingerRsiStrategy(strategy_config, regime_config)
     if strategy_type == "mean_reversion":
-        return MeanReversionStrategy(strategy_config, regime_config)
+        return MeanReversionStrategy(
+            strategy_config,
+            regime_config,
+            weekend_bollinger_window=(
+                int(params["weekend_bollinger_window"])
+                if params.get("weekend_bollinger_window") is not None
+                else None
+            ),
+            weekend_bollinger_stddev=(
+                float(params["weekend_bollinger_stddev"])
+                if params.get("weekend_bollinger_stddev") is not None
+                else None
+            ),
+            weekend_rsi_period=(
+                int(params["weekend_rsi_period"])
+                if params.get("weekend_rsi_period") is not None
+                else None
+            ),
+            weekend_rsi_oversold_floor=(
+                float(params["weekend_rsi_oversold_floor"])
+                if params.get("weekend_rsi_oversold_floor") is not None
+                else None
+            ),
+            weekend_rsi_recovery_ceiling=(
+                float(params["weekend_rsi_recovery_ceiling"])
+                if params.get("weekend_rsi_recovery_ceiling") is not None
+                else None
+            ),
+            weekend_noise_lookback=(
+                int(params["weekend_noise_lookback"])
+                if params.get("weekend_noise_lookback") is not None
+                else None
+            ),
+            weekend_adx_threshold=(
+                float(params["weekend_adx_threshold"])
+                if params.get("weekend_adx_threshold") is not None
+                else None
+            ),
+            weekend_max_holding_bars=(
+                int(params["weekend_max_holding_bars"])
+                if params.get("weekend_max_holding_bars") is not None
+                else None
+            ),
+            weekend_volume_filter_mult=(
+                float(params["weekend_volume_filter_mult"])
+                if params.get("weekend_volume_filter_mult") is not None
+                else None
+            ),
+            fear_greed_extreme_threshold=(
+                int(params["fear_greed_extreme_threshold"])
+                if params.get("fear_greed_extreme_threshold") is not None
+                else None
+            ),
+            fear_greed_entry_rsi_ceiling=(
+                float(params["fear_greed_entry_rsi_ceiling"])
+                if params.get("fear_greed_entry_rsi_ceiling") is not None
+                else None
+            ),
+            fear_greed_band_buffer_pct=float(params.get("fear_greed_band_buffer_pct", 0.0)),
+            fear_greed_confidence_boost=float(params.get("fear_greed_confidence_boost", 0.0)),
+        )
     if strategy_type == "kimchi_premium":
         return KimchiPremiumStrategy(
             strategy_config,
@@ -193,6 +254,10 @@ class StrategyWallet:
 
     def set_macro_multiplier(self, multiplier: float) -> None:
         self._macro_multiplier = multiplier
+
+    def set_macro_snapshot(self, snapshot: MacroSnapshot | None) -> None:
+        if hasattr(self.strategy, "set_macro_snapshot"):
+            self.strategy.set_macro_snapshot(snapshot)
 
     def adjust_capital(self, delta_cash: float) -> None:
         if abs(delta_cash) <= 0:

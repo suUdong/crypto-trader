@@ -17,7 +17,7 @@ from crypto_trader.capital_allocator import CapitalAllocator, StrategyPerformanc
 from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
-from crypto_trader.macro.client import MacroClient
+from crypto_trader.macro.client import MacroClient, MacroSnapshot
 from crypto_trader.models import PipelineResult, Position, RuntimeCheckpoint, StrategyRunRecord
 from crypto_trader.monitoring.structured_logger import StructuredLogger
 from crypto_trader.notifications.alert_manager import TradeAlertManager
@@ -738,6 +738,7 @@ class MultiSymbolRuntime:
     def _refresh_macro(self) -> None:
         weekend_mult = WEEKEND_POSITION_MULTIPLIER if self._is_weekend else 1.0
         if self._macro_client is None:
+            self._propagate_macro_snapshot(None)
             self._macro_allocation_edge_scores = {}
             self._pending_macro_rebalance = None
             self._apply_regime_weights()
@@ -762,6 +763,7 @@ class MultiSymbolRuntime:
             self._logger.error("Macro snapshot refresh failed: %s", exc)
             if self._is_recoverable_error(exc):
                 self._record_tick_error(exc)
+                self._propagate_macro_snapshot(None)
                 self._macro_allocation_edge_scores = {}
                 self._pending_macro_rebalance = None
                 self._apply_regime_weights()
@@ -783,6 +785,7 @@ class MultiSymbolRuntime:
                 return
             raise
         if snapshot is None:
+            self._propagate_macro_snapshot(None)
             self._macro_allocation_edge_scores = {}
             self._pending_macro_rebalance = None
             self._apply_regime_weights()
@@ -802,6 +805,7 @@ class MultiSymbolRuntime:
                 },
             }
             return
+        self._propagate_macro_snapshot(snapshot)
         adjustment = self._macro_adapter.compute(snapshot)
         overall_regime = (
             self._macro_adapter.normalize_overall_regime(snapshot.overall_regime)
@@ -877,6 +881,10 @@ class MultiSymbolRuntime:
                     previous_regime,
                     overall_regime,
                 )
+
+    def _propagate_macro_snapshot(self, snapshot: MacroSnapshot | None) -> None:
+        for wallet in self._wallets:
+            wallet.set_macro_snapshot(snapshot)
 
     def _apply_kill_switch_penalty(self) -> None:
         """Scale down position sizes when kill switch tiered thresholds are breached."""

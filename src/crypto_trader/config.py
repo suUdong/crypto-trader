@@ -201,6 +201,21 @@ class AppConfig:
 _STRATEGY_FIELD_NAMES = {field.name for field in fields(StrategyConfig)}
 _RISK_FIELD_NAMES = {field.name for field in fields(RiskConfig)}
 _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
+    "mean_reversion": {
+        "weekend_bollinger_window",
+        "weekend_bollinger_stddev",
+        "weekend_rsi_period",
+        "weekend_rsi_oversold_floor",
+        "weekend_rsi_recovery_ceiling",
+        "weekend_noise_lookback",
+        "weekend_adx_threshold",
+        "weekend_max_holding_bars",
+        "weekend_volume_filter_mult",
+        "fear_greed_extreme_threshold",
+        "fear_greed_entry_rsi_ceiling",
+        "fear_greed_band_buffer_pct",
+        "fear_greed_confidence_boost",
+    },
     "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
     "consensus": {
         "sub_strategies",

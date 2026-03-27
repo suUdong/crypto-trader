@@ -276,28 +276,42 @@ take_profit_pct = 0.08
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 
-# kimchi_premium: Multi-symbol, Sharpe 0.08 avg but ETH 1.11
-# Live 7d: only active drag in the 10-wallet set, so run it as a minimal throttled probe
+# mean_reversion_weekend: 30d weekend slice improved avg return from -0.38% baseline
+# to roughly flat/positive with better dispersion when using tighter weekend-only filters.
+# ETH stayed weak in the weekend sample, so keep the probe on BTC/XRP/SOL only.
 [[wallets]]
-name = "kimchi_premium_wallet"
-strategy = "kimchi_premium"
+name = "mean_reversion_weekend_wallet"
+strategy = "mean_reversion"
 initial_capital = 200_000.0
-symbols = ["KRW-BTC", "KRW-ETH", "KRW-SOL"]
+symbols = ["KRW-BTC", "KRW-XRP", "KRW-SOL"]
 [wallets.strategy_overrides]
-rsi_period = 14
-rsi_recovery_ceiling = 45.0
-rsi_overbought = 75.0
-max_holding_bars = 24
-min_trade_interval_bars = 12
-min_confidence = 0.3
-cooldown_hours = 12.0
+adx_threshold = 28.0
+bollinger_stddev = 1.5
+bollinger_window = 16
+max_holding_bars = 18
+noise_lookback = 10
+rsi_oversold_floor = 20.0
+rsi_period = 8
+rsi_recovery_ceiling = 28.0
+weekend_bollinger_window = 12
+weekend_bollinger_stddev = 1.2
+weekend_rsi_period = 6
+weekend_rsi_recovery_ceiling = 36.0
+weekend_noise_lookback = 8
+weekend_adx_threshold = 20.0
+weekend_max_holding_bars = 8
+weekend_volume_filter_mult = 0.0
+fear_greed_extreme_threshold = 20
+fear_greed_entry_rsi_ceiling = 40.0
+fear_greed_band_buffer_pct = 0.05
+fear_greed_confidence_boost = 0.10
 [wallets.risk_overrides]
-stop_loss_pct = 0.015
+stop_loss_pct = 0.02
 take_profit_pct = 0.04
-risk_per_trade_pct = 0.004
-atr_stop_multiplier = 3.0
+risk_per_trade_pct = 0.006
+atr_stop_multiplier = 2.0
 partial_tp_pct = 0.5
-cooldown_bars = 8
+cooldown_bars = 5
 max_concurrent_positions = 1
 max_position_pct = 0.12
 
@@ -336,7 +350,7 @@ cooldown_bars = 5
 #   momentum_xrp:    1,000,000 (9.1%)  — Sharpe 0.96
 # TIER 3 (niche):
 #   volspike_btc:      500,000 (4.5%)  — Sharpe 3.01 (low freq)
-#   kimchi_premium:    200,000 (1.8%)  — live drag probe only
+#   mean_reversion_weekend: 200,000 (1.8%) — weekend + extreme-fear defensive probe
 #   vpin_eth:          500,000 (4.5%)  — Sharpe 0.83
 # TOTAL:          11,000,000
 #

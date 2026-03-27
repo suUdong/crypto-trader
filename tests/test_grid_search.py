@@ -639,6 +639,7 @@ class TestGridParamCoverage(unittest.TestCase):
             "volatility_breakout",
             "kimchi_premium",
             "funding_rate",
+            "volume_spike",
         }
         self.assertEqual(set(STRATEGY_GRIDS.keys()), expected)
 
