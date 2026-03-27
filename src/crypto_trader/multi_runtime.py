@@ -627,7 +627,7 @@ class MultiSymbolRuntime:
                 positions.append({
                     "wallet": wallet.name,
                     "symbol": symbol,
-                    "qty": pos.qty,
+                    "qty": pos.quantity,
                     "entry_price": pos.entry_price,
                     "side": "long",
                 })
