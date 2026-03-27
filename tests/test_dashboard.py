@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
@@ -1336,9 +1338,104 @@ class TestDashboardEntrypoint(unittest.TestCase):
         self.assertNotIn("from datetime import UTC, datetime", source)
         self.assertIn("datetime.now(", source)
 
-    def test_app_sets_page_config_before_auth_gate(self) -> None:
+    def test_app_has_no_dashboard_side_auth_gate(self) -> None:
         source = _read_source("dashboard/app.py")
-        self.assertLess(source.index("st.set_page_config"), source.index("if not check_auth():"))
+        self.assertNotIn("from dashboard.auth import", source)
+        self.assertNotIn("check_auth(", source)
+        self.assertNotIn("render_login(", source)
+        self.assertNotIn("dashboard_authenticated", source)
+
+    def test_app_imports_without_dashboard_side_auth(self) -> None:
+        class DashboardBootstrapped(RuntimeError):
+            """Raised once the dashboard reaches normal tab construction."""
+
+        class TrackingSessionState(dict[str, Any]):
+            def __init__(self) -> None:
+                super().__init__()
+                self.accessed: list[str] = []
+
+            def get(self, key: str, default: Any = None) -> Any:
+                self.accessed.append(key)
+                return super().get(key, default)
+
+        class NullContext:
+            def __enter__(self) -> NullContext:
+                return self
+
+            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
+                return False
+
+        session_state = TrackingSessionState()
+        page_config_calls: list[dict[str, Any]] = []
+
+        fake_streamlit = ModuleType("streamlit")
+        fake_streamlit.session_state = session_state
+        fake_streamlit.set_page_config = lambda **kwargs: page_config_calls.append(kwargs)
+        fake_streamlit.markdown = lambda *args, **kwargs: None
+        fake_streamlit.info = lambda *args, **kwargs: None
+        fake_streamlit.spinner = lambda *args, **kwargs: NullContext()
+        fake_streamlit.tabs = lambda labels: (_ for _ in ()).throw(DashboardBootstrapped(labels))
+
+        fake_data = ModuleType("dashboard.data")
+        fake_data.load_checkpoint = lambda: None
+        fake_data.load_daemon_heartbeat = lambda: None
+        fake_data.load_daily_performance = lambda: None
+        fake_data.load_data_freshness = lambda: {"files": {}}
+        fake_data.load_health = lambda: {}
+        fake_data.load_macro_summary = lambda: None
+        fake_data.load_momentum_pullback_research = lambda: {}
+        fake_data.load_promotion_gate = lambda: None
+        fake_data.load_risk_overview = lambda: {}
+        fake_data.load_signal_history = (
+            lambda limit=400: {
+                "rows": [],
+                "action_counts": {"buy": 0, "sell": 0, "hold": 0},
+                "total": 0,
+                "high_confidence_count": 0,
+                "alert_rows": [],
+                "wallet_counts": {},
+            }
+        )
+        fake_data.load_wallet_analytics = lambda: []
+        fake_data.regime_kr = lambda value: value
+        fake_data.strategy_kr = lambda value: value
+        fake_data.symbol_kr = lambda value: value
+
+        fake_styles = ModuleType("dashboard.styles")
+        fake_styles.COLORS = {"green": "#0f0", "red": "#f00", "muted": "#888"}
+        fake_styles.PALETTE = ["#0f0"]
+        fake_styles.chart_layout = lambda **kwargs: kwargs
+        fake_styles.inject_css = lambda: None
+        fake_styles.pnl_color = lambda value: "#0f0"
+
+        fake_plotly = ModuleType("plotly")
+        fake_go = ModuleType("plotly.graph_objects")
+        fake_plotly.graph_objects = fake_go
+
+        with patch.dict(
+            sys.modules,
+            {
+                "streamlit": fake_streamlit,
+                "dashboard.data": fake_data,
+                "dashboard.styles": fake_styles,
+                "plotly": fake_plotly,
+                "plotly.graph_objects": fake_go,
+            },
+        ):
+            sys.modules.pop("dashboard.app", None)
+            try:
+                with self.assertRaises(DashboardBootstrapped) as ctx:
+                    importlib.import_module("dashboard.app")
+            finally:
+                sys.modules.pop("dashboard.app", None)
+
+        self.assertEqual(page_config_calls[0]["page_title"], "크립토 트레이더")
+        self.assertEqual(
+            ctx.exception.args[0],
+            ["개요", "포트폴리오·리스크", "전략연구", "알림·히스토리"],
+        )
+        self.assertNotIn("dashboard_authenticated", session_state)
+        self.assertNotIn("dashboard_authenticated", session_state.accessed)
 
     def test_app_has_new_tabs(self) -> None:
         source = _read_source("dashboard/app.py")

@@ -18,7 +18,6 @@ if _repo_root not in sys.path:
 import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from dashboard.auth import check_auth, render_login  # noqa: E402
 from dashboard.data import (  # noqa: E402
     load_checkpoint,
     load_daemon_heartbeat,
@@ -47,10 +46,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 inject_css()
-
-if not check_auth():
-    render_login()
-    st.stop()
 
 st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
 
@@ -702,13 +697,7 @@ def _render_signals(history: dict[str, Any]) -> None:
     )
 
 
-col_title, col_logout = st.columns([6, 1])
-with col_title:
-    st.markdown("## 크립토 트레이더")
-with col_logout:
-    if st.button("로그아웃", key="logout_btn"):
-        st.session_state["dashboard_authenticated"] = False
-        st.rerun()
+st.markdown("## 크립토 트레이더")
 
 with st.spinner("데이터 로딩 중..."):
     checkpoint = load_checkpoint()
