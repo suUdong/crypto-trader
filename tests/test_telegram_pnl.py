@@ -32,7 +32,11 @@ def _make_config(
     chat_id: str = "",
     checkpoint_path: str | None = None,
 ) -> AppConfig:
-    checkpoint = Path(checkpoint_path) if checkpoint_path else Path(tempfile.mkdtemp()) / "checkpoint.json"
+    checkpoint = (
+        Path(checkpoint_path)
+        if checkpoint_path
+        else Path(tempfile.mkdtemp()) / "checkpoint.json"
+    )
     base = checkpoint.parent
     return AppConfig(
         trading=TradingConfig(

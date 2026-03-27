@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from crypto_trader.notifications.alert_manager import TradeAlertManager
 from crypto_trader.notifications.telegram import Notifier
@@ -138,7 +137,10 @@ class TestTradeAlertManager(unittest.TestCase):
         )
 
     def test_duplicate_error_alerts_are_throttled(self) -> None:
-        with patch("crypto_trader.notifications.alert_manager.time.monotonic", side_effect=[0.0, 10.0]):
+        with patch(
+            "crypto_trader.notifications.alert_manager.time.monotonic",
+            side_effect=[0.0, 10.0],
+        ):
             self.manager.alert_error(
                 wallet_name="test_wallet",
                 symbol="KRW-BTC",

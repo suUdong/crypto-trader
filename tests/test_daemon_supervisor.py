@@ -64,7 +64,9 @@ class TestDaemonSupervisor(unittest.TestCase):
             self.assertEqual(payload["status"], "restarting")
             self.assertEqual(payload["restart_count"], 1)
             self.assertIn("upbit network down", payload["last_error"])
-            heartbeat = json.loads((Path(temp_dir) / "daemon-heartbeat.json").read_text(encoding="utf-8"))
+            heartbeat = json.loads(
+                (Path(temp_dir) / "daemon-heartbeat.json").read_text(encoding="utf-8")
+            )
             self.assertEqual(heartbeat["status"], "restarting")
             self.assertTrue(heartbeat["recoverable_error"])
 
@@ -101,7 +103,10 @@ class TestDaemonSupervisor(unittest.TestCase):
             notifier = _RecordingNotifier()
             attempt = {"count": 0}
 
-            def factory(restart_count: int, last_restart_at: str | None) -> _CrashThenRecoverRuntime:
+            def factory(
+                restart_count: int,
+                last_restart_at: str | None,
+            ) -> _CrashThenRecoverRuntime:
                 attempt["count"] += 1
                 if attempt["count"] >= 4:
                     return _CrashThenRecoverRuntime(should_crash=False)
