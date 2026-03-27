@@ -20,6 +20,7 @@ import streamlit as st  # noqa: E402
 
 from dashboard.auth import require_auth  # noqa: E402
 from dashboard.data import (  # noqa: E402
+    FEAR_GREED_ZONES,
     load_checkpoint,
     load_daemon_heartbeat,
     load_daily_performance,
@@ -33,8 +34,10 @@ from dashboard.data import (  # noqa: E402
     load_operator_report,
     load_pnl_report,
     load_promotion_gate,
+    load_regime_panel_data,
     load_risk_overview,
     load_signal_history,
+    load_signal_monitor_data,
     load_wallet_analytics,
     load_weekly_report,
     regime_kr,
@@ -259,6 +262,7 @@ def _render_overview(
     weekly_report: dict[str, Any] | None,
     risk: dict[str, Any],
     macro: dict[str, Any] | None,
+    regime_panel: dict[str, Any],
     promotion_gate: dict[str, Any] | None,
 ) -> None:
     portfolio = analytics["portfolio"]
@@ -332,37 +336,8 @@ def _render_overview(
         _render_wallet_timeline(wallets)
     with macro_col:
         st.markdown("#### 매크로 레짐 연동")
-        if macro is None:
-            _empty("macro-intelligence 또는 regime-report 데이터가 없습니다.")
-        else:
-            alignment_level = "ok" if macro.get("alignment") == "aligned" else "warn"
-            alignment_label = "정렬" if macro.get("alignment") == "aligned" else "혼합"
-            summary_lines = [
-                f'<span class="status-badge {_status_class(alignment_level)}">'
-                f"{alignment_label}</span>"
-            ]
-            if macro.get("source_available"):
-                summary_lines.append(
-                    f"<strong>{macro.get('overall_regime_label', '-')}</strong> "
-                    f"({float(macro.get('overall_confidence', 0.0)) * 100:.0f}%)"
-                )
-            if macro.get("local_regime_label"):
-                summary_lines.append(f"로컬: {macro.get('local_regime_label')}")
-            st.markdown(" · ".join(summary_lines), unsafe_allow_html=True)
-
-            layers = macro.get("layers", [])
-            for layer in layers:
-                st.markdown(
-                    f'<div class="dashboard-panel"><strong>{layer["name"]}</strong> '
-                    f"{layer['label']} · 신뢰도 {layer['confidence'] * 100:.0f}%</div>",
-                    unsafe_allow_html=True,
-                )
-            if macro.get("btc_dominance") is not None:
-                st.metric("BTC Dominance", f"{float(macro['btc_dominance']):.2f}%")
-            if macro.get("kimchi_premium") is not None:
-                st.metric("Kimchi Premium", f"{float(macro['kimchi_premium']):.2f}%")
-            if macro.get("fear_greed_index") is not None:
-                st.metric("Fear & Greed", f"{int(macro['fear_greed_index'])}")
+        _render_regime_panel(regime_panel)
+        _render_fear_greed_gauge(regime_panel)
 
     _render_report_digest(daily_report=daily_report, weekly_report=weekly_report)
 
@@ -1096,6 +1071,227 @@ def _render_signals(history: dict[str, Any]) -> None:
     )
 
 
+def _render_regime_panel(regime_data: dict[str, Any]) -> None:
+    """Render dedicated regime status panel with confidence bars and F&G gauge."""
+    if not regime_data.get("available"):
+        _empty("매크로 레짐 데이터를 사용할 수 없습니다. macro-intelligence API를 확인하세요.")
+        return
+
+    # Weekend badge
+    weekend_html = ""
+    if regime_data.get("is_weekend"):
+        weekend_html = ' <span class="status-badge status-warn">주말 전략 활성</span>'
+
+    alignment = regime_data.get("alignment", "unknown")
+    align_cls = "status-ok" if alignment == "aligned" else "status-warn"
+    align_label = "정렬" if alignment == "aligned" else "혼합"
+
+    st.markdown(
+        f'<span class="status-badge {align_cls}">{align_label}</span> '
+        f'<strong>{regime_data["overall_regime_label"]}</strong> '
+        f'({regime_data["overall_confidence"] * 100:.0f}%)'
+        f"{weekend_html}",
+        unsafe_allow_html=True,
+    )
+
+    # Layer confidence bar chart
+    layers = regime_data.get("layers", [])
+    if layers:
+        layer_names = [layer["name"] for layer in layers]
+        layer_confidences = [float(layer["confidence"]) * 100 for layer in layers]
+        layer_labels = [layer["label"] for layer in layers]
+        layer_colors = [
+            COLORS["green"] if layer["regime"] in ("expansionary", "risk_on") else
+            COLORS["yellow"] if layer["regime"] in ("neutral",) else
+            COLORS["red"]
+            for layer in layers
+        ]
+
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=layer_names,
+            y=layer_confidences,
+            text=[
+                f"{label}<br>{conf:.0f}%"
+                for label, conf in zip(layer_labels, layer_confidences, strict=False)
+            ],
+            textposition="inside",
+            marker_color=layer_colors,
+            hovertemplate="%{x}: %{text}<extra></extra>",
+        ))
+        fig.update_layout(
+            **chart_layout(title="레짐 레이어별 신뢰도", height=220),
+            yaxis={"range": [0, 100], "title": "신뢰도 (%)"},
+            showlegend=False,
+        )
+        st.plotly_chart(fig, width="stretch")
+
+    # Position multiplier
+    multiplier = regime_data.get("position_multiplier", 1.0)
+    mult_color = (
+        COLORS["green"] if multiplier >= 1.2 else
+        COLORS["yellow"] if multiplier >= 0.8 else
+        COLORS["red"]
+    )
+    st.markdown(
+        f'<div class="dashboard-panel">'
+        f'<strong>포지션 배율</strong> '
+        f'<span style="color:{mult_color};font-weight:700;font-size:1.3rem;">'
+        f'{multiplier:.2f}x</span><br>'
+        f'<span style="color:var(--text-muted);font-size:0.85rem;">'
+        f'{" · ".join(regime_data.get("multiplier_reasons", []))}'
+        f'</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    # Crypto metrics row
+    metrics_col = st.columns(3)
+    if regime_data.get("btc_dominance") is not None:
+        metrics_col[0].metric("BTC Dominance", f"{float(regime_data['btc_dominance']):.1f}%")
+    if regime_data.get("kimchi_premium") is not None:
+        metrics_col[1].metric("Kimchi Premium", f"{float(regime_data['kimchi_premium']):.2f}%")
+    if regime_data.get("fear_greed_index") is not None:
+        metrics_col[2].metric(
+            "Fear & Greed",
+            f"{regime_data['fear_greed_index']}",
+            regime_data.get("fear_greed_label", ""),
+        )
+
+
+def _render_fear_greed_gauge(regime_data: dict[str, Any]) -> None:
+    """Render Fear & Greed index as a Plotly gauge with 5 color zones."""
+    fg_value = regime_data.get("fear_greed_index")
+    if fg_value is None:
+        _empty("Fear & Greed 인덱스 데이터가 없습니다.")
+        return
+
+    fg_label = regime_data.get("fear_greed_label", "")
+
+    steps = [
+        {"range": [low, high], "color": color}
+        for low, high, _label, color in FEAR_GREED_ZONES
+    ]
+
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=fg_value,
+        number={"font": {"size": 48, "color": "#edf5fb"}},
+        title={"text": f"Fear & Greed · {fg_label}", "font": {"size": 14, "color": "#9fb4c7"}},
+        gauge={
+            "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#3a5068"},
+            "bar": {"color": "#edf5fb", "thickness": 0.25},
+            "bgcolor": "rgba(0,0,0,0)",
+            "borderwidth": 0,
+            "steps": steps,
+            "threshold": {
+                "line": {"color": "#edf5fb", "width": 3},
+                "thickness": 0.8,
+                "value": fg_value,
+            },
+        },
+    ))
+    fig.update_layout(
+        height=240,
+        margin={"l": 20, "r": 20, "t": 40, "b": 10},
+        paper_bgcolor="rgba(0,0,0,0)",
+        font={"family": "'Noto Sans KR', sans-serif"},
+    )
+    st.plotly_chart(fig, width="stretch")
+
+
+def _render_signal_monitor(monitor: dict[str, Any]) -> None:
+    """Render real-time signal monitor tab."""
+    wallet_signals = monitor["wallet_signals"]
+    if not wallet_signals:
+        _empty("시그널 데이터가 없습니다. 데몬이 실행 중인지 확인하세요.")
+        return
+
+    # Summary metrics
+    metric_cols = st.columns(4)
+    metric_cols[0].metric("활성 지갑", f"{len(wallet_signals)}")
+    metric_cols[1].metric("매수 시그널", f"{monitor['active_buy_count']}", delta_color="normal")
+    metric_cols[2].metric("매도 시그널", f"{monitor['active_sell_count']}", delta_color="normal")
+    metric_cols[3].metric("관망", f"{monitor['active_hold_count']}")
+
+    # Per-wallet latest signal table
+    st.markdown("#### 전략별 최신 시그널")
+    signal_rows = []
+    for sig in wallet_signals:
+        action = sig["action"]
+        signal_rows.append({
+            "지갑": sig["display_name"],
+            "심볼": sig["symbol_display"],
+            "액션": action.upper(),
+            "신뢰도": f"{sig['confidence'] * 100:.0f}%",
+            "이유": sig["reason"][:60] if sig["reason"] else "-",
+            "레짐": sig["regime_label"] or "-",
+            "가격": f"₩{sig['latest_price']:,.0f}" if sig["latest_price"] else "-",
+            "시간": sig["timestamp"][:19] if sig["timestamp"] else "-",
+        })
+    st.dataframe(signal_rows, width="stretch", hide_index=True)
+
+    # Two columns: heatmap + timeline
+    left_col, right_col = st.columns([1.1, 0.9])
+
+    with left_col:
+        # Strategy x Regime heatmap
+        strategies = monitor["strategies"]
+        regimes = monitor["regimes"]
+        heatmap_z = monitor["heatmap_z"]
+        if strategies and regimes and heatmap_z:
+            st.markdown("#### 전략 × 레짐 시그널 매트릭스")
+            fig = go.Figure(data=[go.Heatmap(
+                x=regimes,
+                y=strategies,
+                z=heatmap_z,
+                colorscale=[
+                    [0.0, "rgba(15,29,42,0.85)"],
+                    [0.5, "rgba(119,184,255,0.5)"],
+                    [1.0, "rgba(97,242,162,0.95)"],
+                ],
+                hovertemplate="전략: %{y}<br>레짐: %{x}<br>시그널: %{z}<extra></extra>",
+            )])
+            fig.update_layout(
+                **chart_layout(title="", height=max(200, len(strategies) * 36 + 60)),
+                xaxis_title="레짐",
+                yaxis_title="",
+            )
+            st.plotly_chart(fig, width="stretch")
+        else:
+            _empty("시그널 매트릭스 데이터가 부족합니다.")
+
+    with right_col:
+        # Signal timeline
+        timeline = monitor["timeline"]
+        if timeline:
+            st.markdown("#### 시그널 타임라인")
+            fig = go.Figure()
+            buy_tl = [t for t in timeline if t["action"] == "buy"]
+            sell_tl = [t for t in timeline if t["action"] == "sell"]
+
+            for label, data, color in [
+                ("매수", buy_tl, COLORS["green"]),
+                ("매도", sell_tl, COLORS["red"]),
+            ]:
+                if data:
+                    fig.add_trace(go.Scatter(
+                        x=[t["timestamp"][:19] for t in data],
+                        y=[t["confidence"] for t in data],
+                        mode="markers",
+                        name=label,
+                        marker={"size": 10, "color": color},
+                        text=[f"{t['display_name']}<br>{t['symbol_display']}" for t in data],
+                        hovertemplate="%{text}<br>신뢰도: %{y:.0%}<br>%{x}<extra></extra>",
+                    ))
+            fig.update_layout(
+                **chart_layout(title="", height=280, yaxis_title="신뢰도"),
+                yaxis={"range": [0, 1]},
+            )
+            st.plotly_chart(fig, width="stretch")
+        else:
+            _empty("최근 매수/매도 시그널이 없습니다.")
+
+
 st.markdown("## 크립토 트레이더")
 
 with st.spinner("데이터 로딩 중..."):
@@ -1105,6 +1301,8 @@ with st.spinner("데이터 로딩 중..."):
     analytics = load_wallet_analytics()
     risk = load_risk_overview()
     macro = load_macro_summary()
+    regime_panel = load_regime_panel_data()
+    signal_monitor = load_signal_monitor_data()
     edge_analysis = load_edge_analysis()
     research = load_momentum_pullback_research()
     funding_rate_research = load_funding_rate_research()
@@ -1122,6 +1320,7 @@ _render_status_row(heartbeat, freshness)
 (
     tab_overview,
     tab_portfolio_risk,
+    tab_signal_monitor,
     tab_edge_analysis,
     tab_reports,
     tab_strategy_research,
@@ -1131,6 +1330,7 @@ _render_status_row(heartbeat, freshness)
     [
         "개요",
         "포트폴리오·리스크",
+        "시그널 모니터",
         "엣지분석",
         "자동리포트",
         "전략연구",
@@ -1147,11 +1347,15 @@ with tab_overview:
         weekly_report=weekly_report,
         risk=risk,
         macro=macro,
+        regime_panel=regime_panel,
         promotion_gate=promotion_gate,
     )
 
 with tab_portfolio_risk:
     _render_portfolio_and_risk(analytics=analytics, risk=risk, health=health)
+
+with tab_signal_monitor:
+    _render_signal_monitor(signal_monitor)
 
 with tab_edge_analysis:
     _render_edge_analysis(edge_analysis)

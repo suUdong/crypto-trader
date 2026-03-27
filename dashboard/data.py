@@ -1398,3 +1398,184 @@ def load_signal_history(limit: int = 300) -> dict[str, Any]:
         "wallet_counts": dict(wallet_counts),
         "total": len(rows),
     }
+
+
+# ---------------------------------------------------------------------------
+# Dashboard v3: Regime panel, Fear & Greed, Signal monitor
+# ---------------------------------------------------------------------------
+
+FEAR_GREED_ZONES: list[tuple[int, int, str, str]] = [
+    (0, 20, "극단적 공포", "#ff4444"),
+    (20, 40, "공포", "#ff8c42"),
+    (40, 60, "중립", "#ffc75f"),
+    (60, 80, "탐욕", "#7bc67e"),
+    (80, 100, "극단적 탐욕", "#44bb44"),
+]
+
+
+def fear_greed_zone_label(value: int | None) -> str:
+    """Return Korean label for Fear & Greed index value."""
+    if value is None:
+        return "데이터 없음"
+    for low, high, label, _color in FEAR_GREED_ZONES:
+        if low <= value < high:
+            return label
+    if value >= 100:
+        return "극단적 탐욕"
+    return "데이터 없음"
+
+
+def _compute_macro_adjustment() -> tuple[float, list[str]]:
+    """Compute position size multiplier from MacroRegimeAdapter."""
+    try:
+        from crypto_trader.macro.adapter import MacroRegimeAdapter
+        from crypto_trader.macro.client import MacroClient
+
+        snapshot = MacroClient().get_snapshot()
+        adapter = MacroRegimeAdapter()
+        adjustment = adapter.compute(snapshot)
+        return adjustment.position_size_multiplier, adjustment.reasons
+    except Exception:
+        logger.exception("Failed to compute macro adjustment")
+        return 1.0, ["macro adapter unavailable"]
+
+
+@st.cache_data(ttl=30)
+def load_regime_panel_data() -> dict[str, Any]:
+    """Load regime data for the dedicated regime status panel."""
+    macro = load_macro_summary()
+    checkpoint = load_checkpoint() or {}
+    is_weekend = bool(checkpoint.get("is_weekend", False))
+    multiplier, reasons = _compute_macro_adjustment()
+
+    panel: dict[str, Any] = {
+        "available": macro is not None and macro.get("source_available", False),
+        "is_weekend": is_weekend,
+        "position_multiplier": multiplier,
+        "multiplier_reasons": reasons,
+    }
+
+    if macro is None:
+        panel.update({
+            "overall_regime": "unknown",
+            "overall_regime_label": "데이터 없음",
+            "overall_confidence": 0.0,
+            "layers": [],
+            "fear_greed_index": None,
+            "fear_greed_label": "데이터 없음",
+            "btc_dominance": None,
+            "kimchi_premium": None,
+        })
+        return panel
+
+    fg = macro.get("fear_greed_index")
+    fg_int = int(fg) if fg is not None else None
+    panel.update({
+        "overall_regime": macro.get("overall_regime", "unknown"),
+        "overall_regime_label": macro.get("overall_regime_label", "알 수 없음"),
+        "overall_confidence": float(macro.get("overall_confidence", 0.0)),
+        "layers": macro.get("layers", []),
+        "fear_greed_index": fg_int,
+        "fear_greed_label": fear_greed_zone_label(fg_int),
+        "btc_dominance": macro.get("btc_dominance"),
+        "kimchi_premium": macro.get("kimchi_premium"),
+        "alignment": macro.get("alignment", "unknown"),
+        "local_regime_label": macro.get("local_regime_label"),
+    })
+    return panel
+
+
+@st.cache_data(ttl=30)
+def load_signal_monitor_data() -> dict[str, Any]:
+    """Aggregate per-strategy latest signals with regime context for signal monitor."""
+    checkpoint = load_checkpoint()
+    wallet_states = (
+        cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {})) if checkpoint else {}
+    )
+    session_meta = _active_session_metadata(wallet_states)
+    runs = [
+        run
+        for run in load_strategy_runs()
+        if _is_current_session_run(run, wallet_states, session_meta)
+    ]
+
+    # Latest signal per wallet
+    latest_per_wallet: dict[str, dict[str, Any]] = {}
+    for run in runs:
+        wallet_name = _run_wallet_name(run, wallet_states)
+        run_dt = _parse_dt(run.get("recorded_at"))
+        current = latest_per_wallet.get(wallet_name)
+        current_dt = _parse_dt(current.get("recorded_at")) if current else None
+        if current_dt is None or (run_dt is not None and run_dt >= current_dt):
+            latest_per_wallet[wallet_name] = run
+
+    wallet_signals: list[dict[str, Any]] = []
+    for wallet_name, run in latest_per_wallet.items():
+        recorded_at = _parse_dt(run.get("recorded_at"))
+        wallet_signals.append({
+            "wallet_name": wallet_name,
+            "display_name": strategy_kr(wallet_name),
+            "strategy_type": str(run.get("strategy_type", _strategy_key(wallet_name))),
+            "action": str(run.get("signal_action", "hold")),
+            "confidence": float(run.get("signal_confidence", 0.0) or 0.0),
+            "reason": str(run.get("signal_reason", "")),
+            "symbol": str(run.get("symbol", "")),
+            "symbol_display": symbol_kr(str(run.get("symbol", ""))) if run.get("symbol") else "",
+            "regime": str(run.get("market_regime", "")),
+            "regime_label": regime_kr(str(run.get("market_regime", "")))
+            if run.get("market_regime")
+            else "",
+            "latest_price": float(run.get("latest_price", 0.0) or 0.0),
+            "timestamp": recorded_at.isoformat() if recorded_at else "",
+        })
+
+    wallet_signals.sort(key=lambda s: s["timestamp"], reverse=True)
+
+    # Strategy x Regime signal count matrix
+    strategy_regime_matrix: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for run in runs[-500:]:
+        strategy = str(run.get("strategy_type", ""))
+        regime = str(run.get("market_regime", ""))
+        action = str(run.get("signal_action", "hold"))
+        if strategy and regime and action != "hold":
+            strategy_regime_matrix[strategy_kr(strategy)][regime_kr(regime)] += 1
+
+    strategies = sorted(strategy_regime_matrix.keys())
+    regimes = sorted(
+        {regime for counts in strategy_regime_matrix.values() for regime in counts}
+    )
+    heatmap_z: list[list[int]] = []
+    for strategy in strategies:
+        heatmap_z.append([strategy_regime_matrix[strategy].get(r, 0) for r in regimes])
+
+    # Signal timeline (last 60 non-hold signals)
+    timeline: list[dict[str, Any]] = []
+    for run in reversed(runs[-300:]):
+        action = str(run.get("signal_action", "hold"))
+        if action == "hold":
+            continue
+        recorded_at = _parse_dt(run.get("recorded_at"))
+        wallet_name = _run_wallet_name(run, wallet_states)
+        timeline.append({
+            "timestamp": recorded_at.isoformat() if recorded_at else "",
+            "display_name": strategy_kr(wallet_name),
+            "action": action,
+            "confidence": float(run.get("signal_confidence", 0.0) or 0.0),
+            "symbol_display": symbol_kr(str(run.get("symbol", ""))) if run.get("symbol") else "",
+            "regime_label": regime_kr(str(run.get("market_regime", "")))
+            if run.get("market_regime")
+            else "",
+        })
+        if len(timeline) >= 60:
+            break
+
+    return {
+        "wallet_signals": wallet_signals,
+        "strategies": strategies,
+        "regimes": regimes,
+        "heatmap_z": heatmap_z,
+        "timeline": timeline,
+        "active_buy_count": sum(1 for s in wallet_signals if s["action"] == "buy"),
+        "active_sell_count": sum(1 for s in wallet_signals if s["action"] == "sell"),
+        "active_hold_count": sum(1 for s in wallet_signals if s["action"] == "hold"),
+    }

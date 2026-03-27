@@ -1636,6 +1636,225 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(non_risk_rows[0]["wallet_name"], "momentum_btc_wallet")
 
 
+@_skip
+class TestDashboardV3(unittest.TestCase):
+    """Tests for dashboard v3 features: regime panel, F&G gauge, signal monitor."""
+
+    def setUp(self) -> None:
+        self.tmpdir = tempfile.mkdtemp()
+        self._orig_dir = data_mod.ARTIFACTS_DIR
+        data_mod.ARTIFACTS_DIR = Path(self.tmpdir)
+        try:
+            import streamlit as st
+
+            st.cache_data.clear()
+        except Exception:
+            pass
+
+    def tearDown(self) -> None:
+        data_mod.ARTIFACTS_DIR = self._orig_dir
+        import shutil
+
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_fear_greed_zone_label_extreme_fear(self) -> None:
+        self.assertEqual(data_mod.fear_greed_zone_label(5), "극단적 공포")
+        self.assertEqual(data_mod.fear_greed_zone_label(0), "극단적 공포")
+
+    def test_fear_greed_zone_label_fear(self) -> None:
+        self.assertEqual(data_mod.fear_greed_zone_label(25), "공포")
+
+    def test_fear_greed_zone_label_neutral(self) -> None:
+        self.assertEqual(data_mod.fear_greed_zone_label(50), "중립")
+
+    def test_fear_greed_zone_label_greed(self) -> None:
+        self.assertEqual(data_mod.fear_greed_zone_label(70), "탐욕")
+
+    def test_fear_greed_zone_label_extreme_greed(self) -> None:
+        self.assertEqual(data_mod.fear_greed_zone_label(85), "극단적 탐욕")
+        self.assertEqual(data_mod.fear_greed_zone_label(100), "극단적 탐욕")
+
+    def test_fear_greed_zone_label_none(self) -> None:
+        self.assertEqual(data_mod.fear_greed_zone_label(None), "데이터 없음")
+
+    @patch("dashboard.data._fetch_macro_snapshot")
+    @patch("dashboard.data._compute_macro_adjustment")
+    def test_load_regime_panel_data_with_macro(
+        self, mock_adj: Any, mock_snapshot: Any
+    ) -> None:
+        mock_adj.return_value = (1.35, ["macro regime=expansionary -> base=1.5x"])
+        mock_snapshot.return_value = SimpleNamespace(
+            overall_regime="expansionary",
+            overall_confidence=0.82,
+            us_regime="expansionary",
+            us_confidence=0.85,
+            kr_regime="neutral",
+            kr_confidence=0.70,
+            crypto_regime="risk_on",
+            crypto_confidence=0.78,
+            crypto_signals={"btc": "bullish"},
+            btc_dominance=56.3,
+            kimchi_premium=2.1,
+            fear_greed_index=72,
+        )
+        (Path(self.tmpdir) / "regime-report.json").write_text(
+            json.dumps({"market_regime": "bull", "symbol": "KRW-BTC", "reasons": []})
+        )
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps({"is_weekend": False, "wallet_states": {}})
+        )
+
+        result = data_mod.load_regime_panel_data()
+        self.assertTrue(result["available"])
+        self.assertEqual(result["overall_regime"], "expansionary")
+        self.assertAlmostEqual(result["position_multiplier"], 1.35)
+        self.assertEqual(result["fear_greed_index"], 72)
+        self.assertEqual(result["fear_greed_label"], "탐욕")
+        self.assertFalse(result["is_weekend"])
+        self.assertEqual(len(result["layers"]), 3)
+
+    @patch("dashboard.data._fetch_macro_snapshot")
+    @patch("dashboard.data._compute_macro_adjustment")
+    def test_load_regime_panel_data_without_macro(
+        self, mock_adj: Any, mock_snapshot: Any
+    ) -> None:
+        mock_adj.return_value = (1.0, ["macro adapter unavailable"])
+        mock_snapshot.return_value = None
+
+        result = data_mod.load_regime_panel_data()
+        self.assertFalse(result["available"])
+        self.assertEqual(result["overall_regime"], "unknown")
+        self.assertIsNone(result["fear_greed_index"])
+        self.assertAlmostEqual(result["position_multiplier"], 1.0)
+
+    @patch("dashboard.data._fetch_macro_snapshot")
+    @patch("dashboard.data._compute_macro_adjustment")
+    def test_load_regime_panel_weekend_flag(
+        self, mock_adj: Any, mock_snapshot: Any
+    ) -> None:
+        mock_adj.return_value = (0.7, ["contractionary"])
+        mock_snapshot.return_value = SimpleNamespace(
+            overall_regime="contractionary",
+            overall_confidence=0.60,
+            us_regime="contractionary",
+            us_confidence=0.55,
+            kr_regime="contractionary",
+            kr_confidence=0.58,
+            crypto_regime="risk_off",
+            crypto_confidence=0.65,
+            crypto_signals={},
+            btc_dominance=62.0,
+            kimchi_premium=0.5,
+            fear_greed_index=15,
+        )
+        (Path(self.tmpdir) / "regime-report.json").write_text(
+            json.dumps({"market_regime": "bear", "symbol": "KRW-BTC", "reasons": []})
+        )
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps({"is_weekend": True, "wallet_states": {}})
+        )
+
+        result = data_mod.load_regime_panel_data()
+        self.assertTrue(result["is_weekend"])
+        self.assertEqual(result["fear_greed_label"], "극단적 공포")
+
+    def test_load_signal_monitor_data_empty(self) -> None:
+        result = data_mod.load_signal_monitor_data()
+        self.assertEqual(result["wallet_signals"], [])
+        self.assertEqual(result["active_buy_count"], 0)
+        self.assertEqual(result["active_sell_count"], 0)
+        self.assertEqual(result["timeline"], [])
+
+    def test_load_signal_monitor_data_with_runs(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps({
+                "generated_at": "2026-03-28T12:00:00+00:00",
+                "wallet_states": {
+                    "momentum_btc": {
+                        "strategy_type": "momentum",
+                        "equity": 1_100_000,
+                        "cash": 1_100_000,
+                        "realized_pnl": 100_000,
+                        "positions": {},
+                        "open_positions": 0,
+                    },
+                    "mean_reversion_eth": {
+                        "strategy_type": "mean_reversion",
+                        "equity": 950_000,
+                        "cash": 950_000,
+                        "realized_pnl": -50_000,
+                        "positions": {},
+                        "open_positions": 0,
+                    },
+                },
+                "is_weekend": False,
+            })
+        )
+        runs = [
+            {
+                "wallet_name": "momentum_btc",
+                "strategy_type": "momentum",
+                "symbol": "KRW-BTC",
+                "signal_action": "buy",
+                "signal_confidence": 0.85,
+                "signal_reason": "strong uptrend",
+                "market_regime": "bull",
+                "latest_price": 135_000_000,
+                "recorded_at": "2026-03-28T11:55:00+00:00",
+            },
+            {
+                "wallet_name": "mean_reversion_eth",
+                "strategy_type": "mean_reversion",
+                "symbol": "KRW-ETH",
+                "signal_action": "sell",
+                "signal_confidence": 0.72,
+                "signal_reason": "overbought",
+                "market_regime": "sideways",
+                "latest_price": 5_200_000,
+                "recorded_at": "2026-03-28T11:56:00+00:00",
+            },
+            {
+                "wallet_name": "momentum_btc",
+                "strategy_type": "momentum",
+                "symbol": "KRW-BTC",
+                "signal_action": "hold",
+                "signal_confidence": 0.40,
+                "signal_reason": "consolidating",
+                "market_regime": "bull",
+                "latest_price": 135_500_000,
+                "recorded_at": "2026-03-28T11:59:00+00:00",
+            },
+        ]
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            "\n".join(json.dumps(r) for r in runs)
+        )
+
+        result = data_mod.load_signal_monitor_data()
+        self.assertEqual(len(result["wallet_signals"]), 2)
+        self.assertEqual(result["active_buy_count"], 0)
+        self.assertEqual(result["active_sell_count"], 1)
+        self.assertEqual(result["active_hold_count"], 1)
+        # Timeline should have 2 non-hold signals
+        self.assertEqual(len(result["timeline"]), 2)
+
+    def test_fear_greed_zones_constant_covers_full_range(self) -> None:
+        zones = data_mod.FEAR_GREED_ZONES
+        self.assertEqual(len(zones), 5)
+        self.assertEqual(zones[0][0], 0)
+        self.assertEqual(zones[-1][1], 100)
+        for i in range(len(zones) - 1):
+            self.assertEqual(zones[i][1], zones[i + 1][0])
+
+    def test_app_source_has_signal_monitor_tab(self) -> None:
+        source = _read_source("dashboard/app.py")
+        self.assertIn("시그널 모니터", source)
+        self.assertIn("_render_signal_monitor", source)
+        self.assertIn("_render_regime_panel", source)
+        self.assertIn("_render_fear_greed_gauge", source)
+        self.assertIn("load_regime_panel_data", source)
+        self.assertIn("load_signal_monitor_data", source)
+
+
 class TestDashboardEntrypoint(unittest.TestCase):
     """Guard startup compatibility for local Streamlit and Cloud."""
 
@@ -1690,6 +1909,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
         fake_auth.require_auth = lambda: True
 
         fake_data = ModuleType("dashboard.data")
+        fake_data.FEAR_GREED_ZONES = []
         fake_data.load_checkpoint = lambda: None
         fake_data.load_daemon_heartbeat = lambda: None
         fake_data.load_daily_performance = lambda: None
@@ -1703,6 +1923,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
         fake_data.load_operator_report = lambda: None
         fake_data.load_pnl_report = lambda: None
         fake_data.load_promotion_gate = lambda: None
+        fake_data.load_regime_panel_data = lambda: {"available": False}
         fake_data.load_risk_overview = lambda: {}
         fake_data.load_signal_history = (
             lambda limit=400: {
@@ -1714,6 +1935,16 @@ class TestDashboardEntrypoint(unittest.TestCase):
                 "wallet_counts": {},
             }
         )
+        fake_data.load_signal_monitor_data = lambda: {
+            "wallet_signals": [],
+            "strategies": [],
+            "regimes": [],
+            "heatmap_z": [],
+            "timeline": [],
+            "active_buy_count": 0,
+            "active_sell_count": 0,
+            "active_hold_count": 0,
+        }
         fake_data.load_wallet_analytics = lambda: []
         fake_data.load_weekly_report = lambda: None
         fake_data.regime_kr = lambda value: value
@@ -1755,6 +1986,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
             [
                 "개요",
                 "포트폴리오·리스크",
+                "시그널 모니터",
                 "엣지분석",
                 "자동리포트",
                 "전략연구",
@@ -1769,6 +2001,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
         source = _read_source("dashboard/app.py")
         self.assertIn("tab_overview", source)
         self.assertIn("tab_portfolio_risk", source)
+        self.assertIn("tab_signal_monitor", source)
         self.assertIn("tab_edge_analysis", source)
         self.assertIn("tab_reports", source)
         self.assertIn("tab_strategy_research", source)
@@ -1776,6 +2009,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
         self.assertIn("tab_alerts_history", source)
         self.assertIn("개요", source)
         self.assertIn("포트폴리오·리스크", source)
+        self.assertIn("시그널 모니터", source)
         self.assertIn("엣지분석", source)
         self.assertIn("자동리포트", source)
         self.assertIn("전략연구", source)
