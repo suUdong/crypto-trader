@@ -100,6 +100,7 @@ class TestWalkForwardCLIIntegration(unittest.TestCase):
         strategy_types = [
             "momentum",
             "momentum_pullback",
+            "bollinger_rsi",
             "mean_reversion",
             "composite",
             "obi",

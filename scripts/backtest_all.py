@@ -32,6 +32,7 @@ SYMBOLS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 STRATEGIES = [
     "momentum",
     "momentum_pullback",
+    "bollinger_rsi",
     "mean_reversion",
     "composite",
     "kimchi_premium",

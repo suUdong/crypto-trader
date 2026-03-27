@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
-import json
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -57,6 +57,9 @@ class MacroClient:
             logger.exception("Failed to fetch macro regime over HTTP")
             return None
 
+        if not isinstance(payload, dict):
+            logger.info("Macro HTTP payload is not an object")
+            return None
         if payload.get("status") != "ok":
             logger.info("Macro HTTP payload unavailable (status=%s)", payload.get("status"))
             return None

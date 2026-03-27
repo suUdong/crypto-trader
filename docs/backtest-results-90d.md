@@ -1,55 +1,54 @@
 # 90-Day Backtest Results
 
-Date: 2026-03-26
-Last revalidated: 2026-03-26T17:11:32+09:00
-Scope: 7 strategies x 4 symbols (`KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`) on 90 days of `minute60` candles from Upbit
+Date: 2026-03-27
+Last revalidated: 2026-03-27T22:55:00+09:00
+Scope: 9 strategies x 4 symbols (`KRW-BTC`, `KRW-ETH`, `KRW-XRP`, `KRW-SOL`) on 90 days of `minute60` candles from Upbit
 
-## Command
+## Commands
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/backtest_all.py 90 --cache-dir artifacts/candle-cache --json-out artifacts/backtest-results-90d.json
+PYTHONPATH=src .venv/bin/python scripts/strategy_correlation_analysis.py 90 --cache-dir artifacts/candle-cache
+PYTHONPATH=src .venv/bin/python scripts/portfolio_optimizer.py 90 --correlation artifacts/strategy-correlation-90d.json
 ```
 
-Raw JSON output was generated at `artifacts/backtest-results-90d.json` during the run.
-This report was revalidated on `2026-03-26T17:11:32+09:00` and now reflects the current worktree state.
+Focused re-optimization for the changed strategies was written to:
+
+- `artifacts/backtest-grid-90d/focused-strategies.json`
+- `artifacts/backtest-grid-90d/combined.json`
+- `config/optimized.toml`
 
 ## Executive Summary
 
-- All 28 backtest combinations completed successfully with `2160` candles per symbol.
-- Total trades across the full matrix: `1699`
-- All 7 strategies generated at least one trade.
-- No symbol had a positive average return across all 7 strategies.
-- `KRW-SOL` was the least-bad market on average at `-0.36%`; `KRW-XRP` was still the weakest at `-3.27%`.
-- By average return, `momentum` ranked first at `+1.40%` with `496` trades and the best strategy-level average PF among high-volume strategies at `1.14`.
-- `composite` improved to `+0.38%`, but it still only produced `22` trades total and remains a thin-sample candidate.
-- `vpin` remained the next strongest broad trade generator with `239` trades and `-0.62%` average return.
+- All 36 strategy/symbol runs completed successfully with `2160` candles per symbol.
+- Total trades across the full matrix: `591`
+- All 9 strategies generated at least one trade.
+- By average return, `momentum` ranked first at `+0.23%` with `119` trades and `1.16` average PF.
+- `composite` stayed near-flat at `+0.05%`, but only produced `4` trades and still has a thin sample problem.
+- `vpin` moved near flat at `+0.01%` and remained the strongest broad trade generator after `momentum`.
+- Default-parameter `mean_reversion` was still weak at `-1.30%`, but the focused retune lifted it to `+0.45%` average return with `0.36` Sharpe in the tuning artifact.
+- New `bollinger_rsi` baseline finished at `-0.93%`, while the focused sweep improved it to `-0.10%` with `0.03` Sharpe. It remains research-only.
 
 ## Strategy Summary
 
 | Strategy | Avg Return | Avg MDD | Avg Win Rate | Avg PF | Total Trades |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| momentum | +1.40% | 3.84% | 45.8% | 1.14 | 496 |
-| composite | +0.38% | 0.87% | 39.6% | 1.57 | 22 |
-| vpin | -0.62% | 4.62% | 50.8% | 0.93 | 239 |
-| volatility_breakout | -2.18% | 4.90% | 30.2% | 0.80 | 395 |
-| obi | -2.32% | 4.61% | 43.1% | 0.74 | 293 |
-| kimchi_premium | -4.20% | 6.93% | 51.3% | 0.67 | 197 |
-| mean_reversion | -5.42% | 5.96% | 26.8% | 0.20 | 57 |
+| momentum | +0.23% | 1.16% | 45.3% | 1.16 | 119 |
+| composite | +0.05% | 0.17% | 50.0% | inf | 4 |
+| vpin | +0.01% | 1.90% | 48.2% | 1.02 | 87 |
+| kimchi_premium | -0.08% | 1.75% | 50.7% | 0.97 | 59 |
+| obi | -0.25% | 1.31% | 49.0% | 0.83 | 68 |
+| volatility_breakout | -0.34% | 1.31% | 37.2% | 0.55 | 102 |
+| momentum_pullback | -0.67% | 1.50% | 42.2% | 0.55 | 46 |
+| bollinger_rsi | -0.93% | 2.14% | 61.2% | 0.65 | 64 |
+| mean_reversion | -1.30% | 1.85% | 33.4% | 0.37 | 42 |
 
-Notes:
+## Focused Re-optimization
 
-- `momentum` remains the strongest baseline candidate on average return while keeping drawdown below 4%.
-- `composite` is now positive with a strong PF, but the sample is still too thin at `22` trades.
-- `volatility_breakout` stayed highly active at `395` trades and improved materially versus the earlier snapshot, but still remained negative on average.
-
-## Symbol Summary
-
-| Symbol | Avg Return | Avg MDD | Total Trades | Best Combo | Worst Combo |
-| --- | ---: | ---: | ---: | --- | --- |
-| KRW-SOL | -0.36% | 4.78% | 512 | `momentum` `+5.17%` | `mean_reversion` `-5.70%` |
-| KRW-ETH | -1.78% | 4.15% | 385 | `composite` `+1.28%` | `mean_reversion` `-5.53%` |
-| KRW-BTC | -1.99% | 3.63% | 394 | `momentum` `+1.43%` | `mean_reversion` `-5.29%` |
-| KRW-XRP | -3.27% | 5.57% | 408 | `composite` `-0.31%` | `vpin` `-5.21%` |
+| Strategy | Avg Sharpe | Avg Return | Avg MDD | Total Trades | Best Params |
+| --- | ---: | ---: | ---: | ---: | --- |
+| mean_reversion | +0.36 | +0.45% | 1.53% | 80 | `bollinger_window=16`, `bollinger_stddev=1.5`, `rsi_period=8`, `rsi_oversold_floor=20`, `rsi_recovery_ceiling=28`, `noise_lookback=10`, `adx_threshold=28`, `max_holding_bars=18` |
+| bollinger_rsi | +0.03 | -0.10% | 1.72% | 74 | `bollinger_window=14`, `bollinger_stddev=1.5`, `rsi_period=8`, `rsi_oversold_floor=15`, `rsi_recovery_ceiling=30`, `rsi_overbought=65`, `max_holding_bars=18` |
 
 ## Best and Worst Runs
 
@@ -57,32 +56,33 @@ Best return combinations:
 
 | Rank | Strategy | Symbol | Return | MDD | Win Rate | Trades | PF |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | momentum | KRW-SOL | +5.17% | 3.71% | 46.0% | 161 | 1.44 |
-| 2 | volatility_breakout | KRW-SOL | +2.10% | 4.67% | 42.0% | 112 | 1.15 |
-| 3 | momentum | KRW-BTC | +1.43% | 2.42% | 44.9% | 98 | 1.16 |
-| 4 | composite | KRW-ETH | +1.28% | 0.78% | 50.0% | 6 | 3.48 |
-| 5 | momentum | KRW-ETH | +1.20% | 2.88% | 44.4% | 124 | 1.10 |
+| 1 | vpin | KRW-SOL | +1.38% | 1.70% | 56.2% | 32 | 1.57 |
+| 2 | kimchi_premium | KRW-BTC | +0.64% | 1.27% | 52.9% | 17 | 1.39 |
+| 3 | volatility_breakout | KRW-XRP | +0.63% | 2.41% | 45.9% | 61 | 1.14 |
+| 4 | momentum | KRW-ETH | +0.58% | 0.75% | 42.4% | 33 | 1.38 |
+| 5 | obi | KRW-SOL | +0.49% | 1.14% | 50.0% | 22 | 1.35 |
 
 Worst return combinations:
 
 | Rank | Strategy | Symbol | Return | MDD | Win Rate | Trades | PF |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | mean_reversion | KRW-SOL | -5.70% | 6.29% | 33.3% | 12 | 0.22 |
-| 2 | mean_reversion | KRW-ETH | -5.53% | 5.64% | 10.0% | 10 | 0.05 |
-| 3 | mean_reversion | KRW-BTC | -5.29% | 5.85% | 18.2% | 11 | 0.10 |
-| 4 | volatility_breakout | KRW-ETH | -5.23% | 5.98% | 23.0% | 61 | 0.45 |
-| 5 | vpin | KRW-XRP | -5.21% | 7.85% | 32.1% | 28 | 0.42 |
+| 1 | obi | KRW-XRP | -0.98% | 2.03% | 50.0% | 10 | 0.48 |
+| 2 | momentum_pullback | KRW-BTC | -1.06% | 1.19% | 40.0% | 10 | 0.26 |
+| 3 | bollinger_rsi | KRW-XRP | -1.16% | 1.99% | 50.0% | 10 | 0.48 |
+| 4 | mean_reversion | KRW-ETH | -1.85% | 2.11% | 10.0% | 10 | 0.13 |
+| 5 | mean_reversion | KRW-SOL | -1.95% | 2.27% | 27.3% | 11 | 0.10 |
+
+## Portfolio Diversification Notes
+
+- Correlation analysis artifact: `artifacts/strategy-correlation-90d.md`
+- Highest overlap among materially active strategies was `momentum <-> vpin` (`0.499`) and `bollinger_rsi <-> mean_reversion` (`0.540`).
+- Best diversified high-quality cluster was `composite + momentum`, followed by `composite + kimchi_premium + momentum`.
+- Correlation-adjusted portfolio weights favored `kimchi_premium` (`31.2%`), `composite` (`30.0%`), `momentum` (`29.6%`), and a smaller `mean_reversion` sleeve (`8.5%`).
+- `bollinger_rsi` received only a token allocation (`0.7%`) because diversification was acceptable but tuned edge was still near zero.
 
 ## Takeaways
 
-- `momentum` remains the strongest baseline strategy and is now clearly carried by `KRW-SOL`, `KRW-BTC`, and `KRW-ETH`.
-- `composite` improved into the second-best average-return strategy, but its sample is still too small to outrank higher-volume strategies with confidence.
-- `KRW-SOL` is now the cleanest market in the matrix, while `KRW-XRP` remains the weakest and still looks like a candidate for separate tuning or removal.
-- `mean_reversion` remains the weakest strategy by average return and now contributes three of the five worst runs outright.
-
-## Validation History
-
-- `2026-03-26T15:16:45+09:00`: rerun matched the original 90-day baseline exactly.
-- `2026-03-26T15:21:21+09:00`: rerun matched the original 90-day baseline exactly.
-- `2026-03-26T15:26:54+09:00`: rerun produced an updated result set under the current worktree state and superseded the earlier same-day snapshot.
-- `2026-03-26T17:11:32+09:00`: rerun produced a new 1699-trade baseline snapshot and superseded the earlier same-day report.
+- `momentum` remains the most reliable default baseline strategy.
+- `mean_reversion` no longer looks unrecoverable: the focused sweep moved it from clear negative territory into a modest positive in-sample research candidate.
+- `bollinger_rsi` is now implemented and measurable, but it did not yet prove enough edge to earn meaningful portfolio weight.
+- The strongest diversified research mix is not the old single-strategy winner model; it is a balanced `kimchi_premium + composite + momentum` core with a smaller `mean_reversion` diversifier.

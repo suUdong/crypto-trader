@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Sequence
+from typing import cast
 
 from crypto_trader.models import Candle, SignalAction
 from crypto_trader.strategy.evaluator import evaluate_strategy
@@ -194,6 +195,99 @@ def correlation_matrix_report(
     lines.append("")
 
     return "\n".join(lines)
+
+
+def average_pairwise_correlation(
+    strategy_names: Sequence[str],
+    corr_matrix: dict[tuple[str, str], float],
+) -> float:
+    pair_corrs: list[float] = []
+    names = list(strategy_names)
+    for i, name_a in enumerate(names):
+        for name_b in names[i + 1 :]:
+            key = (name_a, name_b) if (name_a, name_b) in corr_matrix else (name_b, name_a)
+            pair_corrs.append(corr_matrix.get(key, 0.0))
+    if not pair_corrs:
+        return 0.0
+    return sum(pair_corrs) / len(pair_corrs)
+
+
+def diversification_multipliers(
+    strategy_names: Sequence[str],
+    corr_matrix: dict[tuple[str, str], float],
+) -> dict[str, float]:
+    """Translate average positive overlap into a portfolio penalty multiplier."""
+    names = list(strategy_names)
+    multipliers: dict[str, float] = {}
+    for name in names:
+        peer_corrs = []
+        for peer in names:
+            if peer == name:
+                continue
+            key = (name, peer) if (name, peer) in corr_matrix else (peer, name)
+            peer_corrs.append(max(0.0, corr_matrix.get(key, 0.0)))
+        avg_peer_corr = sum(peer_corrs) / len(peer_corrs) if peer_corrs else 0.0
+        multipliers[name] = max(0.35, 1.0 - avg_peer_corr)
+    return multipliers
+
+
+def rank_portfolios(
+    corr_matrix: dict[tuple[str, str], float],
+    performance_by_strategy: dict[str, dict[str, float]],
+    *,
+    min_size: int = 2,
+    max_size: int | None = None,
+) -> list[dict[str, float | list[str]]]:
+    """Rank combos by diversification and positive performance."""
+    strategy_names = sorted(performance_by_strategy)
+    if max_size is None:
+        max_size = len(strategy_names)
+    max_size = min(max_size, len(strategy_names))
+    ranked: list[dict[str, float | list[str]]] = []
+
+    for size in range(min_size, max_size + 1):
+        for combo in itertools.combinations(strategy_names, size):
+            avg_corr = average_pairwise_correlation(combo, corr_matrix)
+            diversification = max(0.0, min(1.0, 1.0 - avg_corr))
+            avg_sharpe = sum(
+                max(0.0, performance_by_strategy[name].get("sharpe", 0.0)) for name in combo
+            ) / size
+            avg_return = (
+                sum(performance_by_strategy[name].get("return_pct", 0.0) for name in combo) / size
+            )
+            avg_profit_factor = (
+                sum(
+                    performance_by_strategy[name].get("profit_factor", 0.0) for name in combo
+                )
+                / size
+            )
+            effective_profit_factor = (
+                3.0 if avg_profit_factor == float("inf") else avg_profit_factor
+            )
+            portfolio_score = (
+                diversification * (1.0 + avg_sharpe) * max(0.25, effective_profit_factor)
+            )
+            ranked.append(
+                {
+                    "strategies": list(combo),
+                    "avg_correlation": avg_corr,
+                    "diversification_score": diversification,
+                    "avg_sharpe": avg_sharpe,
+                    "avg_return_pct": avg_return,
+                    "avg_profit_factor": avg_profit_factor,
+                    "portfolio_score": portfolio_score,
+                }
+            )
+
+    ranked.sort(
+        key=lambda row: (
+            cast(float, row["portfolio_score"]),
+            cast(float, row["diversification_score"]),
+            cast(float, row["avg_sharpe"]),
+        ),
+        reverse=True,
+    )
+    return ranked
 
 
 def _build_signal_vectors(

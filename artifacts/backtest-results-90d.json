@@ -10,6 +10,7 @@
   "strategies": [
     "momentum",
     "momentum_pullback",
+    "bollinger_rsi",
     "mean_reversion",
     "composite",
     "kimchi_premium",
@@ -41,15 +42,26 @@
       "final_equity": 989354.5213716929
     },
     {
+      "strategy": "bollinger_rsi",
+      "symbol": "KRW-BTC",
+      "candles": 2160,
+      "return_pct": -0.5613080739866994,
+      "max_drawdown": 1.3899960146912436,
+      "win_rate": 66.66666666666666,
+      "trade_count": 12,
+      "profit_factor": 0.6346651133646372,
+      "final_equity": 994386.919260133
+    },
+    {
       "strategy": "mean_reversion",
       "symbol": "KRW-BTC",
       "candles": 2160,
-      "return_pct": -1.2409974362386667,
-      "max_drawdown": 1.6806025934200854,
-      "win_rate": 20.0,
-      "trade_count": 10,
-      "profit_factor": 0.31185086312582666,
-      "final_equity": 987590.0256376134
+      "return_pct": -0.4707540496615148,
+      "max_drawdown": 1.5676002011338377,
+      "win_rate": 36.36363636363637,
+      "trade_count": 11,
+      "profit_factor": 0.72322354887971,
+      "final_equity": 995292.4595033849
     },
     {
       "strategy": "composite",
@@ -66,12 +78,12 @@
       "strategy": "kimchi_premium",
       "symbol": "KRW-BTC",
       "candles": 2160,
-      "return_pct": -0.234049701731176,
-      "max_drawdown": 2.2609879995393936,
-      "win_rate": 47.61904761904761,
-      "trade_count": 21,
-      "profit_factor": 0.9096420767507719,
-      "final_equity": 997659.5029826883
+      "return_pct": 0.6376068339481344,
+      "max_drawdown": 1.2733478636094169,
+      "win_rate": 52.94117647058824,
+      "trade_count": 17,
+      "profit_factor": 1.3903163043500346,
+      "final_equity": 1006376.0683394813
     },
     {
       "strategy": "obi",
@@ -121,23 +133,34 @@
       "strategy": "momentum_pullback",
       "symbol": "KRW-ETH",
       "candles": 2160,
-      "return_pct": -0.5865701776293086,
-      "max_drawdown": 1.301964489333224,
+      "return_pct": -0.5516147598295107,
+      "max_drawdown": 1.339192768405367,
       "win_rate": 30.0,
       "trade_count": 10,
-      "profit_factor": 0.5717475103626176,
-      "final_equity": 994134.2982237069
+      "profit_factor": 0.5868978195283211,
+      "final_equity": 994483.8524017049
+    },
+    {
+      "strategy": "bollinger_rsi",
+      "symbol": "KRW-ETH",
+      "candles": 2160,
+      "return_pct": -2.089507273833624,
+      "max_drawdown": 2.4916650743678708,
+      "win_rate": 60.0,
+      "trade_count": 20,
+      "profit_factor": 0.45886620707587583,
+      "final_equity": 979104.9272616637
     },
     {
       "strategy": "mean_reversion",
       "symbol": "KRW-ETH",
       "candles": 2160,
-      "return_pct": -2.017811158091254,
-      "max_drawdown": 2.4060542196530745,
-      "win_rate": 20.0,
+      "return_pct": -1.8451519390542015,
+      "max_drawdown": 2.108892074852765,
+      "win_rate": 10.0,
       "trade_count": 10,
-      "profit_factor": 0.11032382330438081,
-      "final_equity": 979821.8884190875
+      "profit_factor": 0.12741193623718572,
+      "final_equity": 981548.4806094579
     },
     {
       "strategy": "composite",
@@ -154,23 +177,23 @@
       "strategy": "kimchi_premium",
       "symbol": "KRW-ETH",
       "candles": 2160,
-      "return_pct": -0.06846589017160953,
-      "max_drawdown": 1.8542369952651232,
+      "return_pct": -0.1737345943803814,
+      "max_drawdown": 1.8135291895411516,
       "win_rate": 56.25,
       "trade_count": 16,
-      "profit_factor": 0.9678570396954214,
-      "final_equity": 999315.3410982839
+      "profit_factor": 0.9164264909240359,
+      "final_equity": 998262.6540561962
     },
     {
       "strategy": "obi",
       "symbol": "KRW-ETH",
       "candles": 2160,
-      "return_pct": -0.027019369934733195,
-      "max_drawdown": 1.128031795262451,
-      "win_rate": 44.44444444444444,
-      "trade_count": 27,
-      "profit_factor": 0.9819541746459566,
-      "final_equity": 999729.8063006527
+      "return_pct": -0.07219118678974956,
+      "max_drawdown": 1.3227235617541775,
+      "win_rate": 46.15384615384615,
+      "trade_count": 26,
+      "profit_factor": 0.9545634533500361,
+      "final_equity": 999278.0881321025
     },
     {
       "strategy": "vpin",
@@ -187,12 +210,12 @@
       "strategy": "volatility_breakout",
       "symbol": "KRW-ETH",
       "candles": 2160,
-      "return_pct": -0.2960128174564369,
-      "max_drawdown": 0.6404237425034522,
-      "win_rate": 50.0,
+      "return_pct": -0.6132028778844556,
+      "max_drawdown": 0.6682168507393682,
+      "win_rate": 40.0,
       "trade_count": 10,
-      "profit_factor": 0.5245979485693842,
-      "final_equity": 997039.8718254357
+      "profit_factor": 0.28451117724294994,
+      "final_equity": 993867.9712211555
     },
     {
       "strategy": "momentum",
@@ -209,23 +232,34 @@
       "strategy": "momentum_pullback",
       "symbol": "KRW-XRP",
       "candles": 2160,
-      "return_pct": -0.9115236789600911,
-      "max_drawdown": 1.5559570217014547,
-      "win_rate": 40.0,
+      "return_pct": -0.5322482631242131,
+      "max_drawdown": 1.6099237228002592,
+      "win_rate": 45.45454545454545,
+      "trade_count": 11,
+      "profit_factor": 0.6059146872410216,
+      "final_equity": 994677.5173687579
+    },
+    {
+      "strategy": "bollinger_rsi",
+      "symbol": "KRW-XRP",
+      "candles": 2160,
+      "return_pct": -1.161109146542827,
+      "max_drawdown": 1.9886027988787591,
+      "win_rate": 50.0,
       "trade_count": 10,
-      "profit_factor": 0.37023681047631274,
-      "final_equity": 990884.7632103991
+      "profit_factor": 0.4754961987207196,
+      "final_equity": 988388.9085345718
     },
     {
       "strategy": "mean_reversion",
       "symbol": "KRW-XRP",
       "candles": 2160,
-      "return_pct": -0.05478449634780391,
-      "max_drawdown": 1.5298436403497357,
-      "win_rate": 56.75675675675676,
-      "trade_count": 37,
-      "profit_factor": 0.9831179338422352,
-      "final_equity": 999452.155036522
+      "return_pct": -0.9408075745263367,
+      "max_drawdown": 1.448099504044516,
+      "win_rate": 60.0,
+      "trade_count": 10,
+      "profit_factor": 0.523322353188686,
+      "final_equity": 990591.9242547366
     },
     {
       "strategy": "composite",
@@ -242,23 +276,23 @@
       "strategy": "kimchi_premium",
       "symbol": "KRW-XRP",
       "candles": 2160,
-      "return_pct": -0.44804593618863464,
-      "max_drawdown": 2.2883691704489655,
-      "win_rate": 52.38095238095239,
-      "trade_count": 21,
-      "profit_factor": 0.8128113015004645,
-      "final_equity": 995519.5406381136
+      "return_pct": -0.5450063391210125,
+      "max_drawdown": 2.0470734771563577,
+      "win_rate": 50.0,
+      "trade_count": 10,
+      "profit_factor": 0.6769057119980508,
+      "final_equity": 994549.9366087898
     },
     {
       "strategy": "obi",
       "symbol": "KRW-XRP",
       "candles": 2160,
-      "return_pct": -0.8492776535159674,
-      "max_drawdown": 1.8236760158805214,
+      "return_pct": -0.9819732315918484,
+      "max_drawdown": 2.032511674436073,
       "win_rate": 50.0,
       "trade_count": 10,
-      "profit_factor": 0.5170898336624816,
-      "final_equity": 991507.2234648403
+      "profit_factor": 0.48093623790631457,
+      "final_equity": 990180.2676840816
     },
     {
       "strategy": "vpin",
@@ -275,45 +309,56 @@
       "strategy": "volatility_breakout",
       "symbol": "KRW-XRP",
       "candles": 2160,
-      "return_pct": 0.569391447199119,
-      "max_drawdown": 2.40267871749713,
+      "return_pct": 0.6284189478001245,
+      "max_drawdown": 2.4089539790947394,
       "win_rate": 45.90163934426229,
       "trade_count": 61,
-      "profit_factor": 1.125381478930355,
-      "final_equity": 1005693.9144719911
+      "profit_factor": 1.1390461020792826,
+      "final_equity": 1006284.1894780012
     },
     {
       "strategy": "momentum",
       "symbol": "KRW-SOL",
       "candles": 2160,
-      "return_pct": 0.28509378787677786,
-      "max_drawdown": 1.2006485639908748,
+      "return_pct": 0.22871959619847892,
+      "max_drawdown": 1.171600559647029,
       "win_rate": 50.0,
       "trade_count": 34,
-      "profit_factor": 1.1573754500443978,
-      "final_equity": 1002850.9378787677
+      "profit_factor": 1.1259205194203452,
+      "final_equity": 1002287.1959619847
     },
     {
       "strategy": "momentum_pullback",
       "symbol": "KRW-SOL",
       "candles": 2160,
-      "return_pct": -0.6222948779263993,
-      "max_drawdown": 1.9007095513373027,
-      "win_rate": 50.0,
-      "trade_count": 16,
-      "profit_factor": 0.719854241059897,
-      "final_equity": 993777.051220736
+      "return_pct": -0.5497214561071218,
+      "max_drawdown": 1.8781306631988028,
+      "win_rate": 53.333333333333336,
+      "trade_count": 15,
+      "profit_factor": 0.7592601923792887,
+      "final_equity": 994502.7854389288
+    },
+    {
+      "strategy": "bollinger_rsi",
+      "symbol": "KRW-SOL",
+      "candles": 2160,
+      "return_pct": 0.0871276147484723,
+      "max_drawdown": 2.701346835248528,
+      "win_rate": 68.18181818181817,
+      "trade_count": 22,
+      "profit_factor": 1.0280930815561151,
+      "final_equity": 1000871.2761474847
     },
     {
       "strategy": "mean_reversion",
       "symbol": "KRW-SOL",
       "candles": 2160,
-      "return_pct": -1.7345649101372707,
-      "max_drawdown": 1.9952155854633904,
-      "win_rate": 20.0,
-      "trade_count": 10,
-      "profit_factor": 0.0803099378946098,
-      "final_equity": 982654.3508986273
+      "return_pct": -1.9499772015825534,
+      "max_drawdown": 2.2673040674514024,
+      "win_rate": 27.27272727272727,
+      "trade_count": 11,
+      "profit_factor": 0.0978960245357947,
+      "final_equity": 980500.2279841745
     },
     {
       "strategy": "composite",
@@ -330,12 +375,12 @@
       "strategy": "kimchi_premium",
       "symbol": "KRW-SOL",
       "candles": 2160,
-      "return_pct": -0.24185792103226245,
-      "max_drawdown": 2.049066362387665,
-      "win_rate": 40.0,
-      "trade_count": 20,
-      "profit_factor": 0.8977335191506766,
-      "final_equity": 997581.4207896774
+      "return_pct": -0.23552039258085689,
+      "max_drawdown": 1.8488025866234188,
+      "win_rate": 43.75,
+      "trade_count": 16,
+      "profit_factor": 0.896142466016612,
+      "final_equity": 997644.7960741915
     },
     {
       "strategy": "obi",
@@ -372,8 +417,9 @@
     }
   ],
   "summary": {
-    "total_trades": 572,
+    "total_trades": 591,
     "strategies_with_trades": [
+      "bollinger_rsi",
       "composite",
       "kimchi_premium",
       "mean_reversion",

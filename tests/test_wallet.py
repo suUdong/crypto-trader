@@ -19,6 +19,7 @@ from crypto_trader.config import (
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.models import Candle, Position, SignalAction
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
@@ -106,6 +107,10 @@ class TestCreateStrategy(unittest.TestCase):
     def test_create_strategy_momentum_pullback(self) -> None:
         strategy = create_strategy("momentum_pullback", self.strategy_config, self.regime_config)
         self.assertIsInstance(strategy, MomentumPullbackStrategy)
+
+    def test_create_strategy_bollinger_rsi(self) -> None:
+        strategy = create_strategy("bollinger_rsi", self.strategy_config, self.regime_config)
+        self.assertIsInstance(strategy, BollingerRsiStrategy)
 
     def test_create_strategy_composite_explicit(self) -> None:
         strategy = create_strategy("composite", self.strategy_config, self.regime_config)

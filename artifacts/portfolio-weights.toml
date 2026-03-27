@@ -1,34 +1,39 @@
 # Sharpe-weighted research wallet mix
-# Generated: 2026-03-27 08:45 UTC
+# Generated: 2026-03-27 13:54 UTC
 
 [[wallets]]
-name = "momentum_pullback_research_wallet"
-strategy = "momentum_pullback"
-initial_capital = 8000000
+name = "kimchi_premium_research_wallet"
+strategy = "kimchi_premium"
+initial_capital = 2804274
 
 [[wallets]]
 name = "composite_research_wallet"
 strategy = "composite"
-initial_capital = 0
+initial_capital = 2695671
 
 [[wallets]]
 name = "momentum_research_wallet"
 strategy = "momentum"
-initial_capital = 0
+initial_capital = 2665112
 
 [[wallets]]
 name = "mean_reversion_research_wallet"
 strategy = "mean_reversion"
+initial_capital = 767528
+
+[[wallets]]
+name = "bollinger_rsi_research_wallet"
+strategy = "bollinger_rsi"
+initial_capital = 67415
+
+[[wallets]]
+name = "momentum_pullback_research_wallet"
+strategy = "momentum_pullback"
 initial_capital = 0
 
 [[wallets]]
 name = "obi_research_wallet"
 strategy = "obi"
-initial_capital = 0
-
-[[wallets]]
-name = "kimchi_premium_research_wallet"
-strategy = "kimchi_premium"
 initial_capital = 0
 
 [[wallets]]

@@ -88,6 +88,92 @@ class PortfolioOptimizerTests(unittest.TestCase):
         self.assertEqual(allocations[0].strategy, "momentum_pullback")
         self.assertAlmostEqual(allocations[0].weight, 0.75)
 
+    def test_allocations_apply_diversification_multiplier_when_available(self) -> None:
+        tuned_payload = {
+            "optimized_results": [
+                {"strategy": "momentum", "avg_sharpe": 2.0, "avg_return_pct": 4.0},
+                {"strategy": "mean_reversion", "avg_sharpe": 2.0, "avg_return_pct": 4.0},
+            ]
+        }
+        walk_forward_payload = {
+            "strategies": [
+                {
+                    "strategy": "momentum",
+                    "best": {
+                        "avg_sharpe": 1.0,
+                        "avg_return_pct": 1.0,
+                        "avg_profit_factor": 1.1,
+                        "validated": False,
+                    },
+                },
+                {
+                    "strategy": "mean_reversion",
+                    "best": {
+                        "avg_sharpe": 1.0,
+                        "avg_return_pct": 1.0,
+                        "avg_profit_factor": 1.1,
+                        "validated": False,
+                    },
+                },
+            ]
+        }
+        correlation_payload = {
+            "diversification_multipliers": {
+                "momentum": 0.4,
+                "mean_reversion": 1.0,
+            }
+        }
+
+        allocations, score_basis, _ = build_portfolio_allocations(
+            tuned_payload,
+            walk_forward_payload,
+            capital_per_strategy=1_000_000.0,
+            correlation_payload=correlation_payload,
+        )
+
+        self.assertEqual(score_basis, "walk_forward_sharpe_x_diversification")
+        self.assertEqual(allocations[0].strategy, "mean_reversion")
+        self.assertAlmostEqual(allocations[0].weight, 1.0 / 1.4)
+
+    def test_single_positive_walk_forward_score_falls_back_to_tuned_scores(self) -> None:
+        tuned_payload = {
+            "optimized_results": [
+                {"strategy": "momentum", "avg_sharpe": 1.0, "avg_return_pct": 4.0},
+                {"strategy": "bollinger_rsi", "avg_sharpe": 2.0, "avg_return_pct": 2.0},
+            ]
+        }
+        walk_forward_payload = {
+            "strategies": [
+                {
+                    "strategy": "momentum",
+                    "best": {
+                        "avg_sharpe": 0.5,
+                        "avg_return_pct": 1.0,
+                        "avg_profit_factor": 1.1,
+                        "validated": False,
+                    },
+                },
+                {
+                    "strategy": "bollinger_rsi",
+                    "best": {
+                        "avg_sharpe": 0.0,
+                        "avg_return_pct": 0.0,
+                        "avg_profit_factor": 0.0,
+                        "validated": False,
+                    },
+                },
+            ]
+        }
+
+        allocations, score_basis, _ = build_portfolio_allocations(
+            tuned_payload,
+            walk_forward_payload,
+            capital_per_strategy=1_000_000.0,
+        )
+
+        self.assertEqual(score_basis, "tuned_sharpe_fallback")
+        self.assertEqual(allocations[0].strategy, "bollinger_rsi")
+
 
 if __name__ == "__main__":
     unittest.main()

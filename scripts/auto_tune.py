@@ -62,6 +62,7 @@ class TuneResult:
 DEFAULT_STRATEGIES = [
     "momentum",
     "momentum_pullback",
+    "bollinger_rsi",
     "mean_reversion",
     "composite",
     "kimchi_premium",

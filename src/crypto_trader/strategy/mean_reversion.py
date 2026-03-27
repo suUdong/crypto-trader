@@ -174,8 +174,9 @@ class MeanReversionStrategy:
         near_lower_band = latest_close <= lower_band or crossed_back_above_lower
 
         if position is None:
-            # ADX filter: skip entry in strongly trending markets (ADX > 40 = bad for MR)
-            if adx_value is not None and adx_value > 40.0:
+            # Use a tunable ceiling while staying close to the prior hard stop at ~40 ADX.
+            adx_ceiling = effective.adx_threshold + 15.0
+            if adx_value is not None and adx_value > adx_ceiling:
                 return Signal(
                     action=SignalAction.HOLD,
                     reason="market_too_trendy_adx",
@@ -208,8 +209,11 @@ class MeanReversionStrategy:
                         )
                 except ValueError:
                     pass
-            # RSI confirmation: require RSI below oversold_floor + 10 to avoid false bottoms
-            rsi_entry_limit = effective.rsi_oversold_floor + 10.0
+            # `rsi_recovery_ceiling` is part of the optimization surface, so honor it here.
+            rsi_entry_limit = min(
+                effective.rsi_recovery_ceiling,
+                effective.rsi_oversold_floor + 12.0,
+            )
             if near_lower_band and rsi_value <= rsi_entry_limit:
                 base_conf = min(1.0, 0.5 + (middle_band - latest_close) / max(1.0, middle_band))
                 if macd_bullish:

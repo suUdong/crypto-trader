@@ -13,6 +13,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_TUNED = ROOT / "artifacts" / "backtest-grid-90d" / "combined.json"
 DEFAULT_WALK_FORWARD = ROOT / "artifacts" / "walk-forward-90d" / "grid-wf-summary.json"
+DEFAULT_CORRELATION = ROOT / "artifacts" / "strategy-correlation-90d.json"
 DEFAULT_OUTPUT_MD = ROOT / "artifacts" / "portfolio-optimization.md"
 DEFAULT_OUTPUT_JSON = ROOT / "artifacts" / "portfolio-optimization.json"
 DEFAULT_OUTPUT_TOML = ROOT / "artifacts" / "portfolio-weights.toml"
@@ -27,6 +28,7 @@ class PortfolioAllocation:
     walk_forward_return_pct: float
     walk_forward_profit_factor: float
     validated: bool
+    diversification_multiplier: float
     score: float
     score_basis: str
     weight: float
@@ -102,6 +104,7 @@ def build_portfolio_allocations(
     tuned_payload: dict[str, Any] | None,
     walk_forward_payload: dict[str, Any],
     capital_per_strategy: float,
+    correlation_payload: dict[str, Any] | None = None,
 ) -> tuple[list[PortfolioAllocation], str, float]:
     tuned = _normalize_tuned_results(tuned_payload) if tuned_payload is not None else {}
     walk_forward = _normalize_walk_forward_results(walk_forward_payload)
@@ -110,6 +113,11 @@ def build_portfolio_allocations(
         raise ValueError("No strategies found in tuned or walk-forward inputs.")
 
     base_rows: list[dict[str, float | bool | str]] = []
+    diversification_rows = {}
+    if correlation_payload is not None:
+        raw_multipliers = correlation_payload.get("diversification_multipliers", {})
+        if isinstance(raw_multipliers, dict):
+            diversification_rows = raw_multipliers
     for strategy in strategy_names:
         tuned_row = tuned.get(strategy, {})
         walk_forward_row = walk_forward.get(strategy, {})
@@ -126,16 +134,27 @@ def build_portfolio_allocations(
                     walk_forward_row.get("walk_forward_profit_factor", 0.0)
                 ),
                 "validated": bool(walk_forward_row.get("validated", False)),
+                "diversification_multiplier": float(diversification_rows.get(strategy, 1.0)),
             }
         )
 
     score_basis = "walk_forward_sharpe"
-    scores = [max(0.0, float(row["walk_forward_sharpe"])) for row in base_rows]
+    scores = [
+        max(0.0, float(row["walk_forward_sharpe"])) * float(row["diversification_multiplier"])
+        for row in base_rows
+    ]
     score_total = sum(scores)
-    if score_total == 0.0:
+    positive_walk_forward = sum(1 for score in scores if score > 0.0)
+    if score_total == 0.0 or positive_walk_forward < 2:
         score_basis = "tuned_sharpe_fallback"
-        scores = [max(0.0, float(row["tuned_sharpe"])) for row in base_rows]
+        scores = [
+            max(0.0, float(row["tuned_sharpe"])) * float(row["diversification_multiplier"])
+            for row in base_rows
+        ]
         score_total = sum(scores)
+
+    if diversification_rows and score_basis != "equal_weight_fallback":
+        score_basis = f"{score_basis}_x_diversification"
 
     if score_total == 0.0:
         score_basis = "equal_weight_fallback"
@@ -152,6 +171,7 @@ def build_portfolio_allocations(
             walk_forward_return_pct=float(row["walk_forward_return_pct"]),
             walk_forward_profit_factor=float(row["walk_forward_profit_factor"]),
             validated=bool(row["validated"]),
+            diversification_multiplier=float(row["diversification_multiplier"]),
             score=score,
             score_basis=score_basis,
             weight=score / score_total,
@@ -198,8 +218,11 @@ def write_portfolio_markdown(
         f"- Total capital: `{total_capital:,.0f} KRW`",
         f"- Weighting basis: `{score_basis}`",
         "",
-        "| Strategy | Weight | Allocation | WF Sharpe | WF Return | Tuned Sharpe | Validated |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
+        (
+            "| Strategy | Weight | Allocation | WF Sharpe | WF Return | "
+            "Div Mult | Tuned Sharpe | Validated |"
+        ),
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
     for allocation in allocations:
         lines.append(
@@ -207,6 +230,7 @@ def write_portfolio_markdown(
             f"{allocation.allocation_krw:,.0f} KRW | "
             f"{allocation.walk_forward_sharpe:.2f} | "
             f"{allocation.walk_forward_return_pct:+.2f}% | "
+            f"{allocation.diversification_multiplier:.2f} | "
             f"{allocation.tuned_sharpe:.2f} | "
             f"{'YES' if allocation.validated else 'NO'} |"
         )
@@ -247,6 +271,7 @@ def main() -> None:
         type=Path,
         default=DEFAULT_WALK_FORWARD,
     )
+    parser.add_argument("--correlation", type=Path, default=DEFAULT_CORRELATION)
     parser.add_argument("--capital-per-strategy", type=float, default=1_000_000.0)
     parser.add_argument("--output-md", dest="output_md", type=Path, default=DEFAULT_OUTPUT_MD)
     parser.add_argument("--output-json", dest="output_json", type=Path, default=DEFAULT_OUTPUT_JSON)
@@ -254,10 +279,12 @@ def main() -> None:
     args = parser.parse_args()
 
     tuned_payload = _read_json(args.tuned) if args.tuned.exists() else None
+    correlation_payload = _read_json(args.correlation) if args.correlation.exists() else None
     allocations, score_basis, total_capital = build_portfolio_allocations(
         tuned_payload=tuned_payload,
         walk_forward_payload=_read_json(args.walk_forward),
         capital_per_strategy=args.capital_per_strategy,
+        correlation_payload=correlation_payload,
     )
     write_portfolio_json(
         args.output_json,

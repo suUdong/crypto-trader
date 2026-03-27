@@ -38,6 +38,7 @@ class TestBacktestAllStrategies(unittest.TestCase):
     def test_all_strategies_backtest_without_error(self) -> None:
         strategies = [
             "momentum",
+            "bollinger_rsi",
             "mean_reversion",
             "vpin",
             "volatility_breakout",

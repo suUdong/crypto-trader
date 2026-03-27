@@ -576,13 +576,21 @@ class TestGridParamCoverage(unittest.TestCase):
         for k in KIMCHI_PREMIUM_GRID:
             self.assertIn(k, valid_params | config_fields)
 
-    def test_all_seven_strategies_have_grids(self) -> None:
+    def test_bollinger_rsi_grid_params_valid(self) -> None:
+        from scripts.grid_search import BOLLINGER_RSI_GRID
+
+        config_fields = set(StrategyConfig.__dataclass_fields__)
+        for k in BOLLINGER_RSI_GRID:
+            self.assertIn(k, config_fields)
+
+    def test_all_supported_strategies_have_grids(self) -> None:
         from scripts.grid_search import STRATEGY_GRIDS
 
         expected = {
             "mean_reversion",
             "momentum",
             "momentum_pullback",
+            "bollinger_rsi",
             "composite",
             "vpin",
             "obi",

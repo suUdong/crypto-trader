@@ -24,6 +24,7 @@ from crypto_trader.models import (
     SignalAction,
 )
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.consensus import ConsensusStrategy
 from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
@@ -59,6 +60,8 @@ def create_strategy(
         return MomentumStrategy(strategy_config, regime_config)
     if strategy_type == "momentum_pullback":
         return MomentumPullbackStrategy(strategy_config, regime_config)
+    if strategy_type == "bollinger_rsi":
+        return BollingerRsiStrategy(strategy_config, regime_config)
     if strategy_type == "mean_reversion":
         return MeanReversionStrategy(strategy_config, regime_config)
     if strategy_type == "kimchi_premium":

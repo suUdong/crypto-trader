@@ -71,11 +71,14 @@ def fetch_candles(symbol: str, days: int) -> list[Candle]:
 
 # Parameter grids per strategy
 MEAN_REVERSION_GRID = {
-    "bollinger_window": [15, 20, 25],
-    "bollinger_stddev": [1.5, 1.8, 2.0, 2.2],
-    "rsi_period": [10, 14, 18],
-    "rsi_recovery_ceiling": [55.0, 60.0, 65.0],
-    "max_holding_bars": [36, 48, 60],
+    "bollinger_window": [12, 16, 20],
+    "bollinger_stddev": [1.2, 1.5, 1.8],
+    "rsi_period": [8, 10, 14],
+    "rsi_oversold_floor": [15.0, 20.0, 25.0],
+    "rsi_recovery_ceiling": [28.0, 34.0],
+    "noise_lookback": [10, 15],
+    "adx_threshold": [20.0, 28.0],
+    "max_holding_bars": [18, 30],
 }
 
 MOMENTUM_GRID = {
@@ -135,10 +138,21 @@ COMPOSITE_GRID = {
     "max_holding_bars": [36, 48],
 }
 
+BOLLINGER_RSI_GRID = {
+    "bollinger_window": [14, 20, 26],
+    "bollinger_stddev": [1.5, 1.8, 2.0],
+    "rsi_period": [8, 14],
+    "rsi_oversold_floor": [15.0, 20.0, 25.0],
+    "rsi_recovery_ceiling": [30.0, 36.0],
+    "rsi_overbought": [65.0, 70.0, 75.0],
+    "max_holding_bars": [18, 30],
+}
+
 STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
     "mean_reversion": MEAN_REVERSION_GRID,
     "momentum": MOMENTUM_GRID,
     "momentum_pullback": MOMENTUM_PULLBACK_GRID,
+    "bollinger_rsi": BOLLINGER_RSI_GRID,
     "composite": COMPOSITE_GRID,
     "vpin": VPIN_GRID,
     "obi": OBI_GRID,

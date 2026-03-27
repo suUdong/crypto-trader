@@ -1,8 +1,7 @@
-# Auto-tuned configuration — Session #8
-# Updated with Session #7 features: ADX filter, volume filter, cooldown,
-# partial take-profit, trailing after partial TP, time-decay exit,
-# weighted consensus voting, adaptive RSI ceiling
-# Capital rebalanced: winners get more, losers get less
+# Auto-tuned configuration
+# Generated from grid search optimization
+# Best strategy in evaluated candidate sweep: momentum
+# Avg Sharpe: 1.34
 
 [trading]
 exchange = "upbit"
@@ -16,33 +15,21 @@ momentum_entry_threshold = 0.003
 momentum_lookback = 15
 rsi_overbought = 75.0
 rsi_period = 14
-adx_period = 14
-adx_threshold = 20.0
-volume_filter_mult = 0.0
 
 [risk]
-atr_stop_multiplier = 2.0
+atr_stop_multiplier = 0.0
 risk_per_trade_pct = 0.015
 stop_loss_pct = 0.03
 take_profit_pct = 0.04
 trailing_stop_pct = 0.0
-partial_tp_pct = 0.5
-cooldown_bars = 3
 
-[kill_switch]
-max_portfolio_drawdown_pct = 0.15
-max_daily_loss_pct = 0.05
-max_consecutive_losses = 5
-max_strategy_drawdown_pct = 0.10
-cooldown_minutes = 60
+# Optimized wallet allocation
 
-# === Winner Tier: Heavy allocation ===
-
-# momentum: Sharpe=1.34 Return=+4.80% — FLAGSHIP STRATEGY
+# momentum: Sharpe=1.34 Return=+4.80% MDD=7.53% WR=37.9% PF=1.23 Trades=306
 [[wallets]]
 name = "momentum_wallet"
 strategy = "momentum"
-initial_capital = 2000000.0
+initial_capital = 1000000.0
 
 [wallets.strategy_overrides]
 max_holding_bars = 48
@@ -50,25 +37,19 @@ momentum_entry_threshold = 0.003
 momentum_lookback = 15
 rsi_overbought = 75.0
 rsi_period = 14
-adx_period = 14
-adx_threshold = 20.0
-volume_filter_mult = 1.2
 
 [wallets.risk_overrides]
-atr_stop_multiplier = 2.0
+atr_stop_multiplier = 0.0
 risk_per_trade_pct = 0.015
 stop_loss_pct = 0.03
 take_profit_pct = 0.04
 trailing_stop_pct = 0.0
-partial_tp_pct = 0.5
-cooldown_bars = 3
-max_concurrent_positions = 2
 
-# kimchi_premium: Sharpe=1.22 Return=+5.29% WR=51% — BEST WIN RATE
+# kimchi_premium: Sharpe=1.22 Return=+5.29% MDD=6.13% WR=51.0% PF=1.49 Trades=160
 [[wallets]]
 name = "kimchi_premium_wallet"
 strategy = "kimchi_premium"
-initial_capital = 1500000.0
+initial_capital = 1000000.0
 
 [wallets.strategy_overrides]
 max_holding_bars = 24
@@ -84,39 +65,8 @@ risk_per_trade_pct = 0.01
 stop_loss_pct = 0.02
 take_profit_pct = 0.04
 trailing_stop_pct = 0.0
-partial_tp_pct = 0.5
-cooldown_bars = 3
-max_concurrent_positions = 2
 
-# consensus: NEW — multi-strategy agreement filter for higher-quality entries
-[[wallets]]
-name = "consensus_wallet"
-strategy = "consensus"
-initial_capital = 1500000.0
-
-[wallets.strategy_overrides]
-max_holding_bars = 36
-momentum_entry_threshold = 0.003
-momentum_lookback = 15
-rsi_overbought = 75.0
-rsi_period = 14
-adx_period = 14
-adx_threshold = 20.0
-sub_strategies = ["momentum", "kimchi_premium"]
-min_agree = 2
-min_confidence_sum = 1.2
-
-[wallets.risk_overrides]
-atr_stop_multiplier = 2.0
-risk_per_trade_pct = 0.01
-stop_loss_pct = 0.03
-take_profit_pct = 0.05
-trailing_stop_pct = 0.0
-partial_tp_pct = 0.5
-cooldown_bars = 3
-max_concurrent_positions = 2
-
-# composite: Sharpe=1.16 — stable but low frequency
+# composite: Sharpe=1.16 Return=+0.04% MDD=0.01% WR=50.0% PF=inf Trades=2
 [[wallets]]
 name = "composite_wallet"
 strategy = "composite"
@@ -130,71 +80,101 @@ momentum_entry_threshold = 0.008
 momentum_lookback = 20
 rsi_period = 14
 rsi_recovery_ceiling = 55.0
-adx_period = 14
-adx_threshold = 20.0
 
 [wallets.risk_overrides]
-atr_stop_multiplier = 2.0
+atr_stop_multiplier = 0.0
 risk_per_trade_pct = 0.005
 stop_loss_pct = 0.04
 take_profit_pct = 0.06
 trailing_stop_pct = 0.0
-partial_tp_pct = 0.5
-cooldown_bars = 3
 
-# === Loser Tier: Reduced allocation, tighter risk ===
-
-# mean_reversion: Sharpe=-1.51 — needs tighter stops
+# mean_reversion: Sharpe=0.36 Return=+0.45% MDD=1.53% WR=50.1% PF=1.22 Trades=80
 [[wallets]]
 name = "mean_reversion_wallet"
 strategy = "mean_reversion"
-initial_capital = 500000.0
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+adx_threshold = 28.0
+bollinger_stddev = 1.5
+bollinger_window = 16
+max_holding_bars = 18
+noise_lookback = 10
+rsi_oversold_floor = 20.0
+rsi_period = 8
+rsi_recovery_ceiling = 28.0
+
+[wallets.risk_overrides]
+atr_stop_multiplier = 2.0
+risk_per_trade_pct = 0.015
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+trailing_stop_pct = 0.04
+
+# bollinger_rsi: Sharpe=0.03 Return=-0.10% MDD=1.72% WR=58.3% PF=1.02 Trades=74
+[[wallets]]
+name = "bollinger_rsi_wallet"
+strategy = "bollinger_rsi"
+initial_capital = 1000000.0
 
 [wallets.strategy_overrides]
 bollinger_stddev = 1.5
-bollinger_window = 15
-max_holding_bars = 36
-rsi_period = 10
-rsi_recovery_ceiling = 55.0
+bollinger_window = 14
+max_holding_bars = 18
+rsi_overbought = 65.0
+rsi_oversold_floor = 15.0
+rsi_period = 8
+rsi_recovery_ceiling = 30.0
 
 [wallets.risk_overrides]
 atr_stop_multiplier = 2.0
 risk_per_trade_pct = 0.01
 stop_loss_pct = 0.02
 take_profit_pct = 0.04
-trailing_stop_pct = 0.02
-partial_tp_pct = 0.5
-cooldown_bars = 5
+trailing_stop_pct = 0.0
 
-# volatility_breakout: Sharpe=-2.25 — ADX+volume should filter bad entries
+# vpin: Sharpe=-1.86 Return=-5.13% MDD=7.03% WR=43.1% PF=0.66 Trades=257
+[[wallets]]
+name = "vpin_wallet"
+strategy = "vpin"
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+max_holding_bars = 48
+momentum_lookback = 15
+rsi_period = 14
+
+[wallets.risk_overrides]
+atr_stop_multiplier = 2.0
+risk_per_trade_pct = 0.015
+stop_loss_pct = 0.02
+take_profit_pct = 0.04
+trailing_stop_pct = 0.04
+
+# volatility_breakout: Sharpe=-2.25 Return=-5.95% MDD=8.97% WR=29.2% PF=0.60 Trades=231
 [[wallets]]
 name = "volatility_breakout_wallet"
 strategy = "volatility_breakout"
-initial_capital = 500000.0
+initial_capital = 1000000.0
 
 [wallets.strategy_overrides]
 k_base = 0.5
 ma_filter_period = 20
 max_holding_bars = 24
 noise_lookback = 15
-adx_period = 14
-adx_threshold = 25.0
-volume_filter_mult = 1.2
 
 [wallets.risk_overrides]
-atr_stop_multiplier = 2.0
-risk_per_trade_pct = 0.01
+atr_stop_multiplier = 0.0
+risk_per_trade_pct = 0.015
 stop_loss_pct = 0.02
-take_profit_pct = 0.05
+take_profit_pct = 0.06
 trailing_stop_pct = 0.0
-partial_tp_pct = 0.5
-cooldown_bars = 3
 
-# vpin: Sharpe=-1.86 — minimal allocation
+# obi: Sharpe=-2.33 Return=-5.23% MDD=7.07% WR=36.3% PF=0.52 Trades=160
 [[wallets]]
-name = "vpin_wallet"
-strategy = "vpin"
-initial_capital = 300000.0
+name = "obi_wallet"
+strategy = "obi"
+initial_capital = 1000000.0
 
 [wallets.strategy_overrides]
 max_holding_bars = 36
@@ -203,40 +183,33 @@ rsi_period = 14
 
 [wallets.risk_overrides]
 atr_stop_multiplier = 2.0
-risk_per_trade_pct = 0.01
-stop_loss_pct = 0.02
-take_profit_pct = 0.04
-trailing_stop_pct = 0.02
-partial_tp_pct = 0.5
-cooldown_bars = 5
-
-# obi: Sharpe=-2.33 — minimal allocation, tight risk
-[[wallets]]
-name = "obi_wallet"
-strategy = "obi"
-initial_capital = 200000.0
-
-[wallets.strategy_overrides]
-max_holding_bars = 24
-momentum_lookback = 15
-rsi_period = 14
-
-[wallets.risk_overrides]
-atr_stop_multiplier = 2.0
-risk_per_trade_pct = 0.01
+risk_per_trade_pct = 0.015
 stop_loss_pct = 0.02
 take_profit_pct = 0.04
 trailing_stop_pct = 0.0
-partial_tp_pct = 0.5
-cooldown_bars = 5
 
-# === Capital Allocation Summary ===
-# momentum:           2,000,000 (26.7%) — Sharpe 1.34, flagship
-# kimchi_premium:     1,500,000 (20.0%) — Sharpe 1.22, best WR
-# consensus:          1,500,000 (20.0%) — NEW, filtered entries
-# composite:          1,000,000 (13.3%) — Sharpe 1.16, stable
-# mean_reversion:       500,000 (6.7%)  — Sharpe -1.51, probation
-# volatility_breakout:  500,000 (6.7%)  — Sharpe -2.25, probation
-# vpin:                 300,000 (4.0%)  — Sharpe -1.86, minimal
-# obi:                  200,000 (2.7%)  — Sharpe -2.33, minimal
-# TOTAL:             7,500,000
+# === Per-Strategy Optimization Results ===
+# momentum: Sharpe=1.34 Return=+4.80% MDD=7.53% WR=37.9% PF=1.23 Trades=306
+#   params: {'momentum_lookback': 15, 'momentum_entry_threshold': 0.003, 'rsi_period': 14, 'rsi_overbought': 75.0, 'max_holding_bars': 48}
+#   risk: {'stop_loss_pct': 0.03, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 0.0}
+# kimchi_premium: Sharpe=1.22 Return=+5.29% MDD=6.13% WR=51.0% PF=1.49 Trades=160
+#   params: {'rsi_period': 14, 'rsi_recovery_ceiling': 50.0, 'rsi_overbought': 75.0, 'max_holding_bars': 24, 'min_trade_interval_bars': 6, 'min_confidence': 0.4}
+#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.01, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 3.0}
+# composite: Sharpe=1.16 Return=+0.04% MDD=0.01% WR=50.0% PF=inf Trades=2
+#   params: {'bollinger_window': 20, 'bollinger_stddev': 1.8, 'momentum_lookback': 20, 'momentum_entry_threshold': 0.008, 'rsi_period': 14, 'rsi_recovery_ceiling': 55.0, 'max_holding_bars': 36}
+#   risk: {'stop_loss_pct': 0.04, 'take_profit_pct': 0.06, 'risk_per_trade_pct': 0.005, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 0.0}
+# mean_reversion: Sharpe=0.36 Return=+0.45% MDD=1.53% WR=50.1% PF=1.22 Trades=80
+#   params: {'bollinger_window': 16, 'bollinger_stddev': 1.5, 'rsi_period': 8, 'rsi_oversold_floor': 20.0, 'rsi_recovery_ceiling': 28.0, 'noise_lookback': 10, 'adx_threshold': 28.0, 'max_holding_bars': 18}
+#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.04, 'atr_stop_multiplier': 2.0}
+# bollinger_rsi: Sharpe=0.03 Return=-0.10% MDD=1.72% WR=58.3% PF=1.02 Trades=74
+#   params: {'bollinger_window': 14, 'bollinger_stddev': 1.5, 'rsi_period': 8, 'rsi_oversold_floor': 15.0, 'rsi_recovery_ceiling': 30.0, 'rsi_overbought': 65.0, 'max_holding_bars': 18}
+#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.01, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 2.0}
+# vpin: Sharpe=-1.86 Return=-5.13% MDD=7.03% WR=43.1% PF=0.66 Trades=257
+#   params: {'rsi_period': 14, 'momentum_lookback': 15, 'max_holding_bars': 48}
+#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.04, 'atr_stop_multiplier': 2.0}
+# volatility_breakout: Sharpe=-2.25 Return=-5.95% MDD=8.97% WR=29.2% PF=0.60 Trades=231
+#   params: {'k_base': 0.5, 'noise_lookback': 15, 'ma_filter_period': 20, 'max_holding_bars': 24}
+#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.06, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 0.0}
+# obi: Sharpe=-2.33 Return=-5.23% MDD=7.07% WR=36.3% PF=0.52 Trades=160
+#   params: {'rsi_period': 14, 'momentum_lookback': 15, 'max_holding_bars': 36}
+#   risk: {'stop_loss_pct': 0.02, 'take_profit_pct': 0.04, 'risk_per_trade_pct': 0.015, 'trailing_stop_pct': 0.0, 'atr_stop_multiplier': 2.0}

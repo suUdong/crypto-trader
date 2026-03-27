@@ -125,6 +125,10 @@ class RuntimeConfig:
     poll_interval_seconds: int = 60
     max_iterations: int = 0
     daemon_mode: bool = True
+    auto_restart_enabled: bool = True
+    restart_backoff_seconds: int = 15
+    max_restart_attempts: int = 0
+    network_recovery_backoff_seconds: int = 15
     kill_switch_path: str = "artifacts/kill-switch.json"
     healthcheck_path: str = "artifacts/health.json"
     runtime_checkpoint_path: str = "artifacts/runtime-checkpoint.json"
@@ -461,6 +465,44 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
             _read_value(raw, env, "runtime", "max_iterations", "CT_MAX_ITERATIONS", 0)
         ),
         daemon_mode=_read_bool(raw, env, "runtime", "daemon_mode", "CT_DAEMON_MODE", True),
+        auto_restart_enabled=_read_bool(
+            raw,
+            env,
+            "runtime",
+            "auto_restart_enabled",
+            "CT_AUTO_RESTART_ENABLED",
+            True,
+        ),
+        restart_backoff_seconds=int(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "restart_backoff_seconds",
+                "CT_RESTART_BACKOFF_SECONDS",
+                15,
+            )
+        ),
+        max_restart_attempts=int(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "max_restart_attempts",
+                "CT_MAX_RESTART_ATTEMPTS",
+                0,
+            )
+        ),
+        network_recovery_backoff_seconds=int(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "network_recovery_backoff_seconds",
+                "CT_NETWORK_RECOVERY_BACKOFF_SECONDS",
+                15,
+            )
+        ),
         kill_switch_path=str(
             _read_value(
                 raw,
@@ -826,6 +868,12 @@ def _validate_config(config: AppConfig) -> None:
 
     if config.runtime.poll_interval_seconds <= 0:
         errors.append("runtime.poll_interval_seconds must be positive")
+    if config.runtime.restart_backoff_seconds <= 0:
+        errors.append("runtime.restart_backoff_seconds must be positive")
+    if config.runtime.max_restart_attempts < 0:
+        errors.append("runtime.max_restart_attempts must be zero or positive")
+    if config.runtime.network_recovery_backoff_seconds <= 0:
+        errors.append("runtime.network_recovery_backoff_seconds must be positive")
     if not config.runtime.kill_switch_path.strip():
         errors.append("runtime.kill_switch_path must not be empty")
     if not config.runtime.healthcheck_path.strip():
@@ -865,6 +913,8 @@ def _validate_config(config: AppConfig) -> None:
 
     valid_strategies = {
         "momentum",
+        "momentum_pullback",
+        "bollinger_rsi",
         "mean_reversion",
         "composite",
         "kimchi_premium",

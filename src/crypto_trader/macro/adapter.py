@@ -52,6 +52,8 @@ class MacroRegimeAdapter:
     STRATEGY_REGIME_WEIGHTS: dict[str, dict[str, float]] = {
         "bull": {
             "momentum": 1.4,
+            "momentum_pullback": 1.3,
+            "bollinger_rsi": 0.9,
             "mean_reversion": 0.7,
             "obi": 1.0,
             "vpin": 1.0,
@@ -62,6 +64,8 @@ class MacroRegimeAdapter:
         },
         "sideways": {
             "momentum": 0.6,
+            "momentum_pullback": 1.0,
+            "bollinger_rsi": 1.4,
             "mean_reversion": 1.5,
             "obi": 1.3,
             "vpin": 1.2,
@@ -72,6 +76,8 @@ class MacroRegimeAdapter:
         },
         "bear": {
             "momentum": 0.4,
+            "momentum_pullback": 0.7,
+            "bollinger_rsi": 0.8,
             "mean_reversion": 1.0,
             "obi": 0.8,
             "vpin": 1.1,

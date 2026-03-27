@@ -5,7 +5,13 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timedelta
 
-from crypto_trader.backtest.correlation import _binary_correlation, signal_correlation
+from crypto_trader.backtest.correlation import (
+    _binary_correlation,
+    average_pairwise_correlation,
+    diversification_multipliers,
+    rank_portfolios,
+    signal_correlation,
+)
 from crypto_trader.models import Candle, Signal, SignalAction
 
 
@@ -108,6 +114,51 @@ class TestSignalCorrelation(unittest.TestCase):
         )
         # broken always returns 0 -> no BUY signals
         self.assertIn(("broken", "good"), result)
+
+
+class TestPortfolioRankingHelpers(unittest.TestCase):
+    def test_average_pairwise_correlation(self) -> None:
+        corr = {
+            ("a", "a"): 1.0,
+            ("a", "b"): 0.8,
+            ("a", "c"): 0.2,
+            ("b", "b"): 1.0,
+            ("b", "c"): 0.4,
+            ("c", "c"): 1.0,
+        }
+        self.assertAlmostEqual(
+            average_pairwise_correlation(["a", "b", "c"], corr),
+            (0.8 + 0.2 + 0.4) / 3,
+        )
+
+    def test_diversification_multipliers_penalize_high_overlap(self) -> None:
+        corr = {
+            ("a", "a"): 1.0,
+            ("a", "b"): 0.9,
+            ("a", "c"): 0.1,
+            ("b", "b"): 1.0,
+            ("b", "c"): 0.2,
+            ("c", "c"): 1.0,
+        }
+        multipliers = diversification_multipliers(["a", "b", "c"], corr)
+        self.assertLess(multipliers["a"], multipliers["c"])
+
+    def test_rank_portfolios_prefers_diversified_profitable_combo(self) -> None:
+        corr = {
+            ("a", "a"): 1.0,
+            ("a", "b"): 0.95,
+            ("a", "c"): 0.10,
+            ("b", "b"): 1.0,
+            ("b", "c"): 0.15,
+            ("c", "c"): 1.0,
+        }
+        performance = {
+            "a": {"sharpe": 1.0, "return_pct": 4.0, "profit_factor": 1.2},
+            "b": {"sharpe": 1.1, "return_pct": 5.0, "profit_factor": 1.3},
+            "c": {"sharpe": 0.8, "return_pct": 3.0, "profit_factor": 1.2},
+        }
+        ranked = rank_portfolios(corr, performance, min_size=2, max_size=2)
+        self.assertEqual(ranked[0]["strategies"], ["b", "c"])
 
 
 if __name__ == "__main__":
