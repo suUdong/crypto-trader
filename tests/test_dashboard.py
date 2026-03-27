@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -142,6 +143,34 @@ class TestDataLoaders(unittest.TestCase):
         self.assertEqual(result["pid"], 1234)
         self.assertEqual(result["iteration"], 5)
 
+    def test_load_promotion_gate_prefers_current_portfolio_gate(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:41:02+00:00",
+                    "wallet_states": {"momentum_btc_wallet": {"equity": 1_000_000}},
+                }
+            )
+        )
+        (Path(self.tmpdir) / "portfolio-gate.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:41:02+00:00",
+                    "status": "stay_in_paper",
+                    "wallet_count": 1,
+                }
+            )
+        )
+        (Path(self.tmpdir) / "promotion-gate.json").write_text(
+            json.dumps({"status": "candidate_for_promotion"})
+        )
+
+        result = data_mod.load_promotion_gate()
+
+        assert result is not None
+        self.assertEqual(result["status"], "stay_in_paper")
+        self.assertEqual(result["wallet_count"], 1)
+
     def test_load_paper_trades_missing(self) -> None:
         result = data_mod.load_paper_trades()
         self.assertEqual(result, [])
@@ -179,6 +208,161 @@ class TestDataLoaders(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0]["symbol"], "KRW-BTC")
         self.assertEqual(result[1]["pnl"], -50000)
+
+    def test_live_filters_drop_out_of_session_and_future_rows(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:41:02+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "strategy_type": "momentum",
+                            "equity": 1_000_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 0.0,
+                            "trade_count": 0,
+                            "open_positions": 0,
+                            "positions": {},
+                        }
+                    },
+                }
+            )
+        )
+        (Path(self.tmpdir) / "daemon-heartbeat.json").write_text(
+            json.dumps(
+                {
+                    "last_heartbeat": "2026-03-27T08:41:02+00:00",
+                    "uptime_seconds": 62.0,
+                    "wallet_names": ["momentum_btc_wallet"],
+                    "session_id": "20260327T084000Z-1234",
+                }
+            )
+        )
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:40:30+00:00",
+                            "wallet_name": "momentum_btc_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "hold",
+                            "signal_reason": "entry_conditions_not_met",
+                            "signal_confidence": 0.2,
+                            "symbol": "KRW-BTC",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:40:30+00:00",
+                            "wallet_name": "momentum_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "buy",
+                            "signal_reason": "test_noise",
+                            "signal_confidence": 0.9,
+                            "symbol": "KRW-BTC",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T12:00:00+00:00",
+                            "wallet_name": "momentum_btc_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "buy",
+                            "signal_reason": "future_noise",
+                            "signal_confidence": 0.9,
+                            "symbol": "KRW-BTC",
+                        }
+                    ),
+                ]
+            )
+        )
+        (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "wallet": "momentum_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": 5000,
+                            "entry_time": "2026-03-27T08:40:00+00:00",
+                            "exit_time": "2026-03-27T08:40:30+00:00",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "wallet": "momentum_btc_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": 4000,
+                            "entry_time": "2026-03-27T11:00:00+00:00",
+                            "exit_time": "2026-03-27T12:00:00+00:00",
+                        }
+                    ),
+                ]
+            )
+        )
+
+        runs = data_mod.load_strategy_runs()
+        trades = data_mod.load_paper_trades()
+
+        self.assertEqual(len(runs), 1)
+        self.assertEqual(runs[0]["wallet_name"], "momentum_btc_wallet")
+        self.assertEqual(trades, [])
+
+    def test_load_paper_trades_filters_future_and_inactive_wallet_rows(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "strategy_type": "momentum",
+                            "equity": 1_000_000,
+                            "cash": 1_000_000,
+                            "open_positions": 0,
+                        }
+                    },
+                }
+            )
+        )
+        path = Path(self.tmpdir) / "paper-trades.jsonl"
+        path.write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "wallet": "momentum_btc_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": 10000,
+                            "entry_time": "2026-03-27T06:00:00+00:00",
+                            "exit_time": "2026-03-27T07:00:00+00:00",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "wallet": "momentum_btc_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": 5000,
+                            "entry_time": "2026-03-27T11:00:00+00:00",
+                            "exit_time": "2026-03-27T13:00:00+00:00",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "wallet": "momentum_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": -1000,
+                            "entry_time": "2026-03-27T06:30:00+00:00",
+                            "exit_time": "2026-03-27T07:30:00+00:00",
+                        }
+                    ),
+                ]
+            )
+        )
+
+        result = data_mod.load_paper_trades()
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["wallet"], "momentum_btc_wallet")
 
     def test_load_signal_summary_empty(self) -> None:
         result = data_mod.load_signal_summary()
@@ -610,6 +794,102 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(result["portfolio"]["portfolio_sharpe"], 1.23)
         self.assertEqual(result["portfolio"]["portfolio_mdd"], 2.34)
 
+    def test_load_wallet_analytics_ignores_inactive_recent_runs(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "equity": 1_000_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 0,
+                            "trade_count": 0,
+                            "open_positions": 0,
+                            "positions": {},
+                            "strategy_type": "momentum",
+                        }
+                    },
+                    "wallet_names": ["momentum_btc_wallet"],
+                }
+            )
+        )
+        (Path(self.tmpdir) / "daemon-heartbeat.json").write_text(
+            json.dumps(
+                {
+                    "last_heartbeat": "2026-03-27T08:00:30+00:00",
+                    "session_id": "session-1",
+                    "uptime_seconds": 30,
+                    "wallet_names": ["momentum_btc_wallet"],
+                }
+            )
+        )
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:01:00+00:00",
+                            "wallet_name": "momentum_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "buy",
+                            "signal_reason": "legacy_noise",
+                            "symbol": "KRW-BTC",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:00:40+00:00",
+                            "wallet_name": "momentum_btc_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "hold",
+                            "signal_reason": "entry_conditions_not_met",
+                            "symbol": "KRW-BTC",
+                        }
+                    ),
+                ]
+            )
+        )
+
+        result = data_mod.load_wallet_analytics()
+        self.assertEqual(result["wallets"][0]["latest_signal_action"], "hold")
+
+    def test_load_health_falls_back_to_checkpoint_when_wallet_count_mismatches(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:45:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "cash": 900_000,
+                            "equity": 1_020_000,
+                            "open_positions": 1,
+                            "strategy_type": "momentum",
+                        }
+                    },
+                    "wallet_names": ["momentum_btc_wallet"],
+                }
+            )
+        )
+        (Path(self.tmpdir) / "health.json").write_text(
+            json.dumps(
+                {
+                    "updated_at": "2026-03-27T08:45:00+00:00",
+                    "success": True,
+                    "wallet_count": 15,
+                    "open_positions": 9,
+                    "total_equity": 15_000_000,
+                }
+            )
+        )
+        os.utime(Path(self.tmpdir) / "health.json", None)
+
+        result = data_mod.load_health()
+        assert result is not None
+        self.assertEqual(result["wallet_count"], 1)
+        self.assertEqual(result["open_positions"], 1)
+        self.assertEqual(result["total_equity"], 1_020_000)
+
     def test_load_risk_overview_labels_position_reduction(self) -> None:
         (Path(self.tmpdir) / "kill-switch.json").write_text(
             json.dumps(
@@ -636,6 +916,104 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertTrue(result["reduction_active"])
         self.assertEqual(result["reduction_label"], "강한 축소")
         self.assertEqual(result["position_size_penalty_pct"], 50.0)
+
+    def test_load_wallet_analytics_filters_legacy_rows_when_active_session_is_known(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:10:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "equity": 1_010_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 5_000,
+                            "trade_count": 1,
+                            "open_positions": 0,
+                            "positions": {},
+                            "strategy_type": "momentum",
+                        }
+                    },
+                    "wallet_names": ["momentum_btc_wallet"],
+                }
+            )
+        )
+        (Path(self.tmpdir) / "daemon-heartbeat.json").write_text(
+            json.dumps(
+                {
+                    "last_heartbeat": "2026-03-27T08:10:00+00:00",
+                    "uptime_seconds": 60.0,
+                    "session_id": "active-session",
+                    "wallet_names": ["momentum_btc_wallet"],
+                }
+            )
+        )
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:09:30+00:00",
+                            "wallet_name": "momentum_btc_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "buy",
+                            "signal_reason": "trend_intact",
+                            "signal_confidence": 0.82,
+                            "latest_price": 91_000_000,
+                            "symbol": "KRW-BTC",
+                            "market_regime": "bull",
+                            "session_id": "active-session",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:09:45+00:00",
+                            "wallet_name": "legacy_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "sell",
+                            "signal_reason": "legacy_exit",
+                            "signal_confidence": 0.99,
+                            "latest_price": 90_000_000,
+                            "symbol": "KRW-BTC",
+                            "market_regime": "bear",
+                            "session_id": "stale-session",
+                        }
+                    ),
+                ]
+            )
+        )
+        (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "wallet": "momentum_btc_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": 5_000,
+                            "pnl_pct": 0.5,
+                            "exit_time": "2026-03-27T08:09:40+00:00",
+                            "session_id": "active-session",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "wallet": "legacy_wallet",
+                            "symbol": "KRW-BTC",
+                            "pnl": -20_000,
+                            "pnl_pct": -2.0,
+                            "exit_time": "2026-03-27T08:09:50+00:00",
+                            "session_id": "stale-session",
+                        }
+                    ),
+                ]
+            )
+        )
+
+        result = data_mod.load_wallet_analytics()
+        wallet = result["wallets"][0]
+        self.assertEqual(wallet["wallet_name"], "momentum_btc_wallet")
+        self.assertEqual(wallet["latest_signal_reason"], "trend_intact")
+        self.assertEqual(wallet["win_count"], 1)
+        self.assertEqual(wallet["loss_count"], 0)
 
     @patch("dashboard.data._fetch_macro_snapshot")
     def test_load_macro_summary_uses_macro_snapshot_and_local_regime(
@@ -800,6 +1178,67 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertGreaterEqual(len(result["alert_rows"]), 1)
         self.assertEqual(result["alert_rows"][0]["display_name"], "포트폴리오 리스크")
         self.assertEqual(result["high_confidence_count"], 1)
+
+    def test_load_signal_history_ignores_rows_outside_active_session(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "wallet_states": {"momentum_btc_wallet": {"strategy_type": "momentum"}},
+                    "wallet_names": ["momentum_btc_wallet"],
+                }
+            )
+        )
+        (Path(self.tmpdir) / "daemon-heartbeat.json").write_text(
+            json.dumps(
+                {
+                    "last_heartbeat": "2026-03-27T08:10:00+00:00",
+                    "uptime_seconds": 60.0,
+                    "session_id": "active-session",
+                    "wallet_names": ["momentum_btc_wallet"],
+                }
+            )
+        )
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:09:10+00:00",
+                            "wallet_name": "momentum_btc_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "buy",
+                            "signal_confidence": 0.82,
+                            "signal_reason": "breakout",
+                            "symbol": "KRW-BTC",
+                            "market_regime": "bull",
+                            "order_status": "filled",
+                            "verdict_status": "continue",
+                            "session_id": "active-session",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "recorded_at": "2026-03-27T08:09:20+00:00",
+                            "wallet_name": "legacy_wallet",
+                            "strategy_type": "momentum",
+                            "signal_action": "sell",
+                            "signal_confidence": 0.95,
+                            "signal_reason": "legacy_exit",
+                            "symbol": "KRW-BTC",
+                            "market_regime": "bear",
+                            "order_status": "filled",
+                            "verdict_status": "continue",
+                            "session_id": "stale-session",
+                        }
+                    ),
+                ]
+            )
+        )
+
+        result = data_mod.load_signal_history(limit=50)
+        non_risk_rows = [row for row in result["rows"] if row["display_name"] != "포트폴리오 리스크"]
+        self.assertEqual(len(non_risk_rows), 1)
+        self.assertEqual(non_risk_rows[0]["wallet_name"], "momentum_btc_wallet")
 
 
 class TestDashboardEntrypoint(unittest.TestCase):

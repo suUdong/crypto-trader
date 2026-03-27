@@ -5,9 +5,10 @@ import logging
 import os
 import signal
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from crypto_trader.config import AppConfig, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
@@ -39,6 +40,8 @@ from crypto_trader.wallet import StrategyWallet
 
 class MultiSymbolRuntime:
     PNL_NOTIFY_INTERVAL = 86400  # 24 hours in seconds
+    _FUTURE_ENTRY_GRACE = timedelta(minutes=5)
+    _KST = ZoneInfo("Asia/Seoul")
 
     def __init__(
         self,
@@ -70,9 +73,7 @@ class MultiSymbolRuntime:
                 reduce_position_factor=config.kill_switch.reduce_position_factor,
             )
         )
-        self._kill_switch_path = Path(
-            getattr(config.runtime, "kill_switch_path", "artifacts/kill-switch.json")
-        )
+        self._kill_switch_path = Path(config.runtime.kill_switch_path)
         self._session_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + f"-{os.getpid()}"
         self._config_path = getattr(config, "source_config_path", "")
         self._wallet_names = [w.name for w in wallets]
@@ -329,6 +330,7 @@ class MultiSymbolRuntime:
                     strategy_type=wallet.strategy_type,
                     signal_indicators=result.signal.indicators,
                     signal_context=result.signal.context,
+                    session_id=self._session_id,
                 )
                 self._strategy_run_journal.append(record)
 
@@ -466,9 +468,14 @@ class MultiSymbolRuntime:
             # Restore cash and realized PnL
             wallet.broker.cash = ws.get("cash", wallet.broker.cash)
             wallet.broker.realized_pnl = ws.get("realized_pnl", 0.0)
-            wallet.session_starting_equity = ws.get("cash", wallet.broker.cash) + sum(
-                p.get("quantity", 0) * p.get("entry_price", 0)
-                for p in ws.get("positions", {}).values()
+            wallet.session_starting_equity = ws.get(
+                "initial_capital",
+                ws.get("cash", wallet.broker.cash)
+                + sum(
+                    p.get("quantity", 0) * p.get("entry_price", 0)
+                    for p in ws.get("positions", {}).values()
+                )
+                - ws.get("realized_pnl", 0.0),
             )
 
             # Restore open positions
@@ -478,6 +485,8 @@ class MultiSymbolRuntime:
                     entry_time = datetime.fromisoformat(pos_data["entry_time"])
                     if entry_time.tzinfo is None:
                         entry_time = entry_time.replace(tzinfo=UTC)
+                    if entry_time > datetime.now(UTC) + self._FUTURE_ENTRY_GRACE:
+                        entry_time = entry_time.replace(tzinfo=self._KST).astimezone(UTC)
                 except (KeyError, ValueError):
                     entry_time = datetime.now(UTC)
 
@@ -522,6 +531,7 @@ class MultiSymbolRuntime:
         for wallet in self._wallets:
             wallet_states[wallet.name] = {
                 "strategy_type": wallet.strategy_type,
+                "initial_capital": wallet.session_starting_equity,
                 "cash": wallet.broker.cash,
                 "realized_pnl": wallet.broker.realized_pnl,
                 "open_positions": len(wallet.broker.positions),
@@ -562,7 +572,11 @@ class MultiSymbolRuntime:
             prev_count = self._journal_trade_counts.get(wallet.name, 0)
             if current_count > prev_count:
                 new_trades = wallet.broker.closed_trades[prev_count:current_count]
-                self._trade_journal.append_many(new_trades, wallet_name=wallet.name)
+                self._trade_journal.append_many(
+                    new_trades,
+                    wallet_name=wallet.name,
+                    session_id=self._session_id,
+                )
                 self._journal_trade_counts[wallet.name] = current_count
 
     def _maybe_check_wallet_health(self) -> None:

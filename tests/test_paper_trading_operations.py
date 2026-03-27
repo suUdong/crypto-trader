@@ -40,10 +40,11 @@ class PaperTradingOperationsTests(unittest.TestCase):
                 market_price=110.0,
             )
             journal = PaperTradeJournal(Path(temp_dir) / "trades.jsonl")
-            journal.append_many(broker.closed_trades)
+            journal.append_many(broker.closed_trades, session_id="session-1")
             trades = journal.load_all()
             self.assertEqual(len(trades), 1)
             self.assertEqual(trades[0].exit_reason, "exit")
+            self.assertEqual(trades[0].session_id, "session-1")
 
     def test_build_position_snapshot_tracks_open_positions(self) -> None:
         broker = PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0)

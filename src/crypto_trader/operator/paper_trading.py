@@ -22,6 +22,7 @@ class PaperTradeJournal:
         self,
         trades: list[TradeRecord],
         wallet_name: str = "",
+        session_id: str = "",
     ) -> None:
         if not trades:
             return
@@ -33,6 +34,8 @@ class PaperTradeJournal:
                 payload["exit_time"] = trade.exit_time.isoformat()
                 if wallet_name:
                     payload["wallet"] = wallet_name
+                if session_id:
+                    payload["session_id"] = session_id
                 handle.write(json.dumps(payload, ensure_ascii=True))
                 handle.write("\n")
 

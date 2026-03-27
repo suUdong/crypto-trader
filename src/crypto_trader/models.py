@@ -111,6 +111,7 @@ class TradeRecord:
     exit_reason: str
     wallet: str = ""
     entry_confidence: float = 0.0
+    session_id: str = ""
 
 
 @dataclass(slots=True)
@@ -272,6 +273,7 @@ class StrategyRunRecord:
     strategy_type: str = ""
     signal_indicators: dict[str, float] = field(default_factory=dict)
     signal_context: dict[str, str] = field(default_factory=dict)
+    session_id: str = ""
 
 
 @dataclass(slots=True)

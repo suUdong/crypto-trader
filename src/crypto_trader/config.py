@@ -125,6 +125,7 @@ class RuntimeConfig:
     poll_interval_seconds: int = 60
     max_iterations: int = 0
     daemon_mode: bool = True
+    kill_switch_path: str = "artifacts/kill-switch.json"
     healthcheck_path: str = "artifacts/health.json"
     runtime_checkpoint_path: str = "artifacts/runtime-checkpoint.json"
     backtest_baseline_path: str = "artifacts/backtest-baseline.json"
@@ -460,6 +461,16 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
             _read_value(raw, env, "runtime", "max_iterations", "CT_MAX_ITERATIONS", 0)
         ),
         daemon_mode=_read_bool(raw, env, "runtime", "daemon_mode", "CT_DAEMON_MODE", True),
+        kill_switch_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "kill_switch_path",
+                "CT_KILL_SWITCH_PATH",
+                "artifacts/kill-switch.json",
+            )
+        ),
         healthcheck_path=str(
             _read_value(
                 raw,
@@ -815,6 +826,8 @@ def _validate_config(config: AppConfig) -> None:
 
     if config.runtime.poll_interval_seconds <= 0:
         errors.append("runtime.poll_interval_seconds must be positive")
+    if not config.runtime.kill_switch_path.strip():
+        errors.append("runtime.kill_switch_path must not be empty")
     if not config.runtime.healthcheck_path.strip():
         errors.append("runtime.healthcheck_path must not be empty")
     if not config.runtime.runtime_checkpoint_path.strip():

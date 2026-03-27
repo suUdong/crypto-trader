@@ -33,12 +33,14 @@ class StrategyRunJournalTests(unittest.TestCase):
                     verdict_status="continue_paper",
                     verdict_confidence=0.6,
                     verdict_reasons=["ok"],
+                    session_id="session-1",
                 )
             )
             records = journal.load_recent()
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0].symbol, "KRW-BTC")
             self.assertEqual(records[0].verdict_status, "continue_paper")
+            self.assertEqual(records[0].session_id, "session-1")
 
     def test_load_recent_accepts_legacy_records_without_market_regime(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -55,6 +57,7 @@ class StrategyRunJournalTests(unittest.TestCase):
             records = StrategyRunJournal(path).load_recent()
             self.assertEqual(len(records), 1)
             self.assertIsNone(records[0].market_regime)
+            self.assertEqual(records[0].session_id, "")
 
     def test_load_recent_returns_empty_when_file_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

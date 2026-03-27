@@ -7,7 +7,7 @@ import logging
 import math
 import os
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 DEFAULT_INITIAL_CAPITAL = 1_000_000.0
+_FUTURE_GRACE = timedelta(minutes=5)
 
 # Primary data source: files the daemon writes every iteration.
 _PRIMARY_FILES = [
@@ -181,6 +182,14 @@ def _load_md(filename: str) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
+def _file_age_seconds(filename: str) -> float | None:
+    path = ARTIFACTS_DIR / filename
+    if not path.exists():
+        return None
+    mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
+    return (datetime.now(UTC) - mtime).total_seconds()
+
+
 def _parse_dt(value: Any) -> datetime | None:
     if not value or not isinstance(value, str):
         return None
@@ -192,6 +201,100 @@ def _parse_dt(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def _is_future_timestamp(parsed: datetime | None) -> bool:
+    return parsed is not None and parsed > datetime.now(UTC) + _FUTURE_GRACE
+
+
+def _active_session_metadata(
+    wallet_states: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    heartbeat = load_daemon_heartbeat() or {}
+    checkpoint = load_checkpoint() or {}
+    wallet_names = {
+        str(name)
+        for name in (
+            heartbeat.get("wallet_names")
+            or checkpoint.get("wallet_names")
+            or (wallet_states or checkpoint.get("wallet_states", {})).keys()
+        )
+        if name
+    }
+    session_id = str(heartbeat.get("session_id") or checkpoint.get("session_id") or "")
+    session_start = None
+    heartbeat_dt = _parse_dt(heartbeat.get("last_heartbeat"))
+    try:
+        uptime_seconds = float(heartbeat.get("uptime_seconds", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        uptime_seconds = 0.0
+    if heartbeat_dt is not None:
+        session_start = heartbeat_dt - timedelta(seconds=max(0.0, uptime_seconds))
+    return {
+        "session_id": session_id,
+        "session_start": session_start,
+        "wallet_names": wallet_names,
+    }
+
+
+def _trade_timestamp(trade: dict[str, Any]) -> datetime | None:
+    return _parse_dt(trade.get("exit_time")) or _parse_dt(trade.get("entry_time"))
+
+
+def _is_current_session_trade(
+    trade: dict[str, Any],
+    wallet_states: dict[str, dict[str, Any]],
+    session_meta: dict[str, Any],
+) -> bool:
+    raw_wallet_name = str(trade.get("wallet", "") or "")
+    active_wallets = cast(set[str], session_meta.get("wallet_names", set()))
+    if active_wallets and raw_wallet_name and raw_wallet_name not in active_wallets:
+        return False
+
+    wallet_name = _trade_wallet_name(trade, wallet_states)
+    if active_wallets and wallet_name not in active_wallets:
+        return False
+
+    active_session_id = str(session_meta.get("session_id", "") or "")
+    row_session_id = str(trade.get("session_id", "") or "")
+    if active_session_id and row_session_id:
+        return row_session_id == active_session_id
+
+    session_start = cast(datetime | None, session_meta.get("session_start"))
+    trade_dt = _trade_timestamp(trade)
+    if _is_future_timestamp(trade_dt):
+        return False
+    if session_start is not None and trade_dt is not None:
+        return trade_dt >= session_start
+    return True
+
+
+def _is_current_session_run(
+    run: dict[str, Any],
+    wallet_states: dict[str, dict[str, Any]],
+    session_meta: dict[str, Any],
+) -> bool:
+    raw_wallet_name = str(run.get("wallet_name", "") or "")
+    active_wallets = cast(set[str], session_meta.get("wallet_names", set()))
+    if active_wallets and raw_wallet_name and raw_wallet_name not in active_wallets:
+        return False
+
+    wallet_name = _run_wallet_name(run, wallet_states)
+    if active_wallets and wallet_name not in active_wallets:
+        return False
+
+    active_session_id = str(session_meta.get("session_id", "") or "")
+    row_session_id = str(run.get("session_id", "") or "")
+    if active_session_id and row_session_id:
+        return row_session_id == active_session_id
+
+    session_start = cast(datetime | None, session_meta.get("session_start"))
+    run_dt = _parse_dt(run.get("recorded_at"))
+    if _is_future_timestamp(run_dt):
+        return False
+    if session_start is not None and run_dt is not None:
+        return run_dt >= session_start
+    return True
 
 
 def _first_existing_file(pattern: str, directory: Path) -> Path | None:
@@ -311,6 +414,24 @@ def _compute_sharpe_ratio(curve: list[float]) -> float:
     return (mean / std_dev) * math.sqrt(min(len(returns), 252))
 
 
+def _wallet_initial_capital(state: dict[str, Any]) -> float:
+    explicit = state.get("initial_capital")
+    if explicit is not None:
+        return float(explicit or 0.0)
+    realized_pnl = float(state.get("realized_pnl", 0.0) or 0.0)
+    cash = float(state.get("cash", 0.0) or 0.0)
+    positions = cast(dict[str, dict[str, Any]], state.get("positions", {}))
+    position_cost = sum(
+        float(position.get("entry_price", 0.0) or 0.0)
+        * float(position.get("quantity", 0.0) or 0.0)
+        for position in positions.values()
+    )
+    inferred = cash + position_cost - realized_pnl
+    if inferred > 0:
+        return inferred
+    return DEFAULT_INITIAL_CAPITAL
+
+
 def _build_equity_curve(
     *,
     initial_capital: float,
@@ -371,7 +492,50 @@ def load_positions() -> dict[str, Any] | None:
 
 @st.cache_data(ttl=30)
 def load_health() -> dict[str, Any] | None:
-    return _load_json("health.json")
+    health = _load_json("health.json")
+    checkpoint = load_checkpoint()
+    if checkpoint is None:
+        return health
+
+    wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
+    age_seconds = _file_age_seconds("health.json")
+    expected_wallet_count = len(wallet_states)
+    current_wallet_count = int((health or {}).get("wallet_count", 0) or 0)
+    if (
+        health is not None
+        and age_seconds is not None
+        and age_seconds <= 300
+        and (expected_wallet_count == 0 or current_wallet_count == expected_wallet_count)
+    ):
+        return health
+
+    latest_signal = "hold"
+    session_meta = _active_session_metadata(wallet_states)
+    for run in reversed(load_strategy_runs()[-200:]):
+        if not _is_current_session_run(run, wallet_states, session_meta):
+            continue
+        action = str(run.get("signal_action", "hold") or "hold")
+        if action != "hold":
+            latest_signal = action
+            break
+
+    return {
+        "updated_at": checkpoint.get("generated_at") or datetime.now(UTC).isoformat(),
+        "success": True,
+        "consecutive_failures": 0,
+        "last_error": None,
+        "last_signal": latest_signal,
+        "last_order_status": None,
+        "cash": sum(float(state.get("cash", 0.0) or 0.0) for state in wallet_states.values()),
+        "open_positions": sum(
+            int(state.get("open_positions", 0) or 0) for state in wallet_states.values()
+        ),
+        "total_equity": sum(
+            float(state.get("equity", 0.0) or 0.0) for state in wallet_states.values()
+        ),
+        "wallet_count": expected_wallet_count,
+        "mode": "multi_symbol",
+    }
 
 
 @st.cache_data(ttl=30)
@@ -386,6 +550,31 @@ def load_drift_report() -> dict[str, Any] | None:
 
 @st.cache_data(ttl=30)
 def load_promotion_gate() -> dict[str, Any] | None:
+    checkpoint = load_checkpoint()
+    portfolio_gate = _load_json("portfolio-gate.json")
+    if checkpoint is not None:
+        wallet_count = len(cast(dict[str, Any], checkpoint.get("wallet_states", {})))
+        generated_at = _parse_dt((portfolio_gate or {}).get("generated_at"))
+        checkpoint_at = _parse_dt(checkpoint.get("generated_at"))
+        if (
+            portfolio_gate is None
+            or generated_at is None
+            or checkpoint_at is None
+            or generated_at < checkpoint_at
+            or int((portfolio_gate or {}).get("wallet_count", -1)) != wallet_count
+        ):
+            try:
+                from crypto_trader.operator.promotion import PortfolioPromotionGate
+
+                decision = PortfolioPromotionGate().evaluate_from_checkpoint(
+                    checkpoint_path=ARTIFACTS_DIR / "runtime-checkpoint.json",
+                    journal_path=ARTIFACTS_DIR / "strategy-runs.jsonl",
+                )
+                return cast(dict[str, Any], decision.to_dict())
+            except Exception:
+                logger.exception("Failed to rebuild portfolio promotion gate")
+    if portfolio_gate is not None:
+        return portfolio_gate
     return _load_json("promotion-gate.json")
 
 
@@ -409,7 +598,14 @@ def load_daily_performance() -> dict[str, Any] | None:
 
 @st.cache_data(ttl=30)
 def load_strategy_runs() -> list[dict[str, Any]]:
-    return _load_jsonl("strategy-runs.jsonl")
+    checkpoint = load_checkpoint() or {}
+    wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
+    session_meta = _active_session_metadata(wallet_states)
+    return [
+        run
+        for run in _load_jsonl("strategy-runs.jsonl")
+        if _is_current_session_run(run, wallet_states, session_meta)
+    ]
 
 
 @st.cache_data(ttl=60)
@@ -439,13 +635,27 @@ def load_pnl_report() -> dict[str, Any] | None:
 
 @st.cache_data(ttl=30)
 def load_paper_trades() -> list[dict[str, Any]]:
-    return _load_jsonl("paper-trades.jsonl")
+    checkpoint = load_checkpoint() or {}
+    wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
+    session_meta = _active_session_metadata(wallet_states)
+    return [
+        trade
+        for trade in _load_jsonl("paper-trades.jsonl")
+        if _is_current_session_trade(trade, wallet_states, session_meta)
+    ]
 
 
 @st.cache_data(ttl=30)
 def load_signal_summary() -> dict[str, Any]:
     """Aggregate hold reasons and action distribution by wallet."""
-    runs = _load_jsonl("strategy-runs.jsonl")
+    checkpoint = load_checkpoint() or {}
+    wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
+    session_meta = _active_session_metadata(wallet_states)
+    runs = [
+        run
+        for run in _load_jsonl("strategy-runs.jsonl")
+        if _is_current_session_run(run, wallet_states, session_meta)
+    ]
     hold_reasons: dict[str, int] = {}
     by_wallet: dict[str, dict[str, Any]] = {}
 
@@ -489,8 +699,17 @@ def load_wallet_analytics() -> dict[str, Any]:
 
     generated_at = _parse_dt(checkpoint.get("generated_at")) or datetime.now(UTC)
     wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
-    strategy_runs = load_strategy_runs()
-    paper_trades = load_paper_trades()
+    session_meta = _active_session_metadata(wallet_states)
+    strategy_runs = [
+        run
+        for run in load_strategy_runs()
+        if _is_current_session_run(run, wallet_states, session_meta)
+    ]
+    paper_trades = [
+        trade
+        for trade in load_paper_trades()
+        if _is_current_session_trade(trade, wallet_states, session_meta)
+    ]
 
     trades_by_wallet: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for trade in paper_trades:
@@ -517,7 +736,7 @@ def load_wallet_analytics() -> dict[str, Any]:
     timeline_events: list[tuple[datetime, float]] = []
 
     for wallet_name, state in wallet_states.items():
-        initial_capital = float(state.get("initial_capital", DEFAULT_INITIAL_CAPITAL))
+        initial_capital = _wallet_initial_capital(state)
         equity = float(state.get("equity", initial_capital))
         realized_pnl = float(state.get("realized_pnl", 0.0))
         unrealized_pnl = equity - initial_capital - realized_pnl
@@ -771,7 +990,12 @@ def load_signal_history(limit: int = 300) -> dict[str, Any]:
     wallet_states = (
         cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {})) if checkpoint else {}
     )
-    runs = load_strategy_runs()
+    session_meta = _active_session_metadata(wallet_states)
+    runs = [
+        run
+        for run in load_strategy_runs()
+        if _is_current_session_run(run, wallet_states, session_meta)
+    ]
     risk = load_risk_overview()
     rows: list[dict[str, Any]] = []
 

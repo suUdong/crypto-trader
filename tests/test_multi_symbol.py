@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 import signal
+import tempfile
 import unittest
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from crypto_trader.config import (
     AppConfig,
@@ -49,6 +52,7 @@ def _make_config(
     max_iterations: int = 2,
     poll_interval_seconds: int = 0,
 ) -> AppConfig:
+    artifacts_dir = tempfile.mkdtemp(prefix="crypto-trader-test-artifacts-")
     return AppConfig(
         trading=TradingConfig(
             symbols=symbols or ["KRW-BTC", "KRW-ETH"],
@@ -73,6 +77,14 @@ def _make_config(
             poll_interval_seconds=poll_interval_seconds,
             max_iterations=max_iterations,
             daemon_mode=daemon_mode,
+            kill_switch_path=f"{artifacts_dir}/kill-switch.json",
+            healthcheck_path=f"{artifacts_dir}/health.json",
+            runtime_checkpoint_path=f"{artifacts_dir}/runtime-checkpoint.json",
+            strategy_run_journal_path=f"{artifacts_dir}/strategy-runs.jsonl",
+            paper_trade_journal_path=f"{artifacts_dir}/paper-trades.jsonl",
+            position_snapshot_path=f"{artifacts_dir}/positions.json",
+            daily_performance_path=f"{artifacts_dir}/daily-performance.json",
+            promotion_gate_path=f"{artifacts_dir}/promotion-gate.json",
         ),
         credentials=CredentialsConfig(),
         wallets=wallets
@@ -334,6 +346,52 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         runtime._handle_signal(signal.SIGINT, None)
         self.assertTrue(runtime._shutdown_requested)
 
+    def test_restore_from_checkpoint_normalizes_future_entry_time(self) -> None:
+        btc_candles = _build_candles([100.0] * 25)
+        market_data = FakeMarketData({"KRW-BTC": btc_candles})
+        config = _make_config(symbols=["KRW-BTC"], daemon_mode=False, poll_interval_seconds=0)
+        future_wrong = (datetime.now(UTC) + timedelta(hours=9)).replace(microsecond=0)
+        checkpoint = {
+            "generated_at": datetime.now(UTC).isoformat(),
+            "iteration": 1,
+            "symbols": ["KRW-BTC"],
+            "session_id": "stale-session",
+            "wallet_states": {
+                "momentum_wallet": {
+                    "strategy_type": "momentum",
+                    "cash": 900000.0,
+                    "realized_pnl": 0.0,
+                    "open_positions": 1,
+                    "equity": 1000000.0,
+                    "trade_count": 0,
+                    "positions": {
+                        "KRW-BTC": {
+                            "symbol": "KRW-BTC",
+                            "quantity": 1.0,
+                            "entry_price": 100.0,
+                            "entry_time": future_wrong.isoformat(),
+                            "entry_index": 10,
+                            "entry_fee_paid": 0.0,
+                            "high_watermark": 100.0,
+                            "partial_tp_taken": False,
+                        }
+                    },
+                }
+            },
+        }
+        with open(config.runtime.runtime_checkpoint_path, "w", encoding="utf-8") as handle:
+            json.dump(checkpoint, handle)
+
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(wallets=wallets, market_data=market_data, config=config)
+        runtime._restore_from_checkpoint()
+
+        position = wallets[0].broker.positions["KRW-BTC"]
+        self.assertLessEqual(
+            position.entry_time,
+            datetime.now(UTC) + MultiSymbolRuntime._FUTURE_ENTRY_GRACE,
+        )
+
 
 class TestStrategyComparisonReport(unittest.TestCase):
     def test_report_contains_all_wallets(self) -> None:
@@ -413,6 +471,38 @@ class TestIntegrationMultiSymbolPaperTrading(unittest.TestCase):
         self.assertIn("composite_wallet", report)
         self.assertIn("KRW-BTC", report)
         self.assertIn("KRW-ETH", report)
+
+
+class TestMultiRuntimeArtifacts(unittest.TestCase):
+    def test_first_iteration_refreshes_portfolio_gate_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts_dir = Path(temp_dir)
+            config = _make_config(
+                symbols=["KRW-BTC"],
+                wallets=[WalletConfig("momentum_btc_wallet", "momentum", 1_000_000.0)],
+                daemon_mode=False,
+                max_iterations=1,
+                poll_interval_seconds=0,
+            )
+            config.runtime.runtime_checkpoint_path = str(artifacts_dir / "runtime-checkpoint.json")
+            config.runtime.position_snapshot_path = str(artifacts_dir / "positions.json")
+            config.runtime.healthcheck_path = str(artifacts_dir / "health.json")
+            config.runtime.daily_performance_path = str(artifacts_dir / "daily-performance.json")
+            config.runtime.promotion_gate_path = str(artifacts_dir / "promotion-gate.json")
+            config.runtime.paper_trade_journal_path = str(artifacts_dir / "paper-trades.jsonl")
+            config.runtime.strategy_run_journal_path = str(artifacts_dir / "strategy-runs.jsonl")
+            config.source_config_path = "config/test.toml"
+
+            wallets = build_wallets(config)
+            runtime = MultiSymbolRuntime(
+                wallets=wallets,
+                market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 240)}),
+                config=config,
+            )
+
+            runtime.run()
+
+            self.assertTrue((artifacts_dir / "promotion-gate.json").exists())
 
 
 if __name__ == "__main__":

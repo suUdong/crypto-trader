@@ -30,10 +30,10 @@ from crypto_trader.wallet import build_wallets
 def _make_config(
     bot_token: str = "",
     chat_id: str = "",
-    checkpoint_path: str = "artifacts/runtime-checkpoint.json",
+    checkpoint_path: str | None = None,
 ) -> AppConfig:
-    with tempfile.TemporaryDirectory() as tmp:
-        str(Path(tmp) / "checkpoint.json")
+    checkpoint = Path(checkpoint_path) if checkpoint_path else Path(tempfile.mkdtemp()) / "checkpoint.json"
+    base = checkpoint.parent
     return AppConfig(
         trading=TradingConfig(
             symbols=["KRW-BTC"],
@@ -58,7 +58,13 @@ def _make_config(
             poll_interval_seconds=0,
             max_iterations=1,
             daemon_mode=False,
-            runtime_checkpoint_path=checkpoint_path,
+            runtime_checkpoint_path=str(checkpoint),
+            healthcheck_path=str(base / "health.json"),
+            position_snapshot_path=str(base / "positions.json"),
+            daily_performance_path=str(base / "daily-performance.json"),
+            strategy_run_journal_path=str(base / "strategy-runs.jsonl"),
+            paper_trade_journal_path=str(base / "paper-trades.jsonl"),
+            promotion_gate_path=str(base / "promotion-gate.json"),
         ),
         credentials=CredentialsConfig(),
         wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],

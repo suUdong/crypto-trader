@@ -3,8 +3,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from importlib import import_module
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from crypto_trader.models import Candle
+
+_KST = ZoneInfo("Asia/Seoul")
 
 
 class PyUpbitMarketDataClient:
@@ -47,5 +50,6 @@ def _to_datetime(value: Any) -> datetime:
     else:
         dt = datetime.fromisoformat(str(value))
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC)
+        # PyUpbit returns KST-aligned candle indices without tzinfo.
+        dt = dt.replace(tzinfo=_KST).astimezone(UTC)
     return dt
