@@ -1,91 +1,57 @@
-"""Password-based login authentication for dashboards.
+"""Cookie-based token authentication for dashboards.
 
-NOTE: Auth gate bypassed for crypto-trader — authentication is now
-delegated to Cloudflare Access (see commit ff00553).  This module is
-retained for reuse by other dashboards (y2i, etc.).
-
-Uses st.session_state to persist login across reruns.
-Token is checked against the DASHBOARD_TOKEN env var.
+Flow:
+1. ?token=<TOKEN> in URL  ->  set cookie (30 days), redirect to clean URL
+2. Valid cookie present   ->  pass through
+3. Otherwise              ->  403 Forbidden (no login form)
 """
 
 from __future__ import annotations
 
 import hmac
 import logging
-import os
 
 import streamlit as st
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TOKEN = "demo"
-
-# Session state key used to track authentication.
-_AUTH_KEY = "dashboard_authenticated"
-
-
-def check_auth(
-    *,
-    env_var: str = "DASHBOARD_TOKEN",
-    default_token: str = DEFAULT_TOKEN,
-    session_key: str = _AUTH_KEY,
-) -> bool:
-    """Return True if the user is authenticated via session state.
-
-    On first visit, this always returns False so the login form is shown.
-    After successful login, the session flag is set and persists across reruns.
-
-    Args:
-        env_var: Environment variable holding the expected token.
-        default_token: Fallback token when env var is not set.
-        session_key: Key in st.session_state to store auth flag.
-    """
-    return bool(st.session_state.get(session_key, False))
+AUTH_TOKEN = "9ca3aba859b85826"
+_COOKIE_NAME = "dashboard_token"
+_COOKIE_MAX_AGE_DAYS = 30
 
 
-def render_login(
-    *,
-    env_var: str = "DASHBOARD_TOKEN",
-    default_token: str = DEFAULT_TOKEN,
-    session_key: str = _AUTH_KEY,
-) -> None:
-    """Render a password login form. Sets session_state on success.
-
-    Args:
-        env_var: Environment variable holding the expected token.
-        default_token: Fallback token when env var is not set.
-        session_key: Key in st.session_state to store auth flag.
-    """
-    st.markdown(
-        '<div class="login-brand">'
-        "<h2>크립토 트레이더</h2>"
-        "<p>실시간 자동매매 모니터링 대시보드</p>"
-        "</div>",
-        unsafe_allow_html=True,
+def _set_cookie_and_redirect() -> None:
+    """Inject JS to set the auth cookie and redirect to the clean URL."""
+    max_age = _COOKIE_MAX_AGE_DAYS * 86400
+    st.components.v1.html(
+        f"""<script>
+        document.cookie = "{_COOKIE_NAME}={AUTH_TOKEN}; path=/; max-age={max_age}; SameSite=Lax";
+        window.location.href = window.location.pathname;
+        </script>""",
+        height=0,
     )
 
-    with st.form("login_form"):
-        password = st.text_input(
-            "비밀번호",
-            type="password",
-            placeholder="비밀번호를 입력하세요",
-        )
-        submitted = st.form_submit_button("로그인", width="stretch")
 
-    if submitted:
-        expected = os.environ.get(env_var, default_token)
-        if expected == DEFAULT_TOKEN:
-            logger.warning(
-                "DASHBOARD_TOKEN is not set — using insecure default. "
-                "Set the %s environment variable for production.",
-                env_var,
-            )
-        if hmac.compare_digest(password, expected):
-            st.session_state[session_key] = True
-            st.rerun()
-        else:
-            st.error("비밀번호가 올바르지 않습니다.")
+def require_auth() -> bool:
+    """Gate the dashboard behind cookie-based token auth.
 
+    Returns True if authenticated.  On failure, renders 403 and returns False.
+    The caller should ``st.stop()`` when False is returned.
+    """
+    # 1) Token in query string -> set cookie and redirect
+    query_token = st.query_params.get("token")
+    if query_token is not None:
+        if hmac.compare_digest(str(query_token), AUTH_TOKEN):
+            _set_cookie_and_redirect()
+            st.stop()
+        # Bad token in URL -> fall through to 403
 
-# Keep render_denied as an alias for backward compatibility during transition.
-render_denied = render_login
+    # 2) Valid cookie -> authenticated
+    cookie_token = st.context.cookies.get(_COOKIE_NAME, "")
+    if cookie_token and hmac.compare_digest(cookie_token, AUTH_TOKEN):
+        return True
+
+    # 3) No valid credentials -> 403
+    st.error("403 Forbidden")
+    st.stop()
+    return False  # unreachable, but keeps type checkers happy

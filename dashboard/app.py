@@ -34,6 +34,7 @@ from dashboard.data import (  # noqa: E402
     strategy_kr,
     symbol_kr,
 )
+from dashboard.auth import require_auth  # noqa: E402
 from dashboard.styles import COLORS, PALETTE, chart_layout, inject_css, pnl_color  # noqa: E402
 
 _UTC = timezone.utc  # noqa: UP017
@@ -45,6 +46,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+require_auth()
 inject_css()
 
 st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)

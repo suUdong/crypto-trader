@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 try:
     from dashboard import data as data_mod
-    from dashboard.auth import check_auth
+    from dashboard.auth import AUTH_TOKEN, require_auth
 
     _HAS_STREAMLIT = True
 except ImportError:
@@ -457,36 +457,52 @@ class TestDataLoaders(unittest.TestCase):
 
 @_skip
 class TestAuth(unittest.TestCase):
-    """Test session-based password authentication."""
+    """Test cookie-based token authentication."""
 
     @patch("dashboard.auth.st")
-    def test_auth_not_authenticated_by_default(self, mock_st: Any) -> None:
-        mock_st.session_state = {}
-        self.assertFalse(check_auth())
+    def test_auth_passes_with_valid_cookie(self, mock_st: Any) -> None:
+        mock_st.query_params = {}
+        mock_st.context.cookies = {"dashboard_token": AUTH_TOKEN}
+        self.assertTrue(require_auth())
 
     @patch("dashboard.auth.st")
-    def test_auth_authenticated_when_session_flag_set(self, mock_st: Any) -> None:
-        mock_st.session_state = {"dashboard_authenticated": True}
-        self.assertTrue(check_auth())
+    def test_auth_rejects_invalid_cookie(self, mock_st: Any) -> None:
+        mock_st.query_params = {}
+        mock_st.context.cookies = {"dashboard_token": "wrong"}
+        require_auth()
+        mock_st.error.assert_called_once_with("403 Forbidden")
+        mock_st.stop.assert_called_once()
 
     @patch("dashboard.auth.st")
-    def test_auth_false_when_session_flag_false(self, mock_st: Any) -> None:
-        mock_st.session_state = {"dashboard_authenticated": False}
-        self.assertFalse(check_auth())
+    def test_auth_rejects_missing_cookie(self, mock_st: Any) -> None:
+        mock_st.query_params = {}
+        mock_st.context.cookies = {}
+        require_auth()
+        mock_st.error.assert_called_once_with("403 Forbidden")
+        mock_st.stop.assert_called_once()
 
     @patch("dashboard.auth.st")
-    def test_auth_custom_session_key(self, mock_st: Any) -> None:
-        mock_st.session_state = {"y2i_auth": True}
-        self.assertTrue(check_auth(session_key="y2i_auth"))
+    def test_auth_sets_cookie_on_valid_query_token(self, mock_st: Any) -> None:
+        mock_st.query_params = {"token": AUTH_TOKEN}
+        mock_st.context.cookies = {}
+        require_auth()
+        mock_st.components.v1.html.assert_called_once()
+        mock_st.stop.assert_called()
 
     @patch("dashboard.auth.st")
-    def test_auth_custom_session_key_missing(self, mock_st: Any) -> None:
-        mock_st.session_state = {}
-        self.assertFalse(check_auth(session_key="y2i_auth"))
+    def test_auth_rejects_invalid_query_token(self, mock_st: Any) -> None:
+        mock_st.query_params = {"token": "bad_token"}
+        mock_st.context.cookies = {}
+        require_auth()
+        mock_st.error.assert_called_once_with("403 Forbidden")
+        mock_st.stop.assert_called()
 
-    def test_render_login_does_not_own_page_config(self) -> None:
+    def test_auth_has_no_login_form(self) -> None:
         source = _read_source("dashboard/auth.py")
         self.assertNotIn("st.set_page_config", source)
+        self.assertNotIn("render_login", source)
+        self.assertNotIn("st.form", source)
+        self.assertNotIn("text_input", source)
 
 
 @_skip
@@ -1338,14 +1354,15 @@ class TestDashboardEntrypoint(unittest.TestCase):
         self.assertNotIn("from datetime import UTC, datetime", source)
         self.assertIn("datetime.now(", source)
 
-    def test_app_has_no_dashboard_side_auth_gate(self) -> None:
+    def test_app_uses_cookie_auth_gate(self) -> None:
         source = _read_source("dashboard/app.py")
-        self.assertNotIn("from dashboard.auth import", source)
+        self.assertIn("from dashboard.auth import require_auth", source)
+        self.assertIn("require_auth()", source)
         self.assertNotIn("check_auth(", source)
         self.assertNotIn("render_login(", source)
         self.assertNotIn("dashboard_authenticated", source)
 
-    def test_app_imports_without_dashboard_side_auth(self) -> None:
+    def test_app_imports_with_cookie_auth(self) -> None:
         class DashboardBootstrapped(RuntimeError):
             """Raised once the dashboard reaches normal tab construction."""
 
@@ -1375,6 +1392,9 @@ class TestDashboardEntrypoint(unittest.TestCase):
         fake_streamlit.info = lambda *args, **kwargs: None
         fake_streamlit.spinner = lambda *args, **kwargs: NullContext()
         fake_streamlit.tabs = lambda labels: (_ for _ in ()).throw(DashboardBootstrapped(labels))
+
+        fake_auth = ModuleType("dashboard.auth")
+        fake_auth.require_auth = lambda: True
 
         fake_data = ModuleType("dashboard.data")
         fake_data.load_checkpoint = lambda: None
@@ -1416,6 +1436,7 @@ class TestDashboardEntrypoint(unittest.TestCase):
             sys.modules,
             {
                 "streamlit": fake_streamlit,
+                "dashboard.auth": fake_auth,
                 "dashboard.data": fake_data,
                 "dashboard.styles": fake_styles,
                 "plotly": fake_plotly,
