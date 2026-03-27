@@ -115,13 +115,7 @@ class FundingRateStrategy:
         self._funding_history = sorted(points, key=lambda point: point.funding_time)
 
     def prime_backtest_funding(self, symbol: str, candles: list[Candle]) -> None:
-        history = self._funding_client.get_funding_rate_history(
-            symbol,
-            limit=max(16, len(candles) // 8 + 4),
-        )
-        if history:
-            self._funding_history = history
-            return
+        # Keep research/backtest flows fully offline-safe and deterministic.
         self._funding_history = build_proxy_funding_history(symbol, candles)
 
     def evaluate(

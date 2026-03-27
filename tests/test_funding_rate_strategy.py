@@ -111,6 +111,16 @@ class TestFundingRateStrategyEntry(unittest.TestCase):
         assert signal.action is SignalAction.SELL
         assert signal.context["funding_source"] == "history"
 
+    def test_prime_backtest_funding_uses_proxy_history_without_network_lookup(self) -> None:
+        candles = build_candles([100.0 + i for i in range(40)])
+        strategy = _make_strategy(funding_rate=None)
+
+        strategy.prime_backtest_funding("KRW-BTC", candles)
+
+        strategy._funding_client.get_funding_rate_history.assert_not_called()
+        self.assertTrue(strategy._funding_history)
+        self.assertEqual(strategy._funding_history[0].symbol, "KRW-BTC")
+
 
 class TestFundingRateStrategyExit(unittest.TestCase):
     def _make_position(
