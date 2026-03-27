@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from crypto_trader.config import (
     AppConfig,
@@ -102,6 +103,19 @@ class FakeMarketData(MarketDataClient):
 
     def get_ohlcv(self, symbol: str, interval: str = "minute60", count: int = 200) -> list[Candle]:
         return self._candle_map.get(symbol, [])
+
+
+class FlakyMarketData(MarketDataClient):
+    def __init__(self, failures_before_success: int, candles: list[Candle]) -> None:
+        self._failures_before_success = failures_before_success
+        self._candles = candles
+        self._calls = 0
+
+    def get_ohlcv(self, symbol: str, interval: str = "minute60", count: int = 200) -> list[Candle]:
+        self._calls += 1
+        if self._calls <= self._failures_before_success:
+            raise TimeoutError("API timeout")
+        return self._candles
 
 
 class TestMultiSymbolConfig(unittest.TestCase):
@@ -391,6 +405,52 @@ class TestMultiSymbolRuntime(unittest.TestCase):
             position.entry_time,
             datetime.now(UTC) + MultiSymbolRuntime._FUTURE_ENTRY_GRACE,
         )
+
+    def test_runtime_marks_health_degraded_on_transient_fetch_failure(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        market_data = MagicMock()
+        market_data.get_ohlcv.side_effect = RuntimeError("network error")
+        runtime = MultiSymbolRuntime(wallets=wallets, market_data=market_data, config=config)
+
+        runtime.run()
+
+        health = json.loads(Path(config.runtime.healthcheck_path).read_text(encoding="utf-8"))
+        self.assertFalse(health["success"])
+        self.assertEqual(health["status"], "degraded")
+        self.assertEqual(health["failure_streak"], 1)
+        self.assertTrue(health["recoverable_error"])
+        self.assertEqual(health["recovery_delay_seconds"], 15)
+        self.assertIn("network error", health["last_error"])
+
+    def test_runtime_recovers_health_after_transient_fetch_failure(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            daemon_mode=False,
+            max_iterations=2,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        market_data = FlakyMarketData(
+            failures_before_success=2,
+            candles=_build_candles([100.0] * 240),
+        )
+        runtime = MultiSymbolRuntime(wallets=wallets, market_data=market_data, config=config)
+
+        with patch("crypto_trader.multi_runtime.time.sleep"):
+            runtime.run()
+
+        health = json.loads(Path(config.runtime.healthcheck_path).read_text(encoding="utf-8"))
+        self.assertTrue(health["success"])
+        self.assertEqual(health["status"], "healthy")
+        self.assertEqual(health["failure_streak"], 0)
+        self.assertIsNotNone(health["last_failure_at"])
+        self.assertIsNotNone(health["last_success_at"])
 
 
 class TestStrategyComparisonReport(unittest.TestCase):

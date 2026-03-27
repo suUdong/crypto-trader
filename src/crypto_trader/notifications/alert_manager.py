@@ -62,6 +62,29 @@ class TradeAlertManager:
         )
         self._send(message)
 
+    def alert_daemon_status(
+        self,
+        *,
+        status: str,
+        error_message: str,
+        restart_count: int,
+        next_retry_seconds: int,
+        auto_restart_enabled: bool,
+    ) -> None:
+        action = "auto-restart enabled" if auto_restart_enabled else "manual intervention required"
+        retry = (
+            f"next retry in {next_retry_seconds}s"
+            if next_retry_seconds > 0
+            else "no further automatic retry scheduled"
+        )
+        message = (
+            f"[DAEMON] {status.upper()}\n"
+            f"Reason: {error_message}\n"
+            f"Restarts: {restart_count} | {retry}\n"
+            f"Recovery: {action}"
+        )
+        self._send(message)
+
     def _send(self, message: str) -> None:
         for notifier in self._notifiers:
             try:

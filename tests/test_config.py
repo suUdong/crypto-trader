@@ -39,6 +39,21 @@ class ConfigTests(unittest.TestCase):
         )
         self.assertEqual(config.macro.timeout_seconds, 2.5)
 
+    def test_runtime_restart_settings_env_override(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {
+                "CT_AUTO_RESTART_ENABLED": "true",
+                "CT_RESTART_BACKOFF_SECONDS": "9",
+                "CT_MAX_RESTART_ATTEMPTS": "3",
+                "CT_NETWORK_RECOVERY_BACKOFF_SECONDS": "12",
+            },
+        )
+        self.assertTrue(config.runtime.auto_restart_enabled)
+        self.assertEqual(config.runtime.restart_backoff_seconds, 9)
+        self.assertEqual(config.runtime.max_restart_attempts, 3)
+        self.assertEqual(config.runtime.network_recovery_backoff_seconds, 12)
+
     def test_live_trading_requires_credentials(self) -> None:
         with self.assertRaisesRegex(ValueError, "credentials"):
             load_config(

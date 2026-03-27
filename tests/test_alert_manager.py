@@ -76,6 +76,21 @@ class TestTradeAlertManager(unittest.TestCase):
         self.assertIn("KILL SWITCH", msg)
         self.assertIn("max_portfolio_drawdown", msg)
 
+    def test_alert_daemon_status_sends_message(self) -> None:
+        self.manager.alert_daemon_status(
+            status="restarting",
+            error_message="network timeout",
+            restart_count=2,
+            next_retry_seconds=15,
+            auto_restart_enabled=True,
+        )
+        self.assertEqual(len(self.notifier.messages), 1)
+        msg = self.notifier.messages[0]
+        self.assertIn("DAEMON", msg)
+        self.assertIn("RESTARTING", msg)
+        self.assertIn("network timeout", msg)
+        self.assertIn("15s", msg)
+
     def test_multiple_notifiers_all_receive(self) -> None:
         notifier2 = _RecordingNotifier()
         manager = TradeAlertManager([self.notifier, notifier2])

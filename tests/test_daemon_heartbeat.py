@@ -7,8 +7,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from crypto_trader.models import Candle
 from crypto_trader.multi_runtime import MultiSymbolRuntime
@@ -30,6 +29,7 @@ class TestDaemonHeartbeat(unittest.TestCase):
         config.runtime.promotion_gate_path = f"{artifacts_dir}/promotion-gate.json"
         config.runtime.paper_trade_journal_path = f"{artifacts_dir}/paper-trades.jsonl"
         config.runtime.strategy_run_journal_path = f"{artifacts_dir}/strategy-runs.jsonl"
+        config.runtime.network_recovery_backoff_seconds = 15
         config.source_config_path = "config/test-daemon.toml"
         config.macro.enabled = False
         config.slack.enabled = False
@@ -103,11 +103,20 @@ class TestDaemonHeartbeat(unittest.TestCase):
             self.assertIn("config_path", data)
             self.assertIn("wallet_names", data)
             self.assertIn("symbols", data)
+            self.assertIn("status", data)
+            self.assertIn("failure_streak", data)
+            self.assertIn("last_success_at", data)
+            self.assertIn("restart_count", data)
+            self.assertIn("supervisor_active", data)
             self.assertEqual(data["iteration"], 1)
             self.assertEqual(data["poll_interval_seconds"], 60)
             self.assertEqual(data["config_path"], "config/test-daemon.toml")
             self.assertEqual(data["wallet_names"], ["test_wallet"])
             self.assertEqual(data["symbols"], ["KRW-BTC"])
+            self.assertEqual(data["status"], "healthy")
+            self.assertEqual(data["failure_streak"], 0)
+            self.assertEqual(data["restart_count"], 0)
+            self.assertFalse(data["supervisor_active"])
             self.assertIsInstance(data["pid"], int)
             self.assertGreaterEqual(data["uptime_seconds"], 0)
 

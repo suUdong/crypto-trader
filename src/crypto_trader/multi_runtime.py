@@ -4,10 +4,12 @@ import json
 import logging
 import os
 import signal
+import socket
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from zoneinfo import ZoneInfo
 
 from crypto_trader.config import AppConfig, RegimeConfig
@@ -49,6 +51,10 @@ class MultiSymbolRuntime:
         market_data: MarketDataClient,
         config: AppConfig,
         kill_switch: KillSwitch | None = None,
+        *,
+        restart_count: int = 0,
+        last_restart_at: str | None = None,
+        supervisor_active: bool = False,
     ) -> None:
         self._wallets = wallets
         self._market_data = market_data
@@ -126,11 +132,94 @@ class MultiSymbolRuntime:
         self._slippage_monitor = SlippageMonitor(
             expected_slippage_pct=config.backtest.slippage_pct,
         )
+        self._restart_count = restart_count
+        self._last_restart_at = last_restart_at
+        self._supervisor_active = supervisor_active
+        self._network_recovery_backoff_seconds = max(
+            1,
+            int(getattr(config.runtime, "network_recovery_backoff_seconds", 15)),
+        )
+        self._failure_streak = 0
+        self._last_error: str | None = None
+        self._last_error_type: str | None = None
+        self._last_success_at: str | None = None
+        self._last_failure_at: str | None = None
+        self._last_tick_started_at: str | None = None
+        self._last_tick_completed_at: str | None = None
+        self._last_tick_duration_seconds = 0.0
+        self._last_tick_had_error = False
+        self._last_tick_recoverable = False
+        self._last_retry_delay_seconds = 0
+        self._last_successful_results = 0
+        self._last_failed_results = 0
+        self._tick_errors: list[Exception] = []
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
         self._logger.info("Received %s, finishing current tick then shutting down...", sig_name)
         self._shutdown_requested = True
+
+    def _begin_tick(self) -> None:
+        self._tick_errors = []
+        self._last_tick_started_at = datetime.now(UTC).isoformat()
+        self._last_tick_had_error = False
+        self._last_tick_recoverable = False
+        self._last_retry_delay_seconds = 0
+
+    def _record_tick_error(self, exc: Exception) -> None:
+        self._tick_errors.append(exc)
+        self._last_tick_had_error = True
+        recoverable = self._is_recoverable_error(exc)
+        self._last_tick_recoverable = self._last_tick_recoverable or recoverable
+        self._last_error = str(exc)
+        self._last_error_type = type(exc).__name__
+        self._last_failure_at = datetime.now(UTC).isoformat()
+        self._logger.warning("Tick error detected: %s", exc)
+
+    def _finalize_tick_state(
+        self,
+        results: list[PipelineResult],
+        *,
+        duration_seconds: float,
+    ) -> None:
+        completed_at = datetime.now(UTC).isoformat()
+        self._last_tick_completed_at = completed_at
+        self._last_tick_duration_seconds = round(duration_seconds, 3)
+        self._last_successful_results = sum(1 for result in results if result.error is None)
+        self._last_failed_results = len(self._tick_errors)
+        if self._last_tick_had_error:
+            self._failure_streak += 1
+            if not results and self._last_tick_recoverable:
+                self._last_retry_delay_seconds = self._network_recovery_backoff_seconds
+        else:
+            self._failure_streak = 0
+            self._last_error = None
+            self._last_error_type = None
+            self._last_success_at = completed_at
+
+    def _status(self) -> str:
+        return "degraded" if self._last_tick_had_error else "healthy"
+
+    def _is_recoverable_error(self, exc: Exception) -> bool:
+        if isinstance(exc, (TimeoutError, ConnectionError, socket.timeout, URLError)):
+            return True
+        if isinstance(exc, HTTPError):
+            return exc.code >= 500 or exc.code == 429
+        message = str(exc).lower()
+        transient_markers = (
+            "timeout",
+            "timed out",
+            "temporarily unavailable",
+            "temporary failure",
+            "connection reset",
+            "connection aborted",
+            "connection refused",
+            "broken pipe",
+            "network",
+            "remote end closed connection",
+            "name or service not known",
+        )
+        return any(marker in message for marker in transient_markers)
 
     def run(self) -> None:
         signal.signal(signal.SIGINT, self._handle_signal)
@@ -160,6 +249,8 @@ class MultiSymbolRuntime:
                 self._kill_switch.save(self._kill_switch_path)
                 break
 
+            self._begin_tick()
+            tick_started = time.monotonic()
             self._maybe_check_wallet_health()
             self._apply_kill_switch_penalty()
             tick_results = self._run_tick(symbols)
@@ -168,6 +259,12 @@ class MultiSymbolRuntime:
             self._refresh_runtime_artifacts()
             self._maybe_refresh_artifacts()
             self._maybe_send_pnl_notify()
+            self._finalize_tick_state(
+                tick_results,
+                duration_seconds=time.monotonic() - tick_started,
+            )
+            self._save_heartbeat(Path(self._config.runtime.runtime_checkpoint_path).parent)
+            self._refresh_health_snapshot()
             self._iteration += 1
 
             if not daemon and max_iter > 0 and self._iteration >= max_iter:
@@ -175,7 +272,8 @@ class MultiSymbolRuntime:
                 break
 
             if not self._shutdown_requested:
-                time.sleep(poll)
+                delay = self._last_retry_delay_seconds or poll
+                time.sleep(delay)
 
         self._logger.info("Multi-symbol runtime stopped after %d iterations.", self._iteration)
 
@@ -197,6 +295,7 @@ class MultiSymbolRuntime:
                 self._is_weekend = analysis.is_weekend
         except Exception as exc:
             self._logger.error("Failed to fetch candles for %s: %s", first, exc)
+            self._record_tick_error(exc)
 
         # Refresh macro/regime-aware multipliers after regime detection
         self._refresh_macro()
@@ -211,6 +310,7 @@ class MultiSymbolRuntime:
                     )
                 except Exception as exc:
                     self._logger.error("Failed to fetch candles for %s: %s", symbol, exc)
+                    self._record_tick_error(exc)
                     continue
 
             candles = candle_cache[symbol]
@@ -239,10 +339,21 @@ class MultiSymbolRuntime:
                             check.reason,
                         )
                         continue
-                result = wallet.run_once(symbol, candles)
+                try:
+                    result = wallet.run_once(symbol, candles)
+                except Exception as exc:
+                    self._logger.exception(
+                        "Wallet execution failed for %s %s",
+                        wallet.name,
+                        symbol,
+                    )
+                    self._record_tick_error(exc)
+                    self._alert_manager.alert_error(wallet.name, symbol, str(exc))
+                    continue
                 results.append(result)
                 if result.error:
                     self._logger.error(result.message)
+                    self._record_tick_error(RuntimeError(result.error))
                     self._structured_logger.log_error(
                         wallet.name,
                         wallet.strategy_type,
@@ -403,7 +514,13 @@ class MultiSymbolRuntime:
         if self._macro_client is None:
             self._apply_regime_weights()
             return
-        snapshot = self._macro_client.get_snapshot()
+        try:
+            snapshot = self._macro_client.get_snapshot()
+        except Exception as exc:
+            self._logger.error("Macro snapshot refresh failed: %s", exc)
+            self._record_tick_error(exc)
+            self._apply_regime_weights()
+            return
         adjustment = self._macro_adapter.compute(snapshot)
         for wallet in self._wallets:
             regime_weight = self._macro_adapter.strategy_weight(
@@ -603,6 +720,7 @@ class MultiSymbolRuntime:
             self._last_health_check = time.time()
         except Exception as exc:
             self._logger.error("Wallet health check failed: %s", exc)
+            self._record_tick_error(exc)
 
     def _maybe_send_pnl_notify(self) -> None:
         if time.time() - self._last_pnl_notify < self.PNL_NOTIFY_INTERVAL:
@@ -641,6 +759,7 @@ class MultiSymbolRuntime:
             self._last_pnl_notify = time.time()
         except Exception as exc:
             self._logger.error("Failed to send PnL notification: %s", exc)
+            self._record_tick_error(exc)
 
     def _maybe_refresh_artifacts(self) -> None:
         """Periodically refresh heavier artifacts that do not need every tick."""
@@ -655,6 +774,7 @@ class MultiSymbolRuntime:
             )
         except Exception as exc:
             self._logger.error("Artifact refresh failed: %s", exc)
+            self._record_tick_error(exc)
 
     def _refresh_runtime_artifacts(self) -> None:
         """Keep dashboard/runtime snapshots current on every checkpoint."""
@@ -664,6 +784,7 @@ class MultiSymbolRuntime:
             self._refresh_daily_performance()
         except Exception as exc:
             self._logger.error("Runtime artifact refresh failed: %s", exc)
+            self._record_tick_error(exc)
 
     def _refresh_position_snapshot(self) -> None:
         """Save current open positions to positions.json."""
@@ -712,10 +833,9 @@ class MultiSymbolRuntime:
         # Determine last signal from most recent results
         last_signal = "hold"
         last_error = None
-        success = True
+        success = not self._last_tick_had_error
         for r in last_results:
             if r.error is not None:
-                success = False
                 last_error = r.error
             if r.signal and r.signal.action.value != "hold":
                 last_signal = r.signal.action.value
@@ -723,8 +843,12 @@ class MultiSymbolRuntime:
         snapshot = {
             "updated_at": datetime.now(UTC).isoformat(),
             "success": success,
-            "consecutive_failures": 0,
-            "last_error": last_error,
+            "status": self._status(),
+            "degraded": self._last_tick_had_error,
+            "consecutive_failures": self._failure_streak,
+            "failure_streak": self._failure_streak,
+            "last_error": self._last_error or last_error,
+            "last_error_type": self._last_error_type,
             "last_signal": last_signal,
             "last_order_status": None,
             "cash": total_cash,
@@ -732,6 +856,22 @@ class MultiSymbolRuntime:
             "total_equity": total_equity,
             "wallet_count": len(self._wallets),
             "mode": "multi_symbol",
+            "recoverable_error": self._last_tick_recoverable,
+            "recovery_delay_seconds": self._last_retry_delay_seconds,
+            "last_success_at": self._last_success_at,
+            "last_failure_at": self._last_failure_at,
+            "tick_started_at": self._last_tick_started_at,
+            "tick_completed_at": self._last_tick_completed_at,
+            "tick_duration_seconds": self._last_tick_duration_seconds,
+            "successful_results": self._last_successful_results,
+            "failed_results": self._last_failed_results,
+            "restart_count": self._restart_count,
+            "last_restart_at": self._last_restart_at,
+            "supervisor_active": self._supervisor_active,
+            "auto_restart_enabled": bool(
+                getattr(self._config.runtime, "auto_restart_enabled", True)
+            ),
+            "config_path": self._config_path,
         }
         health_path = Path(self._config.runtime.healthcheck_path)
         health_path.parent.mkdir(parents=True, exist_ok=True)
@@ -792,6 +932,25 @@ class MultiSymbolRuntime:
             "config_path": self._config_path,
             "symbols": self._config.trading.symbols,
             "wallet_names": self._wallet_names,
+            "status": self._status(),
+            "failure_streak": self._failure_streak,
+            "last_error": self._last_error,
+            "last_error_type": self._last_error_type,
+            "last_success_at": self._last_success_at,
+            "last_failure_at": self._last_failure_at,
+            "tick_started_at": self._last_tick_started_at,
+            "tick_completed_at": self._last_tick_completed_at,
+            "tick_duration_seconds": self._last_tick_duration_seconds,
+            "recoverable_error": self._last_tick_recoverable,
+            "recovery_delay_seconds": self._last_retry_delay_seconds,
+            "successful_results": self._last_successful_results,
+            "failed_results": self._last_failed_results,
+            "restart_count": self._restart_count,
+            "last_restart_at": self._last_restart_at,
+            "supervisor_active": self._supervisor_active,
+            "auto_restart_enabled": bool(
+                getattr(self._config.runtime, "auto_restart_enabled", True)
+            ),
             "slippage": {
                 "total_trades": slip_stats.total_trades,
                 "anomaly_count": slip_stats.anomaly_count,

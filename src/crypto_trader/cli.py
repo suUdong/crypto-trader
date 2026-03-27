@@ -9,12 +9,14 @@ from crypto_trader.backtest.baseline import BacktestBaselineStore, build_baselin
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.capital_allocator import CapitalAllocator
 from crypto_trader.config import load_config
+from crypto_trader.daemon_supervisor import DaemonSupervisor
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.multi_runtime import MultiSymbolRuntime
-from crypto_trader.notifications.telegram import NullNotifier, TelegramNotifier
+from crypto_trader.notifications.alert_manager import TradeAlertManager
+from crypto_trader.notifications.telegram import NullNotifier, SlackNotifier, TelegramNotifier
 from crypto_trader.operator.artifact_health import summarize_artifact_health
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.drift import DriftReportGenerator
@@ -47,6 +49,13 @@ def _build_risk_manager(config) -> RiskManager:
         trailing_stop_pct=config.risk.trailing_stop_pct,
         atr_stop_multiplier=config.risk.atr_stop_multiplier,
     )
+
+
+def _build_alert_manager(config) -> TradeAlertManager:
+    notifiers = [TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()]
+    if config.slack.enabled:
+        notifiers.append(SlackNotifier(config.slack))
+    return TradeAlertManager(notifiers)
 
 
 def main() -> None:
@@ -1356,13 +1365,29 @@ def main() -> None:
         return
 
     if args.command == "run-multi":
-        wallets = build_wallets(config)
-        runtime = MultiSymbolRuntime(
-            wallets=wallets,
-            market_data=market_data,
-            config=config,
+        alert_manager = _build_alert_manager(config)
+
+        def runtime_factory(restart_count: int, last_restart_at: str | None) -> MultiSymbolRuntime:
+            wallets = build_wallets(config)
+            return MultiSymbolRuntime(
+                wallets=wallets,
+                market_data=market_data,
+                config=config,
+                restart_count=restart_count,
+                last_restart_at=last_restart_at,
+                supervisor_active=True,
+            )
+
+        supervisor = DaemonSupervisor(
+            runtime_factory=runtime_factory,
+            alert_manager=alert_manager,
+            healthcheck_path=config.runtime.healthcheck_path,
+            config_path=config.source_config_path,
+            auto_restart_enabled=config.runtime.auto_restart_enabled,
+            restart_backoff_seconds=config.runtime.restart_backoff_seconds,
+            max_restart_attempts=config.runtime.max_restart_attempts,
         )
-        runtime.run()
+        supervisor.run()
         return
 
     if args.command == "strategy-report":
