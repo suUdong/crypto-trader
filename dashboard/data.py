@@ -182,6 +182,16 @@ def _load_md(filename: str) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
+def _read_json_path(path: Path) -> Any | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError):
+        logger.warning("Corrupted JSON: %s", path)
+        return None
+
+
 def _file_age_seconds(filename: str) -> float | None:
     path = ARTIFACTS_DIR / filename
     if not path.exists():
@@ -961,9 +971,16 @@ def load_momentum_pullback_research() -> dict[str, Any] | None:
     if research_path is None:
         return None
 
-    research = cast(dict[str, Any], json.loads(research_path.read_text(encoding="utf-8")))
-    candidates = cast(list[dict[str, Any]], research.get("candidates", []))
-    benchmarks = cast(list[dict[str, Any]], research.get("benchmarks", []))
+    research = _read_json_path(research_path)
+    if not isinstance(research, dict):
+        return None
+    candidates = research.get("candidates", [])
+    benchmarks = research.get("benchmarks", [])
+    if not isinstance(candidates, list) or not isinstance(benchmarks, list):
+        logger.warning("Invalid momentum pullback research payload: %s", research_path)
+        return None
+    candidates = cast(list[dict[str, Any]], candidates)
+    benchmarks = cast(list[dict[str, Any]], benchmarks)
     if not candidates:
         return None
 
@@ -975,10 +992,9 @@ def load_momentum_pullback_research() -> dict[str, Any] | None:
     validation_path = _first_existing_file("momentum-pullback-*-validation.json", ARTIFACTS_DIR)
     validation = None
     if validation_path:
-        validation = cast(
-            dict[str, Any],
-            json.loads(validation_path.read_text(encoding="utf-8")),
-        )
+        validation_payload = _read_json_path(validation_path)
+        if isinstance(validation_payload, dict):
+            validation = validation_payload
     verdict_path = _first_existing_file("momentum-pullback-strategy-*.md", DOCS_DIR)
     verdict = _extract_research_verdict(
         verdict_path.read_text(encoding="utf-8") if verdict_path else None

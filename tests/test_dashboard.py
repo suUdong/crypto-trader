@@ -1157,6 +1157,47 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(result["best_symbol"]["symbol"], "KRW-SOL")
         self.assertEqual(result["verdict"], "Keep as research-only for now.")
 
+    def test_load_momentum_pullback_research_returns_none_for_corrupt_json(self) -> None:
+        (Path(self.tmpdir) / "momentum-pullback-research-2026-03-27.json").write_text(
+            '{"candidates": [',
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_momentum_pullback_research()
+
+        self.assertIsNone(result)
+
+    def test_load_momentum_pullback_research_ignores_corrupt_validation_json(self) -> None:
+        (Path(self.tmpdir) / "momentum-pullback-research-2026-03-27.json").write_text(
+            json.dumps(
+                {
+                    "candidates": [
+                        {
+                            "strategy": "momentum_pullback",
+                            "avg_return_pct": 0.5,
+                            "avg_sharpe": 1.2,
+                            "avg_mdd_pct": 1.1,
+                            "total_trades": 18,
+                            "params": {"adx_threshold": 15},
+                            "per_symbol": [],
+                        }
+                    ],
+                    "benchmarks": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "momentum-pullback-30d-validation.json").write_text(
+            '{"status": ',
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_momentum_pullback_research()
+
+        assert result is not None
+        self.assertIsNone(result["validation"])
+        self.assertEqual(result["best_candidate"]["avg_sharpe"], 1.2)
+
     def test_load_signal_history_includes_risk_alert_row(self) -> None:
         (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
             json.dumps({"wallet_states": {"momentum_btc_wallet": {"strategy_type": "momentum"}}})
@@ -1277,7 +1318,9 @@ class TestDashboardAggregates(unittest.TestCase):
         )
 
         result = data_mod.load_signal_history(limit=50)
-        non_risk_rows = [row for row in result["rows"] if row["display_name"] != "포트폴리오 리스크"]
+        non_risk_rows = [
+            row for row in result["rows"] if row["display_name"] != "포트폴리오 리스크"
+        ]
         self.assertEqual(len(non_risk_rows), 1)
         self.assertEqual(non_risk_rows[0]["wallet_name"], "momentum_btc_wallet")
 
