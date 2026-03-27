@@ -33,6 +33,9 @@ strict = true
 packages = ["crypto_trader"]
 explicit_package_bases = true
 mypy_path = ["src"]
+# Keep strict type coverage on the application package.
+# `dashboard/`, `scripts/`, and `tests/` remain Ruff-checked but are outside
+# the strict mypy surface until they are typed incrementally.
 exclude = "^(dashboard|scripts|tests)/"
 
 [[tool.mypy.overrides]]

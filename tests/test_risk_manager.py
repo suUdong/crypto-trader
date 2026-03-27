@@ -47,6 +47,30 @@ class RiskManagerTests(unittest.TestCase):
             )
         )
 
+    def test_unrealized_drawdown_reduces_allowed_concurrency(self) -> None:
+        manager = RiskManager(
+            RiskConfig(
+                max_daily_loss_pct=0.10,
+                max_concurrent_positions=4,
+            )
+        )
+        self.assertEqual(
+            manager.allowed_concurrent_positions(
+                realized_pnl=0.0,
+                starting_equity=1_000.0,
+                current_equity=950.0,
+            ),
+            2,
+        )
+        self.assertFalse(
+            manager.can_open(
+                active_positions=2,
+                realized_pnl=0.0,
+                starting_equity=1_000.0,
+                current_equity=950.0,
+            )
+        )
+
     def test_exit_reason_prefers_risk_limits(self) -> None:
         manager = RiskManager(
             RiskConfig(stop_loss_pct=0.02, take_profit_pct=0.04, partial_tp_pct=0.0)

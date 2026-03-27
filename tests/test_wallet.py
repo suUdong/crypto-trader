@@ -17,7 +17,7 @@ from crypto_trader.config import (
     WalletConfig,
 )
 from crypto_trader.execution.paper import PaperBroker
-from crypto_trader.models import Candle, SignalAction
+from crypto_trader.models import Candle, Position, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
@@ -181,6 +181,48 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
         wallet.run_once("KRW-BTC", _make_candles([100.0 + i for i in range(20)]))
 
         self.assertEqual(risk_manager.atr_updates, 1)
+
+    def test_wallet_passes_marked_equity_to_can_open(self) -> None:
+        class EquityRecordingRiskManager(RiskManager):
+            def __init__(self, config: RiskConfig) -> None:
+                super().__init__(config)
+                self.current_equities: list[float | None] = []
+
+            def can_open(
+                self,
+                active_positions: int,
+                realized_pnl: float,
+                starting_equity: float,
+                current_equity: float | None = None,
+            ) -> bool:
+                self.current_equities.append(current_equity)
+                return True
+
+        strategy = create_strategy("momentum", _make_strategy_config(), _make_regime_config())
+        broker = PaperBroker(starting_cash=800_000.0, fee_rate=0.0005, slippage_pct=0.0005)
+        risk_manager = EquityRecordingRiskManager(
+            RiskConfig(
+                max_daily_loss_pct=0.05,
+                max_concurrent_positions=5,
+                min_entry_confidence=0.0,
+            )
+        )
+        wallet = StrategyWallet(
+            WalletConfig(name="test_wallet", strategy="momentum", initial_capital=1_000_000.0),
+            strategy,
+            broker,
+            risk_manager,
+        )
+        broker.positions["KRW-ETH"] = Position(
+            symbol="KRW-ETH",
+            quantity=1.0,
+            entry_price=150_000.0,
+            entry_time=datetime(2025, 1, 1, 0, 0, 0),
+        )
+
+        wallet.run_once("KRW-BTC", _make_candles([100.0, 101.0, 102.0, 103.0, 104.0, 105.0]))
+
+        self.assertEqual(risk_manager.current_equities, [950_000.0])
 
 
 class TestBuildWallets(unittest.TestCase):

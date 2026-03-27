@@ -145,6 +145,15 @@ class StrategyWallet:
     def set_macro_multiplier(self, multiplier: float) -> None:
         self._macro_multiplier = multiplier
 
+    def _marked_equity(self, symbol: str, latest_price: float) -> float:
+        prices = {
+            open_symbol: (
+                latest_price if open_symbol == symbol else open_position.entry_price
+            )
+            for open_symbol, open_position in self.broker.positions.items()
+        }
+        return self.broker.equity(prices)
+
     def run_once(self, symbol: str, candles: list[Candle]) -> PipelineResult:
         try:
             self.risk_manager.update_atr_from_candles(candles)
@@ -161,10 +170,12 @@ class StrategyWallet:
                 and not self.risk_manager.in_cooldown
                 and not self.risk_manager.is_auto_paused
             ):
+                marked_equity = self._marked_equity(symbol, latest_price)
                 if self.risk_manager.can_open(
                     active_positions=len(self.broker.positions),
                     realized_pnl=self.broker.realized_pnl,
                     starting_equity=self.session_starting_equity,
+                    current_equity=marked_equity,
                 ):
                     quantity = self.risk_manager.size_position(
                         self.broker.cash,
@@ -186,12 +197,7 @@ class StrategyWallet:
                         )
             elif position is not None:
                 # Circuit breaker: force-close when daily loss limit hit
-                marked_equity = self.broker.cash
-                for open_symbol, open_position in self.broker.positions.items():
-                    mark_price = (
-                        latest_price if open_symbol == symbol else open_position.entry_price
-                    )
-                    marked_equity += open_position.quantity * mark_price
+                marked_equity = self._marked_equity(symbol, latest_price)
                 if self.risk_manager.should_force_exit(
                     self.broker.realized_pnl,
                     self.session_starting_equity,
