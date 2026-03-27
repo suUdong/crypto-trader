@@ -342,3 +342,73 @@ header { visibility: hidden; }
 def inject_css() -> None:
     """Inject mobile-first responsive CSS into the page."""
     st.markdown(MOBILE_CSS, unsafe_allow_html=True)
+
+
+# ── Unified Chart Theme ─────────────────────────────────────
+# Consistent color palette for all Plotly charts.
+COLORS = {
+    "green": "#4ade80",
+    "green_bg": "#0d5f2c",
+    "red": "#f87171",
+    "red_bg": "#7f1d1d",
+    "blue": "#60a5fa",
+    "yellow": "#fbbf24",
+    "purple": "#a78bfa",
+    "pink": "#f472b6",
+    "teal": "#34d399",
+    "orange": "#fb923c",
+    "indigo": "#818cf8",
+    "muted": "#6b7280",
+    "bg_dark": "#1f2937",
+}
+
+# Ordered palette for categorical data (pie charts, multi-series).
+PALETTE = [
+    COLORS["red"], COLORS["yellow"], COLORS["green"], COLORS["blue"],
+    COLORS["purple"], COLORS["pink"], COLORS["teal"], COLORS["orange"],
+    COLORS["indigo"], "#e879f9", COLORS["muted"],
+]
+
+
+def chart_layout(
+    *,
+    title: str = "",
+    height: int = 280,
+    yaxis_title: str = "",
+    xaxis_title: str = "",
+    show_legend: bool = True,
+    legend_below: bool = True,
+) -> dict:
+    """Return a unified Plotly layout dict for dark-themed charts."""
+    layout: dict = {
+        "template": "plotly_dark",
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "margin": dict(l=16, r=16, t=40 if title else 16, b=24),
+        "height": height,
+        "font": dict(size=11, family="'Noto Sans KR', sans-serif"),
+    }
+    if title:
+        layout["title"] = dict(text=title, font=dict(size=14))
+    if yaxis_title:
+        layout["yaxis_title"] = yaxis_title
+    if xaxis_title:
+        layout["xaxis_title"] = xaxis_title
+    if show_legend and legend_below:
+        layout["legend"] = dict(
+            orientation="h", yanchor="bottom", y=-0.25,
+            xanchor="center", x=0.5,
+        )
+    elif not show_legend:
+        layout["showlegend"] = False
+    return layout
+
+
+def pnl_color(value: float) -> str:
+    """Return green for positive, red for negative values."""
+    return COLORS["green"] if value >= 0 else COLORS["red"]
+
+
+def pnl_colors(values: list[float]) -> list[str]:
+    """Return color list based on sign of each value."""
+    return [pnl_color(v) for v in values]

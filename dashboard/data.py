@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -12,6 +14,50 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
+
+# ── Primary data source: files the daemon writes every iteration ──
+_PRIMARY_FILES = [
+    "runtime-checkpoint.json",
+    "daemon-heartbeat.json",
+    "kill-switch.json",
+    "strategy-runs.jsonl",
+]
+
+
+def load_data_freshness() -> dict[str, Any]:
+    """Return modification timestamps for key artifact files.
+
+    Returns dict with:
+      - files: dict[filename, {mtime_iso, age_seconds, is_stale}]
+      - overall_fresh: True if primary files updated within 5 minutes
+    """
+    now = datetime.now(timezone.utc)
+    files_info: dict[str, dict[str, Any]] = {}
+    primary_fresh = True
+
+    for fname in _PRIMARY_FILES + [
+        "positions.json", "health.json", "daily-performance.json",
+        "regime-report.json", "paper-trades.jsonl",
+    ]:
+        path = ARTIFACTS_DIR / fname
+        if not path.exists():
+            files_info[fname] = {"exists": False, "is_stale": True}
+            if fname in _PRIMARY_FILES:
+                primary_fresh = False
+            continue
+        mtime = datetime.fromtimestamp(os.path.getmtime(path), tz=timezone.utc)
+        age = (now - mtime).total_seconds()
+        is_stale = age > 300  # 5 minutes
+        files_info[fname] = {
+            "exists": True,
+            "mtime_iso": mtime.isoformat(),
+            "age_seconds": age,
+            "is_stale": is_stale,
+        }
+        if fname in _PRIMARY_FILES and is_stale:
+            primary_fresh = False
+
+    return {"files": files_info, "overall_fresh": primary_fresh}
 
 # ── 종목코드 → 한글명 매핑 ──────────────────────────────────
 SYMBOL_KR: dict[str, str] = {
