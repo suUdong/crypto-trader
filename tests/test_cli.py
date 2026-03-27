@@ -154,3 +154,73 @@ paper_trade_journal_path = "{journal_path}"
             output_path = Path(tmpdir) / "artifacts" / "wallet-performance-7d.md"
             self.assertTrue(output_path.exists())
             self.assertIn("Wallet Performance Report", output_path.read_text(encoding="utf-8"))
+
+    def test_execution_quality_report_allows_live_config_without_credentials(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_path = Path(tmpdir) / "runtime-checkpoint.json"
+            runs_path = Path(tmpdir) / "strategy-runs.jsonl"
+            logs_dir = Path(tmpdir) / "logs"
+            events_path = logs_dir / "events.jsonl"
+            checkpoint_path.write_text(
+                '{"generated_at":"2026-03-28T00:00:00+00:00","wallet_states":{}}',
+                encoding="utf-8",
+            )
+            runs_path.write_text(
+                (
+                    '{"recorded_at":"2026-03-28T00:00:00+00:00","symbol":"KRW-BTC",'
+                    '"latest_price":100.0,"market_regime":"sideways","signal_action":"buy",'
+                    '"signal_reason":"entry","signal_confidence":0.64,"order_status":"filled",'
+                    '"order_side":"buy","session_starting_equity":1000000.0,"cash":900000.0,'
+                    '"open_positions":1,"realized_pnl":0.0,"success":true,"error":null,'
+                    '"consecutive_failures":0,"verdict_status":"continue","verdict_confidence":1.0,'
+                    '"wallet_name":"mean_rev_wallet","strategy_type":"mean_reversion",'
+                    '"signal_indicators":{},"signal_context":{},"session_id":"session-1",'
+                    '"order_type":"limit"}\n'
+                ),
+                encoding="utf-8",
+            )
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            events_path.write_text(
+                (
+                    '{"timestamp":"2026-03-28T00:00:01+00:00","event_type":"trade",'
+                    '"wallet_name":"mean_rev_wallet","strategy_type":"mean_reversion",'
+                    '"symbol":"KRW-BTC","side":"buy","quantity":1.0,"fill_price":100.02,'
+                    '"fee_paid":0.04,"order_status":"filled","order_type":"limit",'
+                    '"reason":"entry"}\n'
+                ),
+                encoding="utf-8",
+            )
+            config_path = Path(tmpdir) / "live-config.toml"
+            config_path.write_text(
+                f"""
+[trading]
+paper_trading = false
+
+[runtime]
+runtime_checkpoint_path = "{checkpoint_path}"
+strategy_run_journal_path = "{runs_path}"
+paper_trade_journal_path = "{Path(tmpdir) / "paper-trades.jsonl"}"
+                """.strip(),
+                encoding="utf-8",
+            )
+
+            env = dict(os.environ)
+            env["PYTHONPATH"] = str(ROOT / "src")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "crypto_trader.cli",
+                    "execution-quality-report",
+                    "--config",
+                    str(config_path),
+                ],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("Execution Quality Report", result.stdout)

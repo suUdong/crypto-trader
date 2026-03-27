@@ -765,8 +765,43 @@ class MultiSymbolRuntime:
                 self._macro_allocation_edge_scores = {}
                 self._pending_macro_rebalance = None
                 self._apply_regime_weights()
+                self._last_macro_state = {
+                    "status": "unavailable",
+                    "overall_regime": "unavailable",
+                    "market_regime": self._current_market_regime,
+                    "position_size_multiplier": 1.0,
+                    "risk_per_trade_multiplier": 1.0,
+                    "weekend": self._is_weekend,
+                    "changed": False,
+                    "previous_regime": self._last_macro_regime,
+                    "reasons": ["macro refresh failed; using market regime only"],
+                    "strategy_edge_scores": {},
+                    "wallet_multipliers": {
+                        wallet.name: round(wallet._macro_multiplier, 4) for wallet in self._wallets
+                    },
+                }
                 return
             raise
+        if snapshot is None:
+            self._macro_allocation_edge_scores = {}
+            self._pending_macro_rebalance = None
+            self._apply_regime_weights()
+            self._last_macro_state = {
+                "status": "unavailable",
+                "overall_regime": "unavailable",
+                "market_regime": self._current_market_regime,
+                "position_size_multiplier": 1.0,
+                "risk_per_trade_multiplier": 1.0,
+                "weekend": self._is_weekend,
+                "changed": False,
+                "previous_regime": self._last_macro_regime,
+                "reasons": ["macro snapshot unavailable; using market regime only"],
+                "strategy_edge_scores": {},
+                "wallet_multipliers": {
+                    wallet.name: round(wallet._macro_multiplier, 4) for wallet in self._wallets
+                },
+            }
+            return
         adjustment = self._macro_adapter.compute(snapshot)
         overall_regime = (
             self._macro_adapter.normalize_overall_regime(snapshot.overall_regime)
@@ -1118,6 +1153,7 @@ class MultiSymbolRuntime:
         transition["keep_fraction"] = round(keep_fraction, 4)
         transition["position_adjustment_status"] = "executed" if executed_orders else "not_needed"
         transition["position_adjustments"] = executed_orders
+        self._last_rebalance_date = datetime.now(UTC).astimezone(self._KST).date().isoformat()
         self._rebalance_idle_wallet_cash(
             latest_prices,
             reason="macro_regime_change",
@@ -1276,6 +1312,8 @@ class MultiSymbolRuntime:
         rebalance_now = now or datetime.now(UTC)
         rebalance_date = rebalance_now.astimezone(self._KST).date().isoformat()
         if self._last_rebalance_date == rebalance_date:
+            if self._last_capital_reallocation.get("reason") == "macro_regime_change":
+                return
             self._last_capital_reallocation = {
                 "status": "skipped_already_rebalanced_today",
                 "reason": "daily_schedule",
@@ -1349,7 +1387,21 @@ class MultiSymbolRuntime:
         if isinstance(macro_state, dict) and macro_state:
             self._last_macro_state = macro_state
             overall_regime = macro_state.get("overall_regime")
-            self._last_macro_regime = overall_regime if isinstance(overall_regime, str) else None
+            previous_regime = macro_state.get("previous_regime")
+            status = str(macro_state.get("status", "") or "")
+            restored_macro_regime: str | None = None
+            if (
+                status == "active"
+                and isinstance(overall_regime, str)
+                and overall_regime not in {"unknown", "unavailable"}
+            ):
+                restored_macro_regime = overall_regime
+            elif (
+                isinstance(previous_regime, str)
+                and previous_regime not in {"unknown", "unavailable"}
+            ):
+                restored_macro_regime = previous_regime
+            self._last_macro_regime = restored_macro_regime
             strategy_edge_scores = macro_state.get("strategy_edge_scores", {})
             if isinstance(strategy_edge_scores, dict):
                 self._macro_allocation_edge_scores = {

@@ -79,6 +79,18 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(config.trading.paper_trading)
         self.assertTrue(config.credentials.has_upbit_credentials)
 
+    def test_read_only_load_can_skip_live_credential_requirement(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {
+                "CT_PAPER_TRADING": "false",
+                "CT_UPBIT_ACCESS_KEY": "",
+                "CT_UPBIT_SECRET_KEY": "",
+            },
+            allow_missing_live_credentials=True,
+        )
+        self.assertFalse(config.trading.paper_trading)
+
     def test_invalid_percentage_and_path_values_raise_clear_errors(self) -> None:
         with self.assertRaisesRegex(
             ValueError,

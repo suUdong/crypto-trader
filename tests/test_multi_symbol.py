@@ -990,6 +990,159 @@ class TestMacroRegimeRuntime(unittest.TestCase):
         self.assertEqual(runtime._last_capital_reallocation["macro_transition"], last_transition)
         self.assertEqual(runtime._last_macro_state["overall_regime"], "contractionary")
 
+    def test_macro_refresh_failure_marks_macro_state_unavailable(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.macro.enabled = True
+        config.macro.base_url = "http://macro.local"
+        runtime = MultiSymbolRuntime(
+            wallets=build_wallets(config),
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+        runtime._current_market_regime = "bull"
+        runtime._macro_client = MagicMock()
+        runtime._macro_client.get_snapshot.side_effect = TimeoutError("macro timeout")
+        runtime._last_macro_regime = "expansionary"
+
+        runtime._refresh_macro()
+
+        self.assertEqual(runtime._last_macro_state["status"], "unavailable")
+        self.assertEqual(runtime._last_macro_state["overall_regime"], "unavailable")
+        self.assertEqual(runtime._last_macro_state["previous_regime"], "expansionary")
+        self.assertEqual(runtime._last_macro_state["strategy_edge_scores"], {})
+
+    def test_macro_unavailable_does_not_create_synthetic_transition(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.macro.enabled = True
+        config.macro.base_url = "http://macro.local"
+        runtime = MultiSymbolRuntime(
+            wallets=build_wallets(config),
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+        runtime._macro_client = SequenceMacroClient(
+            [
+                _make_macro_snapshot(overall_regime="expansionary"),
+                None,
+                _make_macro_snapshot(overall_regime="expansionary"),
+            ]
+        )
+
+        runtime._refresh_macro()
+        runtime._refresh_macro()
+        self.assertEqual(runtime._last_macro_state["status"], "unavailable")
+        self.assertIsNone(runtime._pending_macro_rebalance)
+
+        runtime._refresh_macro()
+
+        self.assertEqual(runtime._last_macro_state["overall_regime"], "expansionary")
+        self.assertFalse(runtime._last_macro_state["changed"])
+        self.assertIsNone(runtime._pending_macro_rebalance)
+
+    def test_macro_rebalance_is_not_overwritten_by_daily_schedule_on_same_day(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[
+                WalletConfig("momentum_wallet", "momentum", 1_000_000.0),
+                WalletConfig("mean_reversion_wallet", "mean_reversion", 1_000_000.0),
+            ],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.macro.enabled = True
+        config.macro.base_url = "http://macro.local"
+        runtime = MultiSymbolRuntime(
+            wallets=build_wallets(config),
+            market_data=FakeMarketData(
+                {
+                    "KRW-BTC": _build_candles(
+                        [100.0] * 30 + [102.0, 104.0, 106.0, 108.0]
+                    )
+                }
+            ),
+            config=config,
+        )
+        runtime._current_market_regime = "bull"
+        runtime._macro_client = SequenceMacroClient(
+            [
+                _make_macro_snapshot(overall_regime="neutral"),
+                _make_macro_snapshot(overall_regime="expansionary"),
+            ]
+        )
+
+        runtime._refresh_macro()
+        runtime._refresh_macro()
+        runtime._maybe_rebalance_for_macro_regime_change(
+            {"KRW-BTC": _build_candles([100.0] * 30 + [102.0, 104.0, 106.0, 108.0])},
+            {"KRW-BTC": 108.0},
+        )
+        preserved_transition = dict(runtime._last_capital_reallocation["macro_transition"])
+
+        runtime._maybe_rebalance_idle_wallet_cash(
+            {"KRW-BTC": 108.0},
+            now=datetime.now(UTC),
+        )
+
+        self.assertEqual(runtime._last_capital_reallocation["reason"], "macro_regime_change")
+        self.assertEqual(
+            runtime._last_capital_reallocation["macro_transition"],
+            preserved_transition,
+        )
+
+    def test_restored_unavailable_macro_state_reuses_previous_regime(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifacts_dir = Path(temp_dir)
+            config = _make_config(
+                symbols=["KRW-BTC"],
+                wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+                daemon_mode=False,
+                max_iterations=1,
+                poll_interval_seconds=0,
+            )
+            config.macro.enabled = True
+            config.macro.base_url = "http://macro.local"
+            config.runtime.runtime_checkpoint_path = str(artifacts_dir / "runtime-checkpoint.json")
+
+            runtime = MultiSymbolRuntime(
+                wallets=build_wallets(config),
+                market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+                config=config,
+            )
+            runtime._macro_client = SequenceMacroClient([None])
+            runtime._last_macro_regime = "expansionary"
+
+            runtime._refresh_macro()
+            runtime._save_checkpoint([])
+
+            restored_runtime = MultiSymbolRuntime(
+                wallets=build_wallets(config),
+                market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+                config=config,
+            )
+            restored_runtime._restore_from_checkpoint()
+            self.assertEqual(restored_runtime._last_macro_regime, "expansionary")
+
+            restored_runtime._macro_client = SequenceMacroClient(
+                [_make_macro_snapshot(overall_regime="expansionary")]
+            )
+            restored_runtime._refresh_macro()
+
+            self.assertIsNone(restored_runtime._pending_macro_rebalance)
+            self.assertFalse(restored_runtime._last_macro_state["changed"])
+
 
 class TestStrategyComparisonReport(unittest.TestCase):
     def test_report_contains_all_wallets(self) -> None:

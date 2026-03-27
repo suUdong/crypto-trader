@@ -181,7 +181,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    config = load_config(args.config)
+    read_only_artifact_commands = {
+        "execution-quality-report",
+        "performance-report",
+        "wallet-performance",
+        "pnl-report",
+        "pnl-history",
+        "gate-progress",
+        "micro-live-check",
+    }
+    config = load_config(
+        args.config,
+        allow_missing_live_credentials=args.command in read_only_artifact_commands,
+    )
     setup_logging(config.runtime.log_level)
     strategy = create_strategy(args.strategy, config.strategy, config.regime)
     risk_manager = _build_risk_manager(config)

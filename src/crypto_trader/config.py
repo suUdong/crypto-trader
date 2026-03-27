@@ -245,7 +245,12 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
 }
 
 
-def load_config(path: str | Path | None = None, environ: dict[str, str] | None = None) -> AppConfig:
+def load_config(
+    path: str | Path | None = None,
+    environ: dict[str, str] | None = None,
+    *,
+    allow_missing_live_credentials: bool = False,
+) -> AppConfig:
     env = environ or dict(os.environ)
     config_path = Path(path or env.get("CT_CONFIG", "config/example.toml"))
     raw = _read_toml(config_path) if config_path.exists() else {}
@@ -793,7 +798,10 @@ def load_config(path: str | Path | None = None, environ: dict[str, str] | None =
         wallets=wallets,
         source_config_path=str(config_path),
     )
-    _validate_config(app_config)
+    _validate_config(
+        app_config,
+        allow_missing_live_credentials=allow_missing_live_credentials,
+    )
     return app_config
 
 
@@ -852,7 +860,11 @@ def _apply_risk_overrides(base: RiskConfig, overrides: dict[str, Any]) -> RiskCo
     return replace(base, **config_kwargs)
 
 
-def _validate_config(config: AppConfig) -> None:
+def _validate_config(
+    config: AppConfig,
+    *,
+    allow_missing_live_credentials: bool = False,
+) -> None:
     errors: list[str] = []
 
     if config.trading.candle_count <= 1:
@@ -979,7 +991,11 @@ def _validate_config(config: AppConfig) -> None:
             errors,
         )
 
-    if not config.trading.paper_trading and not config.credentials.has_upbit_credentials:
+    if (
+        not allow_missing_live_credentials
+        and not config.trading.paper_trading
+        and not config.credentials.has_upbit_credentials
+    ):
         errors.append(
             "Live trading requires Upbit API credentials. "
             "Set CT_UPBIT_ACCESS_KEY and CT_UPBIT_SECRET_KEY."
