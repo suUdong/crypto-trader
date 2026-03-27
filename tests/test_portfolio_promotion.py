@@ -220,5 +220,37 @@ class TestPerWalletBreakdownPopulated(unittest.TestCase):
                 self.assertAlmostEqual(entry["return_pct"], expected_return, places=8)
 
 
+class TestPortfolioGateUsesWalletInitialCapital(unittest.TestCase):
+    def test_varying_wallet_initial_capital_does_not_fake_positive_return(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            cp = Path(td) / "checkpoint.json"
+            wallet_states = {
+                "wallet_large": {
+                    "initial_capital": 2_000_000.0,
+                    "equity": 2_000_000.0,
+                    "realized_pnl": 0.0,
+                    "trade_count": 0,
+                    "strategy_type": "momentum",
+                    "cash": 2_000_000.0,
+                    "open_positions": 0,
+                },
+                "wallet_small": {
+                    "initial_capital": 500_000.0,
+                    "equity": 500_000.0,
+                    "realized_pnl": 0.0,
+                    "trade_count": 0,
+                    "strategy_type": "vpin",
+                    "cash": 500_000.0,
+                    "open_positions": 0,
+                },
+            }
+            _write_checkpoint(cp, wallet_states, _days_ago_iso(8))
+            decision = PortfolioPromotionGate().evaluate_from_checkpoint(cp)
+            self.assertAlmostEqual(decision.portfolio_return_pct, 0.0, places=8)
+            self.assertEqual(decision.profitable_wallets, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

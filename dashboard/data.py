@@ -420,7 +420,14 @@ def _wallet_initial_capital(state: dict[str, Any]) -> float:
         return float(explicit or 0.0)
     realized_pnl = float(state.get("realized_pnl", 0.0) or 0.0)
     cash = float(state.get("cash", 0.0) or 0.0)
+    equity = float(state.get("equity", 0.0) or 0.0)
     positions = cast(dict[str, dict[str, Any]], state.get("positions", {}))
+    if not positions:
+        if cash > 0 and abs(cash - equity) <= 1e-6:
+            inferred = cash - realized_pnl
+            if inferred > 0:
+                return inferred
+        return DEFAULT_INITIAL_CAPITAL
     position_cost = sum(
         float(position.get("entry_price", 0.0) or 0.0)
         * float(position.get("quantity", 0.0) or 0.0)
@@ -570,7 +577,19 @@ def load_promotion_gate() -> dict[str, Any] | None:
                     checkpoint_path=ARTIFACTS_DIR / "runtime-checkpoint.json",
                     journal_path=ARTIFACTS_DIR / "strategy-runs.jsonl",
                 )
-                return cast(dict[str, Any], decision.to_dict())
+                return {
+                    "generated_at": decision.generated_at,
+                    "status": decision.status.value,
+                    "reasons": decision.reasons,
+                    "wallet_count": decision.wallet_count,
+                    "total_equity": decision.total_equity,
+                    "total_realized_pnl": decision.total_realized_pnl,
+                    "portfolio_return_pct": decision.portfolio_return_pct,
+                    "profitable_wallets": decision.profitable_wallets,
+                    "total_trades": decision.total_trades,
+                    "paper_days": decision.paper_days,
+                    "per_wallet": decision.per_wallet,
+                }
             except Exception:
                 logger.exception("Failed to rebuild portfolio promotion gate")
     if portfolio_gate is not None:

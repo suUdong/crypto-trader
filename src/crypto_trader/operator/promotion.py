@@ -19,6 +19,29 @@ from crypto_trader.models import (
 JsonDict = dict[str, Any]
 
 
+def _wallet_initial_capital(wallet_state: JsonDict) -> float:
+    explicit = wallet_state.get("initial_capital")
+    if explicit is not None:
+        return float(explicit or 0.0)
+    realized_pnl = float(wallet_state.get("realized_pnl", 0.0) or 0.0)
+    cash = float(wallet_state.get("cash", 0.0) or 0.0)
+    equity = float(wallet_state.get("equity", 0.0) or 0.0)
+    positions = cast(dict[str, JsonDict], wallet_state.get("positions", {}))
+    if not positions:
+        if cash > 0 and abs(cash - equity) <= 1e-6:
+            inferred = cash - realized_pnl
+            if inferred > 0:
+                return inferred
+        return 1_000_000.0
+    position_cost = sum(
+        float(position.get("entry_price", 0.0) or 0.0)
+        * float(position.get("quantity", 0.0) or 0.0)
+        for position in positions.values()
+    )
+    inferred = cash + position_cost - realized_pnl
+    return inferred if inferred > 0 else 1_000_000.0
+
+
 class MicroLiveCriteria:
     """Criteria for paper-to-micro-live transition."""
 
@@ -168,9 +191,9 @@ class MicroLiveCriteria:
             win_rate = 0.0
 
         # max_drawdown: per-wallet (initial - min_equity) / initial, take worst
-        initial_capital = 1_000_000.0
         max_drawdown = 0.0
         for w in wallet_states.values():
+            initial_capital = _wallet_initial_capital(w)
             equity = w.get("equity", initial_capital)
             drawdown = (initial_capital - equity) / initial_capital
             if drawdown > max_drawdown:
@@ -189,7 +212,9 @@ class MicroLiveCriteria:
 
         # positive_strategies: wallets where equity > initial_capital
         positive_strategies = sum(
-            1 for w in wallet_states.values() if w.get("equity", 0) > initial_capital
+            1
+            for w in wallet_states.values()
+            if float(w.get("equity", 0.0) or 0.0) > _wallet_initial_capital(w)
         )
 
         ready, reasons = cls.evaluate(
@@ -323,14 +348,15 @@ class PortfolioPromotionGate:
                     except Exception:
                         pass
 
-        initial_capital = 1_000_000.0
         per_wallet: dict[str, JsonDict] = {}
         total_equity = 0.0
         total_realized_pnl = 0.0
         total_trades = 0
+        total_initial = 0.0
         profitable_wallets = 0
 
         for name, ws in wallet_states.items():
+            initial_capital = _wallet_initial_capital(ws)
             equity = ws.get("equity", initial_capital)
             pnl = ws.get("realized_pnl", 0.0)
             trades = ws.get("trade_count", 0)
@@ -346,11 +372,11 @@ class PortfolioPromotionGate:
             total_equity += equity
             total_realized_pnl += pnl
             total_trades += trades
+            total_initial += initial_capital
             if equity > initial_capital:
                 profitable_wallets += 1
 
         wallet_count = len(wallet_states)
-        total_initial = initial_capital * wallet_count
         portfolio_return_pct = (
             (total_equity - total_initial) / total_initial if total_initial > 0 else 0.0
         )

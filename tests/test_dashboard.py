@@ -794,6 +794,47 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(result["portfolio"]["portfolio_sharpe"], 1.23)
         self.assertEqual(result["portfolio"]["portfolio_mdd"], 2.34)
 
+    def test_load_wallet_analytics_infers_initial_capital_when_missing(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "cash": 1_010_000,
+                            "equity": 1_010_000,
+                            "realized_pnl": 10_000,
+                            "trade_count": 1,
+                            "open_positions": 0,
+                            "positions": {},
+                            "strategy_type": "momentum",
+                        }
+                    },
+                }
+            )
+        )
+        (Path(self.tmpdir) / "strategy-runs.jsonl").write_text(
+            json.dumps(
+                {
+                    "recorded_at": "2026-03-27T07:59:00+00:00",
+                    "wallet_name": "momentum_btc_wallet",
+                    "strategy_type": "momentum",
+                    "signal_action": "hold",
+                    "signal_reason": "trend_intact",
+                    "signal_confidence": 0.82,
+                    "latest_price": 91_000_000,
+                    "symbol": "KRW-BTC",
+                    "market_regime": "bull",
+                }
+            )
+            + "\n"
+        )
+
+        result = data_mod.load_wallet_analytics()
+        wallet = result["wallets"][0]
+        self.assertEqual(wallet["initial_capital"], 1_000_000)
+        self.assertAlmostEqual(wallet["return_pct"], 1.0, places=6)
+
     def test_load_wallet_analytics_ignores_inactive_recent_runs(self) -> None:
         (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
             json.dumps(
