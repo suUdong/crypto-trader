@@ -491,6 +491,10 @@ class MultiSymbolRuntime:
             if r.latest_price is not None:
                 latest_prices[r.symbol] = r.latest_price
 
+        # Store for use by periodic artifact refreshes
+        self._latest_prices = latest_prices
+        self._last_results = results
+
         wallet_states = {}
         for wallet in self._wallets:
             wallet_states[wallet.name] = {
@@ -600,12 +604,16 @@ class MultiSymbolRuntime:
             self._logger.error("Failed to send PnL notification: %s", exc)
 
     def _maybe_refresh_artifacts(self) -> None:
-        """Periodically refresh drift, promotion, and position artifacts."""
-        if self._iteration % 60 != 0 or self._iteration == 0:
+        """Periodically refresh drift, promotion, position, health and perf artifacts."""
+        if self._iteration % 10 != 0 or self._iteration == 0:
             return
         try:
             self._refresh_position_snapshot()
-            self._refresh_portfolio_promotion()
+            self._refresh_health_snapshot()
+            self._refresh_daily_performance()
+            # Heavier operations only every 60 iterations
+            if self._iteration % 60 == 0:
+                self._refresh_portfolio_promotion()
             self._logger.info("Periodic artifact refresh completed (iteration %d)", self._iteration)
         except Exception as exc:
             self._logger.error("Artifact refresh failed: %s", exc)
@@ -641,6 +649,86 @@ class MultiSymbolRuntime:
         )
         promo_path = Path(self._config.runtime.promotion_gate_path)
         gate.save(decision, promo_path)
+
+    def _refresh_health_snapshot(self) -> None:
+        """Write aggregated health.json from all wallets (multi-strategy equivalent)."""
+        latest_prices = getattr(self, "_latest_prices", {})
+        last_results = getattr(self, "_last_results", [])
+
+        total_cash = sum(w.broker.cash for w in self._wallets)
+        total_positions = sum(len(w.broker.positions) for w in self._wallets)
+        total_equity = sum(w.broker.equity(latest_prices) for w in self._wallets)
+
+        # Determine last signal from most recent results
+        last_signal = "hold"
+        last_error = None
+        success = True
+        for r in last_results:
+            if r.error is not None:
+                success = False
+                last_error = r.error
+            if r.signal and r.signal.action.value != "hold":
+                last_signal = r.signal.action.value
+
+        snapshot = {
+            "updated_at": datetime.now(UTC).isoformat(),
+            "success": success,
+            "consecutive_failures": 0,
+            "last_error": last_error,
+            "last_signal": last_signal,
+            "last_order_status": None,
+            "cash": total_cash,
+            "open_positions": total_positions,
+            "total_equity": total_equity,
+            "wallet_count": len(self._wallets),
+            "mode": "multi_symbol",
+        }
+        health_path = Path(self._config.runtime.healthcheck_path)
+        health_path.parent.mkdir(parents=True, exist_ok=True)
+        health_path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
+
+    def _refresh_daily_performance(self) -> None:
+        """Write aggregated daily-performance.json from all wallets."""
+        latest_prices = getattr(self, "_latest_prices", {})
+
+        total_trades = 0
+        winning = 0
+        losing = 0
+        realized_pnl = 0.0
+        initial_capital = 0.0
+        total_equity = 0.0
+
+        for wallet in self._wallets:
+            trades = wallet.broker.closed_trades
+            total_trades += len(trades)
+            for t in trades:
+                if t.pnl > 0:
+                    winning += 1
+                else:
+                    losing += 1
+            realized_pnl += wallet.broker.realized_pnl
+            initial_capital += wallet.session_starting_equity
+            total_equity += wallet.broker.equity(latest_prices)
+
+        win_rate = winning / total_trades if total_trades > 0 else 0.0
+        realized_return_pct = (realized_pnl / initial_capital) if initial_capital > 0 else 0.0
+
+        report = {
+            "generated_at": datetime.now(UTC).isoformat(),
+            "trade_count": total_trades,
+            "winning_trade_count": winning,
+            "losing_trade_count": losing,
+            "realized_pnl": realized_pnl,
+            "realized_return_pct": realized_return_pct,
+            "win_rate": win_rate,
+            "open_position_count": sum(len(w.broker.positions) for w in self._wallets),
+            "mark_to_market_equity": total_equity,
+            "initial_capital": initial_capital,
+            "mode": "multi_symbol",
+        }
+        perf_path = Path(self._config.runtime.daily_performance_path)
+        perf_path.parent.mkdir(parents=True, exist_ok=True)
+        perf_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     def _save_heartbeat(self, artifacts_dir: Path) -> None:
         slip_stats = self._slippage_monitor.get_stats()
