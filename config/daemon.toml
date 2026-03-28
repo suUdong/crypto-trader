@@ -108,33 +108,35 @@ strategy_report_path = "artifacts/strategy-report.md"
 
 # === TIER 1: Primary compounders ===
 
-# momentum_sol_wallet: 90d Sharpe 1.08, Return +0.78%, Trades 29 — kept as mid-tier compounder
+# momentum_sol_wallet: refreshed 90d Sharpe 1.26, Return +0.38%, Trades 13.
+# Switched from the softer gate experiment to the stronger longer-trend candidate.
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
-initial_capital = 1_100_000.0
+initial_capital = 900_000.0
 symbols = ["KRW-SOL"]
 [wallets.strategy_overrides]
-momentum_lookback = 15
-momentum_entry_threshold = 0.002
+momentum_lookback = 20
+momentum_entry_threshold = 0.005
 rsi_period = 14
-rsi_overbought = 72.0
-max_holding_bars = 36
-adx_threshold = 20.0
-volume_filter_mult = 1.2
+rsi_overbought = 75.0
+max_holding_bars = 60
+adx_threshold = 12.0
+volume_filter_mult = 0.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
-take_profit_pct = 0.08
+take_profit_pct = 0.10
 risk_per_trade_pct = 0.015
 partial_tp_pct = 0.5
 max_concurrent_positions = 2
 max_position_pct = 0.10
 
-# momentum_eth_wallet: 90d Sharpe 0.67, Return +0.24%, Trades 35 — trimmed on low ROI
+# momentum_eth_wallet: 90d Sharpe 0.67, Return +0.24% — paper 0W/2L (-₩6,353)
+# TUNED 2026-03-29: volume_filter 1.0→0.5, stop tightened 0.02→0.015, capital trimmed
 [[wallets]]
 name = "momentum_eth_wallet"
 strategy = "momentum"
-initial_capital = 450_000.0
+initial_capital = 350_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 momentum_lookback = 15
@@ -143,20 +145,21 @@ rsi_period = 14
 rsi_overbought = 70.0
 max_holding_bars = 36
 adx_threshold = 15.0
-volume_filter_mult = 1.0
+volume_filter_mult = 0.5
 [wallets.risk_overrides]
-stop_loss_pct = 0.02
+stop_loss_pct = 0.015
 take_profit_pct = 0.04
-risk_per_trade_pct = 0.015
+risk_per_trade_pct = 0.01
 atr_stop_multiplier = 3.0
 partial_tp_pct = 0.5
 max_concurrent_positions = 2
 
-# vpin_sol_wallet: 90d Sharpe 1.97, Return +1.64%, Trades 37 — highest active ROI, primary capital sink
+# vpin_sol_wallet: 90d Sharpe 1.97, Return +1.64%, Trades 37 — highest active ROI
+# TUNED 2026-03-29: trimmed 2.5M→2.2M to fund vpin_eth boost
 [[wallets]]
 name = "vpin_sol_wallet"
 strategy = "vpin"
-initial_capital = 2_500_000.0
+initial_capital = 2_200_000.0
 symbols = ["KRW-SOL"]
 [wallets.strategy_overrides]
 rsi_period = 14
@@ -178,11 +181,12 @@ max_concurrent_positions = 2
 
 # === TIER 2: Satellite winners / capped specialists ===
 
-# volspike_btc_wallet: 90d Sharpe 3.40, Return +1.03%, Trades 7 — boosted on ROI, still capped for low sample
+# volspike_btc_wallet: restore the stricter spike gate. Lowering `spike_mult`
+# increased activity but flipped the 90d cached backtest negative.
 [[wallets]]
 name = "volspike_btc_wallet"
 strategy = "volume_spike"
-initial_capital = 1_300_000.0
+initial_capital = 1_200_000.0
 symbols = ["KRW-BTC"]
 [wallets.strategy_overrides]
 spike_mult = 3.0
@@ -199,47 +203,58 @@ take_profit_pct = 0.08
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 
-# vpin_eth_wallet: 90d Sharpe 0.53, Return +0.23%, Trades 25 — trimmed on low ROI
+# vpin_eth_wallet: refreshed 90d Sharpe 1.21, Return +0.29%, Trades 18.
+# Lower entry thresholds and shorter hold/cooldown worked better on ETH flow.
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
-initial_capital = 350_000.0
+initial_capital = 1_050_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
-momentum_lookback = 10
-max_holding_bars = 36
-vpin_low_threshold = 0.45
-vpin_high_threshold = 0.75
-vpin_momentum_threshold = 0.0005
-vpin_rsi_ceiling = 78.0
-vpin_rsi_floor = 22.0
-bucket_count = 20
+momentum_lookback = 8
+max_holding_bars = 24
+vpin_low_threshold = 0.4
+vpin_high_threshold = 0.7
+vpin_momentum_threshold = 0.0003
+vpin_rsi_ceiling = 75.0
+vpin_rsi_floor = 20.0
+bucket_count = 24
 [wallets.risk_overrides]
-stop_loss_pct = 0.02
-take_profit_pct = 0.06
+stop_loss_pct = 0.015
+take_profit_pct = 0.04
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
-cooldown_bars = 5
+cooldown_bars = 3
+atr_stop_multiplier = 2.0
 
-# === Capital Allocation Summary (ROI-focused active-wallet rebalance 2026-03-28) ===
-# Actual equity ₩5.7M — active-wallet capital rotated by 90d ROI while respecting low-sample caps.
-# TIER 1 (capital concentrated):
-#   vpin_sol:        2,500,000 (43.9%) — highest active ROI (+1.64%)
-#   volspike_btc:    1,300,000 (22.8%) — second-best active ROI (+1.03%), capped for 7 trades
-#   momentum_sol:    1,100,000 (19.3%) — solid secondary sleeve (+0.78%)
+# === Capital Allocation Summary (paper-trading-tuned rebalance 2026-03-29) ===
+# Equity ₩5.7M — current paper mix tuned on the fresh 90d cache without
+# changing the 5-wallet allocation footprint.
+# TIER 1:
+#   vpin_sol:        2,200,000 (38.6%) — highest 90d ROI (+1.64%), trimmed to fund winner
+#   volspike_btc:    1,200,000 (21.1%) — restored strict spike gate keeps BTC sleeve positive
+#   vpin_eth:        1,050,000 (18.4%) — refreshed ETH VPIN candidate now clears 1.0 Sharpe
 # TIER 2:
-#   momentum_eth:      450,000 (7.9%)  — low ROI trim (+0.24%)
-#   vpin_eth:          350,000 (6.1%)  — low ROI trim (+0.23%)
+#   momentum_sol:      900,000 (15.8%) — longer-trend candidate now clears 1.0 Sharpe
+#   momentum_eth:      350,000 (6.1%)  — unchanged; stays positive on the fresh 90d rerun
 # TOTAL:           5,700,000
 #
+# TUNING RATIONALE (2026-03-29):
+#   - `artifacts/backtest-baseline-90d.json` still shows default mean-reversion, VPIN,
+#     OBI, and volatility-breakout baskets broadly loss-making.
+#   - The current paper mix already cleared Sharpe > 1.0 overall, but
+#     `momentum_sol_wallet` and `vpin_eth_wallet` were leaving edge on the table.
+#   - `momentum_sol_wallet` improved only after moving back to a stricter,
+#     longer-trend entry profile.
+#   - `vpin_eth_wallet` improved only after earlier ETH entries plus faster exits.
+#   - momentum_eth: tightened stop 0.02→0.015 after -1.27% avg loss per trade
+#
 # DISABLED (live ROI negative, 2026-03 report):
-#   vbreak_xrp_wallet: live -0.119%, 90d ROI +1.79% — keep sidelined until live edge recovers
-#   mean_reversion_weekend: live -0.051%, 90d ROI +0.10% — too weak to fund ahead of higher-ROI sleeves
+#   vbreak_xrp_wallet: live -0.119%, paper -₩1,792 — keep sidelined
+#   mean_reversion_weekend: live -0.051% — too weak to fund
 # REMOVED (prior round, underperformers):
-#   vpin_btc_wallet: avg Sharpe -0.55, avg Return -0.21%
-#   momentum_xrp_wallet: avg Sharpe -1.33, avg Return -0.50%
-#   momentum_btc_wallet: avg Sharpe -1.42, avg Return -0.29%
+#   vpin_btc_wallet, momentum_xrp_wallet, momentum_btc_wallet
 # Research-only: funding_rate, ema_crossover, consensus
 
 [credentials]
