@@ -14,7 +14,12 @@ from urllib.error import HTTPError, URLError
 from zoneinfo import ZoneInfo
 
 from crypto_trader.capital_allocator import CapitalAllocator, StrategyPerformance
-from crypto_trader.config import AppConfig, HARD_MAX_DAILY_LOSS_PCT, RegimeConfig
+from crypto_trader.config import (
+    HARD_MAX_DAILY_LOSS_PCT,
+    AppConfig,
+    RegimeConfig,
+    preflight_check,
+)
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient, MacroSnapshot
@@ -101,6 +106,21 @@ class MultiSymbolRuntime:
         if kill_switch is None and not config.trading.paper_trading:
             # Only auto-load kill switch state for live trading
             self._kill_switch.load(self._kill_switch_path)
+
+        # Run preflight safety checks for live mode
+        if not config.trading.paper_trading:
+            issues = preflight_check(config)
+            for level, msg in issues:
+                if level == "ERROR":
+                    self._logger.error("PREFLIGHT FAIL: %s", msg)
+                else:
+                    self._logger.warning("PREFLIGHT WARNING: %s", msg)
+            errors = [msg for lvl, msg in issues if lvl == "ERROR"]
+            if errors:
+                raise ValueError(
+                    "Go-live preflight failed:\n- " + "\n- ".join(errors)
+                )
+
         self._total_starting_equity = sum(w.session_starting_equity for w in wallets)
         self._portfolio_peak_equity = self._total_starting_equity
         self._prev_trade_count: dict[str, int] = {

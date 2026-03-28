@@ -1,0 +1,129 @@
+# Live SOL-KRW momentum-only config — minimal capital micro-live test
+# Purpose: P0 staged rollout with 100K KRW on a single proven strategy
+# Based on: 90-day backtest Sharpe 1.08, Return +0.78%, 29 trades (momentum SOL)
+
+[trading]
+exchange = "upbit"
+symbol = "KRW-SOL"
+symbols = ["KRW-SOL"]
+interval = "minute60"
+candle_count = 200
+paper_trading = true
+# Staged rollout: only this wallet transitions to live
+go_live_wallets = ["momentum_sol_micro"]
+
+[strategy]
+momentum_lookback = 15
+momentum_entry_threshold = 0.002
+momentum_exit_threshold = -0.01
+rsi_period = 14
+rsi_overbought = 72.0
+rsi_oversold_floor = 20.0
+rsi_recovery_ceiling = 75.0
+max_holding_bars = 36
+adx_threshold = 20.0
+bollinger_window = 20
+bollinger_stddev = 1.8
+
+[regime]
+short_lookback = 10
+long_lookback = 30
+bull_threshold_pct = 0.03
+bear_threshold_pct = -0.03
+
+[drift]
+bull_return_tolerance_pct = 0.15
+sideways_return_tolerance_pct = 0.08
+bear_return_tolerance_pct = 0.05
+bull_error_rate_threshold = 0.25
+sideways_error_rate_threshold = 0.20
+bear_error_rate_threshold = 0.10
+
+[risk]
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+max_daily_loss_pct = 0.03
+max_concurrent_positions = 1
+trailing_stop_pct = 0.0
+atr_stop_multiplier = 2.0
+min_entry_confidence = 0.50
+partial_tp_pct = 0.5
+cooldown_bars = 3
+max_position_pct = 0.10
+
+[kill_switch]
+max_portfolio_drawdown_pct = 0.05
+max_daily_loss_pct = 0.03
+max_consecutive_losses = 3
+max_strategy_drawdown_pct = 0.04
+cooldown_minutes = 120
+# Tight tiered response for micro-live
+warn_threshold_pct = 0.4
+reduce_threshold_pct = 0.65
+reduce_position_factor = 0.5
+
+[backtest]
+initial_capital = 100_000.0
+fee_rate = 0.0005
+slippage_pct = 0.0005
+
+[telegram]
+bot_token = ""
+chat_id = ""
+
+[macro]
+enabled = true
+base_url = "http://127.0.0.1:8000"
+timeout_seconds = 5.0
+
+[runtime]
+log_level = "INFO"
+poll_interval_seconds = 60
+max_iterations = 0
+daemon_mode = true
+auto_restart_enabled = true
+restart_backoff_seconds = 15
+max_restart_attempts = 0
+network_recovery_backoff_seconds = 15
+daemon_alert_cooldown_seconds = 300
+healthcheck_path = "artifacts/live-sol/health.json"
+runtime_checkpoint_path = "artifacts/live-sol/runtime-checkpoint.json"
+backtest_baseline_path = "artifacts/live-sol/backtest-baseline.json"
+regime_report_path = "artifacts/live-sol/regime-report.json"
+drift_calibration_path = "artifacts/live-sol/drift-calibration.json"
+operator_report_path = "artifacts/live-sol/operator-report.md"
+strategy_run_journal_path = "artifacts/live-sol/strategy-runs.jsonl"
+paper_trade_journal_path = "artifacts/live-sol/paper-trades.jsonl"
+position_snapshot_path = "artifacts/live-sol/positions.json"
+daily_performance_path = "artifacts/live-sol/daily-performance.json"
+drift_report_path = "artifacts/live-sol/drift-report.json"
+promotion_gate_path = "artifacts/live-sol/promotion-gate.json"
+daily_memo_path = "artifacts/live-sol/daily-memo.md"
+strategy_report_path = "artifacts/live-sol/strategy-report.md"
+
+# Single wallet: momentum on SOL-KRW with 100K micro capital
+[[wallets]]
+name = "momentum_sol_micro"
+strategy = "momentum"
+initial_capital = 100_000.0
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+momentum_lookback = 15
+momentum_entry_threshold = 0.002
+rsi_period = 14
+rsi_overbought = 72.0
+max_holding_bars = 36
+adx_threshold = 20.0
+volume_filter_mult = 1.2
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.01
+partial_tp_pct = 0.5
+max_concurrent_positions = 1
+max_position_pct = 0.10
+
+[credentials]
+upbit_access_key = ""
+upbit_secret_key = ""

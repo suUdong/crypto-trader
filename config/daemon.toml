@@ -11,6 +11,9 @@ symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
 interval = "minute60"
 candle_count = 200
 paper_trading = true
+# Staged rollout: only these wallets go live when paper_trading=false.
+# Empty list = all wallets go live. Start with smallest wallet first.
+go_live_wallets = ["vpin_eth_wallet"]
 
 [strategy]
 momentum_lookback = 12
@@ -65,6 +68,11 @@ fee_rate = 0.0005
 slippage_pct = 0.0005
 
 [telegram]
+# Set via environment variables (never commit real tokens):
+#   export CT_TELEGRAM_BOT_TOKEN="123456:ABC-DEF..."
+#   export CT_TELEGRAM_CHAT_ID="-100123456789"
+# When both are set, alerts are sent for: trade fills, kill switch triggers,
+# drawdown warnings, order rejections, errors, daemon restarts, daily PnL.
 bot_token = ""
 chat_id = ""
 

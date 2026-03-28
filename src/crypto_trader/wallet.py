@@ -15,6 +15,7 @@ from crypto_trader.config import (
     WalletConfig,
     _sanitize_risk_config,
 )
+from crypto_trader.execution import Broker
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import (
@@ -220,7 +221,7 @@ class StrategyWallet:
         self,
         wallet_config: WalletConfig,
         strategy: StrategyProtocol,
-        broker: PaperBroker,
+        broker: Broker,
         risk_manager: RiskManager,
     ) -> None:
         self.name = wallet_config.name
@@ -590,6 +591,8 @@ class StrategyWallet:
 
 def build_wallets(config: AppConfig) -> list[StrategyWallet]:
     wallets: list[StrategyWallet] = []
+    go_live_set = set(config.trading.go_live_wallets)
+    use_live = not config.trading.paper_trading and config.credentials.has_upbit_credentials
     for wc in config.wallets:
         strategy_config = _strategy_config_for_wallet(config.strategy, wc)
         risk_config = _risk_config_for_wallet(config, wc)
@@ -599,14 +602,26 @@ def build_wallets(config: AppConfig) -> list[StrategyWallet]:
             config.regime,
             wc.strategy_overrides,
         )
-        broker = PaperBroker(
-            starting_cash=wc.initial_capital,
-            fee_rate=config.backtest.fee_rate,
-            slippage_pct=config.backtest.slippage_pct,
-            maker_fee_rate=float(
-                wc.strategy_overrides.get("maker_fee_rate", config.backtest.fee_rate)
-            ),
-        )
+        wallet_goes_live = use_live and (not go_live_set or wc.name in go_live_set)
+        broker: Broker
+        if wallet_goes_live:
+            from crypto_trader.execution.live import LiveBroker
+
+            broker = LiveBroker(
+                access_key=config.credentials.upbit_access_key,
+                secret_key=config.credentials.upbit_secret_key,
+                starting_cash=wc.initial_capital,
+                fee_rate=config.backtest.fee_rate,
+            )
+        else:
+            broker = PaperBroker(
+                starting_cash=wc.initial_capital,
+                fee_rate=config.backtest.fee_rate,
+                slippage_pct=config.backtest.slippage_pct,
+                maker_fee_rate=float(
+                    wc.strategy_overrides.get("maker_fee_rate", config.backtest.fee_rate)
+                ),
+            )
         risk_manager = RiskManager(
             risk_config,
             trailing_stop_pct=risk_config.trailing_stop_pct,

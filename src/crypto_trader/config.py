@@ -29,6 +29,7 @@ class TradingConfig:
     interval: str = "minute60"
     candle_count: int = 200
     paper_trading: bool = True
+    go_live_wallets: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -284,6 +285,9 @@ def load_config(
         interval=_read_value(raw, env, "trading", "interval", "CT_INTERVAL", "minute60"),
         candle_count=int(_read_value(raw, env, "trading", "candle_count", "CT_CANDLE_COUNT", 200)),
         paper_trading=_read_bool(raw, env, "trading", "paper_trading", "CT_PAPER_TRADING", True),
+        go_live_wallets=_read_string_list(
+            raw, env, "trading", "go_live_wallets", "CT_GO_LIVE_WALLETS"
+        ),
     )
     strategy = StrategyConfig(
         momentum_lookback=int(
@@ -881,6 +885,21 @@ def _read_bool(
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _read_string_list(
+    raw: dict[str, Any],
+    environ: dict[str, str],
+    section: str,
+    key: str,
+    env_name: str,
+) -> list[str]:
+    if env_name in environ:
+        return [s.strip() for s in environ[env_name].split(",") if s.strip()]
+    value = raw.get(section, {}).get(key, [])
+    if isinstance(value, list):
+        return [str(v) for v in value]
+    return []
+
+
 def _read_wallet_override_map(raw_wallet: dict[str, Any], key: str) -> dict[str, Any]:
     value = raw_wallet.get(key, {})
     if isinstance(value, dict):
@@ -1113,3 +1132,58 @@ def _validate_risk_config(prefix: str, risk: RiskConfig, errors: list[str]) -> N
         errors.append(f"{prefix}.take_profit_pct must be greater than {prefix}.stop_loss_pct")
     if risk.max_concurrent_positions <= 0:
         errors.append(f"{prefix}.max_concurrent_positions must be positive")
+
+
+def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
+    """Run go-live preflight safety checks.
+
+    Returns list of (level, message) tuples where level is 'ERROR' or 'WARNING'.
+    Empty list means all checks pass.
+    """
+    results: list[tuple[str, str]] = []
+
+    # 1. Credentials
+    if not config.trading.paper_trading and not config.credentials.has_upbit_credentials:
+        results.append(("ERROR", "Live trading requires Upbit API credentials"))
+
+    # 2. Telegram alerts
+    if not config.telegram.enabled:
+        results.append((
+            "WARNING",
+            "Telegram not configured — kill switch alerts won't be delivered. "
+            "Set CT_TELEGRAM_BOT_TOKEN and CT_TELEGRAM_CHAT_ID.",
+        ))
+
+    # 3. Kill switch limits within hard caps
+    if config.kill_switch.max_daily_loss_pct > HARD_MAX_DAILY_LOSS_PCT:
+        results.append((
+            "ERROR",
+            f"kill_switch.max_daily_loss_pct ({config.kill_switch.max_daily_loss_pct:.2%}) "
+            f"exceeds hard cap ({HARD_MAX_DAILY_LOSS_PCT:.2%})",
+        ))
+    if config.kill_switch.max_consecutive_losses > SAFE_MAX_CONSECUTIVE_LOSSES:
+        results.append((
+            "ERROR",
+            f"kill_switch.max_consecutive_losses ({config.kill_switch.max_consecutive_losses}) "
+            f"exceeds hard cap ({SAFE_MAX_CONSECUTIVE_LOSSES})",
+        ))
+
+    # 4. go_live_wallets validation
+    if config.trading.go_live_wallets:
+        wallet_names = {w.name for w in config.wallets}
+        for name in config.trading.go_live_wallets:
+            if name not in wallet_names:
+                results.append((
+                    "ERROR",
+                    f"go_live_wallets references unknown wallet '{name}'",
+                ))
+
+    # 5. Risk config sanity
+    if config.risk.max_position_pct > SAFE_DEFAULT_MAX_POSITION_PCT:
+        results.append((
+            "ERROR",
+            f"risk.max_position_pct ({config.risk.max_position_pct:.2%}) "
+            f"exceeds safety limit ({SAFE_DEFAULT_MAX_POSITION_PCT:.2%})",
+        ))
+
+    return results
