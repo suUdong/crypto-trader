@@ -109,7 +109,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 # === TIER 1: Primary compounders ===
 
 # momentum_sol_wallet: refreshed 90d Sharpe 1.26, Return +0.38%, Trades 13.
-# Switched from the softer gate experiment to the stronger longer-trend candidate.
+# TUNED 2026-03-29: added F&G<20 entry block after extreme-fear losses on momentum_eth
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
@@ -123,6 +123,7 @@ rsi_overbought = 75.0
 max_holding_bars = 60
 adx_threshold = 12.0
 volume_filter_mult = 0.0
+fear_greed_block_threshold = 20
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
 take_profit_pct = 0.10
@@ -131,28 +132,30 @@ partial_tp_pct = 0.5
 max_concurrent_positions = 2
 max_position_pct = 0.10
 
-# momentum_eth_wallet: 90d Sharpe 0.67, Return +0.24% — paper 0W/2L (-₩6,353)
-# TUNED 2026-03-29: volume_filter 1.0→0.5, stop tightened 0.02→0.015, capital trimmed
-[[wallets]]
-name = "momentum_eth_wallet"
-strategy = "momentum"
-initial_capital = 350_000.0
-symbols = ["KRW-ETH"]
-[wallets.strategy_overrides]
-momentum_lookback = 15
-momentum_entry_threshold = 0.003
-rsi_period = 14
-rsi_overbought = 70.0
-max_holding_bars = 36
-adx_threshold = 15.0
-volume_filter_mult = 0.5
-[wallets.risk_overrides]
-stop_loss_pct = 0.015
-take_profit_pct = 0.04
-risk_per_trade_pct = 0.01
-atr_stop_multiplier = 3.0
-partial_tp_pct = 0.5
-max_concurrent_positions = 2
+# DISABLED 2026-03-29: momentum_eth_wallet — paper 0W/2L (-₩6,353), worst performer
+# Entered against extreme-fear regime → 100% loss rate. Capital reallocated to vpin_eth.
+# Re-enable when Fear & Greed > 30 and regime shifts to neutral/bull.
+# [[wallets]]
+# name = "momentum_eth_wallet"
+# strategy = "momentum"
+# initial_capital = 350_000.0
+# symbols = ["KRW-ETH"]
+# [wallets.strategy_overrides]
+# momentum_lookback = 15
+# momentum_entry_threshold = 0.003
+# rsi_period = 14
+# rsi_overbought = 70.0
+# max_holding_bars = 36
+# adx_threshold = 15.0
+# volume_filter_mult = 0.5
+# fear_greed_block_threshold = 20
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.015
+# take_profit_pct = 0.04
+# risk_per_trade_pct = 0.01
+# atr_stop_multiplier = 3.0
+# partial_tp_pct = 0.5
+# max_concurrent_positions = 2
 
 # vpin_sol_wallet: 90d Sharpe 1.97, Return +1.64%, Trades 37 — highest active ROI
 # TUNED 2026-03-29: trimmed 2.5M→2.2M to fund vpin_eth boost
@@ -183,10 +186,11 @@ max_concurrent_positions = 2
 
 # volspike_btc_wallet: restore the stricter spike gate. Lowering `spike_mult`
 # increased activity but flipped the 90d cached backtest negative.
+# TUNED 2026-03-29: trimmed 1.2M→900K — paper 0 trades, avg confidence 0.10 too low
 [[wallets]]
 name = "volspike_btc_wallet"
 strategy = "volume_spike"
-initial_capital = 1_200_000.0
+initial_capital = 900_000.0
 symbols = ["KRW-BTC"]
 [wallets.strategy_overrides]
 spike_mult = 3.0
@@ -205,10 +209,12 @@ partial_tp_pct = 0.5
 
 # vpin_eth_wallet: refreshed 90d Sharpe 1.21, Return +0.29%, Trades 18.
 # Lower entry thresholds and shorter hold/cooldown worked better on ETH flow.
+# TUNED 2026-03-29: 1.05M→1.7M — only profitable paper strategy (+₩3,320), absorbs
+# momentum_eth (350K) + volspike_btc trim (300K)
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
-initial_capital = 1_050_000.0
+initial_capital = 1_700_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
@@ -228,29 +234,26 @@ partial_tp_pct = 0.5
 cooldown_bars = 3
 atr_stop_multiplier = 2.0
 
-# === Capital Allocation Summary (paper-trading-tuned rebalance 2026-03-29) ===
-# Equity ₩5.7M — current paper mix tuned on the fresh 90d cache without
-# changing the 5-wallet allocation footprint.
-# TIER 1:
-#   vpin_sol:        2,200,000 (38.6%) — highest 90d ROI (+1.64%), trimmed to fund winner
-#   volspike_btc:    1,200,000 (21.1%) — restored strict spike gate keeps BTC sleeve positive
-#   vpin_eth:        1,050,000 (18.4%) — refreshed ETH VPIN candidate now clears 1.0 Sharpe
+# === Capital Allocation Summary (paper-analysis rebalance 2026-03-29) ===
+# Equity ₩5.7M — reallocated based on paper-trading-analysis.md findings:
+#   VPIN only profitable strategy, momentum_eth worst performer, volspike idle.
+# TIER 1 (VPIN-heavy, 68.4% of portfolio):
+#   vpin_sol:        2,200,000 (38.6%) — highest 90d ROI (+1.64%)
+#   vpin_eth:        1,700,000 (29.8%) — only profitable paper wallet (+₩3,320), boosted
 # TIER 2:
-#   momentum_sol:      900,000 (15.8%) — longer-trend candidate now clears 1.0 Sharpe
-#   momentum_eth:      350,000 (6.1%)  — unchanged; stays positive on the fresh 90d rerun
+#   momentum_sol:      900,000 (15.8%) — F&G<20 entry block added for extreme-fear protection
+#   volspike_btc:      900,000 (15.8%) — trimmed from 1.2M, 0 trades / avg confidence 0.10
 # TOTAL:           5,700,000
 #
-# TUNING RATIONALE (2026-03-29):
-#   - `artifacts/backtest-baseline-90d.json` still shows default mean-reversion, VPIN,
-#     OBI, and volatility-breakout baskets broadly loss-making.
-#   - The current paper mix already cleared Sharpe > 1.0 overall, but
-#     `momentum_sol_wallet` and `vpin_eth_wallet` were leaving edge on the table.
-#   - `momentum_sol_wallet` improved only after moving back to a stricter,
-#     longer-trend entry profile.
-#   - `vpin_eth_wallet` improved only after earlier ETH entries plus faster exits.
-#   - momentum_eth: tightened stop 0.02→0.015 after -1.27% avg loss per trade
+# REBALANCE RATIONALE (2026-03-29 paper-trading-analysis):
+#   - momentum_eth DISABLED: 0W/2L (-₩6,353), entered against extreme-fear regime
+#   - vpin_eth BOOSTED: +₩3,320, Sharpe 1.12, only profitable strategy in F&G=12
+#   - volspike_btc TRIMMED: 36.7%→15.8%, zero trades due to confidence floor (0.10 avg)
+#   - momentum wallets get fear_greed_block_threshold=20 to prevent extreme-fear entries
+#   - Capital freed: 350K (momentum_eth) + 300K (volspike_btc) → vpin_eth
 #
-# DISABLED (live ROI negative, 2026-03 report):
+# DISABLED (paper/live negative):
+#   momentum_eth_wallet: paper -₩6,353, 0% win rate — re-enable when F&G>30
 #   vbreak_xrp_wallet: live -0.119%, paper -₩1,792 — keep sidelined
 #   mean_reversion_weekend: live -0.051% — too weak to fund
 # REMOVED (prior round, underperformers):

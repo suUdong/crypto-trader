@@ -221,6 +221,7 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "fear_greed_band_buffer_pct",
         "fear_greed_confidence_boost",
     },
+    "momentum": {"fear_greed_block_threshold"},
     "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
     "consensus": {
         "sub_strategies",

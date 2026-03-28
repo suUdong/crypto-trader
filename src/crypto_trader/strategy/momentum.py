@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from crypto_trader.config import RegimeConfig, StrategyConfig
+from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import Candle, Position, Signal, SignalAction
 from crypto_trader.strategy.indicators import (
     _ema,
@@ -20,9 +21,20 @@ from crypto_trader.strategy.regime import RegimeDetector
 
 
 class MomentumStrategy:
-    def __init__(self, config: StrategyConfig, regime_config: RegimeConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: StrategyConfig,
+        regime_config: RegimeConfig | None = None,
+        *,
+        fear_greed_block_threshold: int | None = None,
+    ) -> None:
         self._config = config
         self._regime_detector = RegimeDetector(regime_config or RegimeConfig())
+        self._fear_greed_block_threshold = fear_greed_block_threshold
+        self._macro_snapshot: MacroSnapshot | None = None
+
+    def set_macro_snapshot(self, snapshot: MacroSnapshot | None) -> None:
+        self._macro_snapshot = snapshot
 
     def evaluate(
         self, candles: list[Candle], position: Position | None = None, *, symbol: str = ""
@@ -131,7 +143,26 @@ class MomentumStrategy:
             indicators["ema50"] = ema50
             macro_trend_up = closes[-1] > ema50
 
+        # Fear & Greed regime filter: block new entries in extreme fear
+        fg_index: int | None = None
+        if self._macro_snapshot is not None:
+            fg_index = self._macro_snapshot.fear_greed_index
+        if fg_index is not None:
+            indicators["fear_greed_index"] = float(fg_index)
+
         if position is None:
+            if (
+                self._fear_greed_block_threshold is not None
+                and fg_index is not None
+                and fg_index < self._fear_greed_block_threshold
+            ):
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="fear_greed_too_low",
+                    confidence=0.1,
+                    indicators=indicators,
+                    context=context,
+                )
             # Adaptive RSI ceiling: strong momentum widens the acceptable RSI range.
             # When base ceiling < 80 and momentum exceeds entry threshold, widen
             # up to 80 so strong-trend entries aren't blocked by narrow RSI window.

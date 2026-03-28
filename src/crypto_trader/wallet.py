@@ -64,7 +64,14 @@ def create_strategy(
 ) -> StrategyProtocol:
     params = extra_params or {}
     if strategy_type == "momentum":
-        return MomentumStrategy(strategy_config, regime_config)
+        fg_block = (
+            int(params["fear_greed_block_threshold"])
+            if params.get("fear_greed_block_threshold") is not None
+            else None
+        )
+        return MomentumStrategy(
+            strategy_config, regime_config, fear_greed_block_threshold=fg_block
+        )
     if strategy_type == "momentum_pullback":
         return MomentumPullbackStrategy(strategy_config, regime_config)
     if strategy_type == "bollinger_rsi":
