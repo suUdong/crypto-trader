@@ -383,3 +383,127 @@ class TestFullSevenStrategy:
         # Capital should be concentrated: top 3 get > 50%
         top3_weight = sum(a.weight for a in result.allocations[:3])
         assert top3_weight > 0.50
+
+
+# ---------------------------------------------------------------------------
+# Enhanced score property
+# ---------------------------------------------------------------------------
+
+
+class TestEnhancedScore:
+    def test_fallback_to_legacy_when_no_enhanced_fields(self):
+        """Without sortino/calmar/profit_factor, enhanced_score == score."""
+        p = _perf("a", sharpe=2.0, mdd_pct=5.0)
+        assert p.enhanced_score == p.score
+
+    def test_enhanced_with_all_fields(self):
+        p = StrategyPerformance(
+            strategy="a",
+            return_pct=10.0,
+            sharpe=2.0,
+            mdd_pct=5.0,
+            trade_count=20,
+            win_rate=0.65,
+            equity=1_100_000,
+            initial_capital=1_000_000,
+            sortino=2.5,
+            calmar=1.8,
+            profit_factor=2.0,
+        )
+        # sharpe_comp = max(0, 2.0) * 0.4 = 0.8
+        # sortino_norm = min(2.5/3, 1.0) = 0.8333; sortino_comp = 0.8333 * 0.3 = 0.25
+        # pf_norm = min(2.0/3, 1.0) = 0.6667; pf_comp = 0.6667 * 0.2 = 0.1333
+        # wr_adj = (0.65 - 0.5) * 0.1 = 0.015
+        expected = 0.8 + 2.5 / 3.0 * 0.3 + 2.0 / 3.0 * 0.2 + 0.015
+        assert p.enhanced_score == pytest.approx(expected, abs=0.001)
+
+    def test_enhanced_score_floored_at_zero(self):
+        p = StrategyPerformance(
+            strategy="a",
+            return_pct=-10.0,
+            sharpe=0.0,
+            mdd_pct=20.0,
+            trade_count=10,
+            win_rate=0.2,
+            equity=900_000,
+            initial_capital=1_000_000,
+            sortino=0.0,
+            profit_factor=0.0,
+        )
+        assert p.enhanced_score >= 0.0
+
+    def test_composite_override_takes_precedence(self):
+        p = StrategyPerformance(
+            strategy="a",
+            return_pct=5.0,
+            sharpe=2.0,
+            mdd_pct=3.0,
+            trade_count=10,
+            win_rate=0.6,
+            equity=1_050_000,
+            initial_capital=1_000_000,
+            composite_score_override=5.0,
+            sortino=3.0,
+            profit_factor=2.0,
+        )
+        assert p.enhanced_score == 5.0
+
+    def test_partial_fields_still_uses_enhanced(self):
+        """Only sortino provided, calmar/pf remain None."""
+        p = StrategyPerformance(
+            strategy="a",
+            return_pct=5.0,
+            sharpe=1.5,
+            mdd_pct=3.0,
+            trade_count=10,
+            win_rate=0.55,
+            equity=1_050_000,
+            initial_capital=1_000_000,
+            sortino=2.0,
+        )
+        # Should use enhanced path (sortino is not None)
+        assert p.enhanced_score != p.score
+
+
+# ---------------------------------------------------------------------------
+# allocate() with enhanced scores
+# ---------------------------------------------------------------------------
+
+
+class TestAllocateWithEnhancedScores:
+    def test_enhanced_scores_change_allocation(self):
+        """Strategy with better enhanced score gets more capital."""
+        allocator = CapitalAllocator()
+        # a: moderate sharpe, poor sortino/pf
+        a = StrategyPerformance(
+            strategy="a", return_pct=5.0, sharpe=1.0, mdd_pct=5.0,
+            trade_count=20, win_rate=0.50, equity=1_050_000,
+            initial_capital=1_000_000,
+            sortino=0.5, profit_factor=1.0,
+        )
+        # b: similar sharpe but much better sortino/pf/win_rate
+        b = StrategyPerformance(
+            strategy="b", return_pct=6.0, sharpe=1.0, mdd_pct=4.0,
+            trade_count=20, win_rate=0.75, equity=1_060_000,
+            initial_capital=1_000_000,
+            sortino=3.0, profit_factor=2.8,
+        )
+        # b enhanced_score should be higher due to sortino/pf/wr
+        assert b.enhanced_score > a.enhanced_score
+        result = allocator.allocate([a, b], 2_000_000)
+        by_strat = {alloc.strategy: alloc for alloc in result.allocations}
+        assert by_strat["b"].capital > by_strat["a"].capital
+
+    def test_backward_compat_no_enhanced_fields(self):
+        """Legacy StrategyPerformance without new fields works identically."""
+        allocator = CapitalAllocator()
+        perfs = [
+            _perf("x", sharpe=2.0, mdd_pct=5.0),
+            _perf("y", sharpe=1.0, mdd_pct=10.0),
+        ]
+        result = allocator.allocate(perfs, 2_000_000)
+        total_w = sum(a.weight for a in result.allocations)
+        assert total_w == pytest.approx(1.0, abs=0.001)
+        # Higher sharpe still gets more
+        by_strat = {a.strategy: a for a in result.allocations}
+        assert by_strat["x"].capital > by_strat["y"].capital

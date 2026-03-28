@@ -25,6 +25,9 @@ class StrategyPerformance:
     initial_capital: float
     composite_score_override: float | None = None
     strategy_type: str | None = None
+    sortino: float | None = None
+    calmar: float | None = None
+    profit_factor: float | None = None
 
     @property
     def score(self) -> float:
@@ -34,6 +37,28 @@ class StrategyPerformance:
             return max(0.0, self.composite_score_override)
         mdd_frac = min(self.mdd_pct / 100.0, 1.0)
         raw = self.sharpe * (1.0 - mdd_frac)
+        return max(0.0, raw)
+
+    @property
+    def enhanced_score(self) -> float:
+        """Enhanced composite score using multiple risk metrics.
+
+        Weighted blend: Sharpe(40%) + Sortino(30%) + ProfitFactor(20%) + WinRateAdj(10%).
+        Falls back to legacy score if enhanced metrics are unavailable.
+        """
+        if self.sortino is None and self.calmar is None and self.profit_factor is None:
+            return self.score
+        if self.composite_score_override is not None:
+            return max(0.0, self.composite_score_override)
+
+        sharpe_comp = max(0.0, self.sharpe) * 0.4
+        sortino_norm = min(max(0.0, self.sortino or 0.0) / 3.0, 1.0)
+        sortino_comp = sortino_norm * 0.3
+        pf_norm = min(max(0.0, (self.profit_factor or 0.0)) / 3.0, 1.0)
+        pf_comp = pf_norm * 0.2
+        wr_adj = (self.win_rate - 0.5) * 0.1
+
+        raw = sharpe_comp + sortino_comp + pf_comp + wr_adj
         return max(0.0, raw)
 
 
@@ -161,7 +186,7 @@ class CapitalAllocator:
         # Apply edge multipliers when provided (signal quality, hit rate, etc.)
         _edge = edge_scores or {}
         scores = {
-            p.strategy: p.score * _edge.get(p.strategy, 1.0)
+            p.strategy: p.enhanced_score * _edge.get(p.strategy, 1.0)
             for p in eligible
         }
         total_score = sum(scores.values())
@@ -273,6 +298,9 @@ class CapitalAllocator:
                     equity=0.0,
                     initial_capital=0.0,
                     composite_score_override=r.get("composite_score"),
+                    sortino=r.get("sortino_ratio"),
+                    calmar=r.get("calmar_ratio"),
+                    profit_factor=r.get("profit_factor"),
                 )
             )
         return performances
