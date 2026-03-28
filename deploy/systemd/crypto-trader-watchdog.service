@@ -1,0 +1,11 @@
+[Unit]
+Description=Crypto Trader heartbeat watchdog reconciliation
+After=crypto-trader.service
+
+[Service]
+Type=oneshot
+Environment=PROJECT_DIR=%h/workspace/crypto-trader
+Environment=CT_HEARTBEAT_MAX_AGE_SECONDS=240
+WorkingDirectory=%h/workspace/crypto-trader
+ExecStartPre=/usr/bin/bash -lc 'mkdir -p "$PROJECT_DIR/artifacts"'
+ExecStart=/usr/bin/bash -lc 'cd "$PROJECT_DIR" && exec "$PROJECT_DIR/scripts/watchdog.sh" config/daemon.toml >> "$PROJECT_DIR/artifacts/watchdog.log" 2>&1'

@@ -44,6 +44,14 @@ class TestDaemonHeartbeat(unittest.TestCase):
         config.regime.long_lookback = 30
         config.regime.bull_threshold_pct = 0.03
         config.regime.bear_threshold_pct = -0.03
+        config.kill_switch.max_portfolio_drawdown_pct = 0.15
+        config.kill_switch.max_daily_loss_pct = 0.05
+        config.kill_switch.max_consecutive_losses = 5
+        config.kill_switch.max_strategy_drawdown_pct = 0.1
+        config.kill_switch.cooldown_minutes = 60
+        config.kill_switch.warn_threshold_pct = 0.5
+        config.kill_switch.reduce_threshold_pct = 0.75
+        config.kill_switch.reduce_position_factor = 0.5
 
         wallet = MagicMock()
         wallet.name = "test_wallet"
@@ -222,6 +230,44 @@ class TestDaemonHeartbeat(unittest.TestCase):
                 runtime._maybe_refresh_artifacts()
             refresh_promo.assert_not_called()
             refresh_extended.assert_not_called()
+
+    def test_runtime_sends_systemd_ready_watchdog_and_stopping_notifications(self) -> None:
+        class _RecordingNotifier:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, str]] = []
+
+            def notify_ready(self, status: str) -> bool:
+                self.calls.append(("ready", status))
+                return True
+
+            def notify_watchdog(self, status: str) -> bool:
+                self.calls.append(("watchdog", status))
+                return True
+
+            def notify_stopping(self, status: str) -> bool:
+                self.calls.append(("stopping", status))
+                return True
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = self._make_runtime(tmpdir)
+            runtime._systemd_notifier = _RecordingNotifier()
+            with (
+                patch.object(runtime, "_refresh_runtime_artifacts"),
+                patch.object(runtime, "_maybe_refresh_artifacts"),
+                patch.object(runtime, "_maybe_send_pnl_notify"),
+                patch.object(runtime, "_maybe_alert_runtime_status"),
+            ):
+                runtime.run()
+
+            calls = runtime._systemd_notifier.calls
+            self.assertEqual(calls[0][0], "ready")
+            self.assertEqual(calls[-1][0], "stopping")
+            self.assertTrue(any(name == "watchdog" for name, _ in calls))
+            watchdog_statuses = [status for name, status in calls if name == "watchdog"]
+            self.assertTrue(
+                any("iteration=1" in status for status in watchdog_statuses),
+                "watchdog status should describe the completed tick",
+            )
 
 
 if __name__ == "__main__":
