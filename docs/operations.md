@@ -5,14 +5,23 @@
 ### 시작
 
 ```bash
-# 기본 (daemon.toml)
-scripts/restart_daemon.sh
+# systemd user units 설치/반영 (권장)
+deploy/systemd/install-user-units.sh
 
-# 특정 설정 파일
+# 즉시 수동 재기동
+systemctl --user restart crypto-trader.service
+
+# 레거시 수동 재시작 (특정 설정 파일)
 scripts/restart_daemon.sh config/live.toml
 ```
 
-restart 스크립트 동작:
+권장 운영 경로:
+1. `crypto-trader.service`가 `Restart=always`로 crash exit 시 즉시 복구
+2. `crypto-trader-watchdog.timer`가 2분마다 heartbeat freshness / stray PID를 재검증
+3. 동일한 `scripts/watchdog.sh`를 cron에서 호출해도 systemd-aware 경로를 사용하므로 중복 인스턴스를 만들지 않음
+4. 런타임의 systemd notify 지원은 향후 `WatchdogSec`을 다시 켤 때 그대로 활용 가능
+
+레거시 `restart_daemon.sh` 동작:
 1. 기존 데몬 PID 확인 후 SIGTERM (30초 대기, 실패 시 SIGKILL)
 2. 체크포인트 확인 (월렛 수, 오픈 포지션 수)
 3. `python -m crypto_trader.cli run-multi --config <config>` 실행 (nohup)
@@ -23,16 +32,19 @@ restart 스크립트 동작:
 ### 중지
 
 ```bash
-# PID 확인
-cat artifacts/daemon-heartbeat.json | python3 -c "import sys,json; print(json.load(sys.stdin)['pid'])"
+# 현재 메인 PID
+systemctl --user show crypto-trader.service -p MainPID
 
 # 정상 종료 (체크포인트 저장됨)
-kill -TERM <PID>
+systemctl --user stop crypto-trader.service
 ```
 
 ### 상태 확인
 
 ```bash
+# systemd 서비스 상태
+systemctl --user status --no-pager crypto-trader.service
+
 # 하트비트
 cat artifacts/daemon-heartbeat.json
 
@@ -41,6 +53,9 @@ tail -f artifacts/daemon.log
 
 # 헬스체크
 cat artifacts/health.json
+
+# watchdog 로그
+tail -f artifacts/watchdog.log
 ```
 
 ## 2. 설정 및 파라미터 변경

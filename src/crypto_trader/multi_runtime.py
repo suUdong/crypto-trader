@@ -55,6 +55,7 @@ from crypto_trader.strategy.regime import (
     WEEKEND_POSITION_MULTIPLIER,
     RegimeDetector,
 )
+from crypto_trader.systemd import SystemdNotifier
 from crypto_trader.wallet import StrategyWallet
 
 
@@ -83,6 +84,7 @@ class MultiSymbolRuntime:
         self._shutdown_requested = False
         self._iteration = 0
         self._start_time = time.monotonic()
+        self._systemd_notifier = SystemdNotifier.from_env()
         self._macro_client: MacroClient | None = None
         self._macro_adapter = MacroRegimeAdapter()
         self._current_market_regime: str = "sideways"
@@ -246,6 +248,25 @@ class MultiSymbolRuntime:
         self._last_tick_recoverable = False
         self._last_retry_delay_seconds = 0
 
+    def _systemd_status(self) -> str:
+        return (
+            f"{self._status()} iteration={self._iteration + 1} "
+            f"restart_count={self._restart_count} failure_streak={self._failure_streak}"
+        )
+
+    def _notify_systemd_ready(self) -> None:
+        self._systemd_notifier.notify_ready(
+            f"starting config={self._config_path or 'unknown'}"
+        )
+
+    def _notify_systemd_watchdog(self) -> None:
+        self._systemd_notifier.notify_watchdog(self._systemd_status())
+
+    def _notify_systemd_stopping(self) -> None:
+        self._systemd_notifier.notify_stopping(
+            f"stopping config={self._config_path or 'unknown'} iteration={self._iteration}"
+        )
+
     def _record_tick_error(self, exc: Exception) -> None:
         self._tick_errors.append(exc)
         self._last_tick_had_error = True
@@ -318,46 +339,50 @@ class MultiSymbolRuntime:
             poll,
         )
 
+        self._notify_systemd_ready()
         self._restore_from_checkpoint()
 
-        while not self._shutdown_requested:
-            if self._kill_switch.is_triggered:
-                self._logger.critical(
-                    "Kill switch active: %s — all trading halted",
-                    self._kill_switch.state.trigger_reason,
+        try:
+            while not self._shutdown_requested:
+                if self._kill_switch.is_triggered:
+                    self._logger.critical(
+                        "Kill switch active: %s — all trading halted",
+                        self._kill_switch.state.trigger_reason,
+                    )
+                    self._kill_switch.save(self._kill_switch_path)
+                    break
+
+                self._begin_tick()
+                tick_started = time.monotonic()
+                self._maybe_check_wallet_health()
+                tick_results = self._run_tick(symbols)
+                self._check_kill_switch_after_tick(tick_results)
+                if self._latest_prices:
+                    self._maybe_rebalance_idle_wallet_cash(self._latest_prices)
+                self._save_checkpoint(tick_results)
+                self._refresh_runtime_artifacts()
+                self._maybe_refresh_artifacts()
+                self._maybe_send_pnl_notify()
+                self._finalize_tick_state(
+                    tick_results,
+                    duration_seconds=time.monotonic() - tick_started,
                 )
-                self._kill_switch.save(self._kill_switch_path)
-                break
+                self._maybe_alert_runtime_status()
+                self._save_heartbeat(Path(self._config.runtime.runtime_checkpoint_path).parent)
+                self._refresh_health_snapshot()
+                self._notify_systemd_watchdog()
+                self._iteration += 1
 
-            self._begin_tick()
-            tick_started = time.monotonic()
-            self._maybe_check_wallet_health()
-            tick_results = self._run_tick(symbols)
-            self._check_kill_switch_after_tick(tick_results)
-            if self._latest_prices:
-                self._maybe_rebalance_idle_wallet_cash(self._latest_prices)
-            self._save_checkpoint(tick_results)
-            self._refresh_runtime_artifacts()
-            self._maybe_refresh_artifacts()
-            self._maybe_send_pnl_notify()
-            self._finalize_tick_state(
-                tick_results,
-                duration_seconds=time.monotonic() - tick_started,
-            )
-            self._maybe_alert_runtime_status()
-            self._save_heartbeat(Path(self._config.runtime.runtime_checkpoint_path).parent)
-            self._refresh_health_snapshot()
-            self._iteration += 1
+                if not daemon and max_iter > 0 and self._iteration >= max_iter:
+                    self._logger.info("Reached max_iterations=%d, stopping.", max_iter)
+                    break
 
-            if not daemon and max_iter > 0 and self._iteration >= max_iter:
-                self._logger.info("Reached max_iterations=%d, stopping.", max_iter)
-                break
-
-            if not self._shutdown_requested:
-                delay = self._last_retry_delay_seconds or poll
-                time.sleep(delay)
-
-        self._logger.info("Multi-symbol runtime stopped after %d iterations.", self._iteration)
+                if not self._shutdown_requested:
+                    delay = self._last_retry_delay_seconds or poll
+                    time.sleep(delay)
+        finally:
+            self._notify_systemd_stopping()
+            self._logger.info("Multi-symbol runtime stopped after %d iterations.", self._iteration)
 
     def _run_tick(self, symbols: list[str]) -> list[PipelineResult]:
         results: list[PipelineResult] = []
