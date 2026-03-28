@@ -266,18 +266,27 @@ def _pid_exists(pid: int) -> bool:
     return True
 
 
-def _kill_stray_pids(pids: tuple[int, ...]) -> None:
+def _kill_stray_pids(pids: tuple[int, ...], config_path: str) -> None:
     if not pids:
         return
     for pid in pids:
-        os.kill(pid, signal.SIGTERM)
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError, OSError):
+            continue
     deadline = time.monotonic() + 10
     remaining = set(pids)
     while remaining and time.monotonic() < deadline:
         time.sleep(1)
         remaining = {pid for pid in remaining if _pid_exists(pid)}
+    current_matches = set(find_matching_daemon_pids(config_path))
     for pid in sorted(remaining):
-        os.kill(pid, signal.SIGKILL)
+        if pid not in current_matches:
+            continue
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError, OSError):
+            continue
 
 
 def _systemd_action(service_status: ServiceStatus) -> str:
@@ -331,7 +340,7 @@ def _run(argv: list[str]) -> int:
     if assessment.stray_pids:
         joined = ",".join(str(pid) for pid in assessment.stray_pids)
         print(f"{prefix} WARN: killing stray daemon pids={joined}")
-        _kill_stray_pids(assessment.stray_pids)
+        _kill_stray_pids(assessment.stray_pids, args.config)
         service_status, assessment, heartbeat_age = load_assessment()
         if assessment.healthy:
             print(
@@ -339,6 +348,13 @@ def _run(argv: list[str]) -> int:
                 f"pid={assessment.heartbeat_pid} age={heartbeat_age}"
             )
             return 0
+
+    if assessment.reason == "systemd_main_pid_unknown":
+        print(
+            f"{prefix} INFO: deferring watchdog action while systemd main pid is unknown "
+            f"age={heartbeat_age}"
+        )
+        return 0
 
     if service_status.loaded:
         action = _systemd_action(service_status)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import signal
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -128,7 +129,11 @@ def test_run_skips_systemd_restart_when_stray_cleanup_restores_health(
         "evaluate_watchdog",
         lambda **kwargs: next(assessments),
     )
-    monkeypatch.setattr(watchdog_mod, "_kill_stray_pids", lambda pids: killed.append(pids))
+    monkeypatch.setattr(
+        watchdog_mod,
+        "_kill_stray_pids",
+        lambda pids, config_path: killed.append(pids),
+    )
 
     def fail_subprocess(*args, **kwargs):
         raise AssertionError("systemctl restart should not run after healthy re-check")
@@ -146,3 +151,66 @@ def test_run_skips_systemd_restart_when_stray_cleanup_restores_health(
 
     assert exit_code == 0
     assert killed == [(4446,)]
+
+
+def test_run_defers_when_systemd_main_pid_is_temporarily_unknown(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        watchdog_mod,
+        "_read_service_status",
+        lambda unit: ServiceStatus(loaded=True, active_state="active", main_pid=None),
+    )
+    monkeypatch.setattr(
+        watchdog_mod,
+        "find_matching_daemon_pids",
+        lambda config_path: (43424,),
+    )
+    monkeypatch.setattr(watchdog_mod, "_read_heartbeat", lambda path: {})
+    monkeypatch.setattr(
+        watchdog_mod,
+        "evaluate_watchdog",
+        lambda **kwargs: WatchdogAssessment(
+            healthy=False,
+            reason="systemd_main_pid_unknown",
+            matching_pids=(43424,),
+            stray_pids=(),
+            heartbeat_pid=43424,
+            heartbeat_age_seconds=5.0,
+        ),
+    )
+
+    def fail_subprocess(*args, **kwargs):
+        raise AssertionError("systemctl restart should not run while MainPID is unknown")
+
+    monkeypatch.setattr(watchdog_mod.subprocess, "run", fail_subprocess)
+
+    exit_code = watchdog_mod._run(
+        [
+            "--project-dir",
+            str(tmp_path),
+            "--config",
+            "config/daemon.toml",
+        ]
+    )
+
+    assert exit_code == 0
+
+
+def test_kill_stray_pids_ignores_process_exit_races(monkeypatch) -> None:
+    seen: list[tuple[int, int]] = []
+
+    def fake_kill(pid: int, sig: int) -> None:
+        seen.append((pid, sig))
+        if sig == signal.SIGTERM:
+            raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(watchdog_mod.os, "kill", fake_kill)
+    monkeypatch.setattr(watchdog_mod.time, "monotonic", lambda: 0.0)
+    monkeypatch.setattr(watchdog_mod.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(watchdog_mod, "_pid_exists", lambda pid: False)
+    monkeypatch.setattr(watchdog_mod, "find_matching_daemon_pids", lambda config_path: ())
+
+    watchdog_mod._kill_stray_pids((4446,), "config/daemon.toml")
+
+    assert seen == [(4446, signal.SIGTERM)]

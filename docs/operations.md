@@ -16,10 +16,10 @@ scripts/restart_daemon.sh config/live.toml
 ```
 
 권장 운영 경로:
-1. `crypto-trader.service`가 `Restart=always` + `WatchdogSec=180`으로 데몬을 상시 유지
-2. 런타임이 매 틱마다 systemd watchdog ping을 전송
-3. `crypto-trader-watchdog.timer`가 2분마다 heartbeat freshness / stray PID를 재검증
-4. 동일한 `scripts/watchdog.sh`를 cron에서 호출해도 systemd-aware 경로를 사용하므로 중복 인스턴스를 만들지 않음
+1. `crypto-trader.service`가 `Restart=always`로 crash exit 시 즉시 복구
+2. `crypto-trader-watchdog.timer`가 2분마다 heartbeat freshness / stray PID를 재검증
+3. 동일한 `scripts/watchdog.sh`를 cron에서 호출해도 systemd-aware 경로를 사용하므로 중복 인스턴스를 만들지 않음
+4. 런타임의 systemd notify 지원은 향후 `WatchdogSec`을 다시 켤 때 그대로 활용 가능
 
 레거시 `restart_daemon.sh` 동작:
 1. 기존 데몬 PID 확인 후 SIGTERM (30초 대기, 실패 시 SIGKILL)

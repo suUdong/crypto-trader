@@ -15,7 +15,6 @@ ExecStartPre=/usr/bin/bash -lc 'mkdir -p "$PROJECT_DIR/artifacts"'
 ExecStart=/usr/bin/bash -lc 'cd "$PROJECT_DIR" && exec "$PROJECT_DIR/.venv/bin/crypto-trader" run-multi --config config/daemon.toml >> "$PROJECT_DIR/artifacts/daemon.log" 2>&1'
 Restart=always
 RestartSec=15
-WatchdogSec=180
 TimeoutStopSec=45
 KillSignal=SIGTERM
 SyslogIdentifier=crypto-trader
