@@ -42,6 +42,7 @@ class LiveBroker:
         secret_key: str,
         starting_cash: float,
         fee_rate: float = 0.0005,
+        dry_run: bool = False,
     ) -> None:
         if not access_key or not secret_key:
             raise ValueError("Upbit API credentials required for LiveBroker")
@@ -50,6 +51,7 @@ class LiveBroker:
         self._upbit = pyupbit.Upbit(access_key, secret_key)
         self.cash = starting_cash
         self._fee_rate = fee_rate
+        self._dry_run = dry_run
         self.positions: dict[str, Position] = {}
         self.closed_trades: list[TradeRecord] = []
         self.realized_pnl = 0.0
@@ -107,20 +109,27 @@ class LiveBroker:
         if notional < _MIN_ORDER_KRW:
             return self._rejected(request, market_price, order_id, "below_minimum_order")
 
-        # Submit market buy via pyupbit (price param = total KRW to spend)
-        upbit_resp = self._submit_with_retry(
-            lambda: self._upbit.buy_market_order(request.symbol, notional),
-            request.symbol,
-            "buy",
-        )
-        if upbit_resp is None:
-            return self._rejected(request, market_price, order_id, "exchange_error")
+        if self._dry_run:
+            upbit_uuid = f"dry-{order_id}"
+            fill_price = market_price
+            fill_qty = request.quantity
+            actual_fee = fee
+            logger.info("DRY-RUN BUY: %s qty=%.8f price=%.0f", request.symbol, fill_qty, fill_price)
+        else:
+            # Submit market buy via pyupbit (price param = total KRW to spend)
+            upbit_resp = self._submit_with_retry(
+                lambda: self._upbit.buy_market_order(request.symbol, notional),
+                request.symbol,
+                "buy",
+            )
+            if upbit_resp is None:
+                return self._rejected(request, market_price, order_id, "exchange_error")
 
-        upbit_uuid = upbit_resp.get("uuid", order_id)
-        fill = self._poll_fill(upbit_uuid)
-        fill_price = fill.get("price", market_price)
-        fill_qty = fill.get("volume", request.quantity)
-        actual_fee = fill.get("paid_fee", fee)
+            upbit_uuid = upbit_resp.get("uuid", order_id)
+            fill = self._poll_fill(upbit_uuid)
+            fill_price = fill.get("price", market_price)
+            fill_qty = fill.get("volume", request.quantity)
+            actual_fee = fill.get("paid_fee", fee)
 
         self.cash -= (fill_price * fill_qty) + actual_fee
         self.positions[request.symbol] = Position(
@@ -173,20 +182,29 @@ class LiveBroker:
         if position is None or request.quantity > position.quantity:
             return self._rejected(request, market_price, order_id, "insufficient_position")
 
-        # Submit market sell via pyupbit (volume param = quantity to sell)
-        upbit_resp = self._submit_with_retry(
-            lambda: self._upbit.sell_market_order(request.symbol, request.quantity),
-            request.symbol,
-            "sell",
-        )
-        if upbit_resp is None:
-            return self._rejected(request, market_price, order_id, "exchange_error")
+        if self._dry_run:
+            upbit_uuid = f"dry-{order_id}"
+            fill_price = market_price
+            fill_qty = request.quantity
+            actual_fee = self._fee_rate * fill_price * fill_qty
+            logger.info(
+                "DRY-RUN SELL: %s qty=%.8f price=%.0f", request.symbol, fill_qty, fill_price
+            )
+        else:
+            # Submit market sell via pyupbit (volume param = quantity to sell)
+            upbit_resp = self._submit_with_retry(
+                lambda: self._upbit.sell_market_order(request.symbol, request.quantity),
+                request.symbol,
+                "sell",
+            )
+            if upbit_resp is None:
+                return self._rejected(request, market_price, order_id, "exchange_error")
 
-        upbit_uuid = upbit_resp.get("uuid", order_id)
-        fill = self._poll_fill(upbit_uuid)
-        fill_price = fill.get("price", market_price)
-        fill_qty = fill.get("volume", request.quantity)
-        actual_fee = fill.get("paid_fee", self._fee_rate * fill_price * fill_qty)
+            upbit_uuid = upbit_resp.get("uuid", order_id)
+            fill = self._poll_fill(upbit_uuid)
+            fill_price = fill.get("price", market_price)
+            fill_qty = fill.get("volume", request.quantity)
+            actual_fee = fill.get("paid_fee", self._fee_rate * fill_price * fill_qty)
 
         proceeds = fill_price * fill_qty - actual_fee
         self.cash += proceeds

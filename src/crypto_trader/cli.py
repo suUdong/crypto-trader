@@ -11,6 +11,7 @@ from crypto_trader.capital_allocator import CapitalAllocator
 from crypto_trader.config import load_config
 from crypto_trader.daemon_supervisor import DaemonSupervisor
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
+from crypto_trader.execution.live import LiveBroker
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.logging_utils import setup_logging
 from crypto_trader.monitoring import HealthMonitor
@@ -1748,11 +1749,24 @@ def main() -> None:
                 )
         return
 
-    broker = PaperBroker(
-        starting_cash=config.backtest.initial_capital,
-        fee_rate=config.backtest.fee_rate,
-        slippage_pct=config.backtest.slippage_pct,
+    use_live = (
+        not config.trading.paper_trading
+        and config.credentials.has_upbit_credentials
     )
+    broker: PaperBroker | LiveBroker
+    if use_live:
+        broker = LiveBroker(
+            access_key=config.credentials.upbit_access_key,
+            secret_key=config.credentials.upbit_secret_key,
+            starting_cash=config.backtest.initial_capital,
+            fee_rate=config.backtest.fee_rate,
+        )
+    else:
+        broker = PaperBroker(
+            starting_cash=config.backtest.initial_capital,
+            fee_rate=config.backtest.fee_rate,
+            slippage_pct=config.backtest.slippage_pct,
+        )
     notifier = TelegramNotifier(config.telegram) if config.telegram.enabled else NullNotifier()
     pipeline = TradingPipeline(
         config=config,

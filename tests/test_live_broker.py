@@ -204,3 +204,60 @@ def test_equity(broker, mock_upbit):
 def test_estimate_costs(broker, mock_upbit):
     assert broker.estimate_entry_cost_pct(OrderType.MARKET) == 0.0005
     assert broker.estimate_round_trip_cost_pct(OrderType.MARKET) == 0.001
+
+
+class TestDryRun:
+    """Dry-run mode: validates order logic without hitting the exchange."""
+
+    @pytest.fixture
+    def dry_broker(self, mock_upbit):
+        return LiveBroker(
+            access_key="test-key",
+            secret_key="test-secret",
+            starting_cash=1_000_000.0,
+            fee_rate=0.0005,
+            dry_run=True,
+        )
+
+    def test_dry_run_buy_does_not_call_exchange(self, dry_broker, mock_upbit):
+        request = OrderRequest(
+            symbol="KRW-BTC",
+            side=OrderSide.BUY,
+            quantity=0.001,
+            requested_at=datetime.now(UTC),
+            reason="dry_test",
+            confidence=0.8,
+        )
+        result = dry_broker.submit_order(request, market_price=50_000_000.0)
+
+        assert result.status == "filled"
+        assert result.order_id.startswith("dry-")
+        assert result.fill_price == 50_000_000.0
+        assert "KRW-BTC" in dry_broker.positions
+        mock_upbit.buy_market_order.assert_not_called()
+
+    def test_dry_run_sell_does_not_call_exchange(self, dry_broker, mock_upbit):
+        from crypto_trader.models import Position
+
+        dry_broker.positions["KRW-BTC"] = Position(
+            symbol="KRW-BTC",
+            quantity=0.001,
+            entry_price=50_000_000.0,
+            entry_time=datetime.now(UTC),
+            entry_fee_paid=25.0,
+        )
+        dry_broker.cash = 950_000.0
+
+        request = OrderRequest(
+            symbol="KRW-BTC",
+            side=OrderSide.SELL,
+            quantity=0.001,
+            requested_at=datetime.now(UTC),
+            reason="dry_sell",
+        )
+        result = dry_broker.submit_order(request, market_price=51_000_000.0)
+
+        assert result.status == "filled"
+        assert result.order_id.startswith("dry-")
+        assert len(dry_broker.closed_trades) == 1
+        mock_upbit.sell_market_order.assert_not_called()
