@@ -52,7 +52,7 @@ class StrategyVerdictEngineTests(unittest.TestCase):
         engine = StrategyVerdictEngine(RiskConfig(max_daily_loss_pct=0.1))
         verdict = engine.evaluate(
             consecutive_failures=0,
-            realized_pnl=-60.0,
+            realized_pnl=-30.0,
             session_starting_equity=1_000.0,
             current_success=True,
             recent_runs=[],
@@ -86,7 +86,18 @@ class StrategyVerdictEngineTests(unittest.TestCase):
         engine = StrategyVerdictEngine(RiskConfig(max_daily_loss_pct=0.1))
         verdict = engine.evaluate(
             consecutive_failures=0,
-            realized_pnl=-110.0,
+            realized_pnl=-60.0,
+            session_starting_equity=1_000.0,
+            current_success=True,
+            recent_runs=[],
+        )
+        self.assertEqual(verdict.status, VerdictStatus.PAUSE_STRATEGY)
+
+    def test_verdict_engine_uses_hard_daily_loss_cap_when_config_is_looser(self) -> None:
+        engine = StrategyVerdictEngine(RiskConfig(max_daily_loss_pct=0.2))
+        verdict = engine.evaluate(
+            consecutive_failures=0,
+            realized_pnl=-60.0,
             session_starting_equity=1_000.0,
             current_success=True,
             recent_runs=[],

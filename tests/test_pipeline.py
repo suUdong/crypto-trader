@@ -16,7 +16,7 @@ from crypto_trader.config import (
     TradingConfig,
 )
 from crypto_trader.execution.paper import PaperBroker
-from crypto_trader.models import Candle
+from crypto_trader.models import Candle, Position
 from crypto_trader.notifications.telegram import Notifier
 from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
@@ -48,6 +48,7 @@ class RecordingRiskManager(RiskManager):
     def __init__(self, config: RiskConfig) -> None:
         super().__init__(config)
         self.starting_equities: list[float] = []
+        self.current_equities: list[float | None] = []
 
     def can_open(
         self,
@@ -57,6 +58,7 @@ class RecordingRiskManager(RiskManager):
         current_equity: float | None = None,
     ) -> bool:
         self.starting_equities.append(starting_equity)
+        self.current_equities.append(current_equity)
         return super().can_open(
             active_positions,
             realized_pnl,
@@ -187,6 +189,44 @@ class TradingPipelineTests(unittest.TestCase):
         broker.realized_pnl = -40.0
         pipeline.run_once()
         self.assertEqual(risk_manager.starting_equities, [1_000.0])
+        self.assertEqual(risk_manager.current_equities, [800.0])
+
+    def test_pipeline_force_exits_open_position_on_daily_loss_breach(self) -> None:
+        candles = build_candles([100.0] * 20 + [94.0])
+        config = AppConfig(
+            trading=TradingConfig(symbol="KRW-BTC", candle_count=len(candles)),
+            strategy=StrategyConfig(),
+            regime=RegimeConfig(),
+            drift=DriftConfig(),
+            risk=RiskConfig(max_daily_loss_pct=0.20),
+            backtest=BacktestConfig(initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        broker = PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0)
+        pipeline = TradingPipeline(
+            config=config,
+            market_data=FakeMarketData(candles),
+            strategy=CompositeStrategy(config.strategy, config.regime),
+            risk_manager=RiskManager(config.risk),
+            broker=broker,
+            notifier=RecorderNotifier(),
+        )
+        broker.cash = 0.0
+        broker.positions["KRW-BTC"] = Position(
+            symbol="KRW-BTC",
+            quantity=10.0,
+            entry_price=100.0,
+            entry_time=datetime(2025, 1, 1, 0, 0, 0),
+        )
+
+        result = pipeline.run_once()
+
+        self.assertIsNotNone(result.order)
+        assert result.order is not None
+        self.assertEqual(result.order.side.value, "sell")
+        self.assertEqual(result.order.reason, "circuit_breaker")
 
     def test_pipeline_updates_atr_from_live_candles(self) -> None:
         candles = build_candles([100.0 + i for i in range(20)])

@@ -45,3 +45,12 @@ class CircuitBreakerTests(unittest.TestCase):
                 current_equity=940_000,
             )
         )
+
+    def test_hard_daily_loss_cap_applies_when_config_is_looser(self) -> None:
+        rm = self._make_manager(0.20)
+        self.assertTrue(
+            rm.should_force_exit(
+                realized_pnl=-60_000,
+                starting_equity=1_000_000,
+            )
+        )

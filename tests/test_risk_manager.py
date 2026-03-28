@@ -34,7 +34,7 @@ class RiskManagerTests(unittest.TestCase):
         )
         self.assertEqual(
             manager.allowed_concurrent_positions(
-                realized_pnl=-50.0,
+                realized_pnl=-25.0,
                 starting_equity=1_000.0,
             ),
             2,
@@ -42,7 +42,7 @@ class RiskManagerTests(unittest.TestCase):
         self.assertFalse(
             manager.can_open(
                 active_positions=2,
-                realized_pnl=-50.0,
+                realized_pnl=-25.0,
                 starting_equity=1_000.0,
             )
         )
@@ -58,7 +58,7 @@ class RiskManagerTests(unittest.TestCase):
             manager.allowed_concurrent_positions(
                 realized_pnl=0.0,
                 starting_equity=1_000.0,
-                current_equity=950.0,
+                current_equity=975.0,
             ),
             2,
         )
@@ -67,7 +67,34 @@ class RiskManagerTests(unittest.TestCase):
                 active_positions=2,
                 realized_pnl=0.0,
                 starting_equity=1_000.0,
-                current_equity=950.0,
+                current_equity=975.0,
+            )
+        )
+
+    def test_consecutive_loss_streak_blocks_new_positions(self) -> None:
+        manager = RiskManager(RiskConfig(max_daily_loss_pct=0.05))
+        for _ in range(3):
+            manager.record_trade(-0.02)
+        self.assertFalse(
+            manager.can_open(
+                active_positions=0,
+                realized_pnl=0.0,
+                starting_equity=1_000.0,
+                current_equity=1_000.0,
+            )
+        )
+
+    def test_winning_trade_resets_consecutive_loss_stop(self) -> None:
+        manager = RiskManager(RiskConfig(max_daily_loss_pct=0.05))
+        for _ in range(3):
+            manager.record_trade(-0.02)
+        manager.record_trade(0.01)
+        self.assertTrue(
+            manager.can_open(
+                active_positions=0,
+                realized_pnl=0.0,
+                starting_equity=1_000.0,
+                current_equity=1_000.0,
             )
         )
 

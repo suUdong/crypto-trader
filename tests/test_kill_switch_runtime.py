@@ -21,6 +21,7 @@ class TestKillSwitchPortfolioDrawdown(unittest.TestCase):
     def test_no_trigger_within_limit(self) -> None:
         ks = KillSwitch(KillSwitchConfig(max_portfolio_drawdown_pct=0.10, max_daily_loss_pct=0.10))
         ks.check(1_000_000, 1_000_000, 0.0)
+        ks._daily_start_equity = 900_000
         state = ks.check(950_000, 1_000_000, -50_000)
         self.assertFalse(state.triggered)
 
@@ -31,6 +32,13 @@ class TestKillSwitchDailyLoss(unittest.TestCase):
         ks.check(1_000_000, 1_000_000, 0.0)
         # 4% daily loss > 3% limit
         state = ks.check(960_000, 1_000_000, -40_000)
+        self.assertTrue(state.triggered)
+        self.assertIn("daily loss", state.trigger_reason.lower())
+
+    def test_hard_daily_loss_cap_applies_when_config_is_looser(self) -> None:
+        ks = KillSwitch(KillSwitchConfig(max_daily_loss_pct=0.20, max_portfolio_drawdown_pct=1.0))
+        ks.check(1_000_000, 1_000_000, 0.0)
+        state = ks.check(940_000, 1_000_000, -60_000)
         self.assertTrue(state.triggered)
         self.assertIn("daily loss", state.trigger_reason.lower())
 

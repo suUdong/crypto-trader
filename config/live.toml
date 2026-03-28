@@ -50,7 +50,7 @@ atr_stop_multiplier = 2.0
 min_entry_confidence = 0.55
 partial_tp_pct = 0.5
 cooldown_bars = 4
-max_position_pct = 0.15
+max_position_pct = 0.10
 
 [kill_switch]
 max_portfolio_drawdown_pct = 0.05

@@ -398,8 +398,7 @@ def _build_session_curve(
             if checkpoint_session_id and record_session_id and record_session_id < checkpoint_session_id:
                 continue
             expected_start = float(
-                wallet_states.get(wallet_name, {}).get("initial_capital", 0.0)  # type: ignore[union-attr]
-                or 0.0
+                wallet_states.get(wallet_name, {}).get("initial_capital", 0.0) or 0.0
             )
             actual_start = float(record.get("session_starting_equity", expected_start) or 0.0)
             if expected_start > 0 and abs(actual_start - expected_start) > 1e-6:

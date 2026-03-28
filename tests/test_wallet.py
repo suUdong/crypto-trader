@@ -259,6 +259,18 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
 
         self.assertEqual(risk_manager.atr_updates, 1)
 
+    def test_wallet_blocks_new_entries_after_three_consecutive_losses(self) -> None:
+        closes = [100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0]
+        candles = _make_candles(closes)
+        wallet = self._make_wallet("momentum")
+        for _ in range(3):
+            wallet.risk_manager.record_trade(-0.02)
+
+        result = wallet.run_once("KRW-BTC", candles)
+
+        self.assertEqual(result.signal.action, SignalAction.BUY)
+        self.assertIsNone(result.order)
+
     def test_wallet_passes_marked_equity_to_can_open(self) -> None:
         class EquityRecordingRiskManager(RiskManager):
             def __init__(self, config: RiskConfig) -> None:
@@ -429,6 +441,22 @@ class TestBuildWallets(unittest.TestCase):
         self.assertEqual(wallet.risk_manager._config.take_profit_pct, 0.04)
         self.assertEqual(wallet.risk_manager._trailing_stop_pct, 0.03)
         self.assertEqual(wallet.risk_manager._atr_stop_multiplier, 2.0)
+
+    def test_build_wallets_clamps_runtime_position_cap_to_safer_limit(self) -> None:
+        wallet_configs = [
+            WalletConfig(
+                name="momentum_wallet",
+                strategy="momentum",
+                initial_capital=500_000.0,
+                risk_overrides={"max_position_pct": 0.25},
+            ),
+        ]
+        config = _make_minimal_app_config(wallet_configs)
+        config.risk.max_position_pct = 0.25
+
+        wallets = build_wallets(config)
+
+        self.assertEqual(wallets[0].risk_manager._config.max_position_pct, 0.10)
 
 
 if __name__ == "__main__":

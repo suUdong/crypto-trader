@@ -108,20 +108,32 @@ class CapitalAllocator:
         ineligible = [p for p in performances if p.trade_count < self.min_trades]
 
         if not eligible:
-            # All strategies lack data. If external edge scores exist, use them as the
-            # initial ranking signal so regime-driven reallocations can still occur.
-            edge = {
-                p.strategy: max(0.0, float((edge_scores or {}).get(p.strategy, 1.0)))
-                for p in performances
-            }
-            total_edge = sum(edge.values())
-            if total_edge > 0:
+            # All strategies lack data. Prefer config initial_capital ratios
+            # (operator's intended ROI-weighted allocation) over equal weight.
+            # Fall back to edge scores, then equal weight.
+            config_capitals = {p.strategy: p.initial_capital for p in performances}
+            total_config = sum(config_capitals.values())
+            if total_config > 0 and any(
+                abs(c - total_config / n) > 1.0 for c in config_capitals.values()
+            ):
+                # Config has intentional non-equal allocation — respect it
                 weights = {
-                    strategy: score / total_edge for strategy, score in edge.items()
+                    strategy: capital / total_config
+                    for strategy, capital in config_capitals.items()
                 }
             else:
-                equal_w = 1.0 / n
-                weights = {p.strategy: equal_w for p in performances}
+                edge = {
+                    p.strategy: max(0.0, float((edge_scores or {}).get(p.strategy, 1.0)))
+                    for p in performances
+                }
+                total_edge = sum(edge.values())
+                if total_edge > 0:
+                    weights = {
+                        strategy: score / total_edge for strategy, score in edge.items()
+                    }
+                else:
+                    equal_w = 1.0 / n
+                    weights = {p.strategy: equal_w for p in performances}
             allocations = [
                 StrategyAllocation(
                     strategy=p.strategy,
@@ -129,7 +141,7 @@ class CapitalAllocator:
                     weight=weights[p.strategy],
                     capital=total_capital * weights[p.strategy],
                     previous_capital=p.initial_capital,
-                    score=edge.get(p.strategy, 0.0),
+                    score=weights[p.strategy],
                     rank=i + 1,
                 )
                 for i, p in enumerate(performances)
@@ -138,7 +150,7 @@ class CapitalAllocator:
                 generated_at=datetime.now(UTC).isoformat(),
                 total_capital=total_capital,
                 allocations=allocations,
-                concentration_ratio=1.0 / n,
+                concentration_ratio=sum(w**2 for w in weights.values()),
             )
 
         # Reserve minimum allocation for ineligible strategies

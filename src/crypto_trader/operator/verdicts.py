@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from crypto_trader.config import RiskConfig
+from crypto_trader.config import HARD_MAX_DAILY_LOSS_PCT, RiskConfig
 from crypto_trader.models import StrategyRunRecord, StrategyVerdict, VerdictStatus
 
 
@@ -29,7 +29,11 @@ class StrategyVerdictEngine:
             )
 
         if session_starting_equity > 0:
-            daily_loss_limit = session_starting_equity * self._risk_config.max_daily_loss_pct
+            effective_daily_loss_pct = min(
+                self._risk_config.max_daily_loss_pct,
+                HARD_MAX_DAILY_LOSS_PCT,
+            )
+            daily_loss_limit = session_starting_equity * effective_daily_loss_pct
             used_loss_budget = abs(min(realized_pnl, 0.0))
             if used_loss_budget >= daily_loss_limit:
                 return StrategyVerdict(

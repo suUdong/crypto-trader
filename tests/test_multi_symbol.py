@@ -24,7 +24,15 @@ from crypto_trader.config import (
 )
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.client import MacroSnapshot
-from crypto_trader.models import Candle, OrderRequest, OrderSide, SignalAction
+from crypto_trader.models import (
+    Candle,
+    OrderRequest,
+    OrderSide,
+    PipelineResult,
+    Position,
+    Signal,
+    SignalAction,
+)
 from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
@@ -586,6 +594,7 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         runtime._alert_manager = runtime._alert_manager.__class__([notifier])
 
         runtime._check_kill_switch_after_tick([])
+        runtime._kill_switch._daily_start_equity = 900_000
         wallets[0].broker.cash = 940_000.0
         runtime._check_kill_switch_after_tick([])
         runtime._check_kill_switch_after_tick([])
@@ -595,6 +604,90 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         self.assertEqual(len(notifier.messages), 2)
         self.assertIn("RISK WARNING", notifier.messages[0])
         self.assertIn("RISK REDUCE", notifier.messages[1])
+
+    def test_kill_switch_liquidates_all_positions_on_hard_daily_loss(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.backtest.fee_rate = 0.0
+        config.backtest.slippage_pct = 0.0
+        config.kill_switch.max_portfolio_drawdown_pct = 1.0
+        config.kill_switch.max_daily_loss_pct = 0.20
+        wallets = build_wallets(config)
+        wallet = wallets[0]
+        wallet.broker.cash = 0.0
+        wallet.broker.positions["KRW-BTC"] = Position(
+            symbol="KRW-BTC",
+            quantity=10_000.0,
+            entry_price=100.0,
+            entry_time=datetime(2025, 1, 1, tzinfo=UTC),
+        )
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30 + [94.0])}),
+            config=config,
+        )
+
+        runtime._check_kill_switch_after_tick(
+            [
+                PipelineResult(
+                    symbol="KRW-BTC",
+                    signal=Signal(action=SignalAction.HOLD, reason="baseline", confidence=0.0),
+                    order=None,
+                    message="baseline",
+                    latest_price=100.0,
+                )
+            ]
+        )
+        self.assertFalse(runtime._kill_switch.is_triggered)
+
+        runtime._check_kill_switch_after_tick(
+            [
+                PipelineResult(
+                    symbol="KRW-BTC",
+                    signal=Signal(action=SignalAction.HOLD, reason="drawdown", confidence=0.0),
+                    order=None,
+                    message="drawdown",
+                    latest_price=94.0,
+                )
+            ]
+        )
+
+        self.assertTrue(runtime._kill_switch.is_triggered)
+        self.assertNotIn("KRW-BTC", wallet.broker.positions)
+        self.assertGreater(wallet.broker.cash, 0.0)
+
+    def test_daily_loss_warning_uses_hard_cap_even_when_config_is_looser(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.kill_switch.max_portfolio_drawdown_pct = 1.0
+        config.kill_switch.max_daily_loss_pct = 0.20
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+        notifier = _RecordingNotifier()
+        runtime._alert_manager = runtime._alert_manager.__class__([notifier])
+
+        runtime._check_kill_switch_after_tick([])
+        runtime._kill_switch._daily_start_equity = 1_000_000.0
+        wallets[0].broker.cash = 970_000.0
+        runtime._check_kill_switch_after_tick([])
+
+        self.assertEqual(len(notifier.messages), 1)
+        self.assertIn("RISK WARNING", notifier.messages[0])
+        self.assertIn("daily_loss", notifier.messages[0])
 
     def test_rebalance_idle_wallet_cash_moves_capital_and_updates_summary(self) -> None:
         config = _make_config(

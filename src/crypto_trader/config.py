@@ -6,6 +6,10 @@ from dataclasses import dataclass, field, fields, replace
 from pathlib import Path
 from typing import Any
 
+HARD_MAX_DAILY_LOSS_PCT = 0.05
+SAFE_DEFAULT_MAX_POSITION_PCT = 0.10
+SAFE_MAX_CONSECUTIVE_LOSSES = 3
+
 
 @dataclass(slots=True)
 class WalletConfig:
@@ -78,14 +82,14 @@ class RiskConfig:
     drawdown_reduction_pct: float = 0.5
     partial_tp_pct: float = 0.5
     cooldown_bars: int = 3
-    max_position_pct: float = 0.25
+    max_position_pct: float = SAFE_DEFAULT_MAX_POSITION_PCT
 
 
 @dataclass(slots=True)
 class KillSwitchCfg:
     max_portfolio_drawdown_pct: float = 0.15
     max_daily_loss_pct: float = 0.05
-    max_consecutive_losses: int = 5
+    max_consecutive_losses: int = SAFE_MAX_CONSECUTIVE_LOSSES
     max_strategy_drawdown_pct: float = 0.10
     cooldown_minutes: int = 60
     warn_threshold_pct: float = 0.5
@@ -435,8 +439,10 @@ def load_config(
                 0.0,
             )
         ),
-        max_daily_loss_pct=float(
-            _read_value(raw, env, "risk", "max_daily_loss_pct", "CT_MAX_DAILY_LOSS_PCT", 0.05)
+        max_daily_loss_pct=_clamp_daily_loss_pct(
+            float(
+                _read_value(raw, env, "risk", "max_daily_loss_pct", "CT_MAX_DAILY_LOSS_PCT", 0.05)
+            )
         ),
         max_concurrent_positions=int(
             _read_value(
@@ -462,8 +468,17 @@ def load_config(
             _read_value(raw, env, "risk", "partial_tp_pct", "CT_PARTIAL_TP_PCT", 0.5)
         ),
         cooldown_bars=int(_read_value(raw, env, "risk", "cooldown_bars", "CT_COOLDOWN_BARS", 3)),
-        max_position_pct=float(
-            _read_value(raw, env, "risk", "max_position_pct", "CT_MAX_POSITION_PCT", 0.25)
+        max_position_pct=_clamp_runtime_max_position_pct(
+            float(
+                _read_value(
+                    raw,
+                    env,
+                    "risk",
+                    "max_position_pct",
+                    "CT_MAX_POSITION_PCT",
+                    SAFE_DEFAULT_MAX_POSITION_PCT,
+                )
+            )
         ),
     )
     backtest = BacktestConfig(
@@ -748,12 +763,26 @@ def load_config(
                 0.15,
             )
         ),
-        max_daily_loss_pct=float(
-            _read_value(raw, env, "kill_switch", "max_daily_loss_pct", "CT_KS_MAX_DAILY_LOSS", 0.05)
+        max_daily_loss_pct=_clamp_daily_loss_pct(
+            float(
+                _read_value(
+                    raw,
+                    env,
+                    "kill_switch",
+                    "max_daily_loss_pct",
+                    "CT_KS_MAX_DAILY_LOSS",
+                    HARD_MAX_DAILY_LOSS_PCT,
+                )
+            )
         ),
         max_consecutive_losses=int(
             _read_value(
-                raw, env, "kill_switch", "max_consecutive_losses", "CT_KS_MAX_CONSEC_LOSSES", 5
+                raw,
+                env,
+                "kill_switch",
+                "max_consecutive_losses",
+                "CT_KS_MAX_CONSEC_LOSSES",
+                SAFE_MAX_CONSECUTIVE_LOSSES,
             )
         ),
         max_strategy_drawdown_pct=float(
@@ -813,6 +842,7 @@ def load_config(
         wallets=wallets,
         source_config_path=str(config_path),
     )
+    app_config.risk = _sanitize_risk_config(app_config.risk)
     _validate_config(
         app_config,
         allow_missing_live_credentials=allow_missing_live_credentials,
@@ -854,7 +884,8 @@ def _read_bool(
 def _read_wallet_override_map(raw_wallet: dict[str, Any], key: str) -> dict[str, Any]:
     value = raw_wallet.get(key, {})
     if isinstance(value, dict):
-        return {str(k): v for k, v in value.items()}
+        normalized = {str(k): v for k, v in value.items()}
+        return _sanitize_risk_override_map(normalized) if key == "risk_overrides" else normalized
     return {}
 
 
@@ -872,7 +903,36 @@ def _apply_strategy_overrides(
 
 def _apply_risk_overrides(base: RiskConfig, overrides: dict[str, Any]) -> RiskConfig:
     config_kwargs = {key: value for key, value in overrides.items() if key in _RISK_FIELD_NAMES}
-    return replace(base, **config_kwargs)
+    return _sanitize_risk_config(replace(base, **config_kwargs))
+
+
+def _sanitize_risk_override_map(overrides: dict[str, Any]) -> dict[str, Any]:
+    sanitized = dict(overrides)
+    if "max_daily_loss_pct" in sanitized:
+        sanitized["max_daily_loss_pct"] = _clamp_daily_loss_pct(
+            float(sanitized["max_daily_loss_pct"])
+        )
+    if "max_position_pct" in sanitized:
+        sanitized["max_position_pct"] = _clamp_runtime_max_position_pct(
+            float(sanitized["max_position_pct"])
+        )
+    return sanitized
+
+
+def _sanitize_risk_config(risk: RiskConfig) -> RiskConfig:
+    return replace(
+        risk,
+        max_daily_loss_pct=_clamp_daily_loss_pct(risk.max_daily_loss_pct),
+        max_position_pct=_clamp_runtime_max_position_pct(risk.max_position_pct),
+    )
+
+
+def _clamp_daily_loss_pct(value: float) -> float:
+    return min(max(0.0, value), HARD_MAX_DAILY_LOSS_PCT)
+
+
+def _clamp_runtime_max_position_pct(value: float) -> float:
+    return min(max(0.0, value), SAFE_DEFAULT_MAX_POSITION_PCT)
 
 
 def _validate_config(

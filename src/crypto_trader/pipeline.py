@@ -63,10 +63,12 @@ class TradingPipeline:
             order: OrderResult | None = None
 
             if position is None and signal.action is SignalAction.BUY:
+                marked_equity = self._broker.equity({symbol: latest_price})
                 if self._risk_manager.can_open(
                     active_positions=len(self._broker.positions),
                     realized_pnl=self._broker.realized_pnl,
                     starting_equity=self._session_starting_equity,
+                    current_equity=marked_equity,
                 ):
                     quantity = self._risk_manager.size_position(self._broker.cash, latest_price)
                     if quantity > 0:
@@ -81,19 +83,38 @@ class TradingPipeline:
                             latest_price,
                         )
             elif position is not None:
-                exit_reason = self._risk_manager.exit_reason(position, latest_price)
-                should_sell = signal.action is SignalAction.SELL or exit_reason is not None
-                if should_sell:
+                marked_equity = self._broker.equity({symbol: latest_price})
+                if self._risk_manager.should_force_exit(
+                    self._broker.realized_pnl,
+                    self._session_starting_equity,
+                    marked_equity,
+                ):
                     order = self._broker.submit_order(
                         OrderRequest(
                             symbol=symbol,
                             side=OrderSide.SELL,
                             quantity=position.quantity,
                             requested_at=now,
-                            reason=exit_reason or signal.reason,
+                            reason="circuit_breaker",
                         ),
                         latest_price,
                     )
+                    if order is not None and order.status == "filled":
+                        self._risk_manager.record_trade(position.pnl_pct(order.fill_price))
+                else:
+                    exit_reason = self._risk_manager.exit_reason(position, latest_price)
+                    should_sell = signal.action is SignalAction.SELL or exit_reason is not None
+                    if should_sell:
+                        order = self._broker.submit_order(
+                            OrderRequest(
+                                symbol=symbol,
+                                side=OrderSide.SELL,
+                                quantity=position.quantity,
+                                requested_at=now,
+                                reason=exit_reason or signal.reason,
+                            ),
+                            latest_price,
+                        )
 
             message = self._format_message(symbol, latest_price, signal, order)
             self._safe_notify(message)

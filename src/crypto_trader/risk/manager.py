@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import math
 
-from crypto_trader.config import RiskConfig
+from crypto_trader.config import (
+    HARD_MAX_DAILY_LOSS_PCT,
+    SAFE_MAX_CONSECUTIVE_LOSSES,
+    RiskConfig,
+)
 from crypto_trader.models import Candle, Position
 from crypto_trader.risk.edge_schedule import EdgeSchedule
 from crypto_trader.strategy.indicators import average_true_range
@@ -12,6 +16,7 @@ class RiskManager:
     _MIN_DRAWDOWN_SCALE: float = 0.1
     _MAX_WIN_STREAK_MULT: float = 1.2
     _MIN_LOSS_STREAK_MULT: float = 0.4
+    _MAX_CONSECUTIVE_LOSSES_BEFORE_STOP: int = SAFE_MAX_CONSECUTIVE_LOSSES
 
     def __init__(
         self,
@@ -131,6 +136,10 @@ class RiskManager:
         return self._paused
 
     @property
+    def is_loss_streak_stopped(self) -> bool:
+        return self._consecutive_losses >= self._MAX_CONSECUTIVE_LOSSES_BEFORE_STOP
+
+    @property
     def effective_min_confidence(self) -> float:
         """Adaptive confidence: lowers bar when winning, raises when losing."""
         base = self.min_entry_confidence
@@ -196,7 +205,7 @@ class RiskManager:
 
     def _drawdown_scale(self, equity: float) -> float:
         drawdown_pct = self._current_drawdown_pct(equity)
-        max_daily_loss_pct = self._config.max_daily_loss_pct
+        max_daily_loss_pct = min(self._config.max_daily_loss_pct, HARD_MAX_DAILY_LOSS_PCT)
         if max_daily_loss_pct <= 0 or drawdown_pct <= 0:
             return 1.0
         drawdown_ratio = min(1.0, drawdown_pct / max_daily_loss_pct)
@@ -241,7 +250,7 @@ class RiskManager:
         base_limit = self._config.max_concurrent_positions
         if base_limit <= 0 or starting_equity <= 0:
             return 0
-        max_daily_loss_pct = self._config.max_daily_loss_pct
+        max_daily_loss_pct = min(self._config.max_daily_loss_pct, HARD_MAX_DAILY_LOSS_PCT)
         if max_daily_loss_pct <= 0:
             return base_limit
         loss_pressure_ratio = self._loss_pressure_ratio(
@@ -300,6 +309,8 @@ class RiskManager:
     ) -> bool:
         if starting_equity <= 0:
             return False
+        if self.is_loss_streak_stopped:
+            return False
         allowed_positions = self.allowed_concurrent_positions(
             realized_pnl,
             starting_equity,
@@ -316,7 +327,7 @@ class RiskManager:
         """Circuit breaker: force-close all positions when daily loss limit is hit."""
         if starting_equity <= 0:
             return False
-        max_daily_loss_pct = self._config.max_daily_loss_pct
+        max_daily_loss_pct = min(self._config.max_daily_loss_pct, HARD_MAX_DAILY_LOSS_PCT)
         if max_daily_loss_pct <= 0:
             return False
         return (

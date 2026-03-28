@@ -14,7 +14,7 @@ from urllib.error import HTTPError, URLError
 from zoneinfo import ZoneInfo
 
 from crypto_trader.capital_allocator import CapitalAllocator, StrategyPerformance
-from crypto_trader.config import AppConfig, RegimeConfig
+from crypto_trader.config import AppConfig, HARD_MAX_DAILY_LOSS_PCT, RegimeConfig
 from crypto_trader.data.base import MarketDataClient
 from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroClient, MacroSnapshot
@@ -636,6 +636,10 @@ class MultiSymbolRuntime:
         self._kill_switch.save(self._kill_switch_path)
 
         if state.triggered:
+            liquidation_orders = self._liquidate_all_positions(
+                latest_prices,
+                reason="kill_switch_liquidation",
+            )
             self._last_drawdown_alert_signature = None
             self._logger.critical(
                 "KILL SWITCH TRIGGERED: %s — stopping after this tick",
@@ -656,11 +660,70 @@ class MultiSymbolRuntime:
                     "portfolio_dd": state.portfolio_drawdown_pct,
                     "daily_loss": state.daily_loss_pct,
                     "consecutive_losses": state.consecutive_losses,
+                    "liquidated_positions": liquidation_orders,
                 },
             )
             return
 
         self._maybe_alert_drawdown_warning(state)
+
+    def _liquidate_all_positions(
+        self,
+        latest_prices: dict[str, float],
+        *,
+        reason: str,
+    ) -> list[dict[str, Any]]:
+        executed_orders: list[dict[str, Any]] = []
+        now = datetime.now(UTC)
+        for wallet in self._wallets:
+            for symbol in sorted(list(wallet.broker.positions)):
+                position = wallet.broker.positions.get(symbol)
+                if position is None:
+                    continue
+                latest_price = latest_prices.get(symbol, position.entry_price)
+                order = wallet.reduce_position(
+                    symbol,
+                    latest_price,
+                    now,
+                    keep_fraction=0.0,
+                    reason=reason,
+                )
+                if order is None or order.status != "filled":
+                    continue
+                executed_orders.append(
+                    {
+                        "wallet": wallet.name,
+                        "symbol": symbol,
+                        "quantity": order.quantity,
+                        "fill_price": order.fill_price,
+                    }
+                )
+                self._structured_logger.log_trade(
+                    wallet_name=wallet.name,
+                    strategy_type=wallet.strategy_type,
+                    symbol=symbol,
+                    side=order.side.value,
+                    quantity=order.quantity,
+                    fill_price=order.fill_price,
+                    fee_paid=order.fee_paid,
+                    order_status=order.status,
+                    reason=order.reason,
+                    order_type=order.order_type.value,
+                    market_price=order.reference_price or latest_price,
+                    slippage_pct=order.slippage_pct,
+                    fee_rate=order.fee_rate,
+                )
+                self._alert_manager.alert_trade(
+                    wallet_name=wallet.name,
+                    strategy_name=wallet.strategy_type,
+                    symbol=symbol,
+                    side=order.side.value,
+                    quantity=order.quantity,
+                    fill_price=order.fill_price,
+                    fee_paid=order.fee_paid,
+                    reason=order.reason,
+                )
+        return executed_orders
 
     def _warning_stage(self, current_pct: float, limit_pct: float) -> str | None:
         if limit_pct <= 0 or current_pct <= 0:
@@ -678,6 +741,9 @@ class MultiSymbolRuntime:
         stage = self._warning_stage(drawdown_pct, limit_pct)
         return stage or "normal"
 
+    def _effective_daily_loss_limit(self) -> float:
+        return min(self._config.kill_switch.max_daily_loss_pct, HARD_MAX_DAILY_LOSS_PCT)
+
     def _maybe_alert_drawdown_warning(self, state: KillSwitchState) -> None:
         if state.triggered or not state.warning_active:
             self._last_drawdown_alert_signature = None
@@ -692,7 +758,7 @@ class MultiSymbolRuntime:
             (
                 "daily_loss",
                 state.daily_loss_pct,
-                self._config.kill_switch.max_daily_loss_pct,
+                self._effective_daily_loss_limit(),
             ),
         ]
         selected: tuple[str, str, float, float] | None = None
@@ -1252,7 +1318,7 @@ class MultiSymbolRuntime:
                     else 0.0
                 ),
                 equity=wallet.broker.equity(latest_prices),
-                initial_capital=wallet.session_starting_equity,
+                initial_capital=wallet.config_initial_capital,
                 composite_score_override=(
                     max(wallet.session_starting_equity, 1.0)
                     if edge_scores is not None and (min_trades is not None or use_baseline_scores)
@@ -1475,6 +1541,36 @@ class MultiSymbolRuntime:
                 restored_count,
                 len(wallet_states),
             )
+
+        # Detect config capital change: if daemon.toml initial_capital
+        # differs from checkpoint, invalidate stale rebalance date so the
+        # allocator re-runs with the new ROI-weighted config on next tick.
+        config_total = sum(w.config_initial_capital for w in self._wallets)
+        checkpoint_total = sum(
+            wallet_states.get(w.name, {}).get("initial_capital", 0.0)
+            for w in self._wallets
+        )
+        if config_total > 0 and abs(config_total - checkpoint_total) > 1000.0:
+            self._logger.info(
+                "Config capital changed (%.0f -> %.0f), clearing stale rebalance date",
+                checkpoint_total,
+                config_total,
+            )
+            self._last_rebalance_date = None
+
+        # Recalibrate peak equity to actual restored equity so that a config
+        # capital change (e.g. rebalance) does not create a phantom drawdown.
+        restored_equity = sum(
+            w.broker.equity(self._latest_prices) for w in self._wallets
+        )
+        if restored_equity > 0 and abs(restored_equity - self._portfolio_peak_equity) > 1.0:
+            self._logger.info(
+                "Recalibrating peak equity after checkpoint restore: %.0f -> %.0f",
+                self._portfolio_peak_equity,
+                restored_equity,
+            )
+            self._portfolio_peak_equity = restored_equity
+            self._total_starting_equity = restored_equity
 
         # Update journal trade counts to avoid re-journaling old trades
         for wallet in self._wallets:

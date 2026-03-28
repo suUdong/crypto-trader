@@ -13,6 +13,7 @@ from crypto_trader.config import (
     RiskConfig,
     StrategyConfig,
     WalletConfig,
+    _sanitize_risk_config,
 )
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.macro.client import MacroSnapshot
@@ -230,6 +231,7 @@ class StrategyWallet:
         self.allowed_symbols: set[str] = (
             set(wallet_config.symbols) if wallet_config.symbols else set()
         )
+        self.config_initial_capital = wallet_config.initial_capital
         self.session_starting_equity = broker.cash
         self._logger = logging.getLogger(f"{__name__}.{self.name}")
         self._macro_multiplier: float = 1.0
@@ -632,4 +634,4 @@ def _risk_config_for_wallet(config: AppConfig, wallet_config: WalletConfig) -> R
     overrides = {
         key: value for key, value in wallet_config.risk_overrides.items() if key in risk_fields
     }
-    return replace(config.risk, **overrides)
+    return _sanitize_risk_config(replace(config.risk, **overrides))

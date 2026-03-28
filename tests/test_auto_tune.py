@@ -113,6 +113,8 @@ class TestAutoTuneOutputs(unittest.TestCase):
             payload = json.loads(path.read_text(encoding="utf-8"))
 
         self.assertEqual(payload["days"], 90)
+        self.assertEqual(payload["strategies"], ["momentum"])
+        self.assertEqual(payload["symbols"], ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"])
         self.assertEqual(payload["baseline_results"][0]["symbol"], "KRW-BTC")
         self.assertEqual(payload["optimized_results"][0]["strategy"], "momentum")
         self.assertEqual(

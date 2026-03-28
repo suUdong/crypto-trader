@@ -347,8 +347,14 @@ def write_results_json(
     days: int,
 ) -> None:
     """Write baseline and optimization results as JSON for reporting."""
+    strategies = sorted(
+        {str(row["strategy"]) for row in baseline_results}
+        | {result.strategy for result in tune_results}
+    )
     payload = {
         "days": days,
+        "symbols": SYMBOLS,
+        "strategies": strategies,
         "baseline_results": baseline_results,
         "optimized_results": [asdict(result) for result in tune_results],
     }

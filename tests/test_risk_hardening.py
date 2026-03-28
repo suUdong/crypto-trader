@@ -13,9 +13,9 @@ from crypto_trader.risk.slippage_monitor import SlippageMonitor
 
 
 class TestMaxPositionPct:
-    def test_default_cap_is_25_percent(self):
+    def test_default_cap_is_10_percent(self):
         cfg = RiskConfig()
-        assert cfg.max_position_pct == 0.25
+        assert cfg.max_position_pct == 0.10
 
     def test_position_capped_at_max_pct(self):
         cfg = RiskConfig(
@@ -77,7 +77,7 @@ class TestTieredKillSwitch:
         defaults = dict(
             max_portfolio_drawdown_pct=0.10,
             max_daily_loss_pct=0.10,  # match portfolio DD to isolate tests
-            max_consecutive_losses=5,
+            max_consecutive_losses=3,
             warn_threshold_pct=0.5,
             reduce_threshold_pct=0.75,
             reduce_position_factor=0.5,
@@ -85,10 +85,12 @@ class TestTieredKillSwitch:
         defaults.update(kwargs)
         return KillSwitch(config=KillSwitchConfig(**defaults))
 
-    def _ks_with_peak(self, **kwargs) -> KillSwitch:
+    def _ks_with_peak(self, *, daily_start_equity: float | None = None, **kwargs) -> KillSwitch:
         """Create kill switch and establish peak equity at 1M."""
         ks = self._make_ks(**kwargs)
         ks.check(1_000_000, 1_000_000, 0.0)  # establish peak
+        if daily_start_equity is not None:
+            ks._daily_start_equity = daily_start_equity
         return ks
 
     def test_no_warning_below_threshold(self):
@@ -100,7 +102,7 @@ class TestTieredKillSwitch:
         assert state.position_size_penalty == 1.0
 
     def test_warning_at_50pct_of_limit(self):
-        ks = self._ks_with_peak()
+        ks = self._ks_with_peak(daily_start_equity=900_000)
         # 6% drawdown = 60% of 10% limit => warning zone, penalty interpolated
         state = ks.check(940_000, 1_000_000, 0.0)
         assert not state.triggered
@@ -109,7 +111,7 @@ class TestTieredKillSwitch:
         assert state.position_size_penalty >= 0.5
 
     def test_reduce_at_75pct_of_limit(self):
-        ks = self._ks_with_peak()
+        ks = self._ks_with_peak(daily_start_equity=900_000)
         # 7.5% drawdown = 75% of 10% limit => full reduce
         state = ks.check(925_000, 1_000_000, 0.0)
         assert not state.triggered
@@ -129,7 +131,7 @@ class TestTieredKillSwitch:
         assert state.warning_active
 
     def test_penalty_interpolation(self):
-        ks = self._ks_with_peak()
+        ks = self._ks_with_peak(daily_start_equity=900_000)
         # 6.25% drawdown = 62.5% of 10% limit, between warn(50%) and reduce(75%)
         state = ks.check(937_500, 1_000_000, 0.0)
         assert not state.triggered
@@ -238,7 +240,7 @@ class TestConfigIntegration:
     def test_risk_config_has_max_position_pct(self):
         cfg = RiskConfig()
         assert hasattr(cfg, "max_position_pct")
-        assert cfg.max_position_pct == 0.25
+        assert cfg.max_position_pct == 0.10
 
     def test_kill_switch_cfg_has_tiered_fields(self):
         cfg = KillSwitchCfg()

@@ -244,6 +244,52 @@ take_profit_pct = 0.04
         self.assertEqual(config.kill_switch.max_portfolio_drawdown_pct, 0.20)
         self.assertEqual(config.kill_switch.max_consecutive_losses, 10)
 
+    def test_runtime_risk_caps_are_sanitized_when_file_is_looser(self) -> None:
+        toml_content = """
+[trading]
+symbol = "KRW-BTC"
+symbols = ["KRW-BTC"]
+paper_trading = true
+
+[strategy]
+[regime]
+[drift]
+
+[risk]
+max_daily_loss_pct = 0.20
+max_position_pct = 0.25
+
+[kill_switch]
+max_daily_loss_pct = 0.20
+
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "momentum_wallet"
+strategy = "momentum"
+initial_capital = 1000000.0
+
+[wallets.risk_overrides]
+max_daily_loss_pct = 0.20
+max_position_pct = 0.25
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                config = load_config(f.name, {})
+            finally:
+                os.unlink(f.name)
+
+        self.assertEqual(config.risk.max_daily_loss_pct, 0.05)
+        self.assertEqual(config.risk.max_position_pct, 0.10)
+        self.assertEqual(config.kill_switch.max_daily_loss_pct, 0.05)
+        self.assertEqual(config.wallets[0].risk_overrides["max_daily_loss_pct"], 0.05)
+        self.assertEqual(config.wallets[0].risk_overrides["max_position_pct"], 0.10)
+
     def test_optimized_toml_bollinger_wallet_has_extra_params(self) -> None:
         config = load_config(ROOT / "config" / "optimized.toml", {})
         bollinger = [w for w in config.wallets if w.strategy == "bollinger_rsi"][0]

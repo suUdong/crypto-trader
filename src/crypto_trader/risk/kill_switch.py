@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from crypto_trader.config import HARD_MAX_DAILY_LOSS_PCT, SAFE_MAX_CONSECUTIVE_LOSSES
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 class KillSwitchConfig:
     max_portfolio_drawdown_pct: float = 0.05
     max_daily_loss_pct: float = 0.03
-    max_consecutive_losses: int = 5
+    max_consecutive_losses: int = SAFE_MAX_CONSECUTIVE_LOSSES
     max_strategy_drawdown_pct: float = 0.08
     cooldown_minutes: int = 60
     warn_threshold_pct: float = 0.5
@@ -109,11 +111,15 @@ class KillSwitch:
         if self._daily_start_equity > 0:
             daily_loss = (self._daily_start_equity - current_equity) / self._daily_start_equity
             self._state.daily_loss_pct = max(0.0, daily_loss)
-            self._apply_tiered_response(daily_loss, self._config.max_daily_loss_pct, "daily_loss")
-            if daily_loss >= self._config.max_daily_loss_pct:
+            effective_daily_loss_limit = min(
+                self._config.max_daily_loss_pct,
+                HARD_MAX_DAILY_LOSS_PCT,
+            )
+            self._apply_tiered_response(daily_loss, effective_daily_loss_limit, "daily_loss")
+            if daily_loss >= effective_daily_loss_limit:
                 self._trigger(
                     f"Daily loss {daily_loss:.2%} exceeds limit "
-                    f"{self._config.max_daily_loss_pct:.2%}"
+                    f"{effective_daily_loss_limit:.2%}"
                 )
                 return self._state
 
