@@ -1,6 +1,12 @@
 # Live SOL-KRW momentum-only config — minimal capital micro-live test
 # Purpose: P0 staged rollout with 100K KRW on a single proven strategy
 # Based on: 90-day backtest Sharpe 1.08, Return +0.78%, 29 trades (momentum SOL)
+# Go-live date: 2026-03-29
+# IMPORTANT: Set env vars before switching paper_trading to false:
+#   export CT_UPBIT_ACCESS_KEY="your-access-key"
+#   export CT_UPBIT_SECRET_KEY="your-secret-key"
+#   export CT_TELEGRAM_BOT_TOKEN="your-bot-token"
+#   export CT_TELEGRAM_CHAT_ID="your-chat-id"
 
 [trading]
 exchange = "upbit"
@@ -8,7 +14,7 @@ symbol = "KRW-SOL"
 symbols = ["KRW-SOL"]
 interval = "minute60"
 candle_count = 200
-paper_trading = true
+paper_trading = false
 # Staged rollout: only this wallet transitions to live
 go_live_wallets = ["momentum_sol_micro"]
 
@@ -40,25 +46,27 @@ sideways_error_rate_threshold = 0.20
 bear_error_rate_threshold = 0.10
 
 [risk]
-risk_per_trade_pct = 0.01
-stop_loss_pct = 0.03
-take_profit_pct = 0.08
-max_daily_loss_pct = 0.03
-max_concurrent_positions = 1
+# Conservative for real money micro-live
+risk_per_trade_pct = 0.008          # 0.8% per trade (800 KRW on 100K)
+stop_loss_pct = 0.03                # 3% stop loss
+take_profit_pct = 0.08              # 8% take profit (2.67:1 R:R)
+max_daily_loss_pct = 0.02           # 2% daily loss (matches kill_switch)
+max_concurrent_positions = 1        # single position only
 trailing_stop_pct = 0.0
 atr_stop_multiplier = 2.0
-min_entry_confidence = 0.50
-partial_tp_pct = 0.5
-cooldown_bars = 3
-max_position_pct = 0.10
+min_entry_confidence = 0.55         # higher confidence gate for live
+partial_tp_pct = 0.5                # take 50% profit at TP
+cooldown_bars = 4                   # 4h cooldown between trades
+max_position_pct = 0.10             # hard 10% cap
 
 [kill_switch]
-max_portfolio_drawdown_pct = 0.05
-max_daily_loss_pct = 0.03
-max_consecutive_losses = 3
-max_strategy_drawdown_pct = 0.04
-cooldown_minutes = 120
-# Tight tiered response for micro-live
+# Tighter limits for micro-live — aggressive early warning
+max_portfolio_drawdown_pct = 0.05   # 5% portfolio drawdown = full halt (5K KRW on 100K)
+max_daily_loss_pct = 0.02           # 2% daily loss = halt (2K KRW) — tighter than daemon's 3%
+max_consecutive_losses = 3          # hard cap (matches SAFE_MAX_CONSECUTIVE_LOSSES)
+max_strategy_drawdown_pct = 0.04    # 4% strategy drawdown
+cooldown_minutes = 180              # 3h cooldown after kill switch — longer for live
+# Tiered response: warn at 40%, reduce at 65% of limit
 warn_threshold_pct = 0.4
 reduce_threshold_pct = 0.65
 reduce_position_factor = 0.5
