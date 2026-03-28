@@ -1,0 +1,30 @@
+{
+  "status": "cancelled",
+  "cancelled_at": "2026-03-28T03:41:17Z",
+  "command": ".venv/bin/python scripts/backtest_strategy_sweep.py --days 90 --cache-dir artifacts/candle-cache --output-dir backtest_results",
+  "window_days": 90,
+  "strategies": [
+    "momentum",
+    "mean_reversion",
+    "volatility_breakout"
+  ],
+  "symbols": [
+    "KRW-BTC",
+    "KRW-ETH",
+    "KRW-XRP",
+    "KRW-SOL"
+  ],
+  "last_observed_process": {
+    "pid": 128700,
+    "elapsed": "45:12",
+    "cpu_time": "46:49",
+    "cpu_pct": 103,
+    "memory_pct": 0.2,
+    "state": "R"
+  },
+  "partial_results_available": false,
+  "notes": [
+    "The sweep was cancelled by user request before the script flushed any JSON, TOML, or Markdown result artifacts.",
+    "This file preserves the execution metadata so the run can be resumed later with the same command."
+  ]
+}
