@@ -117,6 +117,64 @@ class TestMacroClient(unittest.TestCase):
         self.assertEqual(result.crypto_signals["btc"], "steady")
         self.assertEqual(result.fear_greed_index, 63)
 
+    def test_get_snapshot_prefers_downstream_consumer_payload(self) -> None:
+        client = MacroClient(base_url="http://macro.local")
+        payload = {
+            "status": "ok",
+            "consumer": "crypto-trader",
+            "date": "2026-03-25",
+            "overall_regime": "expansionary",
+            "overall_confidence": 0.74,
+            "layers": {
+                "us": {"regime": "neutral", "confidence": 0.51, "signals": {}},
+                "kr": {"regime": "neutral", "confidence": 0.54, "signals": {}},
+                "crypto": {
+                    "regime": "expansionary",
+                    "confidence": 0.77,
+                    "signals": {"fear_greed": "72 (bullish)"},
+                },
+            },
+            "crypto_metrics": {
+                "btc_dominance": 57.8,
+                "kimchi_premium": 1.4,
+                "fear_greed_index": 72,
+            },
+            "primary_layer": {
+                "name": "crypto",
+                "regime": "expansionary",
+                "confidence": 0.77,
+                "signals": {"fear_greed": "72 (bullish)"},
+            },
+            "strategy": {"stance": "risk_on"},
+            "watch_overlay": "scale alt exposure on pullbacks",
+        }
+
+        class _Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return None
+
+        requested_urls: list[str] = []
+
+        def _fake_urlopen(url: str, timeout: float):
+            requested_urls.append(url)
+            return _Resp(json.dumps(payload).encode("utf-8"))
+
+        with patch("crypto_trader.macro.client.urlopen", side_effect=_fake_urlopen):
+            result = client.get_snapshot()
+
+        assert result is not None
+        self.assertEqual(
+            requested_urls,
+            ["http://macro.local/regime/downstream/crypto-trader"],
+        )
+        self.assertEqual(result.overall_regime, "expansionary")
+        self.assertEqual(result.crypto_regime, "expansionary")
+        self.assertEqual(result.fear_greed_index, 72)
+        self.assertEqual(result.crypto_signals["fear_greed"], "72 (bullish)")
+
     def test_get_memo_summary_returns_none_when_no_snapshot(self) -> None:
         client = MacroClient()
         with patch.object(client, "get_snapshot", return_value=None):

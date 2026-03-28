@@ -62,21 +62,31 @@ class MacroClient:
         if not self._base_url:
             return None
 
-        url = f"{self._base_url}/regime/current"
-        try:
-            with urlopen(url, timeout=self._timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
-            logger.exception("Failed to fetch macro regime over HTTP")
-            return None
+        last_error: Exception | None = None
+        for path in ("/regime/downstream/crypto-trader", "/regime/current"):
+            url = f"{self._base_url}{path}"
+            try:
+                with urlopen(url, timeout=self._timeout_seconds) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+            except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+                last_error = exc
+                continue
 
-        if not isinstance(payload, dict):
-            logger.info("Macro HTTP payload is not an object")
-            return None
-        if payload.get("status") != "ok":
-            logger.info("Macro HTTP payload unavailable (status=%s)", payload.get("status"))
-            return None
-        return payload
+            if not isinstance(payload, dict):
+                logger.info("Macro HTTP payload is not an object (url=%s)", url)
+                continue
+            if payload.get("status") != "ok":
+                logger.info(
+                    "Macro HTTP payload unavailable (url=%s status=%s)",
+                    url,
+                    payload.get("status"),
+                )
+                continue
+            return payload
+
+        if last_error is not None:
+            logger.warning("Failed to fetch macro regime over HTTP", exc_info=last_error)
+        return None
 
     @staticmethod
     def _snapshot_from_payload(data: dict[str, Any]) -> MacroSnapshot | None:
