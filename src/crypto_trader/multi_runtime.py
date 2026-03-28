@@ -171,7 +171,7 @@ class MultiSymbolRuntime:
         self._correlation_guard = CorrelationGuard(
             max_cluster_exposure=6,
             max_correlation=0.85,
-            max_high_correlation_exposure=1,
+            max_high_correlation_exposure=2,
         )
         self._capital_allocator = CapitalAllocator()
         self._slippage_monitor = SlippageMonitor(
