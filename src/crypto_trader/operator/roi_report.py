@@ -121,21 +121,37 @@ class RoiReportGenerator:
         weekly_curve = _reduce_curve(session_curve, runtime_start_capital, timezone_name, "weekly")
 
         assumptions = [
-            "Operational ROI baseline uses the live runtime checkpoint initial equity, not the newer config budget.",
-            "Config capital is shown separately because config/daemon.toml currently differs from the running checkpoint.",
-            "Daily and weekly curves are reconstructed from strategy-run snapshots plus current open-position sizes because no historical pnl-snapshots.jsonl file is present.",
+            (
+                "Operational ROI baseline uses the live runtime checkpoint "
+                "initial equity, not the newer config budget."
+            ),
+            (
+                "Config capital is shown separately because config/daemon.toml "
+                "currently differs from the running checkpoint."
+            ),
+            (
+                "Daily and weekly curves are reconstructed from strategy-run "
+                "snapshots plus current open-position sizes because no "
+                "historical pnl-snapshots.jsonl file is present."
+            ),
         ]
         if str(Path(checkpoint_path)) != "artifacts/runtime-checkpoint.json":
             assumptions.append(
-                "The default runtime checkpoint rolled to a different live session during report generation, so this report is anchored to the last frozen snapshot that matched the requested current-assets basis."
+                "The default runtime checkpoint rolled to a different live "
+                "session during report generation, so this report is anchored "
+                "to the last frozen snapshot that matched the requested "
+                "current-assets basis."
             )
         if len(daily_curve) <= 2:
             assumptions.append(
-                "Daily and weekly coverage is short because the relevant deployment snapshot only spans the latest live session window."
+                "Daily and weekly coverage is short because the relevant "
+                "deployment snapshot only spans the latest live session window."
             )
         if abs(baseline.reconciliation_delta) >= 0.01:
             assumptions.append(
-                "The user-provided current assets differ slightly from the checkpoint equity; the difference is reported as a reconciliation delta."
+                "The user-provided current assets differ slightly from the "
+                "checkpoint equity; the difference is reported as a "
+                "reconciliation delta."
             )
 
         return RoiReport(
@@ -171,7 +187,8 @@ class RoiReportGenerator:
                 f"`{baseline.runtime_start_capital:,.0f} KRW`."
             ),
             (
-                f"- The checked-in config currently budgets `{baseline.config_start_capital:,.0f} KRW`, "
+                f"- The checked-in config currently budgets "
+                f"`{baseline.config_start_capital:,.0f} KRW`, "
                 f"which would imply `{baseline.config_pnl:+,.0f} KRW` "
                 f"(`{baseline.config_return_pct:+.3f}%`) if used as the denominator."
             ),
@@ -190,11 +207,13 @@ class RoiReportGenerator:
             ),
             (
                 f"| Config capital | {baseline.config_start_capital:,.0f} | "
-                f"`{report.config_source_path}` | Planned allocation in repo, currently ahead of the live checkpoint |"
+                f"`{report.config_source_path}` | Planned allocation in repo, "
+                "currently ahead of the live checkpoint |"
             ),
             (
                 f"| Checkpoint observed equity | {baseline.checkpoint_equity:,.2f} | "
-                f"`{report.checkpoint_source_path}` | Latest artifact-backed total equity snapshot |"
+                f"`{report.checkpoint_source_path}` | Latest artifact-backed "
+                "total equity snapshot |"
             ),
             (
                 f"| Current assets override | {baseline.current_equity:,.0f} | "
@@ -202,12 +221,16 @@ class RoiReportGenerator:
             ),
             (
                 f"| Reconciliation delta | {baseline.reconciliation_delta:+,.2f} | "
-                "Current assets - checkpoint equity | Small delta between user basis and checkpoint snapshot |"
+                "Current assets - checkpoint equity | Small delta between user "
+                "basis and checkpoint snapshot |"
             ),
             "",
             "## Strategy Contribution",
             "",
-            "| Strategy | Wallets | Start Capital | Current Equity | PnL | Realized | Unrealized | Return | Contribution |",
+            (
+                "| Strategy | Wallets | Start Capital | Current Equity | PnL | "
+                "Realized | Unrealized | Return | Contribution |"
+            ),
             "|----------|--------:|--------------:|---------------:|----:|---------:|-----------:|-------:|-------------:|",
         ]
 
@@ -231,7 +254,8 @@ class RoiReportGenerator:
         )
         for point in report.daily_curve:
             lines.append(
-                f"| {point.label} | {point.equity:,.2f} | {point.pnl:+,.2f} | {point.return_pct:+.3f}% |"
+                f"| {point.label} | {point.equity:,.2f} | "
+                f"{point.pnl:+,.2f} | {point.return_pct:+.3f}% |"
             )
 
         lines.extend(
@@ -245,7 +269,8 @@ class RoiReportGenerator:
         )
         for point in report.weekly_curve:
             lines.append(
-                f"| {point.label} | {point.equity:,.2f} | {point.pnl:+,.2f} | {point.return_pct:+.3f}% |"
+                f"| {point.label} | {point.equity:,.2f} | "
+                f"{point.pnl:+,.2f} | {point.return_pct:+.3f}% |"
             )
 
         lines.extend(
@@ -259,7 +284,8 @@ class RoiReportGenerator:
         )
         for point in report.session_curve:
             lines.append(
-                f"| {point.label} | {point.equity:,.2f} | {point.pnl:+,.2f} | {point.return_pct:+.3f}% |"
+                f"| {point.label} | {point.equity:,.2f} | "
+                f"{point.pnl:+,.2f} | {point.return_pct:+.3f}% |"
             )
 
         lines.extend(
@@ -395,7 +421,11 @@ def _build_session_curve(
             if not recorded_at.isoformat().startswith(report_month):
                 continue
             record_session_id = str(record.get("session_id", "") or "")
-            if checkpoint_session_id and record_session_id and record_session_id < checkpoint_session_id:
+            if (
+                checkpoint_session_id
+                and record_session_id
+                and record_session_id < checkpoint_session_id
+            ):
                 continue
             expected_start = float(
                 wallet_states.get(wallet_name, {}).get("initial_capital", 0.0) or 0.0
@@ -416,7 +446,13 @@ def _build_session_curve(
                 positions=wallet_positions[wallet_name],
                 latest_prices=latest_prices[wallet_name],
             )
-            records.append((recorded_at, _local_label(recorded_at, timezone_name), sum(wallet_equity.values())))
+            records.append(
+                (
+                    recorded_at,
+                    _local_label(recorded_at, timezone_name),
+                    sum(wallet_equity.values()),
+                )
+            )
 
     records.sort(key=lambda item: item[0])
     if not records:

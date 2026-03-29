@@ -102,7 +102,6 @@ def build_breakdown(
     all_wallets = sorted(set(wallet_trades.keys()) | set(wallet_runs.keys()))
 
     wallet_summaries = []
-    daily_by_wallet: dict[str, dict[str, dict]] = defaultdict(lambda: defaultdict(dict))
 
     for wallet in all_wallets:
         wtrades = wallet_trades.get(wallet, [])

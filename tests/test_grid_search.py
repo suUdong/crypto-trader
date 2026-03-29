@@ -5,9 +5,10 @@ Uses synthetic candle data — no Upbit API calls required.
 
 from __future__ import annotations
 
+import os
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import (
@@ -159,6 +160,27 @@ class TestSharpeApproximation(unittest.TestCase):
     def test_too_few_points_returns_zero(self) -> None:
         self.assertEqual(_approx_sharpe([1.0, 2.0]), 0.0)
         self.assertEqual(_approx_sharpe([1.0]), 0.0)
+
+
+class TestParallelWorkerResolution(unittest.TestCase):
+    def test_defaults_to_sequential_without_env(self) -> None:
+        from scripts.grid_search import _resolve_parallel_workers
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CT_SWEEP_WORKERS", None)
+            self.assertEqual(_resolve_parallel_workers(8), 1)
+
+    def test_invalid_values_fall_back_to_sequential(self) -> None:
+        from scripts.grid_search import _resolve_parallel_workers
+
+        with patch.dict(os.environ, {"CT_SWEEP_WORKERS": "invalid"}, clear=False):
+            self.assertEqual(_resolve_parallel_workers(8), 1)
+
+    def test_caps_workers_by_task_count(self) -> None:
+        from scripts.grid_search import _resolve_parallel_workers
+
+        with patch.dict(os.environ, {"CT_SWEEP_WORKERS": "99"}, clear=False):
+            self.assertEqual(_resolve_parallel_workers(3), 3)
 
 
 class TestGridScoring(unittest.TestCase):

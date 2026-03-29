@@ -16,6 +16,7 @@ import json
 import os
 import sys
 import tomllib
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -34,7 +35,9 @@ from crypto_trader.models import Candle  # noqa: E402
 from crypto_trader.risk.manager import RiskManager  # noqa: E402
 from scripts.grid_search import (  # noqa: E402
     SYMBOLS,
+    _chunked,
     _create_strategy_for_grid,
+    _resolve_parallel_workers,
     _setup_kimchi_premium_mock,
     fetch_candles,
     run_grid_for_strategy,
@@ -158,6 +161,29 @@ def _run_single_backtest(
     }
 
 
+def _score_risk_batch(
+    strategy_type: str,
+    strategy_params: dict[str, float | int],
+    risk_batch: list[dict[str, float]],
+    candles_by_symbol: dict[str, list[Candle]],
+) -> list[tuple[dict[str, float], float]]:
+    scored: list[tuple[dict[str, float], float]] = []
+    for risk_params in risk_batch:
+        scores = []
+        for symbol, candles in candles_by_symbol.items():
+            r = _run_single_backtest(
+                strategy_type,
+                strategy_params,
+                risk_params,
+                candles,
+                symbol,
+            )
+            score = r["sharpe"] * (1.0 - r["mdd_pct"] / 100.0)
+            scores.append(score)
+        scored.append((risk_params, sum(scores) / len(scores) if scores else 0.0))
+    return scored
+
+
 def optimize_risk_for_strategy(
     strategy_type: str,
     strategy_params: dict[str, float | int],
@@ -169,23 +195,50 @@ def optimize_risk_for_strategy(
 
     best_score = float("-inf")
     best_risk: dict[str, float] = {}
+    valid_risks: list[dict[str, float]] = []
 
     for combo in risk_combos:
         risk_params = dict(zip(risk_param_names, combo, strict=True))
         # Skip invalid: take_profit must exceed stop_loss
         if risk_params["take_profit_pct"] <= risk_params["stop_loss_pct"]:
             continue
+        valid_risks.append(risk_params)
 
-        scores = []
-        for symbol, candles in candles_by_symbol.items():
-            r = _run_single_backtest(strategy_type, strategy_params, risk_params, candles, symbol)
-            score = r["sharpe"] * (1.0 - r["mdd_pct"] / 100.0)
-            scores.append(score)
+    worker_count = _resolve_parallel_workers(len(valid_risks), env_var="CT_RISK_SWEEP_WORKERS")
+    if worker_count == 1:
+        for risk_params in valid_risks:
+            scores = []
+            for symbol, candles in candles_by_symbol.items():
+                r = _run_single_backtest(
+                    strategy_type,
+                    strategy_params,
+                    risk_params,
+                    candles,
+                    symbol,
+                )
+                score = r["sharpe"] * (1.0 - r["mdd_pct"] / 100.0)
+                scores.append(score)
 
-        avg_score = sum(scores) / len(scores) if scores else 0.0
-        if avg_score > best_score:
-            best_score = avg_score
-            best_risk = risk_params
+            avg_score = sum(scores) / len(scores) if scores else 0.0
+            if avg_score > best_score:
+                best_score = avg_score
+                best_risk = risk_params
+        return best_risk, best_score
+
+    batch_size = max(1, (len(valid_risks) + worker_count - 1) // worker_count)
+    risk_batches = _chunked(valid_risks, batch_size)
+    with ProcessPoolExecutor(max_workers=worker_count) as executor:
+        for scored_batch in executor.map(
+            _score_risk_batch,
+            [strategy_type] * len(risk_batches),
+            [strategy_params] * len(risk_batches),
+            risk_batches,
+            [candles_by_symbol] * len(risk_batches),
+        ):
+            for risk_params, avg_score in scored_batch:
+                if avg_score > best_score:
+                    best_score = avg_score
+                    best_risk = risk_params
 
     return best_risk, best_score
 

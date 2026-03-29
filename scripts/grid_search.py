@@ -7,6 +7,7 @@ import itertools
 import json
 import os
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 sys.path.insert(0, "src")
@@ -187,6 +188,27 @@ STRATEGY_GRIDS: dict[str, dict[str, list[float | int]]] = {
 }
 
 
+def _resolve_parallel_workers(task_count: int, env_var: str = "CT_SWEEP_WORKERS") -> int:
+    """Opt-in worker count for heavyweight offline sweeps."""
+    if task_count <= 1:
+        return 1
+    raw = os.environ.get(env_var, "").strip()
+    if not raw:
+        return 1
+    try:
+        requested = int(raw)
+    except ValueError:
+        return 1
+    if requested <= 1:
+        return 1
+    cpu_count = os.cpu_count() or 1
+    return max(1, min(requested, cpu_count, task_count))
+
+
+def _chunked[T](items: list[T], size: int) -> list[list[T]]:
+    return [items[index : index + size] for index in range(0, len(items), size)]
+
+
 def _param_key(params: dict[str, float | int]) -> str:
     return json.dumps(sorted(params.items()), separators=(",", ":"))
 
@@ -280,25 +302,16 @@ def _setup_kimchi_premium_mock(strategy: KimchiPremiumStrategy, candles: list[Ca
         strategy._fx.get_usd_krw_rate = lambda: None
 
 
-def run_grid_for_strategy(
+def _run_grid_batch(
     strategy_type: str,
+    combo_batch: list[tuple[float | int, ...]],
+    param_names: list[str],
     candles_by_symbol: dict[str, list[Candle]],
 ) -> list[GridResult]:
-    grid = STRATEGY_GRIDS.get(strategy_type)
-    if grid is None:
-        return []
-
-    param_names = list(grid.keys())
-    param_values = list(grid.values())
-    combos = list(itertools.product(*param_values))
     results: list[GridResult] = []
-
-    print(f"\n  {strategy_type}: {len(combos)} param combos x {len(candles_by_symbol)} symbols")
-
-    # Separate strategy-specific constructor params from StrategyConfig params
     strategy_config_fields = {f for f in StrategyConfig.__dataclass_fields__}
 
-    for combo in combos:
+    for combo in combo_batch:
         params = dict(zip(param_names, combo, strict=True))
         config_kwargs = {k: v for k, v in params.items() if k in strategy_config_fields}
 
@@ -318,7 +331,6 @@ def run_grid_for_strategy(
                 strategy_config,
                 regime_config,
             )
-            # For kimchi_premium, simulate premium from price data
             if strategy_type == "kimchi_premium":
                 _setup_kimchi_premium_mock(strategy, candles)
             if strategy_type == "funding_rate" and hasattr(strategy, "prime_backtest_funding"):
@@ -347,7 +359,39 @@ def run_grid_for_strategy(
                     sharpe_approx=sharpe,
                 )
             )
+    return results
 
+
+def run_grid_for_strategy(
+    strategy_type: str,
+    candles_by_symbol: dict[str, list[Candle]],
+) -> list[GridResult]:
+    grid = STRATEGY_GRIDS.get(strategy_type)
+    if grid is None:
+        return []
+
+    param_names = list(grid.keys())
+    param_values = list(grid.values())
+    combos = list(itertools.product(*param_values))
+
+    print(f"\n  {strategy_type}: {len(combos)} param combos x {len(candles_by_symbol)} symbols")
+    worker_count = _resolve_parallel_workers(len(combos))
+    if worker_count == 1:
+        return _run_grid_batch(strategy_type, combos, param_names, candles_by_symbol)
+
+    print(f"  Using {worker_count} worker processes for grid search")
+    batch_size = max(1, (len(combos) + worker_count - 1) // worker_count)
+    combo_batches = _chunked(combos, batch_size)
+    results: list[GridResult] = []
+    with ProcessPoolExecutor(max_workers=worker_count) as executor:
+        for batch_results in executor.map(
+            _run_grid_batch,
+            [strategy_type] * len(combo_batches),
+            combo_batches,
+            [param_names] * len(combo_batches),
+            [candles_by_symbol] * len(combo_batches),
+        ):
+            results.extend(batch_results)
     return results
 
 

@@ -19,7 +19,9 @@ def _write_config(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def test_generate_uses_runtime_baseline_and_aggregates_strategy_contributions(tmp_path: Path) -> None:
+def test_generate_uses_runtime_baseline_and_aggregates_strategy_contributions(
+    tmp_path: Path,
+) -> None:
     config_path = tmp_path / "daemon.toml"
     checkpoint_path = tmp_path / "runtime-checkpoint.json"
     runs_path = tmp_path / "strategy-runs.jsonl"
