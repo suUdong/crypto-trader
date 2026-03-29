@@ -171,7 +171,7 @@ class MultiSymbolRuntime:
         self._health_check_interval = 86400  # 24h
         self._notified_disabled_wallets: set[str] = set()
         self._correlation_guard = CorrelationGuard(
-            max_cluster_exposure=6,
+            max_cluster_exposure=2,
             max_correlation=0.85,
             max_high_correlation_exposure=2,
         )

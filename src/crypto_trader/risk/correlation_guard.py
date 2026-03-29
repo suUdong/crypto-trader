@@ -62,7 +62,7 @@ class CorrelationGuard:
 
     def __init__(
         self,
-        max_cluster_exposure: int = 6,
+        max_cluster_exposure: int = 2,
         clusters: dict[str, list[str]] | None = None,
         *,
         max_correlation: float = 0.85,

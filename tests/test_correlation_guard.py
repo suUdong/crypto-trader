@@ -104,9 +104,9 @@ class TestCorrelationGuard(unittest.TestCase):
         result = guard.check_entry("KRW-SOL", "vpin_sol", exposure)
         self.assertFalse(result.allowed)
 
-    def test_default_max_exposure_is_six(self) -> None:
+    def test_default_max_exposure_is_two(self) -> None:
         guard = CorrelationGuard()
-        self.assertEqual(guard._max_cluster_exposure, 6)
+        self.assertEqual(guard._max_cluster_exposure, 2)
 
     def test_build_snapshot_tracks_high_correlation_pairs(self) -> None:
         guard = CorrelationGuard(
