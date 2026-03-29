@@ -1,4 +1,4 @@
-# Production daemon config — ROI-focused active-wallet rebalance (2026-03-28)
+# Production daemon config — strategy tuning round 2 (2026-03-29)
 # Source: live checkpoint equity ₩5.7M + active-wallet 90d ROI benchmark
 # Wallets: 5 active sleeves, keeping live-negative vbreak_xrp / mean_reversion_weekend disabled.
 # Capital rotated toward the highest active ROI sleeves while keeping volspike capped for low sample count.
@@ -49,8 +49,8 @@ take_profit_pct = 0.08
 max_daily_loss_pct = 0.03
 max_concurrent_positions = 3
 trailing_stop_pct = 0.0
-atr_stop_multiplier = 2.0
-min_entry_confidence = 0.45
+atr_stop_multiplier = 2.5
+min_entry_confidence = 0.60
 partial_tp_pct = 0.5
 cooldown_bars = 3
 max_position_pct = 0.10
@@ -128,6 +128,7 @@ fear_greed_block_threshold = 20
 stop_loss_pct = 0.03
 take_profit_pct = 0.10
 risk_per_trade_pct = 0.015
+atr_stop_multiplier = 3.0
 partial_tp_pct = 0.5
 max_concurrent_positions = 2
 max_position_pct = 0.10
@@ -171,8 +172,9 @@ max_holding_bars = 36
 vpin_low_threshold = 0.45
 vpin_high_threshold = 0.75
 vpin_momentum_threshold = 0.0005
-vpin_rsi_ceiling = 78.0
+vpin_rsi_ceiling = 72.0
 vpin_rsi_floor = 22.0
+rsi_overbought = 80.0
 bucket_count = 20
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
@@ -223,8 +225,9 @@ max_holding_bars = 24
 vpin_low_threshold = 0.4
 vpin_high_threshold = 0.7
 vpin_momentum_threshold = 0.0003
-vpin_rsi_ceiling = 75.0
+vpin_rsi_ceiling = 70.0
 vpin_rsi_floor = 20.0
+rsi_overbought = 78.0
 bucket_count = 24
 [wallets.risk_overrides]
 stop_loss_pct = 0.015
@@ -232,32 +235,33 @@ take_profit_pct = 0.04
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 3
-atr_stop_multiplier = 2.0
+atr_stop_multiplier = 3.0
 
-# === Capital Allocation Summary (paper-analysis rebalance 2026-03-29) ===
-# Equity ₩5.7M — reallocated based on paper-trading-analysis.md findings:
-#   VPIN only profitable strategy, momentum_eth worst performer, volspike idle.
+# === Capital Allocation Summary (strategy tuning round 2, 2026-03-29) ===
+# Equity ₩5.7M — same allocations, tuned parameters to fix paper-trade losses.
 # TIER 1 (VPIN-heavy, 68.4% of portfolio):
-#   vpin_sol:        2,200,000 (38.6%) — highest 90d ROI (+1.64%)
-#   vpin_eth:        1,700,000 (29.8%) — only profitable paper wallet (+₩3,320), boosted
+#   vpin_sol:        2,200,000 (38.6%) — RSI ceiling 78→72, rsi_overbought→80 (fix gap)
+#   vpin_eth:        1,700,000 (29.8%) — RSI ceiling 75→70, rsi_overbought→78, ATR 2→3
 # TIER 2:
-#   momentum_sol:      900,000 (15.8%) — F&G<20 entry block added for extreme-fear protection
-#   volspike_btc:      900,000 (15.8%) — trimmed from 1.2M, 0 trades / avg confidence 0.10
+#   momentum_sol:      900,000 (15.8%) — ATR 2→3, F&G<20 entry block
+#   volspike_btc:      900,000 (15.8%) — no changes, idle (avg confidence 0.10)
 # TOTAL:           5,700,000
 #
-# REBALANCE RATIONALE (2026-03-29 paper-trading-analysis):
-#   - momentum_eth DISABLED: 0W/2L (-₩6,353), entered against extreme-fear regime
-#   - vpin_eth BOOSTED: +₩3,320, Sharpe 1.12, only profitable strategy in F&G=12
-#   - volspike_btc TRIMMED: 36.7%→15.8%, zero trades due to confidence floor (0.10 avg)
-#   - momentum wallets get fear_greed_block_threshold=20 to prevent extreme-fear entries
-#   - Capital freed: 350K (momentum_eth) + 300K (volspike_btc) → vpin_eth
+# TUNING RATIONALE (paper-trade loss analysis, 9 trades deduped):
+#   ROOT CAUSE 1: RSI entry ceiling > rsi_overbought exit → enter-then-immediately-exit
+#     vpin_eth had ceiling=75 but exit=72 → could enter at RSI 73, exit same bar
+#     FIX: lower ceilings (75→70, 78→72), raise overbought exits (72→78, 72→80)
+#   ROOT CAUSE 2: ATR stop multiplier 2.0x too tight for hourly crypto volatility
+#     vpin_sol at 3.0x had zero ATR stops; vpin_eth/momentum_sol at 2.0x both stopped
+#     FIX: all active wallets → 3.0x, global default 2.0→2.5
+#   ROOT CAUSE 3: min_entry_confidence 0.45 too loose (code default 0.60)
+#     FIX: raised to 0.60
+#   Duplicate daemon trades (PID 261509) cleaned from journal (12→9 trades)
 #
 # DISABLED (paper/live negative):
 #   momentum_eth_wallet: paper -₩6,353, 0% win rate — re-enable when F&G>30
 #   vbreak_xrp_wallet: live -0.119%, paper -₩1,792 — keep sidelined
 #   mean_reversion_weekend: live -0.051% — too weak to fund
-# REMOVED (prior round, underperformers):
-#   vpin_btc_wallet, momentum_xrp_wallet, momentum_btc_wallet
 # Research-only: funding_rate, ema_crossover, consensus
 
 [credentials]
