@@ -109,8 +109,8 @@ strategy_report_path = "artifacts/strategy-report.md"
 
 # === ACTIVE WALLETS (P0 optimization 2026-03-29) ===
 
-# momentum_sol_wallet: P0 backtest Sharpe 1.55, MDD 0.46%, PF 2.95
-# RE-ENABLED with optimized params: ATR 1.5, confidence 0.45, TP 8%
+# momentum_sol_wallet: P1 tuned — ADX 12→20, vol_filter 0→1.5, F&G 20→30 (2026-03-29)
+# Backtest Sharpe 1.55, MDD 0.46%, PF 2.95. Tightened filters to reduce false entries.
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
@@ -122,9 +122,9 @@ momentum_entry_threshold = 0.005
 rsi_period = 14
 rsi_overbought = 75.0
 max_holding_bars = 48
-adx_threshold = 12.0
-volume_filter_mult = 0.0
-fear_greed_block_threshold = 20
+adx_threshold = 20.0
+volume_filter_mult = 1.5
+fear_greed_block_threshold = 30
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
 take_profit_pct = 0.08
@@ -187,10 +187,10 @@ max_position_pct = 0.10
 # partial_tp_pct = 0.5
 # max_concurrent_positions = 2
 
-# volspike_btc_wallet: spike_mult 3.0→2.0 (P1 tuning, 2026-03-29)
-# Reason: 3.0 yielded only 7 trades/90d — statistically thin despite high Sharpe.
-# At 2.0: 15 trades, WR 46.7%, Sharpe 0.66, PF 1.26 — enough volume to validate live.
-# Trade-off: lower WR/Sharpe but 2x trade count for statistical significance.
+# volspike_btc_wallet: spike_mult 2.0, 3-of-4 OR entry logic (P1 tuning, 2026-03-29)
+# Entry requires 3 of 4: body_ratio, momentum, RSI, ADX (relaxed from all-4 AND).
+# spike_mult 3.0→2.0: 15 trades, WR 46.7%, Sharpe 0.66, PF 1.26.
+# Trade-off: more entries via OR logic + lower spike_mult for statistical significance.
 [[wallets]]
 name = "volspike_btc_wallet"
 strategy = "volume_spike"

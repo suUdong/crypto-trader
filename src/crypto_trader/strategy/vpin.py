@@ -33,7 +33,7 @@ class VPINStrategy:
         vpin_rsi_ceiling: float = 70.0,
         vpin_rsi_floor: float = 30.0,
         ema_trend_period: int = 20,
-        adx_threshold: float = 0.0,
+        adx_threshold: float | None = None,
     ) -> None:
         self._config = config
         self._vpin_high = vpin_high_threshold
@@ -43,7 +43,8 @@ class VPINStrategy:
         self._vpin_rsi_ceiling = vpin_rsi_ceiling
         self._vpin_rsi_floor = vpin_rsi_floor
         self._ema_trend_period = ema_trend_period
-        self._adx_threshold = adx_threshold
+        # Use config.adx_threshold unless explicitly overridden
+        self._adx_threshold = adx_threshold if adx_threshold is not None else config.adx_threshold
 
     def evaluate(
         self,

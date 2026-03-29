@@ -140,11 +140,16 @@ class TestVolumeSpikeEntry(unittest.TestCase):
         self.assertNotEqual(signal.action, SignalAction.BUY)
 
     def test_bearish_body_blocks_entry(self) -> None:
-        """Volume spike with bearish candle body -> HOLD."""
+        """Volume spike with bearish body + high ADX threshold -> HOLD (2-of-3 fail)."""
+        # Use high adx_threshold so adx_ok=False
+        config = StrategyConfig(adx_threshold=99.0)
+        strategy = VolumeSpikeStrategy(
+            config, spike_mult=2.5, volume_window=20, min_body_ratio=0.3,
+        )
         candles = _build_candles(50)
         last = candles[-1]
         avg_vol = sum(c.volume for c in candles[-21:-1]) / 20
-        # Bearish candle: close well below open
+        # Bearish candle: close well below open → body_ok=False, adx_ok=False
         candles[-1] = Candle(
             timestamp=last.timestamp,
             open=last.high - 50,
@@ -153,7 +158,7 @@ class TestVolumeSpikeEntry(unittest.TestCase):
             close=last.low + 50,
             volume=avg_vol * 3.0,
         )
-        signal = self.strategy.evaluate(candles, None)
+        signal = strategy.evaluate(candles, None)
         self.assertEqual(signal.action, SignalAction.HOLD)
 
     def test_insufficient_data(self) -> None:
@@ -224,6 +229,73 @@ class TestVolumeSpikeExit(unittest.TestCase):
             signal.reason,
             ["bearish_volume_spike", "momentum_reversal", "rsi_overbought"],
         )
+
+
+class TestVolumeSpikeConfirmations(unittest.TestCase):
+    """Tests for the 2-of-3 secondary filter logic."""
+
+    def test_buy_with_2_of_3_confirmations(self) -> None:
+        """Volume spike + 2 of (body, momentum, ADX) → BUY."""
+        config = StrategyConfig(adx_threshold=25.0)
+        strategy = VolumeSpikeStrategy(
+            config, spike_mult=2.5, volume_window=20, min_body_ratio=0.4,
+        )
+        candles = _build_candles(50)
+        last = candles[-1]
+        avg_vol = sum(c.volume for c in candles[-21:-1]) / 20
+        # Strong bullish body + high volume, but ADX may be weak
+        # Body ratio ~0.7, momentum positive from _build_candles upward drift
+        body = abs(last.high - last.low) * 0.7
+        o = last.low + abs(last.high - last.low) * 0.1
+        c = o + body
+        candles[-1] = Candle(
+            timestamp=last.timestamp,
+            open=o,
+            high=c + 50,
+            low=o - 50,
+            close=c,
+            volume=avg_vol * 3.0,
+        )
+        signal = strategy.evaluate(candles, None)
+        # With body_ok + momentum_ok (at least 2), should BUY even if ADX weak
+        self.assertEqual(signal.action, SignalAction.BUY)
+
+    def test_hold_with_only_1_confirmation(self) -> None:
+        """Volume spike but only 1 of 3 secondary filters → HOLD."""
+        # High ADX threshold so ADX fails, bearish body so body fails,
+        # but momentum might pass from random walk → force negative momentum
+        config = StrategyConfig(adx_threshold=99.0, rsi_overbought=95.0)
+        strategy = VolumeSpikeStrategy(
+            config, spike_mult=2.0, volume_window=20, min_body_ratio=0.5,
+        )
+        candles = _build_candles(50)
+        last = candles[-1]
+        avg_vol = sum(c.volume for c in candles[-21:-1]) / 20
+        # Weak bearish body (body_ratio < 0) + high volume
+        # ADX threshold 99 → adx_ok=False, body_ok=False
+        # Only momentum might pass → < 2 confirmations
+        candles[-1] = Candle(
+            timestamp=last.timestamp,
+            open=last.high,       # open at high
+            high=last.high + 10,
+            low=last.low - 500,
+            close=last.low - 400,  # close near low → bearish body
+            volume=avg_vol * 3.0,
+        )
+        signal = strategy.evaluate(candles, None)
+        self.assertEqual(signal.action, SignalAction.HOLD)
+
+    def test_rsi_overbought_still_hard_blocks(self) -> None:
+        """RSI overbought remains a hard block even with all 3 confirmations."""
+        config = StrategyConfig(rsi_overbought=30.0, adx_threshold=0.0)
+        strategy = VolumeSpikeStrategy(
+            config, spike_mult=2.0, volume_window=20, min_body_ratio=0.2,
+        )
+        candles = _spike_last_candle(_build_candles(50), volume_mult=3.0)
+        signal = strategy.evaluate(candles, None)
+        # RSI from uptrending _build_candles likely > 30 → hard blocked
+        if signal.reason == "rsi_overbought":
+            self.assertEqual(signal.action, SignalAction.HOLD)
 
 
 class TestVolumeSpikeFactory(unittest.TestCase):

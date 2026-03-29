@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from crypto_trader.config import (
     AppConfig,
@@ -18,7 +18,7 @@ from crypto_trader.config import (
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.models import Candle, Position
 from crypto_trader.notifications.telegram import Notifier
-from crypto_trader.pipeline import TradingPipeline
+from crypto_trader.pipeline import KST, TradingPipeline
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
 
@@ -78,7 +78,9 @@ class AtrRecordingRiskManager(RiskManager):
 
 
 def build_candles(closes: list[float]) -> list[Candle]:
-    start = datetime(2025, 1, 1, 0, 0, 0)
+    # Start at 09:00 UTC (= 18:00 KST) so candles stay outside the
+    # 00:00-08:00 KST low-liquidity blocked window.
+    start = datetime(2025, 1, 1, 9, 0, 0)
     return [
         Candle(
             timestamp=start + timedelta(hours=index),
@@ -255,3 +257,87 @@ class TradingPipelineTests(unittest.TestCase):
 
         self.assertEqual(risk_manager.atr_updates, 1)
         self.assertGreaterEqual(risk_manager._current_atr, 0.0)
+
+    def test_pipeline_blocks_buy_during_low_liquidity_kst_hours(self) -> None:
+        """BUY signal during 00:00-08:00 KST should be blocked."""
+        # 18:00 UTC = 03:00 KST (inside blocked window)
+        start = datetime(2025, 1, 1, 18, 0, 0)
+        candles = [
+            Candle(
+                timestamp=start + timedelta(hours=i),
+                open=close,
+                high=close * 1.01,
+                low=close * 0.99,
+                close=close,
+                volume=1_000.0,
+            )
+            for i, close in enumerate([100.0] * 20 + [90.0, 89.0])
+        ]
+        config = AppConfig(
+            trading=TradingConfig(symbol="KRW-BTC", candle_count=len(candles)),
+            strategy=StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                bollinger_window=20,
+                bollinger_stddev=1.5,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+            ),
+            regime=RegimeConfig(),
+            drift=DriftConfig(),
+            risk=RiskConfig(),
+            backtest=BacktestConfig(
+                initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0
+            ),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        pipeline = TradingPipeline(
+            config=config,
+            market_data=FakeMarketData(candles),
+            strategy=CompositeStrategy(config.strategy, config.regime),
+            risk_manager=RiskManager(config.risk),
+            broker=PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            notifier=RecorderNotifier(),
+        )
+        result = pipeline.run_once()
+        self.assertIsNone(result.order)
+        self.assertEqual(result.signal.reason, "low_liquidity_hours")
+
+    def test_pipeline_allows_buy_outside_low_liquidity_hours(self) -> None:
+        """BUY signal at 09:00 KST (= 00:00 UTC) should proceed normally."""
+        candles = build_candles([100.0] * 20 + [90.0, 89.0])
+        config = AppConfig(
+            trading=TradingConfig(symbol="KRW-BTC", candle_count=len(candles)),
+            strategy=StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                bollinger_window=20,
+                bollinger_stddev=1.5,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+            ),
+            regime=RegimeConfig(),
+            drift=DriftConfig(),
+            risk=RiskConfig(),
+            backtest=BacktestConfig(
+                initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0
+            ),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        pipeline = TradingPipeline(
+            config=config,
+            market_data=FakeMarketData(candles),
+            strategy=CompositeStrategy(config.strategy, config.regime),
+            risk_manager=RiskManager(config.risk),
+            broker=PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            notifier=RecorderNotifier(),
+        )
+        result = pipeline.run_once()
+        # 00:00 UTC = 09:00 KST → outside blocked window → order should proceed
+        self.assertIsNotNone(result.order)

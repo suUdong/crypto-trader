@@ -201,27 +201,7 @@ class VolumeSpikeStrategy:
                 context=context,
             )
 
-        # Direction confirmation: bullish candle body
-        if body_ratio < self._min_body_ratio:
-            return Signal(
-                action=SignalAction.HOLD,
-                reason="weak_candle_body",
-                confidence=0.2,
-                indicators=indicators,
-                context=context,
-            )
-
-        # Momentum must be positive
-        if momentum_value < 0:
-            return Signal(
-                action=SignalAction.HOLD,
-                reason="negative_momentum",
-                confidence=0.2,
-                indicators=indicators,
-                context=context,
-            )
-
-        # RSI filter: not overbought
+        # RSI overbought: hard block
         if rsi_value >= effective.rsi_overbought:
             return Signal(
                 action=SignalAction.HOLD,
@@ -231,11 +211,23 @@ class VolumeSpikeStrategy:
                 context=context,
             )
 
-        # ADX filter: need some trend strength
-        if adx_value is not None and adx_value < effective.adx_threshold:
+        # Secondary filters: 2-of-3 OR (was all-AND, caused 0 trades)
+        body_ok = body_ratio >= self._min_body_ratio
+        momentum_ok = momentum_value >= 0
+        adx_ok = adx_value is None or adx_value >= effective.adx_threshold
+        confirmations = sum([body_ok, momentum_ok, adx_ok])
+
+        if confirmations < 2:
+            failed = []
+            if not body_ok:
+                failed.append("body")
+            if not momentum_ok:
+                failed.append("momentum")
+            if not adx_ok:
+                failed.append("adx")
             return Signal(
                 action=SignalAction.HOLD,
-                reason="adx_too_weak",
+                reason=f"insufficient_confirmations_{'+'.join(failed)}",
                 confidence=0.2,
                 indicators=indicators,
                 context=context,

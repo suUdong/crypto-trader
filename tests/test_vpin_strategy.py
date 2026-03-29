@@ -386,5 +386,30 @@ class TestVPINStrategy(unittest.TestCase):
         self.assertAlmostEqual(strategy._vpin_rsi_floor, 25.0)
 
 
+    def test_adx_threshold_defaults_to_config_value(self) -> None:
+        """VPINStrategy must use config.adx_threshold when not explicitly passed."""
+        config = _default_config(adx_threshold=15.0)
+        strategy = VPINStrategy(config, bucket_count=10)
+        self.assertAlmostEqual(strategy._adx_threshold, 15.0)
+
+    def test_adx_threshold_explicit_overrides_config(self) -> None:
+        """Explicitly passed adx_threshold takes precedence over config."""
+        config = _default_config(adx_threshold=15.0)
+        strategy = VPINStrategy(config, bucket_count=10, adx_threshold=25.0)
+        self.assertAlmostEqual(strategy._adx_threshold, 25.0)
+
+    def test_create_strategy_passes_adx_threshold(self) -> None:
+        """create_strategy('vpin') must forward adx_threshold from extra_params."""
+        from crypto_trader.config import RegimeConfig
+        from crypto_trader.wallet import create_strategy
+
+        config = _default_config(adx_threshold=20.0)
+        regime = RegimeConfig()
+        extra = {"adx_threshold": 15.0}
+        strategy = create_strategy("vpin", config, regime, extra)
+        self.assertIsInstance(strategy, VPINStrategy)
+        self.assertAlmostEqual(strategy._adx_threshold, 15.0)
+
+
 if __name__ == "__main__":
     unittest.main()
