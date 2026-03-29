@@ -214,7 +214,7 @@ class VolumeSpikeStrategy:
         # Secondary filters: 2-of-3 OR (was all-AND, caused 0 trades)
         body_ok = body_ratio >= self._min_body_ratio
         momentum_ok = momentum_value >= 0
-        adx_ok = adx_value is None or adx_value >= effective.adx_threshold
+        adx_ok = adx_value is not None and adx_value >= effective.adx_threshold
         confirmations = sum([body_ok, momentum_ok, adx_ok])
 
         if confirmations < 2:
