@@ -49,8 +49,8 @@ take_profit_pct = 0.08
 max_daily_loss_pct = 0.03
 max_concurrent_positions = 3
 trailing_stop_pct = 0.0
-atr_stop_multiplier = 2.5
-min_entry_confidence = 0.70
+atr_stop_multiplier = 1.5
+min_entry_confidence = 0.45
 partial_tp_pct = 0.5
 cooldown_bars = 3
 max_position_pct = 0.10
@@ -107,32 +107,32 @@ promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
 strategy_report_path = "artifacts/strategy-report.md"
 
-# === ACTIVE: vpin_eth concentration ===
+# === ACTIVE WALLETS (P0 optimization 2026-03-29) ===
 
-# DISABLED 2026-03-29 P0: momentum_sol_wallet — paper trade net loss, capital reallocated to vpin_eth
-# Re-enable after vpin_eth achieves 50%+ WR and backtest confirms SOL momentum edge
-# [[wallets]]
-# name = "momentum_sol_wallet"
-# strategy = "momentum"
-# initial_capital = 900_000.0
-# symbols = ["KRW-SOL"]
-# [wallets.strategy_overrides]
-# momentum_lookback = 20
-# momentum_entry_threshold = 0.005
-# rsi_period = 14
-# rsi_overbought = 75.0
-# max_holding_bars = 60
-# adx_threshold = 12.0
-# volume_filter_mult = 0.0
-# fear_greed_block_threshold = 20
-# [wallets.risk_overrides]
-# stop_loss_pct = 0.03
-# take_profit_pct = 0.10
-# risk_per_trade_pct = 0.015
-# atr_stop_multiplier = 3.0
-# partial_tp_pct = 0.5
-# max_concurrent_positions = 2
-# max_position_pct = 0.10
+# momentum_sol_wallet: P0 backtest Sharpe 1.55, MDD 0.46%, PF 2.95
+# RE-ENABLED with optimized params: ATR 1.5, confidence 0.45, TP 8%
+[[wallets]]
+name = "momentum_sol_wallet"
+strategy = "momentum"
+initial_capital = 1_200_000.0
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+momentum_lookback = 20
+momentum_entry_threshold = 0.005
+rsi_period = 14
+rsi_overbought = 75.0
+max_holding_bars = 48
+adx_threshold = 12.0
+volume_filter_mult = 0.0
+fear_greed_block_threshold = 20
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.08
+risk_per_trade_pct = 0.015
+atr_stop_multiplier = 1.5
+partial_tp_pct = 0.5
+max_concurrent_positions = 2
+max_position_pct = 0.10
 
 # DISABLED 2026-03-29: momentum_eth_wallet — paper 0W/2L (-₩6,353), worst performer
 # Entered against extreme-fear regime → 100% loss rate. Capital reallocated to vpin_eth.
@@ -187,51 +187,43 @@ strategy_report_path = "artifacts/strategy-report.md"
 # partial_tp_pct = 0.5
 # max_concurrent_positions = 2
 
-# DISABLED 2026-03-29 P0: volspike_btc_wallet — paper 0 trades, avg confidence 0.10
-# Strategy too selective for current BTC regime. Capital → vpin_eth.
-# [[wallets]]
-# name = "volspike_btc_wallet"
-# strategy = "volume_spike"
-# initial_capital = 900_000.0
-# symbols = ["KRW-BTC"]
-# [wallets.strategy_overrides]
-# spike_mult = 3.0
-# volume_window = 20
-# min_body_ratio = 0.3
-# momentum_lookback = 12
-# rsi_period = 14
-# rsi_overbought = 72.0
-# max_holding_bars = 36
-# adx_threshold = 20.0
-# [wallets.risk_overrides]
-# stop_loss_pct = 0.03
-# take_profit_pct = 0.08
-# risk_per_trade_pct = 0.01
-# partial_tp_pct = 0.5
+# volspike_btc_wallet: P0 backtest Sharpe 3.00, WR 71.4%, MDD 0.09%, PF 7.76
+# RE-ENABLED with optimized params: min_body_ratio 0.2, TP 6%, confidence 0.45
+[[wallets]]
+name = "volspike_btc_wallet"
+strategy = "volume_spike"
+initial_capital = 1_000_000.0
+symbols = ["KRW-BTC"]
+[wallets.strategy_overrides]
+spike_mult = 3.0
+volume_window = 20
+min_body_ratio = 0.2
+momentum_lookback = 12
+rsi_period = 14
+rsi_overbought = 72.0
+max_holding_bars = 36
+adx_threshold = 20.0
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.01
+atr_stop_multiplier = 1.5
+partial_tp_pct = 0.5
 
-# vpin_eth_wallet: ONLY profitable wallet (+₩2,406, 33% WR)
-# P0 CONCENTRATION: ₩5.7M full allocation, tightened for 50%+ WR target
-# KEY CHANGES from R3:
-#   - Capital: 1.7M → 5.7M (100% of portfolio)
-#   - vpin_low_threshold: 0.4 → 0.35 (require cleaner order flow for entry)
-#   - vpin_momentum_threshold: 0.0003 → 0.0005 (stronger momentum confirmation)
-#   - vpin_rsi_ceiling: 70 → 65 (avoid entries near overbought)
-#   - max_holding_bars: 24 → 18 (cut losers faster)
-#   - min_entry_confidence: 0.65 → 0.70 (global, higher selectivity)
-#   - stop_loss_pct: 0.015 → 0.012 (tighter stop, less per-trade loss)
-#   - cooldown_bars: 3 → 4 (more spacing between trades)
+# vpin_eth_wallet: P0 backtest Sharpe 1.11, WR 60%, MDD 0.10%, PF 1.78
+# OPTIMIZED: vpin_high 0.7→0.65, momentum 0.0005→0.0003, max_hold 18→24, ATR 3→1.5
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
-initial_capital = 5_700_000.0
+initial_capital = 3_500_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
 momentum_lookback = 8
-max_holding_bars = 18
+max_holding_bars = 24
 vpin_low_threshold = 0.35
-vpin_high_threshold = 0.7
-vpin_momentum_threshold = 0.0005
+vpin_high_threshold = 0.65
+vpin_momentum_threshold = 0.0003
 vpin_rsi_ceiling = 65.0
 vpin_rsi_floor = 20.0
 rsi_overbought = 75.0
@@ -244,22 +236,29 @@ take_profit_pct = 0.04
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
-atr_stop_multiplier = 3.0
+atr_stop_multiplier = 1.5
 
-# === Capital Allocation Summary (P0 concentration, 2026-03-29) ===
-# Equity ₩5.7M — 100% concentrated on vpin_eth (only profitable wallet)
+# === Capital Allocation Summary (P0 optimization rebalance, 2026-03-29) ===
+# Equity ₩5.7M — diversified across 3 wallets based on 90d backtest optimization
 #
-# ACTIVE:
-#   vpin_eth:        5,700,000 (100%) — tightened entry for 50%+ WR target
+# ACTIVE (P0 optimized):
+#   vpin_eth:        3,500,000 (61.4%) — Sharpe 1.11, WR 60%, MDD 0.10%
+#   momentum_sol:    1,200,000 (21.1%) — Sharpe 1.55, WR 50%, MDD 0.46%
+#   volspike_btc:    1,000,000 (17.5%) — Sharpe 3.00, WR 71%, MDD 0.09%
+# TOTAL:           5,700,000
 #
-# P0 RATIONALE (paper trade performance analysis):
-#   vpin_eth: +₩2,406, 33% WR — only wallet with positive PnL
-#   momentum_sol: net loss — disabled
-#   vpin_sol: net loss despite backtest Sharpe 1.97 — overfitted, disabled
-#   volspike_btc: 0 trades, avg confidence 0.10 — inactive, disabled
-#   momentum_eth: already disabled (-₩6,353)
-#   vbreak_xrp: already disabled (-₩1,792)
-#   mean_reversion_weekend: already disabled
+# P0 OPTIMIZATION RATIONALE:
+#   - ATR multiplier has near-zero impact (exits via RSI/momentum, not ATR stops)
+#   - Lower confidence (0.45) outperforms 0.6-0.8 — more trades, same quality
+#   - Re-enabled momentum_sol + volspike_btc: strong backtest Sharpe justifies allocation
+#   - vpin_eth remains anchor but no longer 100% concentrated
+#   - Key param changes: ATR 2.5→1.5, confidence 0.70→0.45, vpin_eth hold 18→24 bars
+#
+# DISABLED:
+#   momentum_eth: paper -₩6,353, 0% WR — re-enable when F&G>30
+#   vpin_sol: backtest Sharpe 0.53 (below target) — keep sidelined
+#   vbreak_xrp: live -0.119% — keep sidelined
+#   mean_reversion_weekend: live -0.051% — too weak
 #
 # WIN RATE TUNING (33% → 50%+ target):
 #   - vpin_low 0.4→0.35: require cleaner order flow
