@@ -144,5 +144,93 @@ class TestMacroRegimeAdapter(unittest.TestCase):
         self.assertAlmostEqual(score, 1.82)
 
 
+class TestShouldBlockEntry(unittest.TestCase):
+    def setUp(self) -> None:
+        self.adapter = MacroRegimeAdapter()
+
+    def test_none_snapshot_does_not_block(self) -> None:
+        blocked, reason = self.adapter.should_block_entry(None)
+        self.assertFalse(blocked)
+        self.assertEqual(reason, "")
+
+    def test_expansionary_does_not_block(self) -> None:
+        snapshot = _make_snapshot(overall_regime="expansionary", overall_confidence=0.8)
+        blocked, _ = self.adapter.should_block_entry(snapshot)
+        self.assertFalse(blocked)
+
+    def test_neutral_does_not_block(self) -> None:
+        snapshot = _make_snapshot(overall_regime="neutral")
+        blocked, _ = self.adapter.should_block_entry(snapshot)
+        self.assertFalse(blocked)
+
+    def test_contractionary_overall_blocks(self) -> None:
+        snapshot = _make_snapshot(overall_regime="contractionary", overall_confidence=0.7)
+        blocked, reason = self.adapter.should_block_entry(snapshot)
+        self.assertTrue(blocked)
+        self.assertIn("macro_regime_gate", reason)
+        self.assertIn("contractionary", reason)
+
+    def test_contraction_alias_blocks(self) -> None:
+        snapshot = _make_snapshot(overall_regime="contraction", overall_confidence=0.6)
+        blocked, _ = self.adapter.should_block_entry(snapshot)
+        self.assertTrue(blocked)
+
+    def test_contractionary_crypto_layer_high_confidence_blocks(self) -> None:
+        snapshot = _make_snapshot(
+            overall_regime="neutral",
+            crypto_regime="contractionary",
+            crypto_confidence=0.75,
+        )
+        blocked, reason = self.adapter.should_block_entry(snapshot)
+        self.assertTrue(blocked)
+        self.assertIn("crypto=contractionary", reason)
+
+    def test_contractionary_crypto_layer_low_confidence_does_not_block(self) -> None:
+        snapshot = _make_snapshot(
+            overall_regime="neutral",
+            crypto_regime="contractionary",
+            crypto_confidence=0.5,
+        )
+        blocked, _ = self.adapter.should_block_entry(snapshot)
+        self.assertFalse(blocked)
+
+    def test_extreme_fear_blocks(self) -> None:
+        snapshot = _make_snapshot(overall_regime="neutral", fear_greed_index=10)
+        blocked, reason = self.adapter.should_block_entry(snapshot)
+        self.assertTrue(blocked)
+        self.assertIn("extreme_fear", reason)
+
+    def test_fear_greed_16_does_not_block(self) -> None:
+        snapshot = _make_snapshot(overall_regime="neutral", fear_greed_index=16)
+        blocked, _ = self.adapter.should_block_entry(snapshot)
+        self.assertFalse(blocked)
+
+    def test_fear_greed_none_does_not_block(self) -> None:
+        snapshot = _make_snapshot(overall_regime="neutral", fear_greed_index=None)
+        blocked, _ = self.adapter.should_block_entry(snapshot)
+        self.assertFalse(blocked)
+
+
+class TestConfidenceFloor(unittest.TestCase):
+    def setUp(self) -> None:
+        self.adapter = MacroRegimeAdapter()
+
+    def test_none_snapshot_returns_base(self) -> None:
+        self.assertAlmostEqual(self.adapter.confidence_floor(None, 0.60), 0.60)
+
+    def test_expansionary_returns_base(self) -> None:
+        snapshot = _make_snapshot(overall_regime="expansionary")
+        self.assertAlmostEqual(self.adapter.confidence_floor(snapshot, 0.60), 0.60)
+
+    def test_neutral_raises_floor(self) -> None:
+        snapshot = _make_snapshot(overall_regime="neutral")
+        self.assertAlmostEqual(self.adapter.confidence_floor(snapshot, 0.60), 0.68)
+
+    def test_contractionary_returns_base(self) -> None:
+        # Contractionary is blocked entirely, so floor doesn't matter — stays at base
+        snapshot = _make_snapshot(overall_regime="contractionary")
+        self.assertAlmostEqual(self.adapter.confidence_floor(snapshot, 0.60), 0.60)
+
+
 if __name__ == "__main__":
     unittest.main()

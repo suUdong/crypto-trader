@@ -161,6 +161,60 @@ class MacroRegimeAdapter:
             market_regime,
         )
 
+    # Confidence uplift applied in neutral macro regime
+    NEUTRAL_CONFIDENCE_UPLIFT = 0.08
+
+    def should_block_entry(
+        self,
+        snapshot: MacroSnapshot | None,
+        *,
+        strategy_type: str = "",
+    ) -> tuple[bool, str]:
+        """Return (blocked, reason) for entry gating based on macro regime.
+
+        Rules:
+        - Contractionary overall regime  -> block all entries
+        - Contractionary crypto layer with high confidence -> block entries
+        - Extreme fear (F&G <= 15) -> block entries (capitulation risk)
+        """
+        if snapshot is None:
+            return False, ""
+
+        regime = self.normalize_overall_regime(snapshot.overall_regime)
+
+        if regime == "contractionary":
+            return True, (
+                f"macro_regime_gate: overall={regime} "
+                f"confidence={snapshot.overall_confidence:.0%}"
+            )
+
+        crypto_regime = self.normalize_overall_regime(snapshot.crypto_regime)
+        if crypto_regime == "contractionary" and snapshot.crypto_confidence >= 0.65:
+            return True, (
+                f"macro_regime_gate: crypto={crypto_regime} "
+                f"confidence={snapshot.crypto_confidence:.0%}"
+            )
+
+        if snapshot.fear_greed_index is not None and snapshot.fear_greed_index <= 15:
+            return True, (
+                f"macro_regime_gate: extreme_fear F&G={snapshot.fear_greed_index}"
+            )
+
+        return False, ""
+
+    def confidence_floor(self, snapshot: MacroSnapshot | None, base_floor: float) -> float:
+        """Raise the minimum entry confidence in uncertain regimes.
+
+        - Neutral overall regime  -> base + uplift
+        - Otherwise              -> base (unchanged)
+        """
+        if snapshot is None:
+            return base_floor
+        regime = self.normalize_overall_regime(snapshot.overall_regime)
+        if regime == "neutral":
+            return base_floor + self.NEUTRAL_CONFIDENCE_UPLIFT
+        return base_floor
+
     def compute(self, snapshot: MacroSnapshot | None) -> MacroAdjustment:
         """Compute position sizing adjustment from macro snapshot."""
         if snapshot is None:

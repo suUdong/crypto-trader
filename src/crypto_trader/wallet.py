@@ -17,6 +17,7 @@ from crypto_trader.config import (
 )
 from crypto_trader.execution import Broker
 from crypto_trader.execution.paper import PaperBroker
+from crypto_trader.macro.adapter import MacroRegimeAdapter
 from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import (
     Candle,
@@ -156,6 +157,8 @@ def create_strategy(
             vpin_momentum_threshold=float(params.get("vpin_momentum_threshold", 0.01)),
             vpin_rsi_ceiling=float(params.get("vpin_rsi_ceiling", 70.0)),
             vpin_rsi_floor=float(params.get("vpin_rsi_floor", 30.0)),
+            ema_trend_period=int(params.get("ema_trend_period", 20)),
+            adx_threshold=float(params.get("adx_threshold", 15.0)),
         )
     if strategy_type == "funding_rate":
         return FundingRateStrategy(
@@ -243,6 +246,8 @@ class StrategyWallet:
         self.session_starting_equity = broker.cash
         self._logger = logging.getLogger(f"{__name__}.{self.name}")
         self._macro_multiplier: float = 1.0
+        self._macro_snapshot: MacroSnapshot | None = None
+        self._macro_adapter = MacroRegimeAdapter()
         self._prefer_limit_entries = bool(
             wallet_config.strategy_overrides.get(
                 "prefer_limit_entries",
@@ -266,6 +271,7 @@ class StrategyWallet:
         self._macro_multiplier = multiplier
 
     def set_macro_snapshot(self, snapshot: MacroSnapshot | None) -> None:
+        self._macro_snapshot = snapshot
         if hasattr(self.strategy, "set_macro_snapshot"):
             self.strategy.set_macro_snapshot(snapshot)
 
@@ -416,10 +422,32 @@ class StrategyWallet:
                     utc_hour = ts.hour
             vol_ratio = self._volume_ratio(candles)
 
+            # --- Macro regime gate: block entries in adverse regimes ---
+            regime_blocked, regime_reason = self._macro_adapter.should_block_entry(
+                self._macro_snapshot, strategy_type=self.strategy_type,
+            )
+            effective_min_confidence = self._macro_adapter.confidence_floor(
+                self._macro_snapshot, self.risk_manager.effective_min_confidence,
+            )
+
+            if position is None and signal.action is SignalAction.BUY and regime_blocked:
+                self._logger.info(
+                    "[%s] BUY blocked by regime gate: %s (signal_confidence=%.2f)",
+                    symbol, regime_reason, signal.confidence,
+                )
+                signal = Signal(
+                    action=SignalAction.HOLD,
+                    reason=regime_reason,
+                    confidence=signal.confidence,
+                    indicators=signal.indicators,
+                    context={**(signal.context or {}), "original_action": "BUY"},
+                )
+
             if (
                 position is None
                 and signal.action is SignalAction.BUY
-                and signal.confidence >= self.risk_manager.effective_min_confidence
+                and not regime_blocked
+                and signal.confidence >= effective_min_confidence
                 and not self.risk_manager.in_cooldown
                 and not self.risk_manager.is_auto_paused
             ):
