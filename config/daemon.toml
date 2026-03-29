@@ -7,7 +7,7 @@
 [trading]
 exchange = "upbit"
 symbol = "KRW-BTC"
-symbols = ["KRW-ETH"]
+symbols = ["KRW-ETH", "KRW-SOL", "KRW-BTC"]
 interval = "minute60"
 candle_count = 200
 paper_trading = true
