@@ -127,6 +127,7 @@ class SlackConfig:
 @dataclass(slots=True)
 class RuntimeConfig:
     log_level: str = "INFO"
+    log_file_path: str = ""
     poll_interval_seconds: int = 60
     max_iterations: int = 0
     daemon_mode: bool = True
@@ -250,6 +251,8 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "vpin_momentum_threshold",
         "vpin_rsi_ceiling",
         "vpin_rsi_floor",
+        "ema_trend_period",
+        "adx_threshold",
     },
     "funding_rate": {
         "high_funding_threshold",

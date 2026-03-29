@@ -5,6 +5,7 @@ import io
 import json
 import unittest
 from unittest.mock import patch
+from urllib.error import URLError
 
 from crypto_trader.macro.client import MacroClient, MacroSnapshot
 
@@ -175,6 +176,53 @@ class TestMacroClient(unittest.TestCase):
         self.assertEqual(result.fear_greed_index, 72)
         self.assertEqual(result.crypto_signals["fear_greed"], "72 (bullish)")
 
+    def test_get_snapshot_parses_minimal_downstream_payload_without_layers(self) -> None:
+        client = MacroClient(base_url="http://macro.local")
+        payload = {
+            "status": "ok",
+            "consumer": "crypto-trader",
+            "date": "2026-03-29",
+            "overall_regime": "neutral",
+            "overall_confidence": 0.19,
+            "primary_layer": {
+                "name": "crypto",
+                "regime": "neutral",
+                "confidence": 0.23,
+                "signals": {
+                    "fear_greed": "12 (extreme_fear)",
+                    "kimchi_premium": "0.65% (bullish)",
+                    "btc_dominance_trend": "-0.0% (neutral)",
+                },
+            },
+            "strategy": {"stance": "selective"},
+            "watch_overlay": "hold base posture",
+        }
+
+        class _Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return None
+
+        with patch(
+            "crypto_trader.macro.client.urlopen",
+            return_value=_Resp(json.dumps(payload).encode("utf-8")),
+        ):
+            result = client.get_snapshot()
+
+        assert result is not None
+        self.assertEqual(result.overall_regime, "neutral")
+        self.assertAlmostEqual(result.overall_confidence, 0.19)
+        self.assertEqual(result.crypto_regime, "neutral")
+        self.assertAlmostEqual(result.crypto_confidence, 0.23)
+        self.assertEqual(result.fear_greed_index, 12)
+        self.assertAlmostEqual(result.kimchi_premium, 0.65)
+        self.assertIsNone(result.btc_dominance)
+        self.assertEqual(result.us_regime, "neutral")
+        self.assertEqual(result.kr_regime, "neutral")
+        self.assertEqual(result.crypto_signals["fear_greed"], "12 (extreme_fear)")
+
     def test_get_memo_summary_returns_none_when_no_snapshot(self) -> None:
         client = MacroClient()
         with patch.object(client, "get_snapshot", return_value=None):
@@ -206,6 +254,127 @@ class TestMacroClient(unittest.TestCase):
         self.assertIn("US", result["layers"])
         self.assertIn("Korea", result["layers"])
         self.assertIn("Crypto", result["layers"])
+
+
+class TestMacroClientRetry(unittest.TestCase):
+    """Tests for retry / backoff / log-throttling in _fetch_http_payload."""
+
+    def test_retries_on_connection_error(self) -> None:
+        """Client retries up to _MAX_RETRIES per endpoint before giving up."""
+        client = MacroClient(base_url="http://macro.local")
+        call_count = 0
+
+        def _fail(url: str, timeout: float):
+            nonlocal call_count
+            call_count += 1
+            raise URLError("Connection refused")
+
+        with patch("crypto_trader.macro.client.urlopen", side_effect=_fail):
+            with patch("crypto_trader.macro.client.time.sleep"):
+                result = client._fetch_http_payload()
+
+        self.assertIsNone(result)
+        # 2 endpoints x (1 initial + _MAX_RETRIES retries) = 2 x 3 = 6
+        from crypto_trader.macro.client import _MAX_RETRIES
+        self.assertEqual(call_count, 2 * (_MAX_RETRIES + 1))
+
+    def test_retry_succeeds_on_second_attempt(self) -> None:
+        """Client returns payload when retry succeeds."""
+        client = MacroClient(base_url="http://macro.local")
+        payload = {
+            "status": "ok",
+            "overall_regime": "neutral",
+            "overall_confidence": 0.5,
+            "layers": {
+                "us": {"regime": "neutral", "confidence": 0.5, "signals": {}},
+                "kr": {"regime": "neutral", "confidence": 0.5, "signals": {}},
+                "crypto": {"regime": "neutral", "confidence": 0.5, "signals": {}},
+            },
+            "crypto_metrics": {},
+        }
+
+        class _Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return None
+
+        attempt = 0
+
+        def _fail_then_succeed(url: str, timeout: float):
+            nonlocal attempt
+            attempt += 1
+            if attempt == 1:
+                raise URLError("Connection refused")
+            return _Resp(json.dumps(payload).encode("utf-8"))
+
+        with patch("crypto_trader.macro.client.urlopen", side_effect=_fail_then_succeed):
+            with patch("crypto_trader.macro.client.time.sleep"):
+                result = client._fetch_http_payload()
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["status"], "ok")
+
+    def test_consecutive_failure_counter_increments(self) -> None:
+        """Consecutive failure counter tracks repeated failures."""
+        client = MacroClient(base_url="http://macro.local")
+
+        def _fail(url: str, timeout: float):
+            raise URLError("Connection refused")
+
+        with patch("crypto_trader.macro.client.urlopen", side_effect=_fail):
+            with patch("crypto_trader.macro.client.time.sleep"):
+                client._fetch_http_payload()
+                client._fetch_http_payload()
+
+        self.assertEqual(client._consecutive_http_failures, 2)
+
+    def test_consecutive_failure_counter_resets_on_success(self) -> None:
+        """Counter resets to 0 after a successful fetch."""
+        client = MacroClient(base_url="http://macro.local")
+        client._consecutive_http_failures = 5
+        payload = {"status": "ok", "overall_regime": "neutral",
+                   "overall_confidence": 0.5,
+                   "layers": {
+                       "us": {"regime": "neutral", "confidence": 0.5, "signals": {}},
+                       "kr": {"regime": "neutral", "confidence": 0.5, "signals": {}},
+                       "crypto": {"regime": "neutral", "confidence": 0.5, "signals": {}},
+                   }, "crypto_metrics": {}}
+
+        class _Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return None
+
+        with patch(
+            "crypto_trader.macro.client.urlopen",
+            return_value=_Resp(json.dumps(payload).encode("utf-8")),
+        ):
+            client._fetch_http_payload()
+
+        self.assertEqual(client._consecutive_http_failures, 0)
+
+    def test_log_throttling_suppresses_repeated_warnings(self) -> None:
+        """After first warning, subsequent failures within the throttle
+        interval are logged at DEBUG, not WARNING."""
+        client = MacroClient(base_url="http://macro.local")
+
+        def _fail(url: str, timeout: float):
+            raise URLError("Connection refused")
+
+        with patch("crypto_trader.macro.client.urlopen", side_effect=_fail):
+            with patch("crypto_trader.macro.client.time.sleep"):
+                with self.assertLogs("crypto_trader.macro.client", level="DEBUG") as cm:
+                    client._fetch_http_payload()  # 1st: WARNING
+                    client._fetch_http_payload()  # 2nd: should be DEBUG
+
+        warning_msgs = [r for r in cm.output if "WARNING" in r]
+        debug_msgs = [r for r in cm.output if "DEBUG" in r]
+        self.assertEqual(len(warning_msgs), 1)
+        self.assertGreaterEqual(len(debug_msgs), 1)
 
 
 def _import_error_snapshot(client: MacroClient) -> MacroSnapshot | None:

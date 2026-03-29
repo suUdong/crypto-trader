@@ -44,6 +44,9 @@ def setup_file_logging(
     backup_count: int = 5,
 ) -> None:
     """Add a RotatingFileHandler to the root logger."""
+    from pathlib import Path
+
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     handler = logging.handlers.RotatingFileHandler(
         path,
         maxBytes=max_bytes,

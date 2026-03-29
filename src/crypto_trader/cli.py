@@ -13,7 +13,7 @@ from crypto_trader.daemon_supervisor import DaemonSupervisor
 from crypto_trader.data.pyupbit_client import PyUpbitMarketDataClient
 from crypto_trader.execution.live import LiveBroker
 from crypto_trader.execution.paper import PaperBroker
-from crypto_trader.logging_utils import setup_logging
+from crypto_trader.logging_utils import setup_file_logging, setup_logging
 from crypto_trader.monitoring import HealthMonitor
 from crypto_trader.multi_runtime import MultiSymbolRuntime
 from crypto_trader.notifications.alert_manager import TradeAlertManager
@@ -196,6 +196,8 @@ def main() -> None:
         allow_missing_live_credentials=args.command in read_only_artifact_commands,
     )
     setup_logging(config.runtime.log_level)
+    if config.runtime.log_file_path:
+        setup_file_logging(config.runtime.log_file_path, level=config.runtime.log_level)
     strategy = create_strategy(args.strategy, config.strategy, config.regime)
     risk_manager = _build_risk_manager(config)
     market_data = PyUpbitMarketDataClient()

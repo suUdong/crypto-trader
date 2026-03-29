@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -12,6 +14,12 @@ from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
 
+# Retry / backoff constants
+_MAX_RETRIES = 2  # per endpoint, per call
+_INITIAL_BACKOFF_SECONDS = 1.0
+_MAX_BACKOFF_SECONDS = 4.0
+_LOG_THROTTLE_INTERVAL = 300  # suppress repeat warnings for 5 minutes
+
 _REGIME_ALIASES: dict[str, str] = {
     "expansion": "expansionary",
     "expansionary": "expansionary",
@@ -19,6 +27,8 @@ _REGIME_ALIASES: dict[str, str] = {
     "contraction": "contractionary",
     "contractionary": "contractionary",
 }
+
+_NUMBER_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 
 
 @dataclass(slots=True)
@@ -51,6 +61,8 @@ class MacroClient:
         self._db_path = Path(db_path) if db_path else None
         self._base_url = base_url.rstrip("/") if base_url else ""
         self._timeout_seconds = timeout_seconds
+        self._consecutive_http_failures: int = 0
+        self._last_failure_log_time: float = 0.0
 
     @staticmethod
     def _normalize_regime(value: Any) -> str:
@@ -58,34 +70,69 @@ class MacroClient:
         return _REGIME_ALIASES.get(text, text or "neutral")
 
     def _fetch_http_payload(self) -> dict[str, Any] | None:
-        """Fetch the latest regime payload from the macro HTTP API."""
+        """Fetch the latest regime payload from the macro HTTP API.
+
+        Retries each endpoint up to ``_MAX_RETRIES`` times with exponential
+        backoff.  Consecutive failure warnings are throttled to one log line
+        per ``_LOG_THROTTLE_INTERVAL`` seconds so a prolonged outage does not
+        flood the log file.
+        """
         if not self._base_url:
             return None
 
         last_error: Exception | None = None
         for path in ("/regime/downstream/crypto-trader", "/regime/current"):
             url = f"{self._base_url}{path}"
-            try:
-                with urlopen(url, timeout=self._timeout_seconds) as response:
-                    payload = json.loads(response.read().decode("utf-8"))
-            except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-                last_error = exc
-                continue
+            backoff = _INITIAL_BACKOFF_SECONDS
+            for attempt in range(_MAX_RETRIES + 1):
+                try:
+                    with urlopen(url, timeout=self._timeout_seconds) as resp:
+                        payload = json.loads(resp.read().decode("utf-8"))
+                except (HTTPError, URLError, TimeoutError, OSError,
+                        json.JSONDecodeError) as exc:
+                    last_error = exc
+                    if attempt < _MAX_RETRIES:
+                        time.sleep(backoff)
+                        backoff = min(backoff * 2, _MAX_BACKOFF_SECONDS)
+                    continue
 
-            if not isinstance(payload, dict):
-                logger.info("Macro HTTP payload is not an object (url=%s)", url)
-                continue
-            if payload.get("status") != "ok":
-                logger.info(
-                    "Macro HTTP payload unavailable (url=%s status=%s)",
-                    url,
-                    payload.get("status"),
-                )
-                continue
-            return payload
+                if not isinstance(payload, dict):
+                    logger.info("Macro HTTP payload is not an object (url=%s)", url)
+                    break  # move to next endpoint
+                if payload.get("status") != "ok":
+                    logger.info(
+                        "Macro HTTP payload unavailable (url=%s status=%s)",
+                        url,
+                        payload.get("status"),
+                    )
+                    break  # move to next endpoint
 
-        if last_error is not None:
-            logger.warning("Failed to fetch macro regime over HTTP", exc_info=last_error)
+                # Success — reset failure counter
+                if self._consecutive_http_failures > 0:
+                    logger.info(
+                        "Macro HTTP connection restored after %d consecutive failures",
+                        self._consecutive_http_failures,
+                    )
+                self._consecutive_http_failures = 0
+                return payload
+
+        # All endpoints failed
+        self._consecutive_http_failures += 1
+        now = time.monotonic()
+        if now - self._last_failure_log_time >= _LOG_THROTTLE_INTERVAL:
+            logger.warning(
+                "Failed to fetch macro regime over HTTP "
+                "(consecutive_failures=%d)",
+                self._consecutive_http_failures,
+                exc_info=last_error,
+            )
+            self._last_failure_log_time = now
+        else:
+            logger.debug(
+                "Macro HTTP fetch failed (consecutive_failures=%d): %s",
+                self._consecutive_http_failures,
+                last_error,
+            )
         return None
 
     @staticmethod
@@ -112,24 +159,73 @@ class MacroClient:
             )
 
         layers = data.get("layers")
-        if not layers:
-            return None
+        if layers:
+            crypto_metrics = data.get("crypto_metrics", {})
+            return MacroSnapshot(
+                overall_regime=MacroClient._normalize_regime(data["overall_regime"]),
+                overall_confidence=data["overall_confidence"],
+                us_regime=MacroClient._normalize_regime(layers["us"]["regime"]),
+                us_confidence=layers["us"]["confidence"],
+                kr_regime=MacroClient._normalize_regime(layers["kr"]["regime"]),
+                kr_confidence=layers["kr"]["confidence"],
+                crypto_regime=MacroClient._normalize_regime(layers["crypto"]["regime"]),
+                crypto_confidence=layers["crypto"]["confidence"],
+                crypto_signals=layers["crypto"].get("signals", {}),
+                btc_dominance=crypto_metrics.get("btc_dominance"),
+                kimchi_premium=crypto_metrics.get("kimchi_premium"),
+                fear_greed_index=crypto_metrics.get("fear_greed_index"),
+            )
 
-        crypto_metrics = data.get("crypto_metrics", {})
-        return MacroSnapshot(
-            overall_regime=MacroClient._normalize_regime(data["overall_regime"]),
-            overall_confidence=data["overall_confidence"],
-            us_regime=MacroClient._normalize_regime(layers["us"]["regime"]),
-            us_confidence=layers["us"]["confidence"],
-            kr_regime=MacroClient._normalize_regime(layers["kr"]["regime"]),
-            kr_confidence=layers["kr"]["confidence"],
-            crypto_regime=MacroClient._normalize_regime(layers["crypto"]["regime"]),
-            crypto_confidence=layers["crypto"]["confidence"],
-            crypto_signals=layers["crypto"].get("signals", {}),
-            btc_dominance=crypto_metrics.get("btc_dominance"),
-            kimchi_premium=crypto_metrics.get("kimchi_premium"),
-            fear_greed_index=crypto_metrics.get("fear_greed_index"),
-        )
+        primary_layer = data.get("primary_layer")
+        if isinstance(primary_layer, dict) and "overall_regime" in data:
+            signals = primary_layer.get("signals", {})
+            if not isinstance(signals, dict):
+                signals = {}
+            crypto_metrics = data.get("crypto_metrics", {})
+            overall_regime = MacroClient._normalize_regime(data.get("overall_regime"))
+            overall_confidence = float(data.get("overall_confidence", 0.0) or 0.0)
+            crypto_regime = MacroClient._normalize_regime(
+                primary_layer.get("regime", overall_regime)
+            )
+            crypto_confidence = float(
+                primary_layer.get("confidence", overall_confidence) or overall_confidence
+            )
+            return MacroSnapshot(
+                overall_regime=overall_regime,
+                overall_confidence=overall_confidence,
+                us_regime="neutral",
+                us_confidence=0.0,
+                kr_regime="neutral",
+                kr_confidence=0.0,
+                crypto_regime=crypto_regime,
+                crypto_confidence=crypto_confidence,
+                crypto_signals={str(key): str(value) for key, value in signals.items()},
+                btc_dominance=MacroClient._coerce_optional_float(
+                    crypto_metrics.get("btc_dominance")
+                ),
+                kimchi_premium=MacroClient._coerce_optional_float(
+                    crypto_metrics.get("kimchi_premium", signals.get("kimchi_premium"))
+                ),
+                fear_greed_index=MacroClient._coerce_optional_int(
+                    crypto_metrics.get("fear_greed_index", signals.get("fear_greed"))
+                ),
+            )
+
+        return None
+
+    @staticmethod
+    def _coerce_optional_float(value: Any) -> float | None:
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        match = _NUMBER_PATTERN.search(str(value))
+        return float(match.group(0)) if match else None
+
+    @staticmethod
+    def _coerce_optional_int(value: Any) -> int | None:
+        coerced = MacroClient._coerce_optional_float(value)
+        return int(coerced) if coerced is not None else None
 
     def get_snapshot(self) -> MacroSnapshot | None:
         """Fetch the latest macro regime snapshot. Returns None on any failure."""
