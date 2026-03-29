@@ -136,12 +136,15 @@ class MomentumStrategy:
         except ValueError:
             pass
 
-        # Multi-timeframe trend: EMA(50) as macro trend filter
+        # Multi-timeframe trend: EMA(50) as macro trend gate
         macro_trend_up = False
+        ema_rising = False
         if len(closes) >= 50:
-            ema50 = _ema(closes, 50)[-1]
+            ema50_series = _ema(closes, 50)
+            ema50 = ema50_series[-1]
             indicators["ema50"] = ema50
             macro_trend_up = closes[-1] > ema50
+            ema_rising = ema50_series[-1] > ema50_series[-4] if len(ema50_series) >= 4 else False
 
         # Fear & Greed regime filter: block new entries in extreme fear
         fg_index: int | None = None
@@ -176,6 +179,15 @@ class MomentumStrategy:
                 momentum_value >= effective.momentum_entry_threshold
                 and effective.rsi_oversold_floor <= rsi_value <= rsi_ceiling
             ):
+                # EMA50 trend gate: block long entry against macro trend
+                if len(closes) >= 50 and not (macro_trend_up and ema_rising):
+                    return Signal(
+                        action=SignalAction.HOLD,
+                        reason="ema_trend_down",
+                        confidence=0.2,
+                        indicators=indicators,
+                        context=context,
+                    )
                 # ADX filter: skip entry in choppy/trendless markets
                 if adx_value is not None and adx_value < effective.adx_threshold:
                     return Signal(
@@ -204,9 +216,6 @@ class MomentumStrategy:
                 base_conf = min(1.0, 0.5 + abs(momentum_value))
                 if macd_bullish:
                     base_conf = min(1.0, base_conf + 0.1)
-                # Macro trend alignment boosts confidence
-                if macro_trend_up:
-                    base_conf = min(1.0, base_conf + 0.05)
                 # OBV accumulation boosts confidence
                 if obv_trend is not None and obv_trend > 0.3:
                     base_conf = min(1.0, base_conf + 0.05)

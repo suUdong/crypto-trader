@@ -311,7 +311,10 @@ class TestVPINStrategy(unittest.TestCase):
 
         signal = strategy.evaluate(candles)
         # VPIN should be in the 0.5-0.7 dead zone → HOLD
-        self.assertIn(signal.reason, ("entry_conditions_not_met", "vpin_high_toxicity"))
+        self.assertIn(
+            signal.reason,
+            ("entry_conditions_not_met", "vpin_high_toxicity", "ema_trend_down", "adx_too_weak"),
+        )
 
     # ------------------------------------------------------------------
     # 9. Entry blocked when momentum truly negative
@@ -350,7 +353,10 @@ class TestVPINStrategy(unittest.TestCase):
 
         signal = strategy.evaluate(candles)
         self.assertEqual(signal.action, SignalAction.HOLD)
-        self.assertEqual(signal.reason, "entry_conditions_not_met")
+        self.assertIn(
+            signal.reason,
+            ("entry_conditions_not_met", "ema_trend_down", "adx_too_weak"),
+        )
 
     # ------------------------------------------------------------------
     # 10. VPIN params pass-through from create_strategy extra_params

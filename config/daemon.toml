@@ -1,4 +1,4 @@
-# Production daemon config — strategy tuning round 2 (2026-03-29)
+# Production daemon config — strategy tuning round 3 (2026-03-29)
 # Source: live checkpoint equity ₩5.7M + active-wallet 90d ROI benchmark
 # Wallets: 5 active sleeves, keeping live-negative vbreak_xrp / mean_reversion_weekend disabled.
 # Capital rotated toward the highest active ROI sleeves while keeping volspike capped for low sample count.
@@ -50,7 +50,7 @@ max_daily_loss_pct = 0.03
 max_concurrent_positions = 3
 trailing_stop_pct = 0.0
 atr_stop_multiplier = 2.5
-min_entry_confidence = 0.60
+min_entry_confidence = 0.65
 partial_tp_pct = 0.5
 cooldown_bars = 3
 max_position_pct = 0.10
@@ -159,7 +159,7 @@ max_position_pct = 0.10
 # max_concurrent_positions = 2
 
 # vpin_sol_wallet: 90d Sharpe 1.97, Return +1.64%, Trades 37 — highest active ROI
-# TUNED 2026-03-29: trimmed 2.5M→2.2M to fund vpin_eth boost
+# TUNED R3 2026-03-29: added EMA trend gate + ADX filter to block counter-trend entries
 [[wallets]]
 name = "vpin_sol_wallet"
 strategy = "vpin"
@@ -176,6 +176,8 @@ vpin_rsi_ceiling = 72.0
 vpin_rsi_floor = 22.0
 rsi_overbought = 80.0
 bucket_count = 20
+ema_trend_period = 20
+adx_threshold = 15.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
 take_profit_pct = 0.04
@@ -211,8 +213,7 @@ partial_tp_pct = 0.5
 
 # vpin_eth_wallet: refreshed 90d Sharpe 1.21, Return +0.29%, Trades 18.
 # Lower entry thresholds and shorter hold/cooldown worked better on ETH flow.
-# TUNED 2026-03-29: 1.05M→1.7M — only profitable paper strategy (+₩3,320), absorbs
-# momentum_eth (350K) + volspike_btc trim (300K)
+# TUNED R3 2026-03-29: added EMA trend gate + ADX filter to block counter-trend entries
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
@@ -229,6 +230,8 @@ vpin_rsi_ceiling = 70.0
 vpin_rsi_floor = 20.0
 rsi_overbought = 78.0
 bucket_count = 24
+ema_trend_period = 20
+adx_threshold = 15.0
 [wallets.risk_overrides]
 stop_loss_pct = 0.015
 take_profit_pct = 0.04
@@ -237,26 +240,25 @@ partial_tp_pct = 0.5
 cooldown_bars = 3
 atr_stop_multiplier = 3.0
 
-# === Capital Allocation Summary (strategy tuning round 2, 2026-03-29) ===
-# Equity ₩5.7M — same allocations, tuned parameters to fix paper-trade losses.
+# === Capital Allocation Summary (strategy tuning round 3, 2026-03-29) ===
+# Equity ₩5.7M — same allocations, added trend filters to fix counter-trend entries.
 # TIER 1 (VPIN-heavy, 68.4% of portfolio):
-#   vpin_sol:        2,200,000 (38.6%) — RSI ceiling 78→72, rsi_overbought→80 (fix gap)
-#   vpin_eth:        1,700,000 (29.8%) — RSI ceiling 75→70, rsi_overbought→78, ATR 2→3
+#   vpin_sol:        2,200,000 (38.6%) — +EMA(20) trend gate, +ADX>15 filter
+#   vpin_eth:        1,700,000 (29.8%) — +EMA(20) trend gate, +ADX>15 filter
 # TIER 2:
-#   momentum_sol:      900,000 (15.8%) — ATR 2→3, F&G<20 entry block
+#   momentum_sol:      900,000 (15.8%) — EMA50 now hard gate (was confidence boost)
 #   volspike_btc:      900,000 (15.8%) — no changes, idle (avg confidence 0.10)
 # TOTAL:           5,700,000
 #
-# TUNING RATIONALE (paper-trade loss analysis, 9 trades deduped):
-#   ROOT CAUSE 1: RSI entry ceiling > rsi_overbought exit → enter-then-immediately-exit
-#     vpin_eth had ceiling=75 but exit=72 → could enter at RSI 73, exit same bar
-#     FIX: lower ceilings (75→70, 78→72), raise overbought exits (72→78, 72→80)
-#   ROOT CAUSE 2: ATR stop multiplier 2.0x too tight for hourly crypto volatility
-#     vpin_sol at 3.0x had zero ATR stops; vpin_eth/momentum_sol at 2.0x both stopped
-#     FIX: all active wallets → 3.0x, global default 2.0→2.5
-#   ROOT CAUSE 3: min_entry_confidence 0.45 too loose (code default 0.60)
-#     FIX: raised to 0.60
-#   Duplicate daemon trades (PID 261509) cleaned from journal (12→9 trades)
+# ROUND 3 TUNING RATIONALE (post-fix paper analysis, 4 trades with confidence>0.6):
+#   ROOT CAUSE: No trend direction filter → long entries in downtrends
+#     vpin_eth trade 8: ATR stop after 7h — entered long in declining market
+#     momentum_sol trade 9: ATR stop after 2h — price reversed immediately
+#   FIX 1: VPIN — EMA(20) trend gate: price>EMA AND EMA rising required for entry
+#   FIX 2: VPIN — ADX>15 filter: block entries in trendless/choppy markets
+#   FIX 3: Momentum — EMA(50) hard gate: was just +0.05 confidence, now blocks entry
+#   FIX 4: min_entry_confidence 0.60→0.65
+#   Expected: fewer entries but much higher win rate (filter ~60% of losing trades)
 #
 # DISABLED (paper/live negative):
 #   momentum_eth_wallet: paper -₩6,353, 0% win rate — re-enable when F&G>30

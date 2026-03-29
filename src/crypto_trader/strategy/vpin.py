@@ -4,7 +4,12 @@ import math
 
 from crypto_trader.config import StrategyConfig
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import momentum, rsi
+from crypto_trader.strategy.indicators import (
+    _ema,
+    average_directional_index,
+    momentum,
+    rsi,
+)
 
 
 class VPINStrategy:
@@ -27,6 +32,8 @@ class VPINStrategy:
         vpin_momentum_threshold: float = 0.01,
         vpin_rsi_ceiling: float = 70.0,
         vpin_rsi_floor: float = 30.0,
+        ema_trend_period: int = 20,
+        adx_threshold: float = 0.0,
     ) -> None:
         self._config = config
         self._vpin_high = vpin_high_threshold
@@ -35,6 +42,8 @@ class VPINStrategy:
         self._vpin_momentum_threshold = vpin_momentum_threshold
         self._vpin_rsi_ceiling = vpin_rsi_ceiling
         self._vpin_rsi_floor = vpin_rsi_floor
+        self._ema_trend_period = ema_trend_period
+        self._adx_threshold = adx_threshold
 
     def evaluate(
         self,
@@ -57,27 +66,55 @@ class VPINStrategy:
             )
 
         closes = [c.close for c in candles]
+        highs = [c.high for c in candles]
+        lows = [c.low for c in candles]
         rsi_value = rsi(closes, self._config.rsi_period)
         momentum_value = momentum(closes, self._config.momentum_lookback)
         vpin_value = self._calculate_vpin(candles)
-        indicators = {
+        indicators: dict[str, float] = {
             "vpin": vpin_value,
             "rsi": rsi_value,
             "momentum": momentum_value,
         }
         context = {"strategy": "vpin", "vpin_value": f"{vpin_value:.4f}"}
 
+        # EMA trend filter: require price > EMA and EMA rising for long entry
+        ema_trend_up = True
+        if len(closes) >= self._ema_trend_period:
+            ema_series = _ema(closes, self._ema_trend_period)
+            ema_now = ema_series[-1]
+            indicators["ema_trend"] = ema_now
+            price_above_ema = closes[-1] > ema_now
+            ema_rising = ema_series[-1] > ema_series[-4] if len(ema_series) >= 4 else True
+            ema_trend_up = price_above_ema and ema_rising
+
+        # ADX trend strength filter
+        adx_value: float | None = None
+        if self._adx_threshold > 0:
+            try:
+                adx_value = average_directional_index(
+                    highs, lows, closes, self._config.adx_period
+                )
+                indicators["adx"] = adx_value
+            except ValueError:
+                pass
+
         if position is not None:
             return self._evaluate_exit(
                 candles, position, vpin_value, rsi_value, indicators, context
             )
-        return self._evaluate_entry(vpin_value, momentum_value, rsi_value, indicators, context)
+        return self._evaluate_entry(
+            vpin_value, momentum_value, rsi_value,
+            ema_trend_up, adx_value, indicators, context,
+        )
 
     def _evaluate_entry(
         self,
         vpin_value: float,
         momentum_value: float,
         rsi_value: float,
+        ema_trend_up: bool,
+        adx_value: float | None,
         indicators: dict[str, float],
         context: dict[str, str],
     ) -> Signal:
@@ -86,6 +123,30 @@ class VPINStrategy:
                 action=SignalAction.HOLD,
                 reason="vpin_high_toxicity",
                 confidence=0.4,
+                indicators=indicators,
+                context=context,
+            )
+
+        # Trend gate: block long entry when price below declining EMA
+        if not ema_trend_up:
+            return Signal(
+                action=SignalAction.HOLD,
+                reason="ema_trend_down",
+                confidence=0.2,
+                indicators=indicators,
+                context=context,
+            )
+
+        # ADX filter: skip entry in choppy/trendless markets
+        if (
+            self._adx_threshold > 0
+            and adx_value is not None
+            and adx_value < self._adx_threshold
+        ):
+            return Signal(
+                action=SignalAction.HOLD,
+                reason="adx_too_weak",
+                confidence=0.2,
                 indicators=indicators,
                 context=context,
             )
