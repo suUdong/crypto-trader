@@ -1,13 +1,13 @@
-# Production daemon config — strategy tuning round 3 (2026-03-29)
-# Source: live checkpoint equity ₩5.7M + active-wallet 90d ROI benchmark
-# Wallets: 5 active sleeves, keeping live-negative vbreak_xrp / mean_reversion_weekend disabled.
-# Capital rotated toward the highest active ROI sleeves while keeping volspike capped for low sample count.
+# Production daemon config — P0 concentration round (2026-03-29)
+# Source: paper trade performance analysis — vpin_eth only profitable wallet
+# Strategy: disable all losing wallets, concentrate ₩5.7M on vpin_eth
+# Tighten entry filters for 50%+ win rate target (was 33%)
 # Excluded: funding_rate / ema_crossover / consensus (research-only)
 
 [trading]
 exchange = "upbit"
 symbol = "KRW-BTC"
-symbols = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL"]
+symbols = ["KRW-ETH"]
 interval = "minute60"
 candle_count = 200
 paper_trading = true
@@ -50,7 +50,7 @@ max_daily_loss_pct = 0.03
 max_concurrent_positions = 3
 trailing_stop_pct = 0.0
 atr_stop_multiplier = 2.5
-min_entry_confidence = 0.65
+min_entry_confidence = 0.70
 partial_tp_pct = 0.5
 cooldown_bars = 3
 max_position_pct = 0.10
@@ -107,32 +107,32 @@ promotion_gate_path = "artifacts/promotion-gate.json"
 daily_memo_path = "artifacts/daily-memo.md"
 strategy_report_path = "artifacts/strategy-report.md"
 
-# === TIER 1: Primary compounders ===
+# === ACTIVE: vpin_eth concentration ===
 
-# momentum_sol_wallet: refreshed 90d Sharpe 1.26, Return +0.38%, Trades 13.
-# TUNED 2026-03-29: added F&G<20 entry block after extreme-fear losses on momentum_eth
-[[wallets]]
-name = "momentum_sol_wallet"
-strategy = "momentum"
-initial_capital = 900_000.0
-symbols = ["KRW-SOL"]
-[wallets.strategy_overrides]
-momentum_lookback = 20
-momentum_entry_threshold = 0.005
-rsi_period = 14
-rsi_overbought = 75.0
-max_holding_bars = 60
-adx_threshold = 12.0
-volume_filter_mult = 0.0
-fear_greed_block_threshold = 20
-[wallets.risk_overrides]
-stop_loss_pct = 0.03
-take_profit_pct = 0.10
-risk_per_trade_pct = 0.015
-atr_stop_multiplier = 3.0
-partial_tp_pct = 0.5
-max_concurrent_positions = 2
-max_position_pct = 0.10
+# DISABLED 2026-03-29 P0: momentum_sol_wallet — paper trade net loss, capital reallocated to vpin_eth
+# Re-enable after vpin_eth achieves 50%+ WR and backtest confirms SOL momentum edge
+# [[wallets]]
+# name = "momentum_sol_wallet"
+# strategy = "momentum"
+# initial_capital = 900_000.0
+# symbols = ["KRW-SOL"]
+# [wallets.strategy_overrides]
+# momentum_lookback = 20
+# momentum_entry_threshold = 0.005
+# rsi_period = 14
+# rsi_overbought = 75.0
+# max_holding_bars = 60
+# adx_threshold = 12.0
+# volume_filter_mult = 0.0
+# fear_greed_block_threshold = 20
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.03
+# take_profit_pct = 0.10
+# risk_per_trade_pct = 0.015
+# atr_stop_multiplier = 3.0
+# partial_tp_pct = 0.5
+# max_concurrent_positions = 2
+# max_position_pct = 0.10
 
 # DISABLED 2026-03-29: momentum_eth_wallet — paper 0W/2L (-₩6,353), worst performer
 # Entered against extreme-fear regime → 100% loss rate. Capital reallocated to vpin_eth.
@@ -159,112 +159,118 @@ max_position_pct = 0.10
 # partial_tp_pct = 0.5
 # max_concurrent_positions = 2
 
-# vpin_sol_wallet: 90d Sharpe 1.97, Return +1.64%, Trades 37 — highest active ROI
-# TUNED R3 2026-03-29: added EMA trend gate + ADX filter to block counter-trend entries
-[[wallets]]
-name = "vpin_sol_wallet"
-strategy = "vpin"
-initial_capital = 2_200_000.0
-symbols = ["KRW-SOL"]
-[wallets.strategy_overrides]
-rsi_period = 14
-momentum_lookback = 10
-max_holding_bars = 36
-vpin_low_threshold = 0.45
-vpin_high_threshold = 0.75
-vpin_momentum_threshold = 0.0005
-vpin_rsi_ceiling = 72.0
-vpin_rsi_floor = 22.0
-rsi_overbought = 80.0
-bucket_count = 20
-ema_trend_period = 20
-adx_threshold = 15.0
-[wallets.risk_overrides]
-stop_loss_pct = 0.02
-take_profit_pct = 0.04
-risk_per_trade_pct = 0.015
-atr_stop_multiplier = 3.0
-partial_tp_pct = 0.5
-max_concurrent_positions = 2
+# DISABLED 2026-03-29 P0: vpin_sol_wallet — paper trade net loss despite good backtest Sharpe
+# Backtest overfitted; live showed counter-trend entries. Capital → vpin_eth.
+# [[wallets]]
+# name = "vpin_sol_wallet"
+# strategy = "vpin"
+# initial_capital = 2_200_000.0
+# symbols = ["KRW-SOL"]
+# [wallets.strategy_overrides]
+# rsi_period = 14
+# momentum_lookback = 10
+# max_holding_bars = 36
+# vpin_low_threshold = 0.45
+# vpin_high_threshold = 0.75
+# vpin_momentum_threshold = 0.0005
+# vpin_rsi_ceiling = 72.0
+# vpin_rsi_floor = 22.0
+# rsi_overbought = 80.0
+# bucket_count = 20
+# ema_trend_period = 20
+# adx_threshold = 15.0
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.02
+# take_profit_pct = 0.04
+# risk_per_trade_pct = 0.015
+# atr_stop_multiplier = 3.0
+# partial_tp_pct = 0.5
+# max_concurrent_positions = 2
 
-# === TIER 2: Satellite winners / capped specialists ===
+# DISABLED 2026-03-29 P0: volspike_btc_wallet — paper 0 trades, avg confidence 0.10
+# Strategy too selective for current BTC regime. Capital → vpin_eth.
+# [[wallets]]
+# name = "volspike_btc_wallet"
+# strategy = "volume_spike"
+# initial_capital = 900_000.0
+# symbols = ["KRW-BTC"]
+# [wallets.strategy_overrides]
+# spike_mult = 3.0
+# volume_window = 20
+# min_body_ratio = 0.3
+# momentum_lookback = 12
+# rsi_period = 14
+# rsi_overbought = 72.0
+# max_holding_bars = 36
+# adx_threshold = 20.0
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.03
+# take_profit_pct = 0.08
+# risk_per_trade_pct = 0.01
+# partial_tp_pct = 0.5
 
-# volspike_btc_wallet: restore the stricter spike gate. Lowering `spike_mult`
-# increased activity but flipped the 90d cached backtest negative.
-# TUNED 2026-03-29: trimmed 1.2M→900K — paper 0 trades, avg confidence 0.10 too low
-[[wallets]]
-name = "volspike_btc_wallet"
-strategy = "volume_spike"
-initial_capital = 900_000.0
-symbols = ["KRW-BTC"]
-[wallets.strategy_overrides]
-spike_mult = 3.0
-volume_window = 20
-min_body_ratio = 0.3
-momentum_lookback = 12
-rsi_period = 14
-rsi_overbought = 72.0
-max_holding_bars = 36
-adx_threshold = 20.0
-[wallets.risk_overrides]
-stop_loss_pct = 0.03
-take_profit_pct = 0.08
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-
-# vpin_eth_wallet: refreshed 90d Sharpe 1.21, Return +0.29%, Trades 18.
-# Lower entry thresholds and shorter hold/cooldown worked better on ETH flow.
-# TUNED R3 2026-03-29: added EMA trend gate + ADX filter to block counter-trend entries
+# vpin_eth_wallet: ONLY profitable wallet (+₩2,406, 33% WR)
+# P0 CONCENTRATION: ₩5.7M full allocation, tightened for 50%+ WR target
+# KEY CHANGES from R3:
+#   - Capital: 1.7M → 5.7M (100% of portfolio)
+#   - vpin_low_threshold: 0.4 → 0.35 (require cleaner order flow for entry)
+#   - vpin_momentum_threshold: 0.0003 → 0.0005 (stronger momentum confirmation)
+#   - vpin_rsi_ceiling: 70 → 65 (avoid entries near overbought)
+#   - max_holding_bars: 24 → 18 (cut losers faster)
+#   - min_entry_confidence: 0.65 → 0.70 (global, higher selectivity)
+#   - stop_loss_pct: 0.015 → 0.012 (tighter stop, less per-trade loss)
+#   - cooldown_bars: 3 → 4 (more spacing between trades)
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
-initial_capital = 1_700_000.0
+initial_capital = 5_700_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
 momentum_lookback = 8
-max_holding_bars = 24
-vpin_low_threshold = 0.4
+max_holding_bars = 18
+vpin_low_threshold = 0.35
 vpin_high_threshold = 0.7
-vpin_momentum_threshold = 0.0003
-vpin_rsi_ceiling = 70.0
+vpin_momentum_threshold = 0.0005
+vpin_rsi_ceiling = 65.0
 vpin_rsi_floor = 20.0
-rsi_overbought = 78.0
+rsi_overbought = 75.0
 bucket_count = 24
 ema_trend_period = 20
 adx_threshold = 15.0
 [wallets.risk_overrides]
-stop_loss_pct = 0.015
+stop_loss_pct = 0.012
 take_profit_pct = 0.04
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
-cooldown_bars = 3
+cooldown_bars = 4
 atr_stop_multiplier = 3.0
 
-# === Capital Allocation Summary (strategy tuning round 3, 2026-03-29) ===
-# Equity ₩5.7M — same allocations, added trend filters to fix counter-trend entries.
-# TIER 1 (VPIN-heavy, 68.4% of portfolio):
-#   vpin_sol:        2,200,000 (38.6%) — +EMA(20) trend gate, +ADX>15 filter
-#   vpin_eth:        1,700,000 (29.8%) — +EMA(20) trend gate, +ADX>15 filter
-# TIER 2:
-#   momentum_sol:      900,000 (15.8%) — EMA50 now hard gate (was confidence boost)
-#   volspike_btc:      900,000 (15.8%) — no changes, idle (avg confidence 0.10)
-# TOTAL:           5,700,000
+# === Capital Allocation Summary (P0 concentration, 2026-03-29) ===
+# Equity ₩5.7M — 100% concentrated on vpin_eth (only profitable wallet)
 #
-# ROUND 3 TUNING RATIONALE (post-fix paper analysis, 4 trades with confidence>0.6):
-#   ROOT CAUSE: No trend direction filter → long entries in downtrends
-#     vpin_eth trade 8: ATR stop after 7h — entered long in declining market
-#     momentum_sol trade 9: ATR stop after 2h — price reversed immediately
-#   FIX 1: VPIN — EMA(20) trend gate: price>EMA AND EMA rising required for entry
-#   FIX 2: VPIN — ADX>15 filter: block entries in trendless/choppy markets
-#   FIX 3: Momentum — EMA(50) hard gate: was just +0.05 confidence, now blocks entry
-#   FIX 4: min_entry_confidence 0.60→0.65
-#   Expected: fewer entries but much higher win rate (filter ~60% of losing trades)
+# ACTIVE:
+#   vpin_eth:        5,700,000 (100%) — tightened entry for 50%+ WR target
 #
-# DISABLED (paper/live negative):
-#   momentum_eth_wallet: paper -₩6,353, 0% win rate — re-enable when F&G>30
-#   vbreak_xrp_wallet: live -0.119%, paper -₩1,792 — keep sidelined
-#   mean_reversion_weekend: live -0.051% — too weak to fund
+# P0 RATIONALE (paper trade performance analysis):
+#   vpin_eth: +₩2,406, 33% WR — only wallet with positive PnL
+#   momentum_sol: net loss — disabled
+#   vpin_sol: net loss despite backtest Sharpe 1.97 — overfitted, disabled
+#   volspike_btc: 0 trades, avg confidence 0.10 — inactive, disabled
+#   momentum_eth: already disabled (-₩6,353)
+#   vbreak_xrp: already disabled (-₩1,792)
+#   mean_reversion_weekend: already disabled
+#
+# WIN RATE TUNING (33% → 50%+ target):
+#   - vpin_low 0.4→0.35: require cleaner order flow
+#   - momentum threshold 0.0003→0.0005: stronger trend confirmation
+#   - RSI ceiling 70→65: avoid near-overbought entries
+#   - max_holding 24→18 bars: cut losers sooner
+#   - confidence 0.65→0.70: higher selectivity
+#   - stop_loss 1.5%→1.2%: tighter risk per trade
+#   - cooldown 3→4 bars: more spacing
+#
+# NEXT: validate with backtest optimizer, monitor paper for 48h
 # Research-only: funding_rate, ema_crossover, consensus
 
 [credentials]
