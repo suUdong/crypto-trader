@@ -31,6 +31,7 @@ from crypto_trader.models import (
     SignalAction,
 )
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.strategy.bollinger_mean_reversion import BollingerMeanReversionStrategy
 from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.consensus import ConsensusStrategy
@@ -77,6 +78,13 @@ def create_strategy(
         return MomentumPullbackStrategy(strategy_config, regime_config)
     if strategy_type == "bollinger_rsi":
         return BollingerRsiStrategy(strategy_config, regime_config)
+    if strategy_type == "bollinger_mr":
+        return BollingerMeanReversionStrategy(
+            strategy_config,
+            adx_ceiling=float(params.get("adx_ceiling", 25.0)),
+            squeeze_lookback=int(params.get("squeeze_lookback", 50)),
+            squeeze_threshold_pct=float(params.get("squeeze_threshold_pct", 20.0)),
+        )
     if strategy_type == "mean_reversion":
         return MeanReversionStrategy(
             strategy_config,
@@ -219,6 +227,7 @@ def create_strategy(
 class StrategyWallet:
     _LIMIT_FRIENDLY_STRATEGIES = frozenset(
         {
+            "bollinger_mr",
             "bollinger_rsi",
             "funding_rate",
             "kimchi_premium",

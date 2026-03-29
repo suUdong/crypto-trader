@@ -274,6 +274,34 @@ atr_stop_multiplier = 1.5
 # NEXT: validate with backtest optimizer, monitor paper for 48h
 # Research-only: funding_rate, ema_crossover, consensus
 
+# --- Bollinger Mean Reversion v2 (P2, pending backtest validation) ---
+# [[wallets]]
+# name = "bmr_btc_wallet"
+# strategy = "bollinger_mr"
+# initial_capital = 570_000.0
+# symbols = ["KRW-BTC"]
+#
+# [wallets.strategy_overrides]
+# bollinger_window = 20
+# bollinger_stddev = 2.0
+# rsi_period = 14
+# rsi_oversold_floor = 25
+# rsi_recovery_ceiling = 40
+# rsi_overbought = 65
+# adx_ceiling = 25
+# volume_filter_mult = 0.8
+# max_holding_bars = 24
+# squeeze_lookback = 50
+# squeeze_threshold_pct = 20
+#
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.02
+# take_profit_pct = 0.03
+# risk_per_trade_pct = 0.01
+# atr_stop_multiplier = 1.5
+# trailing_stop_pct = 0.01
+# cooldown_bars = 3
+
 [credentials]
 upbit_access_key = ""
 upbit_secret_key = ""
