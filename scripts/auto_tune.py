@@ -16,7 +16,7 @@ import json
 import os
 import sys
 import tomllib
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -327,12 +327,14 @@ def tune_strategy(
             print(f"  SKIP: no candidate summaries for {strategy_type}")
         return None
 
+    candidate_worker_count = _resolve_parallel_workers(
+        len(top_candidates),
+        env_var="CT_CANDIDATE_SWEEP_WORKERS",
+    )
     candidate_results: list[dict[str, object]] = []
-    for idx, candidate in enumerate(top_candidates, start=1):
-        if verbose:
-            print(f"  Candidate #{idx} params: {candidate.params}")
-            print(f"  Optimizing risk params ({risk_combo_count} combos)...")
 
+    def _evaluate_candidate(item: tuple[int, object]) -> dict[str, object] | None:
+        idx, candidate = item
         best_risk, best_score = optimize_risk_for_strategy(
             strategy_type,
             candidate.params,
@@ -345,18 +347,37 @@ def tune_strategy(
             candles_by_symbol,
         )
         if evaluation is None:
-            continue
+            return None
+        return {
+            "rank": idx,
+            "params": candidate.params,
+            "base_score": candidate.score,
+            "risk_params": best_risk,
+            "optimized_score": best_score,
+            **evaluation,
+        }
 
-        candidate_results.append(
-            {
-                "rank": idx,
-                "params": candidate.params,
-                "base_score": candidate.score,
-                "risk_params": best_risk,
-                "optimized_score": best_score,
-                **evaluation,
-            }
-        )
+    candidate_items = list(enumerate(top_candidates, start=1))
+    if verbose:
+        for idx, candidate in candidate_items:
+            print(f"  Candidate #{idx} params: {candidate.params}")
+            print(f"  Optimizing risk params ({risk_combo_count} combos)...")
+        if candidate_worker_count > 1:
+            print(
+                f"  Evaluating {len(candidate_items)} candidates "
+                f"with {candidate_worker_count} worker threads"
+            )
+
+    if candidate_worker_count == 1:
+        for item in candidate_items:
+            result = _evaluate_candidate(item)
+            if result is not None:
+                candidate_results.append(result)
+    else:
+        with ThreadPoolExecutor(max_workers=candidate_worker_count) as executor:
+            for result in executor.map(_evaluate_candidate, candidate_items):
+                if result is not None:
+                    candidate_results.append(result)
 
     if not candidate_results:
         return None
