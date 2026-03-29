@@ -25,7 +25,7 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
 def test_generate_daily_report_includes_wallet_metrics_positions_and_strategy_summary(
     tmp_path: Path,
 ) -> None:
-    now = datetime(2026, 3, 27, 12, 0, tzinfo=UTC)
+    now = datetime.now(UTC)
     checkpoint = tmp_path / "runtime-checkpoint.json"
     runs = tmp_path / "strategy-runs.jsonl"
     trades = tmp_path / "paper-trades.jsonl"

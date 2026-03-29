@@ -67,8 +67,23 @@ def _spike_last_candle(candles: list[Candle], volume_mult: float = 3.0) -> list[
 
 
 def _build_consensus_integration_candles() -> list[Candle]:
-    """Build candles where momentum and volume spike align on the final bar."""
+    """Build candles where momentum and volume spike align on the final bar.
+
+    Adds a gentle uptrend so the EMA50 trend gate in momentum strategy passes.
+    """
     candles = _build_candles(80)
+    # Inject uptrend drift so EMA50 is rising and price > EMA50
+    for i in range(len(candles)):
+        drift = i * 15.0  # steady climb
+        c = candles[i]
+        candles[i] = Candle(
+            timestamp=c.timestamp,
+            open=c.open + drift,
+            high=c.high + drift,
+            low=c.low + drift,
+            close=c.close + drift,
+            volume=c.volume,
+        )
     adjustments = [-30.0, -10.0, 5.0, 10.0, 20.0]
     for offset, step in zip(range(-6, -1), adjustments, strict=False):
         current = candles[offset]

@@ -11,7 +11,7 @@ deploy/systemd/install-user-units.sh
 # 즉시 수동 재기동
 systemctl --user restart crypto-trader.service
 
-# 레거시 수동 재시작 (특정 설정 파일)
+# 특정 설정 파일 수동 재시작
 scripts/restart_daemon.sh config/live.toml
 ```
 
@@ -21,13 +21,12 @@ scripts/restart_daemon.sh config/live.toml
 3. 동일한 `scripts/watchdog.sh`를 cron에서 호출해도 systemd-aware 경로를 사용하므로 중복 인스턴스를 만들지 않음
 4. 런타임의 systemd notify 지원은 향후 `WatchdogSec`을 다시 켤 때 그대로 활용 가능
 
-레거시 `restart_daemon.sh` 동작:
-1. 기존 데몬 PID 확인 후 SIGTERM (30초 대기, 실패 시 SIGKILL)
-2. 체크포인트 확인 (월렛 수, 오픈 포지션 수)
-3. `python -m crypto_trader.cli run-multi --config <config>` 실행 (nohup)
-4. `run-multi` 내부 supervisor가 비정상 종료 시 자동 재시작
-5. 하트비트 확인 (최대 30초)
-6. 포지션 복원 검증
+`restart_daemon.sh` 동작:
+1. `config/daemon.toml`이고 `crypto-trader.service`가 설치되어 있으면 `systemctl --user restart crypto-trader.service`로 위임
+2. 그 외 설정 파일 또는 unit 미설치 환경에서는 기존 직접 실행 경로 사용
+3. 체크포인트 확인 (월렛 수, 오픈 포지션 수)
+4. 하트비트 확인 (최대 30초)
+5. 포지션 복원 검증
 
 ### 중지
 

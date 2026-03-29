@@ -368,3 +368,48 @@ min_body_ratio = 0.55
         self.assertEqual(volume_spike_wallet.strategy_overrides["spike_mult"], 2.8)
         self.assertEqual(volume_spike_wallet.strategy_overrides["volume_window"], 24)
         self.assertEqual(volume_spike_wallet.strategy_overrides["min_body_ratio"], 0.55)
+
+    def test_vpin_wallet_accepts_strategy_specific_overrides(self) -> None:
+        toml_content = """
+[trading]
+[strategy]
+[regime]
+[drift]
+[risk]
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "vpin_wallet"
+strategy = "vpin"
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+bucket_count = 24
+vpin_high_threshold = 0.75
+vpin_low_threshold = 0.40
+vpin_momentum_threshold = 0.02
+vpin_rsi_ceiling = 72.0
+vpin_rsi_floor = 24.0
+ema_trend_period = 20
+adx_threshold = 15.0
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                config = load_config(f.name, {})
+            finally:
+                os.unlink(f.name)
+
+        vpin_wallet = config.wallets[0]
+        self.assertEqual(vpin_wallet.strategy_overrides["bucket_count"], 24)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_high_threshold"], 0.75)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_low_threshold"], 0.40)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_momentum_threshold"], 0.02)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_rsi_ceiling"], 72.0)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_rsi_floor"], 24.0)
+        self.assertEqual(vpin_wallet.strategy_overrides["ema_trend_period"], 20)
+        self.assertEqual(vpin_wallet.strategy_overrides["adx_threshold"], 15.0)
