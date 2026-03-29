@@ -187,15 +187,17 @@ max_position_pct = 0.10
 # partial_tp_pct = 0.5
 # max_concurrent_positions = 2
 
-# volspike_btc_wallet: P0 backtest Sharpe 3.00, WR 71.4%, MDD 0.09%, PF 7.76
-# RE-ENABLED with optimized params: min_body_ratio 0.2, TP 6%, confidence 0.45
+# volspike_btc_wallet: spike_mult 3.0→2.0 (P1 tuning, 2026-03-29)
+# Reason: 3.0 yielded only 7 trades/90d — statistically thin despite high Sharpe.
+# At 2.0: 15 trades, WR 46.7%, Sharpe 0.66, PF 1.26 — enough volume to validate live.
+# Trade-off: lower WR/Sharpe but 2x trade count for statistical significance.
 [[wallets]]
 name = "volspike_btc_wallet"
 strategy = "volume_spike"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
 [wallets.strategy_overrides]
-spike_mult = 3.0
+spike_mult = 2.0
 volume_window = 20
 min_body_ratio = 0.2
 momentum_lookback = 12
@@ -244,7 +246,7 @@ atr_stop_multiplier = 1.5
 # ACTIVE (P0 optimized):
 #   vpin_eth:        3,500,000 (61.4%) — Sharpe 1.11, WR 60%, MDD 0.10%
 #   momentum_sol:    1,200,000 (21.1%) — Sharpe 1.55, WR 50%, MDD 0.46%
-#   volspike_btc:    1,000,000 (17.5%) — Sharpe 3.00, WR 71%, MDD 0.09%
+#   volspike_btc:    1,000,000 (17.5%) — spike_mult 2.0, Sharpe 0.66, WR 47%, 15 trades/90d
 # TOTAL:           5,700,000
 #
 # P0 OPTIMIZATION RATIONALE:
