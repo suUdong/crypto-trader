@@ -127,7 +127,8 @@ def compute_batch_gpu(all_data: dict[str, pd.DataFrame], btc_df: pd.DataFrame, c
     return df_out
 
 
-def get_alpha_scan_results() -> str:
+def get_alpha_scan_results() -> tuple[str, float, dict]:
+    """Returns: (scan_data_str, cal_threshold, pre_bull_signals)"""
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is NOT available.")
 
@@ -143,12 +144,31 @@ def get_alpha_scan_results() -> str:
     cal = load_calibration()
     verdict_tag = f"[cal:{cal.verdict} th={cal.threshold:.2f}]" if cal.verdict != "unknown" else "[cal:default]"
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Phase 2: Batch GPU computation... {verdict_tag}")
-    df_res = compute_batch_gpu(all_data, btc_df, cal=cal if cal.is_usable else None)
+    df_result = compute_batch_gpu(all_data, btc_df, cal=cal if cal.is_usable else None)
     t2 = time.time()
     print(f"[{datetime.now().strftime('%H:%M:%S')}] GPU done in {t2-t1:.2f}s | Total: {t2-t0:.1f}s")
     cal_threshold = cal.threshold if cal.is_usable else 1.0
 
-    return df_res.head(15).to_string(index=False), cal_threshold
+    # Pre-bull 시그널: 가격은 약한데(RS_z < 0) 매집은 강한(Acc_z > 1.0 AND CVD_z > 0.5) 코인 수
+    stealth_mask = (df_result["RS_z"] < 0) & (df_result["Acc_z"] > 1.0) & (df_result["CVD_z"] > 0.5)
+    stealth_acc_count = int(stealth_mask.sum())
+    total_coins = len(df_result)
+    avg_acc_z = float(round(df_result["Acc_z"].mean(), 3))
+    avg_cvd_z = float(round(df_result["CVD_z"].mean(), 3))
+    avg_rs_z  = float(round(df_result["RS_z"].mean(), 3))
+    pre_bull_score = round(avg_acc_z + avg_cvd_z - avg_rs_z, 3)
+
+    pre_bull_signals = {
+        "stealth_acc_count": stealth_acc_count,
+        "stealth_acc_ratio": round(stealth_acc_count / max(total_coins, 1), 3),
+        "avg_rs_z": avg_rs_z,
+        "avg_acc_z": avg_acc_z,
+        "avg_cvd_z": avg_cvd_z,
+        "pre_bull_score": pre_bull_score,
+        "total_coins_scanned": total_coins,
+    }
+
+    return df_result.head(15).to_string(index=False), cal_threshold, pre_bull_signals
 
 
 def update_state(cycle: int, note: str) -> None:
@@ -211,7 +231,7 @@ def main() -> None:
             cycle = current + 1
             print(f"\n--- [Cycle {cycle} START] ---")
 
-            scan_data, cal_threshold = get_alpha_scan_results()
+            scan_data, cal_threshold, pre_bull = get_alpha_scan_results()
 
             report_path = RESEARCH_DIR / f"Cycle-{cycle:03d}-alpha-report.md"
             with report_path.open("w") as f:
@@ -242,6 +262,27 @@ def main() -> None:
                     "top_symbols": top_symbols,
                 }, f, indent=2)
             print(f"Watchlist saved: {[s['symbol'] for s in top_symbols]}")
+
+            # Pre-bull 시그널 저장 (시계열 누적)
+            prebull_path = Path("artifacts/pre-bull-signals.json")
+            history = []
+            if prebull_path.exists():
+                try:
+                    history = json.loads(prebull_path.read_text()).get("history", [])
+                except Exception:
+                    pass
+            history.append({"cycle": cycle, "ts": datetime.now().isoformat(), **pre_bull})
+            history = history[-168:]  # 최대 168사이클(7일) 보관
+            prebull_path.write_text(json.dumps({
+                "updated_at": datetime.now().isoformat(),
+                "latest": pre_bull,
+                "history": history,
+            }, indent=2))
+            print(
+                f"[Pre-Bull] score={pre_bull['pre_bull_score']:+.3f} "
+                f"stealth={pre_bull['stealth_acc_count']}/{pre_bull['total_coins_scanned']} "
+                f"(RS_z={pre_bull['avg_rs_z']:+.2f} Acc_z={pre_bull['avg_acc_z']:+.2f} CVD_z={pre_bull['avg_cvd_z']:+.2f})"
+            )
 
             update_state(cycle, f"Cycle {cycle} archived.")
             print(f"--- [Cycle {cycle} DONE] ---")
