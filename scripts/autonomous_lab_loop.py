@@ -149,21 +149,23 @@ def get_alpha_scan_results() -> tuple[str, float, dict]:
     print(f"[{datetime.now().strftime('%H:%M:%S')}] GPU done in {t2-t1:.2f}s | Total: {t2-t0:.1f}s")
     cal_threshold = cal.threshold if cal.is_usable else 1.0
 
-    # Pre-bull 시그널: 가격은 약한데(RS_z < 0) 매집은 강한(Acc_z > 1.0 AND CVD_z > 0.5) 코인 수
-    stealth_mask = (df_result["RS_z"] < 0) & (df_result["Acc_z"] > 1.0) & (df_result["CVD_z"] > 0.5)
+    # Pre-bull 시그널: RAW 값 기반 시장 매집 강도
+    # stealth: 가격은 약한데(RS < 1.0) 매집은 강한(Acc > 1.0 AND CVD > 0) 코인
+    stealth_mask = (df_result["RS"] < 1.0) & (df_result["Acc"] > 1.0) & (df_result["CVD"] > 0)
     stealth_acc_count = int(stealth_mask.sum())
     total_coins = len(df_result)
-    avg_acc_z = float(round(df_result["Acc_z"].mean(), 3))
-    avg_cvd_z = float(round(df_result["CVD_z"].mean(), 3))
-    avg_rs_z  = float(round(df_result["RS_z"].mean(), 3))
-    pre_bull_score = round(avg_acc_z + avg_cvd_z - avg_rs_z, 3)
+    pct_pos_acc  = float(round((df_result["Acc"] > 1.0).sum() / max(total_coins, 1), 3))
+    pct_pos_cvd  = float(round((df_result["CVD"] > 0).sum() / max(total_coins, 1), 3))
+    pct_weak_rs  = float(round((df_result["RS"] < 1.0).sum() / max(total_coins, 1), 3))
+    # 중립=0, 강한 매집(불장 전조)=+2.0
+    pre_bull_score = round(pct_pos_acc + pct_pos_cvd + pct_weak_rs - 1.0, 3)
 
     pre_bull_signals = {
         "stealth_acc_count": stealth_acc_count,
         "stealth_acc_ratio": round(stealth_acc_count / max(total_coins, 1), 3),
-        "avg_rs_z": avg_rs_z,
-        "avg_acc_z": avg_acc_z,
-        "avg_cvd_z": avg_cvd_z,
+        "pct_pos_acc": pct_pos_acc,
+        "pct_pos_cvd": pct_pos_cvd,
+        "pct_weak_rs": pct_weak_rs,
         "pre_bull_score": pre_bull_score,
         "total_coins_scanned": total_coins,
     }
@@ -281,7 +283,7 @@ def main() -> None:
             print(
                 f"[Pre-Bull] score={pre_bull['pre_bull_score']:+.3f} "
                 f"stealth={pre_bull['stealth_acc_count']}/{pre_bull['total_coins_scanned']} "
-                f"(RS_z={pre_bull['avg_rs_z']:+.2f} Acc_z={pre_bull['avg_acc_z']:+.2f} CVD_z={pre_bull['avg_cvd_z']:+.2f})"
+                f"(acc%={pre_bull['pct_pos_acc']:.0%} cvd%={pre_bull['pct_pos_cvd']:.0%} weak_rs%={pre_bull['pct_weak_rs']:.0%})"
             )
 
             update_state(cycle, f"Cycle {cycle} archived.")
