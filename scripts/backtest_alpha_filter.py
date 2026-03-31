@@ -242,6 +242,9 @@ def main() -> None:
 
     symbols = pyupbit.get_tickers(fiat="KRW")
     btc_df = pyupbit.get_ohlcv("KRW-BTC", interval=INTERVAL, count=COUNT)
+    btc_regime = detect_btc_regime(btc_df)
+    regime_counts = btc_regime.value_counts().to_dict()
+    print(f"레짐 분포: {regime_counts}")
 
     print(f"Fetching {len(symbols)} symbols in parallel...")
     t0 = time.time()
@@ -257,16 +260,44 @@ def main() -> None:
     components_list: list[pd.DataFrame] = []
     fwd_returns_list: list[pd.Series] = []
 
+    # 레짐별 결과 수집
+    REGIMES = ["bull", "pre_bull", "bear", "post_bull"]
+    regime_summary: dict[str, list[dict]] = {r: [] for r in REGIMES}
+    regime_components: dict[str, list] = {r: [] for r in REGIMES}
+    regime_fwd: dict[str, list] = {r: [] for r in REGIMES}
+
     for sym, df in all_data.items():
         try:
             alpha_df = compute_alpha_series(df, btc_df)
             res = validate_alpha_predictiveness(df, alpha_df, sym)
             summary.append(res)
             print(f"  {sym}: corr_1b={res.get('corr_1b', 'N/A')}  edge_6b={res.get('edge_6b_%', 'N/A')}%")
-            # 가중치 최적화용 데이터 수집
+            # 가중치 최적화용 전체 데이터 수집
             components_list.append(alpha_df[["rs_z", "acc_z", "cvd_z"]])
             closes = df['close'].reindex(alpha_df.index)
             fwd_returns_list.append(closes.shift(-6) / closes - 1)
+            # 레짐별 분리 수집
+            common_idx = alpha_df.index.intersection(btc_regime.index)
+            for rname in REGIMES:
+                ridx = common_idx[btc_regime.reindex(common_idx) == rname]
+                if len(ridx) < 15:
+                    continue
+                r_alpha = alpha_df.loc[ridx, ["rs_z", "acc_z", "cvd_z"]]
+                r_closes = df['close'].reindex(ridx)
+                r_fwd = r_closes.shift(-6) / r_closes - 1
+                # 간단 edge/corr 계산
+                alpha_s = alpha_df.loc[ridx, "alpha"]
+                r_fwd_aligned = r_fwd.reindex(alpha_s.index).dropna()
+                alpha_aligned = alpha_s.reindex(r_fwd_aligned.index)
+                if len(alpha_aligned) >= 10:
+                    corr_val = float(np.corrcoef(alpha_aligned.values, r_fwd_aligned.values)[0, 1])
+                    mask = alpha_aligned > ALPHA_THRESHOLD
+                    edge_val = (r_fwd_aligned[mask].mean() - r_fwd_aligned[~mask].mean()) * 100 if mask.sum() >= 5 else float('nan')
+                    regime_summary[rname].append({
+                        "symbol": sym, "corr_6b": round(corr_val, 3), "edge_6b_%": round(edge_val, 3) if not np.isnan(edge_val) else None,
+                    })
+                regime_components[rname].append(r_alpha)
+                regime_fwd[rname].append(r_fwd)
         except Exception as e:
             print(f"  {sym}: ERROR {e}")
 
@@ -354,13 +385,31 @@ def main() -> None:
     with out_path.open("w") as f:
         f.write("# Alpha Score 예측력 검증 결과\n\n")
         f.write(f"실행: {pd.Timestamp.now().isoformat()}\n\n")
-        f.write(f"## 최적 파라미터\n\n")
+        # 레짐 분포
+        f.write(f"## 레짐 분포\n\n```\n{regime_counts}\n```\n\n")
+        # 레짐별 성과
+        f.write("## 레짐별 Alpha 성과 (6봉=24h 기준)\n\n")
+        for rname in REGIMES:
+            r_list = regime_summary[rname]
+            if not r_list:
+                f.write(f"### {rname}: 데이터 부족\n\n")
+                continue
+            rdf = pd.DataFrame(r_list)
+            avg_corr = round(rdf["corr_6b"].mean(), 3) if "corr_6b" in rdf else None
+            edge_vals = rdf["edge_6b_%"].dropna()
+            avg_edge = round(edge_vals.mean(), 3) if len(edge_vals) > 0 else None
+            f.write(f"### {rname}\n")
+            f.write(f"- 종목 수: {len(rdf)}\n")
+            f.write(f"- 평균 상관계수(6b): {avg_corr}\n")
+            f.write(f"- 평균 엣지(6b): {avg_edge}%\n\n")
+        # 기존 전체 요약
+        f.write(f"## 전체 최적 파라미터\n\n")
         f.write(f"- 가중치: RS={rs_w} / Acc={acc_w} / CVD={cvd_w}\n")
         f.write(f"- 임계값: {opt_th}\n")
         f.write(f"- 평균 엣지 (6봉): {opt_edge:+.3f}%\n")
         f.write(f"- 평균 상관계수 (6봉): {opt_corr:.3f}\n")
         f.write(f"- **Verdict: {cal_verdict}**\n\n")
-        f.write("## 상관계수\n\n```\n")
+        f.write("## 전체 상관계수\n\n```\n")
         f.write(df_sum[corr_cols].to_string() if corr_cols else "N/A")
         f.write("\n```\n\n## Edge (Alpha > 1.0)\n\n```\n")
         f.write(df_sum[edge_cols].to_string() if edge_cols else "N/A")
