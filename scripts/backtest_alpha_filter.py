@@ -328,7 +328,8 @@ def main() -> None:
             btc_regime = ml_det.predict(btc_df)
             print("Using ML regime detector")
         else:
-            train_and_save(btc_df, ml_model_path)
+            ml_det = train_and_save(btc_df, ml_model_path)
+            btc_regime = ml_det.predict(btc_df)
     except Exception as e:
         print(f"ML regime fallback to rule-based: {e}")
 
