@@ -25,6 +25,49 @@ COUNT = 180             # 단일 요청으로 30일치 커버
 RECENT_WINDOW = 6       # 최근 윈도우 (6봉 = 24시간)
 
 
+def _fetch_macro_payload() -> dict | None:
+    """Fetch macro regime from macro-intelligence server. Returns None on failure."""
+    try:
+        from urllib.request import urlopen
+        with urlopen("http://127.0.0.1:8000/regime/current", timeout=3) as resp:
+            return json.loads(resp.read())
+    except Exception:
+        return None
+
+
+def compute_macro_bonus(payload: dict | None) -> float:
+    """
+    Compute macro bonus for pre_bull_score adjustment.
+    Returns 0.0 on failure or low confidence.
+
+    Bonuses:
+      VIX trend falling  → +0.2
+      DXY trend falling  → +0.1
+      expansionary regime → +0.3
+    Conditions:
+      payload must not be None AND overall_confidence >= 0.3
+    """
+    if payload is None:
+        return 0.0
+    confidence = float(payload.get("overall_confidence", 0.0))
+    if confidence < 0.3:
+        return 0.0
+    bonus = 0.0
+    try:
+        us_signals = payload["layers"]["us"]["signals"]
+        vix_trend = str(us_signals.get("vix_trend", ""))
+        dxy_trend = str(us_signals.get("dxy_trend", ""))
+        if "falling" in vix_trend.lower():
+            bonus += 0.2
+        if "falling" in dxy_trend.lower():
+            bonus += 0.1
+    except (KeyError, TypeError):
+        pass
+    if payload.get("overall_regime") == "expansionary":
+        bonus += 0.3
+    return round(bonus, 3)
+
+
 def fetch_single(symbol: str) -> tuple[str, pd.DataFrame | None]:
     try:
         df = pyupbit.get_ohlcv(symbol, interval=INTERVAL, count=COUNT)
@@ -186,6 +229,10 @@ def get_alpha_scan_results() -> tuple[str, float, dict]:
     # 중립=0, 강한 매집(불장 전조)=+2.0
     pre_bull_score = round(pct_pos_acc + pct_pos_cvd + pct_weak_rs - 1.0, 3)
 
+    macro_payload = _fetch_macro_payload()
+    macro_bonus = compute_macro_bonus(macro_payload)
+    pre_bull_score_adj = round(pre_bull_score + macro_bonus, 3)
+
     pre_bull_signals = {
         "stealth_acc_count": stealth_acc_count,
         "stealth_acc_ratio": round(stealth_acc_count / max(total_coins, 1), 3),
@@ -193,6 +240,8 @@ def get_alpha_scan_results() -> tuple[str, float, dict]:
         "pct_pos_cvd": pct_pos_cvd,
         "pct_weak_rs": pct_weak_rs,
         "pre_bull_score": pre_bull_score,
+        "macro_bonus": macro_bonus,
+        "pre_bull_score_adj": pre_bull_score_adj,
         "total_coins_scanned": total_coins,
     }
 
@@ -308,8 +357,9 @@ def main() -> None:
             }, indent=2))
             print(
                 f"[Pre-Bull] score={pre_bull['pre_bull_score']:+.3f} "
-                f"stealth={pre_bull['stealth_acc_count']}/{pre_bull['total_coins_scanned']} "
-                f"(acc%={pre_bull['pct_pos_acc']:.0%} cvd%={pre_bull['pct_pos_cvd']:.0%} weak_rs%={pre_bull['pct_weak_rs']:.0%})"
+                f"macro_bonus={pre_bull['macro_bonus']:+.3f} "
+                f"adj={pre_bull['pre_bull_score_adj']:+.3f} "
+                f"stealth={pre_bull['stealth_acc_count']}/{pre_bull['total_coins_scanned']}"
             )
 
             # Correlation matrix (rotation detection)
