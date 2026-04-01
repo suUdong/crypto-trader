@@ -82,3 +82,25 @@ python -m crypto_trader.cli         # run daemon
 
 Capital allocated by 90-day ROI + Sharpe ratio. Disabled wallets stay in config
 as comments. See `daemon.toml` comments for allocation rationale.
+
+## Macro Regime Integration
+
+매크로 서버: `http://127.0.0.1:8000` (macro-intelligence 프로젝트)
+- `/regime/current` — 전체 레짐 + VIX/DXY/KOSPI 등 개별 시그널
+- `/regime/downstream/crypto-trader` — crypto-trader 전용 페이로드
+- `src/crypto_trader/macro/client.py` + `adapter.py` — 레짐 → 포지션 배수 변환
+
+**TODO: pre_bull_score에 매크로 보너스 추가**
+```
+macro_bonus = vix_falling(+0.2) + dxy_falling(+0.1) + expansionary(+0.3)
+pre_bull_score_adjusted = pre_bull_score + macro_bonus
+```
+- 서버 다운 또는 confidence < 0.3 이면 macro_bonus = 0.0 (fallback)
+
+## Backtest Rules
+
+- 백테스트 완료 시 결과를 반드시 `docs/backtest_history.md`에 누적 기록
+- CLAUDE.md에 결과 직접 기록 금지 (토큰 낭비)
+- 실패한 전략도 기록 필수 — 동일 실험 반복 방지
+- 기록 포맷: 날짜 | 전략명 | 파라미터 | 승률 | avg수익 | Sharpe | 결론
+- **새 전략 설계 전 반드시 `docs/backtest_history.md` 확인** — 과거 실험 반복 방지

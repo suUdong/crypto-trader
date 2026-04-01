@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 from collections.abc import Mapping
+from pathlib import Path
 from dataclasses import replace
 from datetime import UTC
 from typing import Any, Protocol
@@ -46,6 +47,13 @@ from crypto_trader.strategy.obi import OBIStrategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
 from crypto_trader.strategy.vpin import VPINStrategy
+from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
+
+# --- Lab Mode Strategies ---
+from crypto_trader.strategy.btc_regime_rotation import BtcRegimeRotationStrategy
+from crypto_trader.strategy.truth_seeker import TruthSeekerStrategy
+from crypto_trader.strategy.truth_seeker_v2 import TruthSeekerV2Strategy
+from crypto_trader.strategy.experimental.accumulation_hunter import AccumulationBreakoutStrategy
 
 
 class StrategyProtocol(Protocol):
@@ -168,6 +176,26 @@ def create_strategy(
             ema_trend_period=int(params.get("ema_trend_period", 20)),
             adx_threshold=float(params.get("adx_threshold", 15.0)),
         )
+    if strategy_type == "truth_seeker":
+        return TruthSeekerStrategy(
+            strategy_config,
+            vpin_threshold=float(params.get("vpin_threshold", 0.45)),
+            obi_threshold=float(params.get("obi_threshold", 0.12)),
+        )
+    if strategy_type == "truth_seeker_v2":
+        return TruthSeekerV2Strategy(
+            strategy_config,
+            vpin_threshold=float(params.get("vpin_threshold", 0.45)),
+            obi_threshold=float(params.get("obi_threshold", 0.12)),
+            toxic_vpin_threshold=float(params.get("toxic_vpin_threshold", 0.80)),
+        )
+    if strategy_type == "accumulation_breakout":
+        return AccumulationBreakoutStrategy(
+            strategy_config,
+            vpin_threshold=float(params.get("vpin_threshold", 0.55)),
+            cvd_slope_threshold=float(params.get("cvd_slope_threshold", 10.0)),
+            volatility_ceiling=float(params.get("volatility_ceiling", 0.015)),
+        )
     if strategy_type == "funding_rate":
         return FundingRateStrategy(
             strategy_config,
@@ -181,6 +209,15 @@ def create_strategy(
             min_confidence=float(params.get("min_confidence", 0.5)),
             max_holding_bars=int(params.get("max_holding_bars", 48)),
             cooldown_bars=int(params.get("cooldown_bars", 6)),
+        )
+    if strategy_type == "etf_flow_admission":
+        return EtfFlowAdmissionStrategy(
+            strategy_config,
+            max_fear_index=int(params.get("max_fear_index", 20)),
+            max_kimchi_premium=float(params.get("max_kimchi_premium", -0.002)),
+            rsi_oversold=float(params.get("rsi_oversold", 30.0)),
+            std_multiplier=float(params.get("std_multiplier", 0.5)),
+            min_absolute_flow=float(params.get("min_absolute_flow", 20.0)),
         )
     if strategy_type == "ema_crossover":
         return EMACrossoverStrategy(strategy_config)
@@ -221,7 +258,12 @@ def create_strategy(
             quorum_threshold=quorum_threshold,
             exit_mode=exit_mode,
         )
+    if strategy_type == "btc_regime_rotation":
+        min_alpha = float(params.get("min_alpha", 1.0))
+        return BtcRegimeRotationStrategy(strategy_config, min_alpha=min_alpha)
     return CompositeStrategy(strategy_config, regime_config)
+
+
 
 
 class StrategyWallet:
@@ -262,6 +304,9 @@ class StrategyWallet:
                 "prefer_limit_entries",
                 wallet_config.strategy in self._LIMIT_FRIENDLY_STRATEGIES,
             )
+        )
+        self._btc_stealth_gate: bool = bool(
+            wallet_config.strategy_overrides.get("btc_stealth_gate", False)
         )
         self._limit_confidence_cap = float(
             wallet_config.strategy_overrides.get("limit_confidence_cap", 0.72)
@@ -359,6 +404,29 @@ class StrategyWallet:
         }
         return self.broker.equity(prices)
 
+    def _read_btc_regime(self) -> bool | None:
+        """Read BTC bull/bear regime from stealth-watchlist.json (written by lab loop).
+
+        Returns True (bull), False (bear), or None (file missing/stale > 3h).
+        Only checked when self._btc_stealth_gate is True.
+        """
+        if not self._btc_stealth_gate:
+            return None
+        import json as _json
+        from datetime import datetime as _dt, timezone as _tz
+        path = Path("artifacts/stealth-watchlist.json")
+        try:
+            data = _json.loads(path.read_text())
+            updated_at = _dt.fromisoformat(data["updated_at"])
+            if updated_at.tzinfo is None:
+                updated_at = updated_at.replace(tzinfo=_tz.utc)
+            age_hours = (_dt.now(_tz.utc) - updated_at).total_seconds() / 3600
+            if age_hours > 3.0:
+                return None  # stale — don't gate on old data
+            return bool(data.get("btc_bull_regime", True))
+        except Exception:
+            return None  # fail open
+
     @staticmethod
     def _volume_ratio(candles: list[Candle], window: int = 20) -> float:
         """Current bar volume / rolling average volume."""
@@ -418,7 +486,13 @@ class StrategyWallet:
             self.risk_manager.update_atr_from_candles(candles)
             self.risk_manager.tick_cooldown()
             position = self.broker.positions.get(symbol)
-            signal = evaluate_strategy(self.strategy, candles, position, symbol=symbol)
+            signal = evaluate_strategy(
+                self.strategy,
+                candles,
+                position,
+                symbol=symbol,
+                macro=self._macro_snapshot,
+            )
             latest_price = candles[-1].close
             order: OrderResult | None = None
             utc_hour: int | None = None
@@ -432,8 +506,12 @@ class StrategyWallet:
             vol_ratio = self._volume_ratio(candles)
 
             # --- Macro regime gate: block entries in adverse regimes ---
+            force_fear_buy = str(signal.context.get("force_fear_buy", "")).lower() == "true"
             regime_blocked, regime_reason = self._macro_adapter.should_block_entry(
-                self._macro_snapshot, strategy_type=self.strategy_type,
+                self._macro_snapshot,
+                strategy_type=self.strategy_type,
+                force_fear_buy=force_fear_buy,
+                btc_bull_regime=self._read_btc_regime(),
             )
             effective_min_confidence = self._macro_adapter.confidence_floor(
                 self._macro_snapshot, self.risk_manager.effective_min_confidence,
