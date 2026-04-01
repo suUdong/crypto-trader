@@ -317,6 +317,21 @@ def main() -> None:
     symbols = pyupbit.get_tickers(fiat="KRW")
     btc_df = pyupbit.get_ohlcv("KRW-BTC", interval=INTERVAL, count=COUNT)
     btc_regime = detect_btc_regime(btc_df)
+
+    # Try ML regime detector if model exists; train if first run
+    ml_model_path = Path("artifacts/ml-regime-model.pkl")
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from ml_regime_detector import MLRegimeDetector, train_and_save
+        if ml_model_path.exists():
+            ml_det = MLRegimeDetector.load(ml_model_path)
+            btc_regime = ml_det.predict(btc_df)
+            print("Using ML regime detector")
+        else:
+            train_and_save(btc_df, ml_model_path)
+    except Exception as e:
+        print(f"ML regime fallback to rule-based: {e}")
+
     regime_counts = btc_regime.value_counts().to_dict()
     print(f"레짐 분포: {regime_counts}")
 
