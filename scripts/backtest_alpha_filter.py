@@ -69,10 +69,15 @@ def fetch_symbol(symbol: str) -> tuple[str, pd.DataFrame | None]:
         return symbol, None
 
 
-def compute_alpha_series(df: pd.DataFrame, btc_df: pd.DataFrame) -> pd.Series:
+def compute_alpha_series(
+    df: pd.DataFrame,
+    btc_df: pd.DataFrame,
+    lookback: int = LOOKBACK,
+    recent_w: int = RECENT_W,
+) -> pd.Series:
     """
-    각 시점 t에서 과거 LOOKBACK봉의 Alpha Score를 계산합니다.
-    Returns: pd.Series (index=df.index[LOOKBACK:])
+    각 시점 t에서 과거 lookback봉의 Alpha Score를 계산합니다.
+    Returns: DataFrame (rs_z, acc_z, cvd_z, alpha 포함)
     """
     common_len = min(len(df), len(btc_df))
     df = df.iloc[-common_len:]
@@ -87,13 +92,13 @@ def compute_alpha_series(df: pd.DataFrame, btc_df: pd.DataFrame) -> pd.Series:
     btc_c   = torch.tensor(btc_df['close'].values, device='cuda', dtype=torch.float32)
 
     alpha_values = []
-    for t in range(LOOKBACK, n):
-        c  = closes[t - LOOKBACK: t]
-        o  = opens [t - LOOKBACK: t]
-        h  = highs [t - LOOKBACK: t]
-        l  = lows  [t - LOOKBACK: t]
-        v  = vols  [t - LOOKBACK: t]
-        bc = btc_c [t - LOOKBACK: t]
+    for t in range(lookback, n):
+        c  = closes[t - lookback: t]
+        o  = opens [t - lookback: t]
+        h  = highs [t - lookback: t]
+        l  = lows  [t - lookback: t]
+        v  = vols  [t - lookback: t]
+        bc = btc_c [t - lookback: t]
 
         # RS
         rs = ((c[-1] / c[0].clamp(1e-9)) / (bc[-1] / bc[0].clamp(1e-9))).item()
@@ -101,16 +106,16 @@ def compute_alpha_series(df: pd.DataFrame, btc_df: pd.DataFrame) -> pd.Series:
         # Acc
         rng = (h - l).clamp(1e-9)
         vpin = (c - o).abs() / rng
-        acc = (vpin[-RECENT_W:].mean() / vpin[:-RECENT_W].mean().clamp(1e-9)).item()
+        acc = (vpin[-recent_w:].mean() / vpin[:-recent_w].mean().clamp(1e-9)).item()
 
         # CVD slope
         direction = torch.where(c >= o, torch.ones_like(v), torch.full_like(v, -1.0))
         cvd = (v * direction).cumsum(0)
-        cvd_slope = ((cvd[-1] - cvd[-RECENT_W]) / v.mean().clamp(1e-9)).item()
+        cvd_slope = ((cvd[-1] - cvd[-recent_w]) / v.mean().clamp(1e-9)).item()
 
         alpha_values.append({"rs": rs, "acc": acc, "cvd": cvd_slope})
 
-    df_alpha = pd.DataFrame(alpha_values, index=df.index[LOOKBACK:])
+    df_alpha = pd.DataFrame(alpha_values, index=df.index[lookback:])
 
     # z-score 정규화
     for col in ["rs", "acc", "cvd"]:
@@ -125,6 +130,75 @@ def compute_alpha_series(df: pd.DataFrame, btc_df: pd.DataFrame) -> pd.Series:
         df_alpha["cvd_z"] * 0.3
     )
     return df_alpha  # DataFrame 반환 (rs_z, acc_z, cvd_z, alpha 포함)
+
+
+def compute_alpha_series_vectorized(
+    df: pd.DataFrame,
+    btc_df: pd.DataFrame,
+    lookback: int = LOOKBACK,
+    recent_w: int = RECENT_W,
+) -> pd.DataFrame:
+    """
+    Fully GPU-vectorized alpha series — uses unfold to eliminate Python time loop.
+    Returns same schema as compute_alpha_series: DataFrame with rs, acc, cvd, rs_z, acc_z, cvd_z, alpha.
+    """
+    common_len = min(len(df), len(btc_df))
+    df = df.iloc[-common_len:]
+    btc_df = btc_df.iloc[-common_len:]
+
+    closes  = torch.tensor(df['close'].values,     device='cuda', dtype=torch.float32)
+    opens   = torch.tensor(df['open'].values,      device='cuda', dtype=torch.float32)
+    highs   = torch.tensor(df['high'].values,      device='cuda', dtype=torch.float32)
+    lows    = torch.tensor(df['low'].values,       device='cuda', dtype=torch.float32)
+    vols    = torch.tensor(df['volume'].values,    device='cuda', dtype=torch.float32)
+    btc_c   = torch.tensor(btc_df['close'].values, device='cuda', dtype=torch.float32)
+
+    n_windows = common_len - lookback
+    if n_windows <= 0:
+        return pd.DataFrame()
+
+    # unfold produces (common_len - lookback + 1) windows; keep only n_windows
+    # so that each window[i] covers indices [i, i+lookback) matching the loop
+    c_w   = closes.unfold(0, lookback, 1)[:n_windows]
+    o_w   = opens.unfold(0, lookback, 1)[:n_windows]
+    h_w   = highs.unfold(0, lookback, 1)[:n_windows]
+    l_w   = lows.unfold(0, lookback, 1)[:n_windows]
+    v_w   = vols.unfold(0, lookback, 1)[:n_windows]
+    btc_w = btc_c.unfold(0, lookback, 1)[:n_windows]
+
+    # RS
+    sym_norm = c_w / c_w[:, 0:1].clamp(min=1e-9)
+    btc_norm = btc_w / btc_w[:, 0:1].clamp(min=1e-9)
+    rs = (sym_norm / btc_norm)[:, -1]
+
+    # Acc
+    rng  = (h_w - l_w).clamp(min=1e-9)
+    vpin = (c_w - o_w).abs() / rng
+    acc  = vpin[:, -recent_w:].mean(dim=1) / vpin[:, :-recent_w].mean(dim=1).clamp(min=1e-9)
+
+    # CVD slope
+    direction = torch.where(c_w >= o_w, torch.ones_like(v_w), torch.full_like(v_w, -1.0))
+    cvd = (v_w * direction).cumsum(dim=1)
+    vol_mean = v_w.mean(dim=1).clamp(min=1e-9)
+    cvd_slope = (cvd[:, -1] - cvd[:, -recent_w]) / vol_mean
+
+    # z-score (time-series normalization)
+    def zs(t: torch.Tensor) -> torch.Tensor:
+        return (t - t.mean()) / (t.std() + 1e-9)
+
+    rs_z, acc_z, cvd_z = zs(rs), zs(acc), zs(cvd_slope)
+    alpha = rs_z * 0.4 + acc_z * 0.3 + cvd_z * 0.3
+
+    idx = df.index[lookback:]
+    return pd.DataFrame({
+        "rs":    rs.cpu().numpy(),
+        "acc":   acc.cpu().numpy(),
+        "cvd":   cvd_slope.cpu().numpy(),
+        "rs_z":  rs_z.cpu().numpy(),
+        "acc_z": acc_z.cpu().numpy(),
+        "cvd_z": cvd_z.cpu().numpy(),
+        "alpha": alpha.cpu().numpy(),
+    }, index=idx)
 
 
 def compute_edge(
@@ -268,7 +342,7 @@ def main() -> None:
 
     for sym, df in all_data.items():
         try:
-            alpha_df = compute_alpha_series(df, btc_df)
+            alpha_df = compute_alpha_series_vectorized(df, btc_df)
             res = validate_alpha_predictiveness(df, alpha_df, sym)
             summary.append(res)
             print(f"  {sym}: corr_1b={res.get('corr_1b', 'N/A')}  edge_6b={res.get('edge_6b_%', 'N/A')}%")
@@ -379,6 +453,37 @@ def main() -> None:
     save_calibration(cal)
     print(f"  Calibration saved → artifacts/alpha-calibration.json  verdict={cal_verdict}")
 
+    # ── LOOKBACK 그리드 서치 ────────────────────────────────────────────────
+    LOOKBACK_GRID = [6, 12, 18, 24, 30]
+    print("\n[LOOKBACK Grid Search] Testing lookback windows on all fetched symbols...")
+    lb_results = []
+    for lb in LOOKBACK_GRID:
+        lb_edges, lb_corrs = [], []
+        for sym, df in all_data.items():
+            try:
+                alpha_df = compute_alpha_series_vectorized(df, btc_df, lookback=lb)
+                if len(alpha_df) < lb + max(FORWARD_BARS) + 5:
+                    continue
+                closes = df['close'].reindex(alpha_df.index)
+                fwd = closes.shift(-6) / closes - 1
+                edge, corr, n = compute_edge(alpha_df["alpha"], fwd, ALPHA_THRESHOLD)
+                if n >= 5:
+                    lb_edges.append(edge)
+                    lb_corrs.append(corr)
+            except Exception:
+                continue
+        avg_e = round(float(np.mean(lb_edges)), 4) if lb_edges else float('nan')
+        avg_c = round(float(np.mean(lb_corrs)), 4) if lb_corrs else float('nan')
+        n_sym = len(lb_edges)
+        lb_results.append({"lookback": lb, "hours": lb * 4, "avg_edge_%": avg_e, "avg_corr": avg_c, "n_symbols": n_sym})
+        print(f"  LB={lb:2d} ({lb*4:3d}h): edge={avg_e:+.4f}%  corr={avg_c:+.4f}  n={n_sym}")
+
+    df_lb = pd.DataFrame(lb_results)
+    best_lb_row = df_lb.loc[df_lb["avg_edge_%"].idxmax()] if not df_lb.empty else None
+    if best_lb_row is not None:
+        print(f"\n  ★ 최적 LOOKBACK: {int(best_lb_row['lookback'])}봉 ({int(best_lb_row['hours'])}h) "
+              f"edge={best_lb_row['avg_edge_%']:+.4f}%  corr={best_lb_row['avg_corr']:+.4f}")
+
     # ── 마크다운 리포트 저장 ─────────────────────────────────────────────────
     out_path = Path("artifacts/alpha-backtest-result.md")
     out_path.parent.mkdir(exist_ok=True)
@@ -409,6 +514,12 @@ def main() -> None:
         f.write(f"- 평균 엣지 (6봉): {opt_edge:+.3f}%\n")
         f.write(f"- 평균 상관계수 (6봉): {opt_corr:.3f}\n")
         f.write(f"- **Verdict: {cal_verdict}**\n\n")
+        # LOOKBACK 그리드 서치 결과
+        f.write("## LOOKBACK 그리드 서치 결과 (6봉=24h forward)\n\n```\n")
+        f.write(df_lb.to_string(index=False))
+        f.write("\n```\n\n")
+        if best_lb_row is not None:
+            f.write(f"**★ 최적 LOOKBACK: {int(best_lb_row['lookback'])}봉 ({int(best_lb_row['hours'])}h)**\n\n")
         f.write("## 전체 상관계수\n\n```\n")
         f.write(df_sum[corr_cols].to_string() if corr_cols else "N/A")
         f.write("\n```\n\n## Edge (Alpha > 1.0)\n\n```\n")
