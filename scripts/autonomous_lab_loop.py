@@ -196,7 +196,7 @@ def get_alpha_scan_results() -> tuple[str, float, dict]:
         "total_coins_scanned": total_coins,
     }
 
-    return df_result.head(15).to_string(index=False), cal_threshold, pre_bull_signals
+    return df_result.head(15).to_string(index=False), cal_threshold, pre_bull_signals, all_data
 
 
 def update_state(cycle: int, note: str) -> None:
@@ -259,7 +259,7 @@ def main() -> None:
             cycle = current + 1
             print(f"\n--- [Cycle {cycle} START] ---")
 
-            scan_data, cal_threshold, pre_bull = get_alpha_scan_results()
+            scan_data, cal_threshold, pre_bull, all_data = get_alpha_scan_results()
 
             report_path = RESEARCH_DIR / f"Cycle-{cycle:03d}-alpha-report.md"
             with report_path.open("w") as f:
@@ -311,6 +311,27 @@ def main() -> None:
                 f"stealth={pre_bull['stealth_acc_count']}/{pre_bull['total_coins_scanned']} "
                 f"(acc%={pre_bull['pct_pos_acc']:.0%} cvd%={pre_bull['pct_pos_cvd']:.0%} weak_rs%={pre_bull['pct_weak_rs']:.0%})"
             )
+
+            # Correlation matrix (rotation detection)
+            try:
+                import sys as _sys
+                _sys.path.insert(0, str(_project_root / "scripts"))
+                from gpu_correlation import compute_correlation_matrix
+                corr_result = compute_correlation_matrix(all_data, window=30)
+                corr_path = Path("artifacts/correlation-matrix.json")
+                import json as _json
+                _json.dump({
+                    "updated_at": datetime.now().isoformat(),
+                    "cycle": cycle,
+                    "avg_corr": corr_result["avg_corr"],
+                    "leaders": corr_result["leaders"],
+                }, corr_path.open("w"), indent=2)
+                print(
+                    f"[Corr] avg={corr_result['avg_corr']:.3f} "
+                    f"leaders={corr_result['leaders'][:3]}"
+                )
+            except Exception as e:
+                print(f"[Corr] skipped: {e}")
 
             update_state(cycle, f"Cycle {cycle} archived.")
             print(f"--- [Cycle {cycle} DONE] ---")
