@@ -314,18 +314,17 @@ def main() -> None:
 
             # Correlation matrix (rotation detection)
             try:
-                import sys as _sys
-                _sys.path.insert(0, str(_project_root / "scripts"))
+                sys.path.insert(0, str(_project_root / "scripts"))
                 from gpu_correlation import compute_correlation_matrix
                 corr_result = compute_correlation_matrix(all_data, window=30)
                 corr_path = Path("artifacts/correlation-matrix.json")
-                import json as _json
-                _json.dump({
-                    "updated_at": datetime.now().isoformat(),
-                    "cycle": cycle,
-                    "avg_corr": corr_result["avg_corr"],
-                    "leaders": corr_result["leaders"],
-                }, corr_path.open("w"), indent=2)
+                with corr_path.open("w") as _f:
+                    json.dump({
+                        "updated_at": datetime.now().isoformat(),
+                        "cycle": cycle,
+                        "avg_corr": corr_result["avg_corr"],
+                        "leaders": corr_result["leaders"],
+                    }, _f, indent=2)
                 print(
                     f"[Corr] avg={corr_result['avg_corr']:.3f} "
                     f"leaders={corr_result['leaders'][:3]}"
