@@ -98,30 +98,56 @@ def compute_batch_gpu(all_data: dict[str, pd.DataFrame], btc_df: pd.DataFrame, c
     vol_mean = vols_mat.mean(dim=1).clamp(min=1e-9)               # (n,)
     cvd_slope = (cvd[:, -1] - cvd[:, -RECENT_WINDOW]) / vol_mean   # (n,)
 
-    # ── z-score 정규화 후 Alpha 계산 ──────────────────────────────────────
+    # ── Extended features ─────────────────────────────────────────────────
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).resolve().parent))
+    from gpu_features import compute_gpu_features
+    ext = compute_gpu_features(closes_mat, opens_mat, highs_mat, lows_mat, vols_mat)
+
+    # ── z-score 정규화 ────────────────────────────────────────────────────
     def zscore(t: torch.Tensor) -> torch.Tensor:
         return (t - t.mean()) / (t.std() + 1e-9)
 
-    rs_z   = zscore(rs)
-    acc_z  = zscore(acc)
-    cvd_z  = zscore(cvd_slope)
+    rs_z    = zscore(rs)
+    acc_z   = zscore(acc)
+    cvd_z   = zscore(cvd_slope)
+    rsi_z   = zscore(ext["rsi"])
+    macd_z  = zscore(ext["macd"])
+    atr_z   = zscore(ext["atr_norm"])
+    obv_z   = zscore(ext["obv_slope"])
+    bb_z    = zscore(ext["bb_pos"])
 
-    # calibration 파라미터 적용 (없으면 기본값)
-    rs_w   = cal.rs_weight  if cal else 0.4
-    acc_w  = cal.acc_weight if cal else 0.3
-    cvd_w  = cal.cvd_weight if cal else 0.3
-    alpha  = rs_z * rs_w + acc_z * acc_w + cvd_z * cvd_w
+    # calibration weights
+    rs_w   = cal.rs_weight   if cal else 0.4
+    acc_w  = cal.acc_weight  if cal else 0.3
+    cvd_w  = cal.cvd_weight  if cal else 0.3
+    rsi_w  = cal.rsi_weight  if cal else 0.0
+    macd_w = cal.macd_weight if cal else 0.0
+    atr_w  = cal.atr_weight  if cal else 0.0
+    obv_w  = cal.obv_weight  if cal else 0.0
+    bb_w   = cal.bb_weight   if cal else 0.0
 
-    # CPU로 내려서 DataFrame 구성
+    alpha = (
+        rs_z * rs_w + acc_z * acc_w + cvd_z * cvd_w
+        + rsi_z * rsi_w + macd_z * macd_w
+        + atr_z * atr_w + obv_z * obv_w + bb_z * bb_w
+    )
+
     df_out = pd.DataFrame({
-        "Symbol": symbols,
-        "Alpha":  alpha.cpu().numpy().round(4),
-        "RS":     rs.cpu().numpy().round(4),
-        "Acc":    acc.cpu().numpy().round(4),
-        "CVD":    cvd_slope.cpu().numpy().round(4),
-        "RS_z":   rs_z.cpu().numpy().round(4),
-        "Acc_z":  acc_z.cpu().numpy().round(4),
-        "CVD_z":  cvd_z.cpu().numpy().round(4),
+        "Symbol":  symbols,
+        "Alpha":   alpha.cpu().numpy().round(4),
+        "RS":      rs.cpu().numpy().round(4),
+        "Acc":     acc.cpu().numpy().round(4),
+        "CVD":     cvd_slope.cpu().numpy().round(4),
+        "RS_z":    rs_z.cpu().numpy().round(4),
+        "Acc_z":   acc_z.cpu().numpy().round(4),
+        "CVD_z":   cvd_z.cpu().numpy().round(4),
+        "RSI_z":   rsi_z.cpu().numpy().round(4),
+        "MACD_z":  macd_z.cpu().numpy().round(4),
+        "ATR_z":   atr_z.cpu().numpy().round(4),
+        "OBV_z":   obv_z.cpu().numpy().round(4),
+        "BB_z":    bb_z.cpu().numpy().round(4),
     }).sort_values("Alpha", ascending=False)
 
     return df_out
