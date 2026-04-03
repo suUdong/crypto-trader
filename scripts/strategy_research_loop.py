@@ -48,7 +48,7 @@ NOTIFY_SHARPE = 3.0   # 이 이상 Sharpe면 알림
 CYCLE_SLEEP = 600     # 사이클 간 대기 (초)
 
 # ── 품질 기준 ─────────────────────────────────────────────────────────────────
-MIN_MEANINGFUL_TRADES = 15   # 통계적 의미를 갖기 위한 최소 거래 수
+MIN_MEANINGFUL_TRADES = 30   # 통계적 의미를 갖기 위한 최소 거래 수 (Opus/Codex 리뷰: n<30 불충분)
 MIN_PROMISING_SHARPE  = 3.0  # promising 등급 기준
 MIN_MARGINAL_SHARPE   = 0.5  # marginal 등급 기준 (이하는 poor)
 
