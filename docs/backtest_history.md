@@ -12,6 +12,30 @@
 
 ---
 
+## 2026-04-03 — momentum_vpin_combo 4h 그리드 탐색 (사이클 67)
+
+**가설**: momentum 진입에 VPIN 필터 추가 → 노이즈 진입 감소
+**데이터**: SOL/ETH/APT/LINK/SUI 4시간봉 2022-01-01~2026-04-03
+**그리드**: vpin_thresh(0.55~0.75) × lookback(12/16/20) × TP(0.08/0.10/0.12) × SL(0.03/0.04)
+
+| 심볼 | lookback | TP | SL | Sharpe | WR | avg수익 | 거래수 |
+|---|---|---|---|---|---|---|---|
+| KRW-SOL | 20 | 0.12 | 0.04 | **+14.37** | 46.8% | +2.77% | 79 |
+| KRW-ETH | 12 | 0.12 | 0.03 | **+13.59** | 45.0% | +2.24% | 60 |
+| KRW-SUI | 20 | 0.12 | 0.03 | **+5.29** | 29.3% | +0.86% | 58 |
+| KRW-LINK | 12 | 0.12 | 0.03 | +0.41 | 27.1% | +0.06% | 85 |
+| KRW-APT | 12 | 0.12 | 0.03 | -2.67 | 19.3% | -0.38% | 83 |
+
+**중요 발견**:
+1. VPIN 필터 버그: `|close-open| / (|close-open| + ε)` → 항상 ≈1.0, 필터 무효. ADX+VOL 필터만 동작.
+2. ETH momentum도 Sharpe +13.59 확인 (이전 미탐색). ADX≥25, vol_mult=2.0, lookback=12.
+3. SUI momentum Sharpe +5.28 — daemon 반영 검토 필요 (거래수 58개로 충분).
+4. LINK/APT는 momentum 전략 부적합 — 제외 확정.
+
+**결론**: VPIN 필터 자체 edge 없음. 그러나 ETH momentum(Sharpe +13.59) 신규 확인 — ETH 파라미터 그리드 탐색으로 최적화 필요. SUI도 유망.
+
+---
+
 ## 2026-04-03 13:09 UTC — GPU Strategy Tournament (244 symbols, 4h×180)
 
 **데이터**: 230/244 KRW 심볼, 4시간봉 180봉, CUDA 텐서 병렬 처리
