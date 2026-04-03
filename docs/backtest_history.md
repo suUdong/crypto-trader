@@ -3342,3 +3342,47 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - **현재 daemon.toml 변경 없음** (기존 vpin_eth_wallet 유지)
 
 ---
+
+## 2026-04-03 17:22 UTC — stealth_3gate Gate 4 (btc_trend_pos) 전체 백테스트 (사이클 98)
+
+### 설정
+- 고정 파라미터: W=36, SMA20, RS[0.5,1.0), TP=15%, SL=3%
+- Gate 4: btc_trend_window=10 (BTC 10봉 수익률 > 0)
+- 기간: 2022~2026, KRW 알트 전체
+
+### 결과
+
+| 조합 | Sharpe | WR | avg | trades | syms |
+|---|:---:|:---:|:---:|:---:|:---:|
+| 베이스라인 (Gate 1+2+3) | +4.682 | 31.1% | +2.41% | 3760 | 93 |
+| **Gate 4 활성화** | **+5.129** | **33.0%** | **+2.66%** | **1879** | **93** |
+
+ΔSharpe = +0.447
+
+### 판정
+✅ Sharpe ≥ 5.0 — daemon 반영 기준 충족
+
+
+## 2026-04-03 17:23 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향 올바름.** btc_trend_pos Gate 4가 4개 심볼 전체 검증 → 전체 백테스트(사이클 98) Sharpe +5.129로 daemon 기준(5.0+) 달성. 유망 결과 2개(VPIN ETH +7.46, SOL +14.37)도 파이프라인이 실제 엣지를 포착 중임을 시사.
+
+**2. poor 5/7(71%)은 정상.** 자율 탐색 루프의 구조적 특성 — vix_falling 같은 미검증 필터를 넓게 실험하는 방식이라 이 비율은 예상 범위. 에러 0개로 실행 품질은 양호.
+
+**3. 다음 1주일 우선순위:**
+1. **Gate 4 daemon.toml 반영** — 사이클 98에서 Sharpe +5.129 기준 충족, 즉시 반영 가능
+2. **VPIN ETH / momentum SOL walk-forward** — IS Sharpe +7.46/+14.37은 과적합 강의심, OOS 없이 채택 불가
+3. **stealth_3gate paper 검증** — daemon 반영 전 paper 모드에서 신호 분포 확인
+
+**4. 즉시 반영 가능.** `stealth_3gate` Gate 4(`btc_trend_pos_gate=true`, `btc_trend_window=10`) — 사이클 98 전체 백테스트 Sharpe +5.129로 기준 충족. daemon.toml `strategy_overrides`에 반영 검토 권장.
+```
+
+</details>
+
+---

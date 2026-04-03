@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-ALGO"]
+symbols = ["KRW-ONG"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -140,7 +140,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-JST"]
+symbols = ["KRW-TAO"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -394,7 +394,7 @@ atr_stop_multiplier = 1.5
 # trailing_stop_pct = 0.01
 # cooldown_bars = 3
 
-# stealth_3gate_wallet_1: Sharpe +4.682 검증 (2026-04-03)
+# stealth_3gate_wallet_1: Sharpe +5.129 검증 (2026-04-04, 사이클 98 Gate4 활성화)
 [[wallets]]
 name = "stealth_3gate_wallet_1"
 strategy = "stealth_3gate"
@@ -408,6 +408,8 @@ rs_low = 0.5
 rs_high = 1.0
 cvd_slope_threshold = 0.0
 btc_stealth_gate = true
+btc_trend_pos_gate = true
+btc_trend_window = 10
 
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
