@@ -396,6 +396,12 @@ atr_stop_multiplier = 1.5
 
 # stealth_3gate_wallet_1: Sharpe +5.129 검증 (2026-04-04, 사이클 98 Gate4 활성화)
 # 사이클 105: symbols 추가 + config.py btc_trend_pos_gate 등록 → validation 수정
+# PRE-STAGED SUI (사이클 113, 2026-04-04):
+#   근거: W2 Sharpe +3.990, W3 Sharpe +3.068 (2/3창 통과), W1 실패는 SUI 초기 BEAR(2023) — Gate1 실전 차단
+#   상관관계: SUI vs 기존 7심볼 평균 0.606 (XRP 최저 0.504, AVAX 최고 0.643)
+#   SUI vs 포트폴리오: 0.709 / SUI 변동성: 87.4% (포트폴리오 58.7%) → 추가 시 변동성 +0.9%
+#   활성화 조건: pre_bull_score ≥ 0.90 + BTC>SMA20 확인 후 symbols에 "KRW-SUI" 추가
+#   주의: Sharpe 5.0 기준 미달(최고 +3.990) — BULL 레짐 진입 후 재검증 권장
 [[wallets]]
 name = "stealth_3gate_wallet_1"
 strategy = "stealth_3gate"
