@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-04-04 — Layer2/알트코인 momentum 스크리닝 (사이클 80)
+
+**목적**: SOL/ETH/XRP 외 신규 심볼(ARB, NEAR, OP, LINK, INJ) momentum walk-forward 스크리닝 — 커버리지 확장 가능성 타진  
+**설정**: 4h봉, IS=2022-05~2024-12, OOS=2025-01~2026-04  
+**기준 파라미터**: lb=8/10/12, adx=20/25 (SOL/ETH/XRP 확정 파라미터 기준)  
+**통과 기준**: OOS Sharpe > 3.0 && WR > 45% && trades >= 6
+
+| 심볼 | 최고 OOS Sharpe | 최고 OOS WR | 결론 |
+|---|:---:|:---:|:---:|
+| KRW-ARB | +2.51 (lb=12 adx=25) | 31.2% | ❌ 탈락 |
+| KRW-NEAR | -1.03 (lb=12 adx=25) | 28.0% | ❌ 탈락 |
+| KRW-OP | 데이터 없음 | — | ❌ 스킵 |
+| KRW-LINK | -0.96 (lb=12 adx=25) | 28.0% | ❌ 탈락 |
+| KRW-INJ | -2.71 (lb=10 adx=25) | 28.6% | ❌ 탈락 (IS 449행 = 데이터 부족) |
+
+**ARB 상세**:
+| 파라미터 | IS Sh | IS WR | IS T | OOS Sh | OOS WR | OOS T | 판정 |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| lb=8 adx=25 | +4.67 | 40.0% | 40 | -1.73 | 22.2% | 18 | ❌ |
+| lb=12 adx=25 | +3.73 | 39.5% | 38 | +2.51 | 31.2% | 16 | ❌ |
+| lb=10 adx=25 | +6.15 | 42.1% | 38 | +0.89 | 26.3% | 19 | ❌ |
+
+**핵심 발견**:
+- **Layer2 계열 전부 OOS WR 22-35%**: SOL/ETH/XRP(45-56%)와 구조적 차이 — L2 알트코인은 momentum 지속성 없음
+- **NEAR/LINK: OOS Sh 음수** (IS에선 양수) → IS→OOS 역전 = 과거 momentum이 2025년에 지속 안 됨
+- **INJ: IS 데이터 449행** = 상장 이력 짧아 신뢰성 없음
+- **OP: KRW 마켓 없음**
+- **L1 메이저(SOL/ETH/XRP)만 momentum edge** — 향후 BNB/BCH/DOGE 탐색 시 L1 기준 적용 권장
+
+**결론**: ARB/NEAR/OP/LINK/INJ 전 탈락 — 신규 momentum 후보 없음. 기존 3개 wallet(SOL/ETH/XRP) pre-staged 유지.  
+**다음 탐색 방향**: BNB/BCH/DOGE(L1 메이저) 또는 BULL 활성화 프로토콜 문서화
+
+---
+
 ## 2026-04-03 — ETH momentum VPIN 기여도 분석 + SOL/ETH daemon pre-staging (사이클 76)
 
 **목적**: 사이클 75 결과 기반 ETH VPIN 기여도 최종 판단 + BULL 전환 대비 daemon.toml 업데이트
@@ -2299,3 +2333,27 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 - lb=10 walk-forward 강세는 2025 특정 구간 집중 현상 (구조적 불안정)
 - **daemon.toml**: BEAR 레짐 + DISABLED 유지. pre-staged C8 파라미터 그대로 유효
 
+
+## 2026-04-03 15:07 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH/SOL/XRP 세 심볼에서 독립적으로 엣지 확인 → 단일 행운이 아닌 구조적 모멘텀 신호 존재 확인. promising 2/7(29%)은 낮아 보이지만 BTC(BEAR 구조), SUI(급등락), W3(데이터 부족)는 전략 결함이 아닌 필터링 정상 작동.
+
+**2. poor 5개(71%) 허용 범위.** 구조적 이유(레짐 억제, 데이터 부족)로 기각된 것들이 대부분 — 탐색 효율성 측면에서 오히려 정상.
+
+**3. 다음 1주일 우선순위:**
+1. **ETH C2_VPIN vs C0_base Δ Sharpe 정량 결론** — daemon 후보 확정 미결 상태
+2. **BULL 레짐 전환 트리거 명문화** — SOL/ETH/XRP 세 후보 pre-staged 완료, 활성화 조건만 남음
+3. **BTC 레짐 전환 시 자동 paper 활성화 로직** — 수동 확인 의존도 제거
+
+**4. 즉시 daemon 반영 없음.** XRP C8(lb=8, adx=25), SOL lb=12, ETH C2_VPIN 모두 BEAR+DISABLED 상태 유지 적절 — BULL 전환 확인 전 paper 활성화도 보류.
+```
+
+</details>
+
+---
