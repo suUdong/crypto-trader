@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-JST"]
+symbols = ["KRW-ALGO"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -140,7 +140,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-CRO"]
+symbols = ["KRW-JST"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -200,6 +200,36 @@ max_position_pct = 0.10
 # symbols = ["KRW-ETH"]
 # [wallets.strategy_overrides]
 # momentum_lookback = 12
+# momentum_entry_threshold = 0.005
+# rsi_period = 14
+# rsi_overbought = 75.0
+# max_holding_bars = 48
+# adx_threshold = 25.0
+# volume_filter_mult = 2.0
+# fear_greed_block_threshold = 30
+# btc_stealth_gate = true
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.04
+# take_profit_pct = 0.12
+# risk_per_trade_pct = 0.015
+# atr_stop_multiplier = 1.5
+# partial_tp_pct = 0.5
+# max_concurrent_positions = 2
+# max_position_pct = 0.10
+
+# PRE-STAGED 2026-04-03 사이클 77 검증 파라미터: momentum_xrp_wallet (BULL 전환 시 사용)
+#   KRW-XRP, lb=8, adx=25, vol=2.0, TP=12%, SL=4% → C8
+#   슬라이딩 W1(2024) Sh+5.5 WR47.4% T19 ✅, W2(2025) Sh+10.7 WR47.1% T17 ✅ (2/3)
+#   XRP 최적 lb=8 (SOL/ETH lb=12보다 단기 — XRP 모멘텀 지속성 짧음)
+#   AVAX/ADA/DOT/ATOM 스크리닝 모두 OOS 음수 → XRP만 통과
+# 활성화 조건: BTC BULL 레짐 전환 + pre_bull_score ≥ 0.6 확인 후 paper_trading=true로 재시작
+# [[wallets]]
+# name = "momentum_xrp_wallet"
+# strategy = "momentum"
+# initial_capital = 500_000.0
+# symbols = ["KRW-XRP"]
+# [wallets.strategy_overrides]
+# momentum_lookback = 8
 # momentum_entry_threshold = 0.005
 # rsi_period = 14
 # rsi_overbought = 75.0

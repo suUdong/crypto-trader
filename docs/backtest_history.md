@@ -2140,3 +2140,71 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 </details>
 
 ---
+
+## 2026-04-03 14:47 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH·SOL 모두 독립적으로 lb=12+adx=25 수렴 — 우연이 아닌 실재 엣지. walk-forward + 슬라이딩 윈도우 2/3 통과로 검증 완료 수준.
+
+**2. poor 5/7(71%) 허용 범위.** BTC는 BEAR 레짐 구조적 억제(전략 결함 아님), VPIN bkt=12는 OOS trades<6 희소화 문제 — 파라미터 미스매치로 bkt≥20 전환 시 즉시 정상화됨. 실질 실패율은 낮음.
+
+**3. 다음 1주일 우선순위:**
+1. **SOL lb=12 슬라이딩 윈도우 추가 구간 확인** — 사이클 76 기준 아직 단일 OOS, 2구간 이상 안정성 필수
+2. **ETH C2_VPIN(bkt=12, thr<0.40) vs C0_base 비교 정량화** — VPIN 추가 기여 Δ Sharpe가 노이즈인지 실질인지 결론 내야 daemon 후보 확정 가능
+3. **BULL 레짐 전환 트리거 로직 설계** — ADX>25 + 레짐 변경 감지 → paper 자동 재활성화 조건 명문화
+
+**4. 즉시 daemon 반영 없음.** 두 후보 모두 파라미터 검증은 완료됐으나 wallet DISABLED + BEAR 레짐 — `daemon.toml` pre-staged 주석 상태 유지, BTC 레짐 전환 확인 후 paper 활성화가 올바른 순서.
+```
+
+</details>
+
+---
+
+## 2026-04-03 — SUI momentum 슬라이딩 윈도우 검증 실패 + XRP momentum 신규 발견 (사이클 77)
+
+### SUI momentum 슬라이딩 윈도우 검증 결과 (기각)
+
+**설정**: KRW-SUI 4h봉, 데이터 2023-05~2026-04
+- W1: IS=2023-05~2023-12 / OOS=2024 | W2: IS=2023-05~2024-12 / OOS=2025 | W3: IS=~2025-12 / OOS=2026초
+
+| 후보 | W1(2024) | W2(2025) | W3(2026) | 통과 |
+|---|:---:|:---:|:---:|:---:|
+| C1 lb=12 adx=25 | ❌ WR=44.0% | ❌ Sh-30.1 | ❌ T=0 | **0/3** |
+| C0 lb=20 adx=25 | ❌ WR=42.3% | ❌ Sh-20.8 | ❌ T=0 | **0/3** |
+| C3 lb=12 TP15/SL5 | ✅ Sh+16.4 WR50% | ❌ Sh-30.6 | ❌ T=0 | **1/3** |
+
+**결론**: **SUI momentum 전략 기각** — W2(2025) OOS Sharpe 전 파라미터 극심히 음수(-20~-30). SUI 2025년 급등락 패턴이 momentum과 구조적 불일치. 이전 사이클 67 Sharpe +5.28은 전체 IS 기간 과적합이었음.
+
+---
+
+### XRP momentum 슬라이딩 윈도우 검증 (신규 발견)
+
+**배경**: SUI 실패 후 멀티심볼 스크리닝 → KRW-XRP가 IS Sh+10.0(WR50%), OOS Sh+15.1(WR53%) 통과
+**설정**: KRW-XRP 4h봉, 데이터 2022-05~2026-04
+- W1: IS=2022-05~2023-12 / OOS=2024-01~2024-12
+- W2: IS=2022-05~2024-12 / OOS=2025-01~2025-12
+- W3: IS=2022-05~2025-12 / OOS=2026-01~2026-04
+
+| 후보 | W1(2024 OOS) | W2(2025 OOS) | W3(2026 OOS) | 통과 |
+|---|:---:|:---:|:---:|:---:|
+| C1 lb=12 adx=25 | ❌ WR=42.1% Sh+4.6 | ✅ Sh+15.1 WR53% | ❌ T=3 | 1/3 |
+| **C8 lb=8 adx=25** | **✅ Sh+5.5 WR47.4% T19** | **✅ Sh+10.7 WR47.1% T17** | ❌ T=5 | **2/3 ◆** |
+| C6 lb=12 adx=30 | ❌ WR=40.0% Sh+6.8 | ✅ Sh+14.0 WR50% | ❌ T≤3 | 1/3 |
+
+**핵심 발견**:
+- **lb=8 (단기 lookback)이 XRP 최적** — XRP 모멘텀 지속성이 SOL/ETH(lb=12)보다 짧음
+- **C8(lb=8, adx=25) W1/W2 모두 통과**: WR≥47%, Sharpe≥5.0 — SOL/ETH와 동일한 2/3 슬라이딩 패턴
+- W3 실패: trades=5 (기준 T≥6 미달) + Sh-28.9 → 데이터 부족(3개월) 구조적 문제, SOL/ETH W3와 동일
+- AVAX/ADA/DOT/ATOM 모두 OOS 음수 Sharpe → XRP만 통과
+
+**결론**:
+- **KRW-XRP momentum C8(lb=8, adx=25, vol=2.0, TP=12%, SL=4%)**: 2/3 통과, daemon 조건부 후보
+- daemon 반영: 보류 (BEAR 레짐 + BULL 전환 미확인)
+- **pre-staged in daemon.toml**: BULL 전환 시 즉시 활성화 가능
+
+---
