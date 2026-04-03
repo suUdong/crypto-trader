@@ -3386,3 +3386,30 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 </details>
 
 ---
+
+## 2026-04-04 — vpin_eth "높은 VPIN momentum" 슬라이딩 WF 검증 (사이클 99)
+
+**목적**: daemon vpin_eth_wallet(IS Sharpe +7.461) 과적합 여부 확인  
+**전략**: 높은 VPIN momentum 진입 (vpin > vpin_high AND price_mom > threshold AND RSI 20-65 AND EMA trend)  
+**스크립트**: `scripts/backtest_vpin_eth_sliding_wf.py`  
+**참고**: 사이클 97의 sliding WF는 "낮은 VPIN 독성" 전략 → 이 스크립트가 실제 daemon 전략 검증
+
+| 파라미터 | W1 OOS(2024) | W2 OOS(2025) | W3 OOS(2026 Jan-Apr) | 통과 |
+|:---|:---:|:---:|:---:|:---:|
+| **C_daemon (hold=18, TP=6%, SL=0.8%, vm=0.0005)** | **+9.422 ✅** | **+4.662 ❌** | **+9.362 ✅** | **2/3 ◆** |
+| C1 (vm=0.0003, hold=18, TP=6%, SL=0.8%) | +9.422 ✅ | +4.662 ❌ | +9.362 ✅ | 2/3 ◆ |
+| C2 (vm=0.0005, hold=24, TP=6%, SL=0.8%) 이전 설정 | +9.409 ❌ | +3.021 ❌ | +6.628 ❌ | 0/3 ✗ |
+| C0_base (vm=0.0005, hold=18, TP=5%, SL=1.2%) | +11.323 ✅ | +3.258 ❌ | +2.093 ❌ | 1/3 ✗ |
+
+**W2 실패 원인 (C_daemon)**:
+- OOS Sharpe +4.662 (기준 3.0 충족) — WR=23.1% (기준 30% 미달)
+- 2025년 BEAR/변동성 구간에서 WR 하락, Sharpe는 여전히 양호
+
+**핵심 결론**:
+1. **C_daemon 2/3 통과** — IS Sharpe +7.461 과적합 아님, 실제 엣지 확인 (OOS W1/W3 Sharpe +9.4)
+2. **max_hold 24→18 개선 확정**: C2(hold=24) 0/3 vs C_daemon(hold=18) 2/3 — 파라미터 개선이 맞았음
+3. **W2(2025) 구조 분석**: WR 낮음은 vpin_eth 전략 특성 (낮은 WR + 높은 avg_ret). 2025년 특히 WR 저하.
+4. **daemon 유지 근거 충분**: 2/3 + 과적합 없음 + W2 Sharpe +4.662 유의미 → 현재 파라미터 유지
+5. **WR 개선 가설**: W2 WR 23% → 30%+ 달성을 위해 RSI ceiling 65→60 또는 vpin_high 0.55→0.60 탐색 여지
+
+**판정: 현재 daemon.toml 파라미터 유지 (근거 확보)**
