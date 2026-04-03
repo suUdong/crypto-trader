@@ -5028,3 +5028,52 @@ ONDO/SUI/SEI에 이어 APT도 동일 패턴 → vpin 프레임워크 BEAR 취약
 - (A) 볼린저 밴드 하단 이탈 반등 — 다른 메커니즘으로 BEAR 엣지 재탐색
 - (B) BTC BULL 전환 모니터링 스크립트 — pre_bull≥0.90 + Gate1 + Gate2 자동 감지
 
+
+## 2026-04-03 22:07 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37), vpin_eth(+7.46) 두 개의 검증된 엣지가 있고, BEAR 특화 전략(사이클 124~125)도 체계적으로 탐색 중. 사이클 126의 BB 반등은 RSI와 다른 메커니즘이므로 올바른 다음 스텝.
+
+**2. poor 5/7(71%) 정상 범위.** 원인은 현재 BTC BEAR 구간(pre_bull≈0.63)에서 BULL 의존적 vpin/momentum의 Gate1 자연 차단 + BEAR long-only 전략의 구조적 슬리피지 내성 한계(ETH 평균 수익 <0.5%로 비용 버퍼 부족). 전략 품질 문제가 아님.
+
+**3. 다음 1주일 우선순위:**
+1. **사이클 126 BB 반등 결과 분석** — Codex 에이전트 완료 후 슬리피지 0.20% 이상 내성 확인 (RSI보다 평균 수익 높을 가능성)
+2. **pre_bull ≥ 0.90 자동 트리거 스크립트** — BTC BULL 전환 즉시 ONDO vpin + momentum_sol 활성화 알림
+3. **ETH BEAR 전략 재설계 시 평균 수익 ≥ 1.5% 기준 강제** — 슬리피지 내성 확보를 위한 최소 수익 게이트 사전 설정
+
+**4. 즉시 반영 가능한 변경 없음.** 현재 배포 구조(ONDO vpin wallet 포함) 완성 상태이며 BULL 전환 전까지 추가 변경 불필요.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — 사이클 127: BTC BULL 전환 실시간 감지 스크립트
+
+**목적**: BULL 전환 시 즉시 ONDO vpin + momentum_sol 활성화를 위한 실시간 트리거 감지
+
+**구현**: `scripts/check_bull_trigger.py`
+- 트리거 3조건: pre_bull_adj >= 0.90 AND BTC>SMA20(4h) AND BTC>30봉전
+- CPU only (GPU 불필요), 전체 KRW 마켓 스캔 (~50 심볼)
+- RS 계산: (alt_last/alt_first) / (btc_last/btc_first) — market_scan_loop.py 동일 로직
+- `--threshold`: 임계값 조정 가능 (default 0.90)
+- `--watch N`: N초마다 반복 감시, 트리거 충족 시 exit code 1
+
+**현재 상태 (2026-04-04 22:11 UTC)**:
+| 조건 | 상태 | 값 |
+|------|------|-----|
+| pre_bull_adj >= 0.90 | ❌ 미달 | 0.480 (갭 0.420) |
+| BTC > SMA20 | ❌ 미달 | 101,520K / SMA20=102,194K (-0.7%) |
+| BTC > 30봉전 | ✅ 충족 | +1.1% |
+| **3조건 합계** | 1/3 | BULL 전환 대기 중 |
+
+**결론**: ✅ 스크립트 완성 — BULL 전환 전까지 `--watch 600` 옵션으로 10분마다 감시 가능
+
+**사용법**: `.venv/bin/python scripts/check_bull_trigger.py --threshold 0.90 --watch 600`
+
+---
