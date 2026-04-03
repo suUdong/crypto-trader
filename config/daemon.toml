@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-QTUM"]
+symbols = ["KRW-TAIKO"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -396,6 +396,10 @@ atr_stop_multiplier = 1.5
 
 # stealth_3gate_wallet_1: Sharpe +5.129 검증 (2026-04-04, 사이클 98 Gate4 활성화)
 # 사이클 105: symbols 추가 + config.py btc_trend_pos_gate 등록 → validation 수정
+# 사이클 129 (2026-04-04): TP/SL 최적화 — TP=10%, SL=1.0%
+#   근거: WF W1=6.495(n=1100) W2=5.045(n=1618) 슬리피지 0.10% 통과
+#   변경 전: TP=15% SL=3% → W2 Sharpe ~4.37 (WF 기준)
+#   변경 후: TP=10% SL=1.0% → W2 Sharpe 5.045 (+0.675 개선)
 # PRE-STAGED SUI (사이클 113, 2026-04-04):
 #   근거: W2 Sharpe +3.990, W3 Sharpe +3.068 (2/3창 통과), W1 실패는 SUI 초기 BEAR(2023) — Gate1 실전 차단
 #   상관관계: SUI vs 기존 7심볼 평균 0.606 (XRP 최저 0.504, AVAX 최고 0.643)
@@ -420,8 +424,8 @@ btc_trend_pos_gate = true
 btc_trend_window = 10
 
 [wallets.risk_overrides]
-stop_loss_pct = 0.03
-take_profit_pct = 0.15
+stop_loss_pct = 0.010
+take_profit_pct = 0.10
 risk_per_trade_pct = 0.02
 
 # vpin_ondo_wallet: 사이클 119+122 walk-forward 검증 확정 (2026-04-04)
