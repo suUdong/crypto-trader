@@ -3967,3 +3967,57 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 **결론**: **NEAR 탐색 종료 확정** — stealth_3gate BULL 조건에서 NEAR 구조적 엣지 부재. acc/RS 파라미터 공간 전체 탐색 완료.
 
 ---
+
+## 2026-04-03 19:08 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** BULL 레짐 집중 + 신규 심볼 스크리닝 구조가 유효 — SUI 발굴(W2+W3 Sharpe 3~4), vpin_eth(+7.46), momentum_sol(+14.37) 세 유망 결과가 누적 중. NEAR 16조합 전수 탐색 후 종료 결정도 탐색 규율 정상.
+
+**2. poor 5/7(71%) 정상.** BEAR 국면 + 신규 심볼 스크리닝의 구조적 기각률이 높을 수밖에 없으며, error 0개이므로 실행 품질 무결. 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **momentum_sol BULL 조건 문서화** — pre_bull≥0.90 트리거 기준 명시, daemon.toml 반영 초안 작성
+2. **SUI daemon 추가 준비** — 기존 7개 심볼 상관관계 분석, BULL 전환 시 즉시 배포 가능한 config 준비
+3. **vpin_eth Sharpe +7.46 검증 강화** — walk-forward 창 수 확대 또는 슬리피지 민감도 분석 (Sharpe가 너무 높아 과적합 의심)
+
+**4. 즉시 daemon 반영 불가.** BTC BEAR 국면 — SUI/momentum_sol 모두 pre_bull≥0.90 + BTC>SMA20 확인 후 반영. vpin_eth는 추가 검증 필요.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — 신규 심볼 stealth_3gate BULL 스크리닝 SEI/PYTH/JUP/ONDO (사이클 111)
+
+**가설**: Upbit 상장 신규 심볼(SEI/PYTH/JUP/ONDO) 에서 stealth_3gate BULL 엣지 보유 여부
+**스크립트**: `scripts/backtest_cycle111_new_symbols.py`
+**파라미터**: W=36, SMA20, RS[0.5,1.0), acc>1.0, CVD>0, TP=15%, SL=3%, Gate1+4
+
+### 결과 요약 (OOS Walk-Forward)
+
+| 심볼 | 데이터 시작 | W_A OOS(2025) Sharpe | W_B OOS(2026 BEAR) Sharpe | 창통과 |
+|:---|:---:|:---:|:---:|:---:|
+| **SEI** | 2023-08 | ✅ **+4.500** WR=57.1% n=14 | ❌ +0.0 n=1 (BEAR 차단) | 1/2 |
+| PYTH | 2024-02 | ❌ -0.516 WR=28.6% n=21 | ❌ +0.0 n=2 | 0/2 |
+| JUP | 2024-07 | 단창 | ❌ -13.7 WR=22.2% n=9 | 0/1 |
+| **ONDO** | 2024-06 | 단창 | ✅ **+5.762** WR=60.0% n=10 | 1/1 |
+
+**핵심 발견**:
+1. **SEI**: W_A(2025년 BULL) Sharpe +4.500, WR=57% — stealth_3gate BULL 레짐에서 유효 확인. W_B 실패는 2026 BEAR로 Gate1(BTC>SMA20) 자연 차단 (정상).
+2. **ONDO**: 단창이지만 OOS Sharpe +5.762, WR=60% 강력. 단 IS Sharpe=-1.071(WR=20%)으로 약함 — 추가 검증 필요.
+3. **PYTH**: IS/OOS 모두 부진, WR<30% — 엣지 없음 확정.
+4. **JUP**: OOS Sharpe -13.7 — stealth 신호 역방향, 제외 확정.
+
+**결론**:
+- SEI → SUI와 유사 패턴(BULL 레짐 유효, BEAR 자연 차단). 단 2/2창이 아닌 1/2창 — 추가 검증 필요
+- ONDO → 단창이라 신뢰도 제한적, 더 긴 윈도우로 재검증 권장
+- PYTH/JUP → 탈락 확정
+
+**다음 탐색**: SEI 윈도우 재설계(2창 확보) 또는 ONDO 추가 검증 (IS 구간 분석)
+
+---
