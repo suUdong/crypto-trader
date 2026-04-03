@@ -3648,3 +3648,50 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - 현재 BTC BEAR(-9.45%) 상황: 모든 stealth 전략 대기 상태 정상
 - 다음 BULL 전환 시 AVAX/LINK를 stealth_3gate 심볼로 추가 검토 권장
 
+
+## 2026-04-03 18:15 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol 실질 엣지 확인(Sharpe +14.37), ETH 모멘텀 SOL보다 불안정 파악, BEAR 레짐에서 Gate 1 필수성 재확인 — 탐색→기각→축적 흐름이 정상 작동 중.
+
+**2. poor 5/7(71%) 정상 범위.** 자율 그리드 탐색 구조상 불가피하며 error 0개로 실행 품질 양호. 단, stealth_3gate가 기준 충족 후에도 daemon 미반영 상태로 수 사이클 경과 중 — 검증→반영 지연이 실질 손실이며 이 부분이 유일한 구조적 문제.
+
+**3. 다음 1주일 우선순위:**
+1. `stealth_3gate` daemon 반영 — 가장 즉각적 가치, 계속 지연 중
+2. BULL 전환 대비 momentum_sol live 전환 조건 명시 (pre_bull 고수위)
+3. 신규 비효율 발굴 — vpin_eth/momentum_sol 파라미터 확정 완료, 새 심볼·레짐 탐색 차례 (AVAX/LINK BEAR stealth 후보)
+
+**4. 즉시 반영 가능:** `stealth_3gate` — `btc_trend_pos_gate=true`, `btc_trend_window=10`. 나머지는 현 파라미터 유지, momentum_eth 비활성화 유지.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — stealth_3gate_wallet_1 daemon.toml 완전 반영 (사이클 105)
+
+**목적**: 사이클 98 Sharpe +5.129 달성 후 수 사이클간 대기 중이던 `btc_trend_pos_gate` daemon 반영 완료
+**변경 내역**:
+1. `src/crypto_trader/config.py`: `stealth_3gate` 허용 오버라이드에 `btc_trend_pos_gate`, `btc_trend_window` 추가 (validation 오류 수정)
+2. `config/daemon.toml`: `stealth_3gate_wallet_1`에 `symbols` 추가 — AVAX, LINK, APT, XRP, ADA, DOT, ATOM (7 symbols)
+
+**근거**:
+- 사이클 98: Gate 4 활성화 Sharpe +5.129, WR=33.0%, avg=+2.66%, trades=1879, syms=93 ✅
+- 사이클 104: AVAX/LINK/APT BEAR 양수 성과 → 심볼 선정 근거
+- 검증: `load_config('config/daemon.toml')` 오류 없음, 48개 테스트 통과
+
+**변경 전 문제**:
+- `config.py`에 `btc_trend_pos_gate` 미등록 → validation ERROR
+- `daemon.toml` stealth_3gate_wallet_1에 `symbols` 없음 → 실제 거래 불가
+
+**변경 후 상태**:
+- stealth_3gate_wallet_1: paper_trading=true, 7 symbols, btc_trend_pos_gate=True, btc_trend_window=10
+- BTC BEAR 현재 상태에서 Gate 1(BTC>SMA20) 차단 → 진입 없음 (정상)
+- BULL 전환 시 즉시 paper 신호 생성 가능
+
+**결론**: daemon.toml 반영 완료 — 수 사이클간 지연된 최우선 작업 처리

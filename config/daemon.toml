@@ -395,11 +395,13 @@ atr_stop_multiplier = 1.5
 # cooldown_bars = 3
 
 # stealth_3gate_wallet_1: Sharpe +5.129 검증 (2026-04-04, 사이클 98 Gate4 활성화)
+# 사이클 105: symbols 추가 + config.py btc_trend_pos_gate 등록 → validation 수정
 [[wallets]]
 name = "stealth_3gate_wallet_1"
 strategy = "stealth_3gate"
 initial_capital = 750_000.0
 paper_trading = true
+symbols = ["KRW-AVAX", "KRW-LINK", "KRW-APT", "KRW-XRP", "KRW-ADA", "KRW-DOT", "KRW-ATOM"]
 
 [wallets.strategy_overrides]
 stealth_window = 36

@@ -302,6 +302,8 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "cvd_slope_threshold",
         "btc_stealth_gate",
         "min_confidence",
+        "btc_trend_pos_gate",
+        "btc_trend_window",
     },
 }
 
