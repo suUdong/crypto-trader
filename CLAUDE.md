@@ -88,9 +88,12 @@ Allocated by 90-day ROI + Sharpe. Disabled wallets commented in `daemon.toml`.
 
 **TODO: pre_bull_score에 매크로 보너스 추가**
 ```
-macro_bonus = vix_falling(+0.2) + dxy_falling(+0.1) + expansionary(+0.3)
+macro_bonus = btc_trend_pos(+0.1) + expansionary(+0.3)
 pre_bull_score_adjusted = pre_bull_score + macro_bonus
 ```
+- btc_trend_pos: BTC 10봉 수익률 > 0 (DXY 약세 proxy) — 사이클 94 검증
+- vix_falling: 백테스트 역효과 확인 → 삭제 (사이클 94)
+- dxy_falling: btc_trend_pos로 대체
 - 서버 다운 또는 confidence < 0.3 이면 macro_bonus = 0.0 (fallback)
 
 ## Codex 활용
