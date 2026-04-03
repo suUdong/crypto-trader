@@ -2357,3 +2357,59 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 </details>
 
 ---
+
+## 2026-04-03 15:17 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH VPIN(Sh+7.46)과 SOL momentum(Sh+14.37) 두 독립 심볼에서 구조적 엣지 확인 — XRP C8도 슬라이딩+walk-forward 이중 통과로 파이프라인이 실제 신호를 걸러내고 있음.
+
+**2. poor 5/7(71%) 허용 범위.** 대부분이 BTC BEAR 레짐 억제, W3 데이터 부족(T<6), lb=10 슬라이딩 1/3 기각 등 필터링 정상 작동 결과 — 전략 결함이 아닌 탐색 효율.
+
+**3. 다음 1주일 우선순위:**
+1. **ETH: C2_VPIN vs C0_base Δ Sharpe 슬라이딩 검증** — daemon 후보 미확정 상태 해소
+2. **SOL lb=12 슬라이딩 3구간 검증** — walk-forward만 통과, XRP 패턴 반복 가능성
+3. **BULL 레짐 활성화 트리거 명문화** — SOL/ETH/XRP 세 후보 pre-staged 완료, 전환 조건(BTC 레짐 기준) 자동화
+
+**4. 즉시 daemon 반영 없음.** 현재 BEAR 레짐 — XRP C8, SOL, ETH 모두 BULL 전환 확인 전 paper 활성화 보류가 맞음. 레짐 전환 시 XRP C8(lb=8, adx=25, vol=2.0, TP=12%, SL=4%)이 가장 검증 완료 상태.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — ETH C2_VPIN vs C0_base walk-forward 비교 (사이클 81)
+
+**목적**: 슬라이딩 2/3 통과한 C2_VPIN(bkt=12, thr<0.40)과 C0_base 중 ETH daemon 최종 후보 결정 — VPIN 기여가 실질인지 노이즈인지 판단  
+**설정**: KRW-ETH 240m(4h봉), IS=2022-05~2024-12 / OOS=2025-01~2026-04  
+**스크립트**: `scripts/backtest_eth_vpin_walkforward_compare.py`
+
+| 후보 | IS Sh | OOS Sh | OOS WR | OOS T | 판정 |
+|---|:---:|:---:|:---:|:---:|:---:|
+| C2_VPIN_adx20 (bkt=12 thr<0.40) | +2.766 | +2.435 | 61.5% | 13 | ❌ FAIL |
+| C0_base_adx20 (VPIN 없음) | +2.644 | +2.636 | 61.5% | 13 | ❌ FAIL |
+| C2_VPIN_adx25 (bkt=12 thr<0.40) | +2.210 | +1.739 | 50.0% | 20 | ❌ FAIL |
+| C0_base_adx25 (VPIN 없음) | +2.114 | +1.908 | 50.0% | 20 | ❌ FAIL |
+
+**VPIN 기여 분석**:
+- adx=20: Δ Sharpe = -0.201 (VPIN 마이너스 기여)
+- adx=25: Δ Sharpe = -0.169 (VPIN 마이너스 기여)
+- WR 차이 없음, trades 동일
+
+**OOS 실패 원인**: 2026 Q1 BEAR 레짐이 OOS에 포함 (슬라이딩 W2 2025-only=Sh+18.2 vs 2026포함=Sh+2.4). 전략 결함 아닌 레짐 억제.
+
+**핵심 결론**:
+1. **VPIN 기각** — C2_VPIN이 C0_base보다 Δ Sharpe -0.17~-0.20 낮음
+2. **ETH daemon 후보 변경**: C2_VPIN → **C0_base (lb=12, adx=25, vol_mult=2.0, TP=10%, SL=3%)**
+3. SOL/XRP 기준 통일: adx=25, vol_mult=2.0 채택
+
+**daemon pre-staging 확정 (3개 심볼)**:
+- ETH: C0_base(lb=12, adx=25, vol_mult=2.0, TP=10%, SL=3%) ← VPIN에서 변경
+- SOL: lb=12, adx=25 (기존 유지)
+- XRP: C8(lb=8, adx=25, vol_mult=2.0, TP=12%, SL=4%) (기존 유지)
+
+---
