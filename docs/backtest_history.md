@@ -5,6 +5,43 @@
 
 ---
 
+## 2026-04-03 — ETH momentum VPIN 기여도 분석 + SOL/ETH daemon pre-staging (사이클 76)
+
+**목적**: 사이클 75 결과 기반 ETH VPIN 기여도 최종 판단 + BULL 전환 대비 daemon.toml 업데이트
+**결론 요약**:
+- momentum_sol_wallet: `momentum_lookback` 20→12 업데이트 (OOS 역전 패턴 근거)
+- momentum_eth_wallet: pre-staged 주석 추가 (BULL 전환 시 즉시 활성화 가능)
+
+### ETH VPIN 기여도 분석 (사이클 75 데이터 기반)
+
+| 후보 | W1(2024) Sharpe | W1 trades | W2(2025) Sharpe | W2 trades | 통과 | VPIN Δ |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| C0_base (VPIN 없음) | +23.4 | 15 | +17.4 | 13 | 2/3 ✅ | baseline |
+| C2_VPIN (bkt=12, thr<0.40) | +25.5 | 13 | +18.2 | 12 | 2/3 ✅ | +Δ2.1/+Δ0.8 |
+| C1_VPIN (bkt=20, thr<0.35) | +29.0 | 10 | +13.2 | 7 | **1/3 ❌** | — |
+
+**결론**:
+- C2_VPIN 추가 Sharpe 기여: W1 +2.1, W2 +0.8 — marginal, trades 감소 대비 이득 미미
+- C1_VPIN(bkt=20, thr<0.35): 사이클 72 단일 OOS best였으나 슬라이딩 실패 (과적합)
+- **ETH 전략 확정: C0_base (lb=12, adx=25, TP=12%, SL=4%, VPIN 없음)**
+  - 이유: 동등 안정성(2/3), 더 많은 trades, 단순 구조 = 미래 레짐 변화 대응력↑
+- VPIN이 ETH에서 실질 기여를 보이지 않는 이유: BEAR 레짐 필터 역할 VPIN < ADX
+
+### daemon.toml 변경 사항
+
+| 항목 | 이전 | 이후 | 근거 |
+|---|---|---|---|
+| momentum_sol_wallet lookback | 20 | **12** | 사이클 73-74 OOS W2 lb=12 > lb=20 (+18 vs +16) |
+| momentum_eth_wallet | 주석(이전 파라미터) | **pre-staged (lb=12, adx=25)** | 사이클 75 C0_base 2/3 슬라이딩 통과 |
+
+### pre-staged ETH 활성화 조건
+
+1. BTC BULL 레짐 전환 확인
+2. `pre_bull_score ≥ 0.6`
+3. `paper_trading = true`로 시작 후 48h 관찰 → live 전환 검토
+
+---
+
 ## 2026-04-03 — momentum_sol 슬라이딩 윈도우 다중 OOS 검증 (사이클 74)
 
 **목적**: 사이클 73 단일 OOS 통과한 C1(lb=12, adx=25) 다중구간 안정성 검증

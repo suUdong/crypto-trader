@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-RAY"]
+symbols = ["KRW-JST"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -140,7 +140,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-TAIKO"]
+symbols = ["KRW-CRO"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -156,16 +156,19 @@ stop_loss_pct = 0.03
 take_profit_pct = 0.15
 risk_per_trade_pct = 0.02
 
-# momentum_sol_wallet: 2026-04-03 4h 그리드 최적화 Sharpe +14.367 WR 46.8%
-# UPDATED: adx 20→25, vol 1.5→2.0, TP 8%→12%, SL 3%→4%
-# 이전값: adx=20, vol=1.5, TP=0.08, SL=0.03
+# momentum_sol_wallet: 사이클 73-74 walk-forward+sliding 검증 확정 (2026-04-03)
+# OOS Sharpe: lb=12 → W1(2024)=+23.781, W2(2025)=+18.049 (2/3 통과)
+# OOS Sharpe: lb=20 → W1=+31.2, W2=+16.0 (2/3 통과, but lb=12이 W2 OOS 우위)
+# UPDATED: lookback 20→12 (OOS walk-forward 역전 패턴 확인 — ETH와 동일)
+# adx=25, vol=2.0, TP=12%, SL=4% 유지 (사이클 67-74 일관성)
+# 반영 조건: BEAR 레짐 — paper 유지, BULL 전환 시 live 검토
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
 initial_capital = 1_200_000.0
 symbols = ["KRW-SOL"]
 [wallets.strategy_overrides]
-momentum_lookback = 20
+momentum_lookback = 12
 momentum_entry_threshold = 0.005
 rsi_period = 14
 rsi_overbought = 75.0
@@ -183,30 +186,36 @@ partial_tp_pct = 0.5
 max_concurrent_positions = 2
 max_position_pct = 0.10
 
-# DISABLED 2026-03-29: momentum_eth_wallet — paper 0W/2L (-₩6,353), worst performer
-# Entered against extreme-fear regime → 100% loss rate. Capital reallocated to vpin_eth.
-# Re-enable when Fear & Greed > 30 and regime shifts to neutral/bull.
+# DISABLED 2026-03-29: momentum_eth_wallet (이전 파라미터) — paper 0W/2L (-₩6,353)
+# 원인: lb=15, adx=15, vol=0.5 — 약한 필터로 BEAR 레짐 노이즈 진입
+# PRE-STAGED 2026-04-03 사이클 74-75 검증 파라미터 (BULL 전환 시 사용):
+#   lb=12, adx=25, vol=2.0, TP=12%, SL=4% → C0_base (no VPIN)
+#   슬라이딩 W1(2024) Sh+23.4 WR60% T15 ✅, W2(2025) Sh+17.4 WR46% T13 ✅ (2/3)
+#   VPIN(C2_VPIN bkt=12 thr<0.40): 동등 2/3 통과, 추가 Sharpe Δ 미미 → C0_base 선택
+# 활성화 조건: BTC BULL 레짐 전환 + pre_bull_score ≥ 0.6 확인 후 paper_trading=true로 재시작
 # [[wallets]]
 # name = "momentum_eth_wallet"
 # strategy = "momentum"
-# initial_capital = 350_000.0
+# initial_capital = 500_000.0
 # symbols = ["KRW-ETH"]
 # [wallets.strategy_overrides]
-# momentum_lookback = 15
-# momentum_entry_threshold = 0.003
+# momentum_lookback = 12
+# momentum_entry_threshold = 0.005
 # rsi_period = 14
-# rsi_overbought = 70.0
-# max_holding_bars = 36
-# adx_threshold = 15.0
-# volume_filter_mult = 0.5
-# fear_greed_block_threshold = 20
+# rsi_overbought = 75.0
+# max_holding_bars = 48
+# adx_threshold = 25.0
+# volume_filter_mult = 2.0
+# fear_greed_block_threshold = 30
+# btc_stealth_gate = true
 # [wallets.risk_overrides]
-# stop_loss_pct = 0.015
-# take_profit_pct = 0.04
-# risk_per_trade_pct = 0.01
-# atr_stop_multiplier = 3.0
+# stop_loss_pct = 0.04
+# take_profit_pct = 0.12
+# risk_per_trade_pct = 0.015
+# atr_stop_multiplier = 1.5
 # partial_tp_pct = 0.5
 # max_concurrent_positions = 2
+# max_position_pct = 0.10
 
 # DISABLED 2026-03-29 P0: vpin_sol_wallet — paper trade net loss despite good backtest Sharpe
 # Backtest overfitted; live showed counter-trend entries. Capital → vpin_eth.
