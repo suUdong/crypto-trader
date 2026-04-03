@@ -3809,3 +3809,41 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - 또는 신규 심볼 탐색(MATIC/NEAR) 방향 전환
 
 ---
+
+## 2026-04-04 — AVAX/SOL BEAR Stealth + btc_trend_neg 게이트 탐색 (사이클 108)
+
+**가설**: BTC 10봉/20봉 수익률 < 0 게이트로 W2(2024-2025) fake-BEAR 차단 가능한가?
+**스크립트**: `scripts/backtest_bear_stealth_btc_trend.py`
+**심볼**: AVAX, SOL | **기본 조건**: W=36, SMA20, acc>1.0, CVD>0, RS=[0.5,1.0), FWD=24h
+
+| 조합 | gate10 | gate20 | W1(2022-23) | W2(2024-25) | W3(2025-26) | 창통과 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| BASE   | — | — | ✅ | ❌ | ✅ | 2/3 |
+| GATE10 | ✅ | — | ✅ | ❌ | ✅ | 2/3 |
+| GATE20 | — | ✅ | ✅ | ❌ | ✅ | 2/3 |
+| GATE_B | ✅ | ✅ | ❌ | ❌ | ✅ | 1/3 |
+
+**W2 GATE10 최악 성과**: AVAX Sharpe -22.692 (BASE -7.832 대비 악화), SOL -12.690
+
+**BTC 트렌드 게이트 샘플 비율** (W2 BEAR 기간):
+- BTC<SMA20: 47% (1273/2731 bars)
+- + gate10: 87% of bear bars (1112개) — 게이트가 거의 차단 없음
+- + gate20: 81% of bear bars (1035개)
+- → W2 BEAR 기간 내 BTC는 거의 항상 단기 하락 중이었음에도 alt 신호 실패
+
+**핵심 발견 — BEAR stealth 브랜치 보류 확정**:
+1. ❌ btc_trend_neg(10봉/20봉) 어떤 조합도 W2 개선 불가
+2. GATE10/20은 W2를 오히려 더 악화 (Sharpe -22 수준)
+3. GATE_B는 W1마저 손실 → 기각
+4. W2(2024-2025) 실패는 BTC 트렌드 방향과 무관한 **레짐 구조 문제**
+   - W2는 Bull 사이클 내 dip → BTC 단기 음수여도 alt가 BTC 회복에 따라 상승
+   - 순수 Bear(W1/W3)와 Bull-내-Bear(W2)의 alt 가격 행태 자체가 다름
+
+**결론**: BEAR stealth 브랜치 보류 확정 (2/3 창 통과가 구조적 최대치)
+- 추가 파라미터 탐색 없이 전략 방향 전환 시점
+- 다음 방향 후보:
+  A. **신규 심볼 탐색** — MATIC/NEAR/INK 4h stealth BULL 기초 스크리닝
+  B. **momentum_sol BULL 전환 조건 문서화** — pre_bull 상승 중, 트리거 기준 명시
+  C. **stealth_3gate BULL 레짐 성과 검증** — W3(2025-2026) 전체 BULL 구간 분리 분석
+
+---
