@@ -125,6 +125,20 @@ PIPELINE: list[dict] = [
         "notify_on_significant": True,
     },
     {
+        "id": "btc_dip_recovery",
+        "type": "backtest",
+        "desc": "BTC 급락+acc≈1.0 → 48h 회복 패턴",
+        "script": "backtest_btc_dip_recovery.py",
+        "notify_on_significant": True,
+    },
+    {
+        "id": "btc_dip_alt_entry",
+        "type": "backtest",
+        "desc": "BTC 급락 후 알트 진입 전략 (LINK/ADA/XRP)",
+        "script": "backtest_btc_dip_alt_entry.py",
+        "notify_on_significant": True,
+    },
+    {
         "id": "new_strategy_hypothesis",
         "type": "hypothesis",
         "desc": "Claude 신규 전략 가설 생성",
