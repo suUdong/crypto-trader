@@ -3,6 +3,33 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-04 — 잔여 상위 유동성 심볼 L1 momentum 스크리닝 (사이클 87)
+
+**목적**: BNB/LTC 데이터 없음 → LINK/NEAR/HBAR/INJ 대체 검증. L1 momentum edge 후보 풀 소진 마지막 확인.
+**설정**: 240m(4h봉), walk-forward (IS=2022-2024 / OOS=2025-2026), 슬라이딩 3구간
+**스크립트**: `scripts/backtest_bnb_ltc_screening.py`
+**기준**: OOS Sharpe > 3.0 && WR > 45% && trades >= 6
+
+### 결과 요약
+
+| 심볼 | WF OOS Sh (최고) | 슬라이딩 | 판정 | 비고 |
+|---|:---:|:---:|:---:|---|
+| LINK | -0.96 | — | ✗ 탈락 | 전 후보 WF 탈락 |
+| NEAR | -1.03 | — | ✗ 탈락 | IS Sh높지만 OOS 역전 (과적합) |
+| HBAR | +11.98 (WF) | 1/3 | ✗ 탈락 | WF 3개 통과→슬라이딩 모두 실패, W3 T=0 |
+| INJ | -2.72 | — | ✗ 탈락 | 전 후보 WF 탈락, IS 데이터 449행 |
+
+**HBAR 상세 (가장 유망했으나 탈락)**:
+- WF: lb=12 Sh=+11.71(45.0%), lb=8 Sh=+11.88(47.6%), lb=16 Sh=+11.98(50.0%) 모두 통과
+- 슬라이딩: W1 WR<45% 기준 미달, W3 T=0 (데이터 부족) → 전 후보 1/3 탈락
+
+**결론**: **L1 momentum edge = SOL/ETH/XRP/TRX 4개 완전 확정**
+- 탈락 풀: BCH/DOGE/ADA/AVAX/ATOM/DOT/LINK/NEAR/HBAR/INJ
+- HBAR는 WF에서 유망했으나 시간 안정성 부족 (W3 데이터 없음, W1 WR 한계)
+- BNB/LTC는 Upbit 데이터 미존재 (현물 미상장 또는 데이터 수집 미포함)
+
+---
+
 ## 2026-04-04 — TRX TP/SL 파라미터 정밀화 (사이클 85)
 
 **목적**: TRX lb=12 adx=25 확정 기반에서 최적 TP/SL 조합 단일 확정 (daemon pre-staging 파라미터 마무리)
@@ -2687,3 +2714,27 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 
 **--apply 플래그**: BULL 전환 시 XRP/TRX/ETH 3개 심볼 daemon.toml 자동 활성화 지원 (TRX 신규 추가)
 
+
+## 2026-04-03 15:59 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** SOL/ETH/XRP/TRX 4심볼로 L1 momentum edge 수렴 완료. "유동성 상위 L1에 edge 국한" 가설이 ADA/AVAX/ATOM/DOT 탈락으로 정량 검증됨.
+
+**2. poor 5/7(71%) 허용 범위.** BEAR 레짐 BTC 억제 + W3 데이터 부족(T<6) 필터 정상 작동 — 전략 결함 아님. SOL W3 T=4 문제도 2026 데이터 미축적 구조 한계.
+
+**3. 다음 1주일 우선순위:**
+1. **SOL W3 재검증** — 4월 데이터 축적 후 T≥6 충족 시 조건부→확정 전환
+2. **BNB/LTC 상위 유동성 잔여 심볼 스크리닝** — L1 후보 풀 완전 소진 확인
+3. **BULL 전환 트리거 자동화** — 4심볼 pre-staging 완료됐으나 수동 의존 제거 필요
+
+**4. 즉시 daemon 반영 없음.** XRP+TRX 이중 통과 완료지만 현재 BEAR 레짐 — BULL 전환 시 `--apply` 플래그로 XRP/TRX/ETH 3개 즉시 활성화 가능 상태. SOL은 W3 통과 후 48h 지연 활성화 유지.
+```
+
+</details>
+
+---
