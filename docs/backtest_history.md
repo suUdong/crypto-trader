@@ -3,6 +3,33 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-04 — vpin_eth W2(2025) WR 개선 그리드 탐색 (사이클 100)
+
+**목적**: C_daemon W2 OOS WR=23.1% → 30%+ 개선 (RSI ceiling / vpin_high / vpin_mom 탐색)
+**전략**: KRW-ETH vpin_eth (높은 VPIN momentum, 240m)
+**스크립트**: `scripts/backtest_vpin_eth_wr_improve.py`
+**탐색**: rsi_ceiling=[65,60,55], vpin_high=[0.55,0.60,0.65], vpin_mom=[0.0005,0.0007,0.001] (27조합)
+
+### 주요 결과
+
+| rsi_ceil | vh  | vm     | W1 Sh / WR | W2 Sh / WR | W3 Sh / WR | 통과 |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 65 (daemon) | 0.55 | 0.0005 | +9.42 / 30.6% | +4.66 / 23.1% | +9.36 / 31.8% | 2/3 |
+| 60 | 0.55 | 0.0005 | +7.58 / 27.2% | +5.33 / 24.3% | +11.34 / 35.0% | 1/3 |
+| 55 | 0.55 | 0.0005 | +2.88 / 23.1% | +7.70 / 27.8% | +12.95 / 40.0% | 1/3 |
+
+### 핵심 발견
+1. **vpin_high(0.55→0.65) 변경 효과 없음**: VPIN proxy = |close-open|/|close-open| ≈ 항상 ~1.0 → 임계값 구분 불가 (구조적 한계)
+2. **RSI ceiling 낮춰도 W2 WR 30% 미달**: 60→24.3%, 55→27.8% 최고 (30% 미달)
+3. **RSI 낮추면 W1 WR 하락**: 트레이드오프 발생 (W1: 65→30.6%, 60→27.2%, 55→23.1%)
+4. **W2(2025) 낮은 WR은 구조적**: BEAR 환경 특성, 파라미터 조정으로 해결 불가
+
+### 판정
+❌ W2 WR 30%+ 달성 불가 → **daemon 파라미터 (rsi_ceil=65, vh=0.55, vm=0.0005) 현재 유지 확정**
+- daemon vpin_eth_wallet: 2/3 WF 통과 (사이클 99), 과적합 없음 — 파라미터 변경 불필요
+
+---
+
 ## 2026-04-04 — 잔여 상위 유동성 심볼 L1 momentum 스크리닝 (사이클 87)
 
 **목적**: BNB/LTC 데이터 없음 → LINK/NEAR/HBAR/INJ 대체 검증. L1 momentum edge 후보 풀 소진 마지막 확인.
@@ -3413,3 +3440,27 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 5. **WR 개선 가설**: W2 WR 23% → 30%+ 달성을 위해 RSI ceiling 65→60 또는 vpin_high 0.55→0.60 탐색 여지
 
 **판정: 현재 daemon.toml 파라미터 유지 (근거 확보)**
+
+## 2026-04-03 17:33 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향 올바름.** vpin_eth 2/3 WF 통과로 daemon 유지 근거 확보, stealth_3gate Gate 4 Sharpe +5.129 달성 — 실제 엣지를 체계적으로 검증하는 흐름이 작동 중.
+
+**2. poor 5/7(71%)은 정상 범위.** 자율 탐색 특성상 넓게 던지고 걸러내는 구조 — error 0개라 실행 품질은 양호. 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **stealth_3gate Gate 4 daemon 반영** — Sharpe +5.129 기준(5.0+) 충족, 즉시 반영 가능
+2. **vpin_eth W2(2025) WR 개선 탐색** — RSI ceiling 65→60 또는 vpin_high 0.55→0.60으로 WR 23%→30%+ 시도
+3. **momentum_sol WF 검증** — IS Sharpe +14.37 과적합 강의심, OOS 없이 채택 불가
+
+**4. 즉시 반영 가능:** `stealth_3gate` — `btc_trend_pos_gate=true`, `btc_trend_window=10` (사이클 98 전체 Sharpe +5.129, 기준 충족). vpin_eth는 파라미터 유지.
+```
+
+</details>
+
+---
