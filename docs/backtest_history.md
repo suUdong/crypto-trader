@@ -1216,3 +1216,151 @@ lookback   adx   vol    TP    SL |  Sharpe     WR    avg%  trades
 **액션**: 현재 시장 조건 일치 (BTC -2.4%, acc=1.002). LINK/ADA 상대강도 주목.
 
 ---
+
+## 2026-04-03 06:11 UTC — BTC 레짐 + Stealth 2-Factor 백테스트
+
+| 조합 | avg_sharpe | win_rate | avg_ret | n_symbols |
+|---|:---:|:---:|:---:|:---:|
+| TP=15%/SL=5% | -0.261 | 38.7% | -0.12% | 4 |
+| TP=5%/SL=3% | -1.296 | 38.3% | -0.49% | 9 |
+| TP=15%/SL=3% | -1.298 | 30.2% | -0.41% | 9 |
+| TP=5%/SL=8% | -1.342 | 44.9% | -0.69% | 7 |
+| TP=10%/SL=3% | -1.454 | 33.7% | -0.60% | 5 |
+
+**최적**: TP=15% / SL=5%  Sharpe=-0.261  WR=38.7%
+
+**레짐 필터 효과**: combined -0.261 vs stealth_only -0.484
+
+## 2026-04-03 06:34 UTC — BTC 레짐 + 스텔스 2-Factor 백테스트 [ralph:regime_stealth] 🔻[poor]
+
+**결과**: Sharpe N/A | WR 47.0% | trades N/A
+
+
+<details><summary>raw output</summary>
+
+```
+
+=================================================================
+  BTC 레짐 + 알트 Stealth 2-Factor 백테스트  |  2026-04-03 06:11 UTC
+=================================================================
+
+[1/3] BTC 일봉 fetch & 레짐 계산 (SMA100)...
+  OK: 3113봉 | 불장 비율 51.8%
+
+[2/3] 그리드 탐색 (TP×SL: 4×3=12조합)
+      알트 25종목 × 각 조합...
+  TP=5% SL=3%  |  stealth Sh=-1.08 WR=40%  |  combine Sh=-1.30 WR=38%
+  TP=5% SL=5%  |  stealth Sh=-2.25 WR=40%  |  combine Sh=-3.79 WR=35%
+  TP=5% SL=8%  |  stealth Sh=-0.48 WR=47%  |  combine Sh=-1.34 WR=45%
+  TP=10% SL=3%  |  stealth Sh=-1.01 WR=35%  |  combine Sh=-1.45 WR=34%
+  TP=10% SL=5%  |  stealth Sh=-0.52 WR=40%  |  combine Sh=-2.04 WR=32%
+  TP=10% SL=8%  |  stealth Sh=-1.47 WR=39%  |  combine Sh=-2.01 WR=36%
+  TP=15% SL=3%  |  stealth Sh=-1.32 WR=32%  |  combine Sh=-1.30 WR=30%
+  TP=15% SL=5%  |  stealth Sh=-2.12 WR=36%  |  combine Sh=-0.26 WR=39%
+  TP=15% SL=8%  |  stealth Sh=-30.73 WR=29%  |  combine Sh=-5.71 WR=30%
+  TP=20% SL=3%  |  stealth Sh=-7.46 WR=24%  |  combine Sh=-15.13 WR=12%
+  TP=20% SL=5%  |  stealth Sh=-10.42 WR=33%  |  combine Sh=-8.70 WR=16%
+  TP=20% SL=8%  |  stealth Sh=-8.81 WR=28%  |  combine Sh=-18.93 WR=8%
+
+[3/3] 최적 파라미터 (combined Sharpe 기준)
+     TP    SL    Sharpe   WinRate   AvgRet   nSym
+  ──────────────────────────────────────────────
+    15%     5%    -0.261      38.7%    -0.12%      4
+     5%     3%    -1.296      38.3%    -0.49%      9
+    15%     3%    -1.298      30.2%    -0.41%      9
+     5%     8%    -1.342      44.9%    -0.69%      7
+    10%     3%    -1.454      33.7%    -0.60%      5
+
+결과 저장: artifacts/regime_stealth_backtest.json
+
+```
+
+</details>
+
+---
+
+## 2026-04-03 06:37 UTC — BTC Stealth 선행 신호 분석
+
+### 불장 시작 전 Stealth 발동률
+
+| Lead Time | 발동률 | 발동/전체 |
+|---|:---:|:---:|
+| T-7d 전 | 0.0% ⭐ | 0/6 |
+| T-14d 전 | 0.0% | 0/6 |
+| T-21d 전 | 0.0% | 0/6 |
+| T-30d 전 | 0.0% | 0/6 |
+
+**최적 선행 시점**: T-7d 전 (발동률 0.0%)
+
+### 불장 직전 vs 일반 Stealth 수익 비교
+
+| 구분 | avg_ret | win_rate | n |
+|---|:---:|:---:|:---:|
+| 불장 직전 stealth | +8.11% | 100.0% | 2 |
+| 일반 stealth      | +2.01% | 42.9% | 49 |
+
+**결론**: 불장 직전 stealth avg_ret = +8.11% vs 일반 = +2.01%
+
+## 2026-04-03 06:40 UTC — BTC Stealth 선행 신호 분석
+
+### 불장 시작 전 Stealth 발동률
+
+| Lead Time | 발동률 | 발동/전체 |
+|---|:---:|:---:|
+| T-7d 전 | 0.0% ⭐ | 0/6 |
+| T-14d 전 | 0.0% | 0/6 |
+| T-21d 전 | 0.0% | 0/6 |
+| T-30d 전 | 0.0% | 0/6 |
+
+**최적 선행 시점**: T-7d 전 (발동률 0.0%)
+
+### 불장 직전 vs 일반 Stealth 수익 비교
+
+| 구분 | avg_ret | win_rate | n |
+|---|:---:|:---:|:---:|
+| 불장 직전 stealth | +8.11% | 100.0% | 2 |
+| 일반 stealth      | +2.01% | 42.9% | 49 |
+
+**결론**: 불장 직전 stealth avg_ret = +8.11% vs 일반 = +2.01%
+
+## 2026-04-03 — Pre-Bull Stealth Signal 검증 (GPU, 244심볼)
+
+**데이터**: 244 심볼 4시간봉, Count=500봉(~83일), Lookback=24봉
+**신호**: RS<1.0 AND acc>1.0 AND cvd_slope>0
+
+| horizon | Stealth avg | non-Stealth avg | Edge | WR |
+|---|---|---|---|---|
+| T+6봉(24h) | +0.40% | -0.28% | **+0.68%** | 49.4% |
+| T+12봉(48h) | +0.77% | -0.78% | **+1.55%** | 47.9% |
+| T+24봉(96h) | +1.04% | -2.12% | **+3.16%** | 36.3% |
+
+**Top 중형 알트 (fwd=12봉 기준)**
+| 심볼 | avg% | WR | N |
+|---|---|---|---|
+| KRW-POLYX | +18.5% | 92.3% | 13 |
+| KRW-CFG | +10.0% | 100% | 10 |
+| KRW-POWR | +4.4% | 100% | 9 |
+| KRW-ONG | +4.1% | 93.3% | 15 |
+| KRW-LINK | +1.6% | 70% | 10 |
+
+**결론**: 대형 코인보다 중형 알트에서 stealth edge 발현. alpha scan 원래 방식(동적 풀) 유효.
+
+---
+
+## 2026-04-03 — BTC Stealth vs 불장 선행 분석
+
+**데이터**: KRW-BTC 일봉 1431봉, 불장 8개
+**결과**: BTC stealth → 불장 T-7/14/21/30d 선행 hit rate **0%** (6/6 miss)
+- 불장 직전 48h: avg=+8.1% WR=100% (n=2, 너무 작음)
+
+**결론**: BTC stealth ≠ 불장 예측 신호. alt alpha 생성에만 유효.
+
+---
+
+## 2026-04-03 — CVD Threshold Grid (BTC cvd_slope × 8 구간)
+
+**데이터**: KRW-ETH/SOL/XRP/ADA/AVAX/LINK/DOT/ATOM 4h봉
+**결과**: 모든 threshold에서 Sharpe 음수 (-4.0~-4.8). threshold=0.1 소폭 최선.
+**결론**: BTC cvd_slope threshold 튜닝 효과 없음. 대형 코인에서 stealth edge 없음. **중형 알트 동적 선택이 핵심**.
+
+---

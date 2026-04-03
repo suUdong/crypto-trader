@@ -226,7 +226,7 @@ def main():
         print(f"  {name:<25} {p['start']} ~ {p['end']}  +{gain}%")
 
     # BTC 4h 데이터 fetch
-    print(f"\n[1/3] BTC 일봉 데이터 fetch (~{COUNT}봉)...")
+    print(f"\n[1/3] BTC 일봉 데이터 fetch (~{LOOKBACK * 30}봉)...")
     df = fetch_btc_daily()
     if df is None:
         print("  ERROR: fetch 실패")
