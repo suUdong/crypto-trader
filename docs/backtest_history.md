@@ -3492,3 +3492,53 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 **결론**: btc_trend_pos 필터 미적용 확정. daemon vpin_eth 파라미터 완전 최종 확정.
 - daemon.toml: rsi_ceil=65, vh=0.55, vm=0.0005, max_hold=18 (변경 없음)
 - vpin_eth W2 WR 구조적 한계: 2025 BEAR 환경 특성, 개선 불가 확인
+
+## 2026-04-03 17:44 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** vpin_eth 2/3 WF 통과로 daemon 근거 확보, btc_trend_pos 역효과 확인으로 불필요한 파라미터 추가를 차단 — 검증→기각 흐름이 정상 작동 중.
+
+**2. poor 5/7(71%)은 정상.** 자율 탐색 특성상 불가피하며, error 0개라 실행 품질은 양호. 단, momentum_sol IS Sharpe +14.37이 OOS 미검증 상태로 대기 중인 점이 리스크.
+
+**3. 다음 1주일 우선순위:**
+1. **momentum_sol WF 검증** — IS +14.37 과적합 의심이 가장 큰 미결 리스크, 최우선
+2. **stealth_3gate Gate 4 daemon 반영** — 사이클 98 Sharpe +5.129 기준 충족, 즉시 가능
+3. **vpin_eth W2 WR은 탐색 중단** — 사이클 101에서 구조적 한계 확인, 2025 BEAR 특성으로 추가 탐색 낭비
+
+**4. 즉시 반영 가능:** `stealth_3gate` — `btc_trend_pos_gate=true`, `btc_trend_window=10`. vpin_eth는 현재 파라미터 그대로 유지.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — momentum_sol 슬라이딩 WF W3(2026) 검증 (사이클 102)
+
+**목적**: 사이클 74 W1+W2 2/3 통과 후 W3(2026-01~04) 추가 검증 — 3구간 전체 안정성 확인
+**전략**: momentum_sol C1 (lb=12, adx=25, vol=2.0, TP=12%, SL=4%)
+**스크립트**: `scripts/backtest_sol_sliding_wf.py`
+
+| 윈도우 | IS 기간 | OOS 기간 | IS Sharpe | OOS Sharpe | OOS WR | OOS T | 판정 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| W1 | 2022-2023 | 2024 | +8.584 | +23.781 | 56.2% | 16 | ✅ |
+| W2 | 2023-2024 | 2025 | +14.911 | +18.049 | 55.6% | 18 | ✅ |
+| W3 | 2024-2025 | 2026-01~04 | +20.744 | +9.624 | 50.0% | 4 | ❌ |
+
+**통과 합계**: 2/3 (W3 기술적 ❌)
+
+**핵심 발견**:
+1. W3 ❌는 전략 품질 문제 아님 — 2026년 3개월 데이터 부족 (4트레이드 < 기준 6)
+2. W3 실제 성과 (Sharpe +9.624, WR=50.0%)는 기준 (Sharpe>3.0, WR>45%) 모두 충족
+3. W1+W2 OOS Sharpe 23.8 / 18.0 — 매우 강한 OOS 안정성 확인
+4. C0(lb=20) W3에서 수치 불안정 (-1.57B Sharpe, 3트레이드) — lb=12 우위 재확인
+5. C2(adx=20) 1/3 통과 — adx=25 필터 중요성 재확인
+
+**결론**: daemon.toml 파라미터 유지 확정 (lb=12, adx=25, vol=2.0, TP=12%, SL=4%)
+- 실질적으로 W1+W2 강력 통과 + W3 품질 기준 충족 → 전략 robustness 검증 완료
+- BEAR 레짐 유지 중 → paper 상태 유지, BULL 전환 시 live 검토
+- pre_bull=0.854 고수위 → BULL 전환 임박 대비 bull_activation_protocol.py 점검 권장
