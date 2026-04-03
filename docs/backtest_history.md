@@ -3,6 +3,41 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-04 — ONDO vpin Gate2 daemon 배포 (사이클 123)
+
+**목적**: 사이클 122에서 확보한 ONDO vpin + Gate2(BTC 30봉>0%) 파라미터를 daemon.toml에 반영  
+**배경**: W1=+8.364, W2=+5.434 (슬리피지 0.10%, 2/2창 통과) — 사이클 120 보류 문제 완전 해소  
+**작업**: btc_30bar_gate 인프라 구현 + vpin_ondo_wallet 배포
+
+### 구현 내용
+
+| 파일 | 변경 내용 |
+|:---|:---|
+| `scripts/market_scan_loop.py` | `compute_btc_stealth_regime()`에 `btc_30bar_pos` 추가 → stealth-watchlist.json 기록 |
+| `src/crypto_trader/wallet.py` | `_btc_30bar_gate` 필드 + `_read_btc_30bar_pos()` + `run_once()` Gate2 체크 |
+| `src/crypto_trader/config.py` | vpin 허용 파라미터에 `btc_30bar_gate` 추가 |
+| `config/daemon.toml` | `vpin_ondo_wallet` 추가 (initial_capital=500,000) |
+
+### daemon 배포 파라미터
+
+```
+심볼: KRW-ONDO | 전략: vpin
+vh=0.55, vm=0.0005, hold=18, TP=10%, SL=1.5%
+Gate1: btc_stealth_gate=true (BTC>SMA20)
+Gate2: btc_30bar_gate=true (BTC 30봉 수익률>0%)
+initial_capital: 500,000원
+```
+
+### 현재 상태
+
+- BTC BEAR (btc_bull_regime=false, pre_bull=0.705) → Gate1+Gate2 모두 미통과 → 즉시 진입 없음
+- BULL 전환(pre_bull ≥ 0.90 + BTC>SMA20 + BTC_30봉>0%) 시 자동 활성화
+- Gate2 fail-open: stealth-watchlist에 btc_30bar_pos 없으면 True 기본값 (다음 scan 사이클 후 추가)
+
+### 판정
+
+✅ **daemon 배포 완료** — BULL 전환 시 3개 wallet 동시 활성화 (momentum_sol + vpin_eth + vpin_ondo)
+
 ## 2026-04-04 — vpin_eth W2(2025) WR 개선 그리드 탐색 (사이클 100)
 
 **목적**: C_daemon W2 OOS WR=23.1% → 30%+ 개선 (RSI ceiling / vpin_high / vpin_mom 탐색)
@@ -4811,5 +4846,29 @@ ONDO/SUI/SEI에 이어 APT도 동일 패턴 → vpin 프레임워크 BEAR 취약
 (A) daemon.toml에 ONDO vpin wallet 추가 — Gate2 로직 구현 방법 확인 (pre_bull threshold 자동화)  
 (B) BTC 30봉 수익률 계산 로직 daemon 코드 레벨 구현 여부 확인  
 (C) BEAR 특화 전략 탐색 — 현 BEAR 구간 활용 가능한 새 메커니즘
+
+---
+
+## 2026-04-03 21:25 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37) + vpin_eth(+7.46) + ONDO vpin w/ Gate2(W1+8.36/W2+5.43) 세 엣지 확보 완료 — 사이클 122에서 BTC 30봉 Gate2로 W2 구조적 취약성까지 해결하여 연구 ROI 최고 수준.
+
+**2. poor 5/7(71%) 정상.** BTC BEAR(pre_bull=0.705) Gate1 자연 차단 + vpin 전략군의 W2(혼재/BEAR) 구조적 한계가 원인이며, 이는 심볼 선별 완료 신호로 해석. error 0개로 실행 품질 무결.
+
+**3. 다음 1주일 우선순위:**
+1. **ONDO vpin daemon 배포 준비** — Gate2(BTC 30봉 > 0%) 로직을 daemon 코드 레벨 구현 + daemon.toml wallet 추가 설계
+2. **BEAR 특화 전략 탐색** — vpin 프레임워크 W2 한계 확정됐으므로 mean-reversion 또는 funding rate 기반 신규 메커니즘 설계
+3. **BULL 전환 트리거 자동화** — pre_bull ≥ 0.90 + BTC > SMA20 + BTC 30봉 > 0% 조건 모니터링 로직 구현
+
+**4. 즉시 반영 가능.** ONDO vpin 배포 근거 확보됨(슬리피지 0.10% 2/2 통과) — 단, 현재 BTC BEAR로 Gate1+Gate2 미통과이므로 daemon.toml에 wallet 추가하되 BULL 전환까지 진입 없음. momentum_sol/vpin_eth 기배포 유지.
+```
+
+</details>
 
 ---

@@ -255,6 +255,7 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "ema_weight",
         "adx_threshold",
         "btc_stealth_gate",
+        "btc_30bar_gate",
     },
     "funding_rate": {
         "high_funding_threshold",

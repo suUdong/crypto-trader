@@ -94,10 +94,12 @@ def compute_btc_stealth_regime(btc_df: pd.DataFrame) -> dict:
 
     btc_stealth   = bool(raw_ret < 0 and acc > 1.0 and cvd_slope > 0)
     btc_bull      = bool(len(c) >= 20 and c[-1] > c[-20:].mean())
+    btc_30bar_pos = bool(len(c) >= 31 and float(c[-1]) > float(c[-31]))
 
     return {
         "btc_stealth":      btc_stealth,
         "btc_bull_regime":  btc_bull,
+        "btc_30bar_pos":    btc_30bar_pos,
         "btc_raw_ret":      round(raw_ret, 4),
         "btc_acc":          round(float(acc), 4),
         "btc_cvd_slope":    round(float(cvd_slope), 4),
@@ -284,6 +286,7 @@ def get_alpha_scan_results() -> tuple[str, float, dict]:
         # BTC regime gate (backtest-validated 2026-04-02)
         "btc_stealth":     btc_regime["btc_stealth"],
         "btc_bull_regime": btc_regime["btc_bull_regime"],
+        "btc_30bar_pos":   btc_regime["btc_30bar_pos"],
         "btc_raw_ret":     btc_regime["btc_raw_ret"],
         "btc_acc":         btc_regime["btc_acc"],
         "btc_cvd_slope":   btc_regime["btc_cvd_slope"],
@@ -400,6 +403,7 @@ def main() -> None:
             }, indent=2))
             btc_stealth_flag   = pre_bull.get("btc_stealth", False)
             btc_bull_flag      = pre_bull.get("btc_bull_regime", False)
+            btc_30bar_flag     = pre_bull.get("btc_30bar_pos", False)
             btc_stealth_label  = "🔥BTC_STEALTH" if btc_stealth_flag else "btc_normal"
             btc_regime_label   = "BULL" if btc_bull_flag else "BEAR"
 
@@ -466,6 +470,7 @@ def main() -> None:
                     "cycle":           cycle,
                     "btc_stealth":     btc_stealth_flag,
                     "btc_bull_regime": btc_bull_flag,
+                    "btc_30bar_pos":   btc_30bar_flag,
                     "gate_active":     btc_bull_flag,
                     "stealth_coins":   stealth_watch,
                 }, _f, indent=2)

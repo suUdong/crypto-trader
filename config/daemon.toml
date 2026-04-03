@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-ONG"]
+symbols = ["KRW-QTUM"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -140,7 +140,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-TAO"]
+symbols = ["KRW-G"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -423,6 +423,42 @@ btc_trend_window = 10
 stop_loss_pct = 0.03
 take_profit_pct = 0.15
 risk_per_trade_pct = 0.02
+
+# vpin_ondo_wallet: 사이클 119+122 walk-forward 검증 확정 (2026-04-04)
+# Gate1=BTC>SMA20(btc_stealth_gate), Gate2=BTC_30봉>0%(btc_30bar_gate)
+# OOS Sharpe: W1(2025-01~09 BULL)=+8.364, W2(2025-07~2026-04 BEAR/혼재)=+5.434 (슬리피지 0.10%)
+# Gate2 없이 W2 슬리피지 0.05% 즉시 탈락 → Gate2로 W2 35% 신호 차단 → 2/2창 통과 확보
+# 파라미터: vh=0.55, vm=0.0005, hold=18, TP=10%, SL=1.5%, Gate1+Gate2 복합 필터
+# 활성화 조건: 현재 BTC BEAR(pre_bull=0.705) — Gate1+Gate2 동시 미통과 → 즉시 진입 없음
+#              BULL 전환(pre_bull ≥ 0.90 + BTC>SMA20 + BTC_30봉>0%) 시 자동 활성화
+[[wallets]]
+name = "vpin_ondo_wallet"
+strategy = "vpin"
+initial_capital = 500_000.0
+symbols = ["KRW-ONDO"]
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 8
+max_holding_bars = 18
+vpin_low_threshold = 0.45
+vpin_high_threshold = 0.55
+vpin_momentum_threshold = 0.0005
+vpin_rsi_ceiling = 65.0
+vpin_rsi_floor = 20.0
+rsi_overbought = 75.0
+bucket_count = 24
+ema_trend_period = 20
+ema_weight = 0.5
+adx_threshold = 15.0
+btc_stealth_gate = true
+btc_30bar_gate = true
+[wallets.risk_overrides]
+stop_loss_pct = 0.015
+take_profit_pct = 0.10
+risk_per_trade_pct = 0.01
+partial_tp_pct = 0.5
+cooldown_bars = 4
+atr_stop_multiplier = 1.5
 
 [credentials]
 upbit_access_key = ""

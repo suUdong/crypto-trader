@@ -323,6 +323,9 @@ class StrategyWallet:
         self._btc_stealth_gate: bool = bool(
             wallet_config.strategy_overrides.get("btc_stealth_gate", False)
         )
+        self._btc_30bar_gate: bool = bool(
+            wallet_config.strategy_overrides.get("btc_30bar_gate", False)
+        )
         self._limit_confidence_cap = float(
             wallet_config.strategy_overrides.get("limit_confidence_cap", 0.72)
         )
@@ -442,6 +445,29 @@ class StrategyWallet:
         except Exception:
             return None  # fail open
 
+    def _read_btc_30bar_pos(self) -> bool | None:
+        """Read BTC 30-bar momentum from stealth-watchlist.json.
+
+        Returns True (30-bar return > 0%), False, or None (file missing/stale > 3h).
+        Only checked when self._btc_30bar_gate is True.
+        """
+        if not self._btc_30bar_gate:
+            return None
+        import json as _json
+        from datetime import datetime as _dt, timezone as _tz
+        path = Path("artifacts/stealth-watchlist.json")
+        try:
+            data = _json.loads(path.read_text())
+            updated_at = _dt.fromisoformat(data["updated_at"])
+            if updated_at.tzinfo is None:
+                updated_at = updated_at.replace(tzinfo=_tz.utc)
+            age_hours = (_dt.now(_tz.utc) - updated_at).total_seconds() / 3600
+            if age_hours > 3.0:
+                return None  # stale — don't gate on old data
+            return bool(data.get("btc_30bar_pos", True))
+        except Exception:
+            return None  # fail open
+
     @staticmethod
     def _volume_ratio(candles: list[Candle], window: int = 20) -> float:
         """Current bar volume / rolling average volume."""
@@ -531,6 +557,13 @@ class StrategyWallet:
             effective_min_confidence = self._macro_adapter.confidence_floor(
                 self._macro_snapshot, self.risk_manager.effective_min_confidence,
             )
+
+            # BTC 30-bar momentum gate (Gate2): blocks entry if BTC 30-bar return <= 0
+            if not regime_blocked and self._btc_30bar_gate:
+                btc_30bar_ok = self._read_btc_30bar_pos()
+                if btc_30bar_ok is False:
+                    regime_blocked = True
+                    regime_reason = "btc_30bar_gate: BTC 30-bar return not positive"
 
             if position is None and signal.action is SignalAction.BUY and regime_blocked:
                 self._logger.info(
