@@ -3847,3 +3847,73 @@ N=8 이벤트 161개 기준 TRX 진입 28개
   C. **stealth_3gate BULL 레짐 성과 검증** — W3(2025-2026) 전체 BULL 구간 분리 분석
 
 ---
+
+## 2026-04-03 18:47 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** BEAR stealth W2 실패 원인을 acc→CVD→BTC트렌드 순으로 체계적으로 소거했고, 구조적 한계(Bull-내-Bear ≠ 순수 Bear) 확정으로 미련 없이 방향 전환 — 탐색 규율 정상.
+
+**2. poor 5/7(71%) 정상.** BEAR 레짐 특성상 alt stealth 신호가 Bull 오염에 취약해 기각률이 높을 수밖에 없음. error 0개이므로 실행 품질 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **momentum_sol BULL 전환 조건 문서화** — pre_bull 현재 0.854, 트리거 기준(pre_bull≥0.90 + BTC>SMA20) 명시 후 실제 시그널 발화 시 daemon 반영 준비
+2. **stealth_3gate BULL 구간 성과 분리 검증** — W3(2025-2026) 전체 BULL 구간 분리해 현재 daemon 전략 실효성 재확인
+3. **신규 심볼 BULL stealth 스크리닝** — MATIC/NEAR/INK 4h 기초 스캔 (BEAR 브랜치 아닌 BULL 레짐 기준)
+
+**4. 즉시 반영 가능 항목 없음.** stealth_3gate_wallet_1 이미 반영(사이클 105), BEAR 브랜치는 보류 확정. momentum_sol은 pre_bull 트리거 조건 문서화 완료 후 다음 판단.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — 신규 심볼 BULL stealth_3gate Walk-Forward 스크리닝 (사이클 109)
+
+**가설**: 미탐색 심볼(POL/TRX/AAVE/NEAR/RENDER/SUI)에서 stealth_3gate BULL 조건 유효한 엣지 존재하는가?
+**스크립트**: `scripts/backtest_new_symbol_bull_stealth.py`
+**파라미터**: W=36, SMA20, RS[0.5,1.0), acc>1.0, CVD>0, btc_trend_pos, TP=15%, SL=3%
+
+### Full 3-Window (2022~, POL/TRX/AAVE/NEAR)
+
+| 심볼 | W1(~2024Q1) | W2(~2025Q1) | W3(2024~2026) | 창통과 |
+|:---|:---:|:---:|:---:|:---:|
+| POL   | ❌ -1.276 | ❌ -4.077 | ❌ +0.024 | 0/3 |
+| TRX   | ❌ -1.644 | ❌ +0.018 | ❌ +0.105 | 0/3 |
+| AAVE  | ❌ -0.163 | ❌ -0.615 | ❌ -0.836 | 0/3 |
+| NEAR  | ❌ +0.680 | ❌ +2.262 | ❌ +1.391 | 0/3 |
+
+### Partial 2-Window (2024~, RENDER/SUI)
+
+| 심볼 | W2(2023Q4~2025Q1) | W3(2024Q3~2026) | 창통과 |
+|:---|:---:|:---:|:---:|
+| RENDER | ❌ +0.000(n=6) | ❌ +1.026 | 0/2 |
+| **SUI**    | ✅ **+3.990** | ✅ **+3.068** | **2/2** |
+
+**SUI 상세 (3창 포함 재검증):**
+- W1_ext(2023-05~2024-03): ❌ Sharpe -1.060, WR=20.0%, n=15 (SUI 초기 BEAR 시장)
+- W2(2023-10~2025-03): ✅ Sharpe **+3.990**, WR=53.8%, avg=+3.92%, n=26
+- W3(2024-06~2026-04): ✅ Sharpe **+3.068**, WR=54.3%, avg=+3.55%, n=35
+- → **2/3 창 통과** (W1 실패는 2023 베어 시장 — Gate 1이 실전에서 차단하는 구간)
+
+**핵심 발견**:
+1. ❌ POL/TRX/AAVE/NEAR: 전 창 Sharpe < 3.0 — 신규 L1/DeFi 심볼 stealth 엣지 없음
+2. NEAR W2 Sharpe +2.262 — 가장 가깝지만 기준 미달 (3.0 필요)
+3. ✅ **SUI: W2+W3 모두 Sharpe >3.0, WR ~54%** — 현재 daemon 기준 충족
+   - W1 실패는 SUI 출시 초기 bear 시장 (2023) → Gate 1 BTC>SMA20으로 실전 차단
+   - BULL 구간(W2+W3)에서 일관된 엣지 확인
+
+**결론**:
+- **SUI → daemon stealth_3gate_wallet_1 추가 후보** (BULL 전환 시 반영 검토)
+- 현재 BTC BEAR → 즉시 반영 불필요, BULL 전환 신호(pre_bull≥0.90) 시 추가 예정
+- daemon 현행 7개 심볼(AVAX/LINK/APT/XRP/ADA/DOT/ATOM) + SUI 8번째 후보
+
+**다음 탐색 방향**:
+- SUI 추가 시 daemon 영향 분석 (포트폴리오 상관관계)
+- momentum_sol BULL 전환 조건 문서화 (pre_bull 상승 중, 트리거 기준 명시)
+- NEAR 재탐색: acc 임계값 낮추거나(>0.8) 다른 파라미터로 +3.0 달성 가능한지 탐색
+
