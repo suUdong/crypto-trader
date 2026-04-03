@@ -3285,3 +3285,60 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 **다음 단계**: 4개 심볼 N=12+btc_trend_pos 통합 확정 → 전략 코드 구현 (사이클 97)
 
 ---
+
+## 2026-04-03 17:12 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향 올바름.** N=12 + btc_trend_pos가 SOL/ETH/XRP/TRX 4개 심볼 전부에서 일관되게 검증됐고, OOS IS 비율 1.37~1.54로 진정한 엣지 확인. VPIN ETH Sharpe +7.46, momentum SOL +14.37은 walk-forward 대기 중이나 파이프라인이 유망 신호를 포착하고 있음.
+
+**2. poor 비율(5/7 = 71%) 정상.** 자율 탐색 루프에서 vix_falling 류의 직관적 필터를 검증 없이 넓게 쏘는 구조이므로 이 수준은 예상 범위. 에러 0개 = 실행 품질 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **VPIN ETH walk-forward 검증** — IS Sharpe +7.46이 과적합인지 OOS로 확인 (가장 긴급)
+2. **momentum SOL walk-forward** — Sharpe +14.37은 과적합 강의심, OOS 없으면 채택 불가
+3. **전략 코드에 btc_trend_pos 게이트 구현** — 4개 심볼 검증 완료, accumulation_hunter 통합만 남음 (사이클 97)
+
+**4. daemon 즉시 반영 불가.** N=12 + btc_trend_pos OOS Sharpe 최고 +0.90으로 daemon 반영 기준(Sharpe 5.0+) 미달. VPIN/SOL walk-forward 완료 전까지 코드 통합 → paper 검증 순서 준수.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — stealth_3gate btc_trend_pos 코드 통합 + VPIN ETH WF 재검증 (사이클 97)
+
+**작업 A**: `src/crypto_trader/strategy/stealth_3gate.py`에 Gate 4 (btc_trend_pos) 구현
+**작업 B**: `scripts/backtest_eth_vpin_sliding_wf.py` VPIN ETH 슬라이딩 WF 재실행
+
+### 작업 A — stealth_3gate Gate 4 구현
+
+- 새 파라미터: `btc_trend_pos_gate: bool = False`, `btc_trend_window: int = 10`
+- **Gate 4 조건**: BTC 최근 10봉 수익률 > 0 (btc_closes[-1] > btc_closes[-11])
+- 기본값 `False`로 backward compatible (daemon 반영은 별도 기준 필요)
+- 근거: 사이클 94-96에서 4개 심볼 모두 일관 검증 (OOS Sharpe +0.90, IS→OOS 비율 1.54)
+- **daemon 반영 보류**: OOS Sharpe +0.90으로 기준(5.0+) 미달
+
+### 작업 B — VPIN ETH 슬라이딩 WF (사이클 75 파라미터 기준)
+
+**스크립트**: `scripts/backtest_eth_vpin_sliding_wf.py`
+**참고**: 이 스크립트는 "낮은 VPIN 독성" 전략 검증 (현재 daemon의 vpin_eth는 "높은 VPIN momentum")
+
+| 파라미터 | W1 OOS(2024) | W2 OOS(2025) | W3 OOS(2026 Jan-Apr) | 판정 |
+|:---|:---:|:---:|:---:|:---:|
+| C1 (bkt=20, thr<0.35) | +29.0 ✅ | +13.2 ❌(WR<45%) | n=0 | 1/3 ✗ |
+| **C2 (bkt=12, thr<0.40)** | **+25.5 ✅** | **+18.2 ✅** | **n=0** | **2/3 ◆** |
+| C0 (VPIN 없음) | +23.4 ✅ | +17.4 ✅ | n=0 | 2/3 ◆ |
+
+**W3 n=0 이유**: 2026-01~04 3개월 구간에서 진입 조건 미충족 (데이터 부족 아님, 신호 없음)
+
+**결론**:
+- C2 vs C0: VPIN 필터 추가 시 WR 약간 개선(53.8% vs 60.0%), trades 감소
+- 이 전략은 현재 daemon.toml의 vpin_eth_wallet(Sharpe +7.46 배포 중)과 다른 로직 → 별도 daemon 반영 판단 필요
+- **현재 daemon.toml 변경 없음** (기존 vpin_eth_wallet 유지)
+
+---

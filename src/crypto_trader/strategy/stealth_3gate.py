@@ -41,6 +41,8 @@ class Stealth3GateStrategy:
         cvd_slope_threshold: float = 0.0,
         btc_stealth_gate: bool = True,
         min_confidence: float = 0.3,
+        btc_trend_pos_gate: bool = False,
+        btc_trend_window: int = 10,
     ) -> None:
         self._config = config
         self._stealth_window = stealth_window
@@ -50,6 +52,8 @@ class Stealth3GateStrategy:
         self._cvd_slope_threshold = cvd_slope_threshold
         self._btc_stealth_gate = btc_stealth_gate
         self._min_confidence = min_confidence
+        self._btc_trend_pos_gate = btc_trend_pos_gate
+        self._btc_trend_window = btc_trend_window
 
         # Internal BTC candle buffer updated via set_btc_candles()
         self._btc_candles: list[Candle] = []
@@ -152,6 +156,24 @@ class Stealth3GateStrategy:
                 indicators=indicators,
                 context=context,
             )
+
+        # Gate 4 – BTC Trend Positive (10-bar return > 0, validated cycles 94–96)
+        if self._btc_trend_pos_gate and btc_ok:
+            tw = self._btc_trend_window
+            btc_closes = [c.close for c in btc_ref]
+            if len(btc_closes) > tw:
+                btc_trend_pos = btc_closes[-1] > btc_closes[-tw - 1]
+            else:
+                btc_trend_pos = True  # fallback: don't block when insufficient data
+            indicators["btc_trend_pos"] = float(btc_trend_pos)
+            if not btc_trend_pos:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="btc_trend_pos_gate_fail",
+                    confidence=0.1,
+                    indicators=indicators,
+                    context=context,
+                )
 
         # All gates passed → BUY
         confidence = min(1.0, max(self._min_confidence, rs_score * 0.7 + 0.3))
