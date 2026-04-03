@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-crypto_ralph.py — Crypto-Trader 전용 자율 랩 루프 v1.0
+strategy_research_loop.py — Crypto-Trader 전략 연구 루프 v1.0
 
 토큰 최소화 원칙:
   - 루틴(실행·파싱·기록)은 순수 Python (토큰 0)
@@ -96,7 +96,7 @@ PIPELINE: list[dict] = [
     {
         "id": "alpha_backtest",
         "type": "backtest",
-        "desc": "GPU Alpha filter 백테스트 (market_scan_loop에서 이전)",
+        "desc": "GPU Alpha filter 백테스트",
         "script": "backtest_alpha_filter.py",
         "requires_torch": True,
         "notify_on_significant": True,
@@ -104,7 +104,7 @@ PIPELINE: list[dict] = [
     {
         "id": "strategy_tournament",
         "type": "backtest",
-        "desc": "GPU Strategy Tournament (market_scan_loop에서 이전)",
+        "desc": "GPU Strategy Tournament",
         "script": "gpu_tournament.py",
         "notify_on_significant": True,
     },

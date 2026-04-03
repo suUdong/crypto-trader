@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # loop_watchdog.sh: market_scan_loop + strategy_research_loop 감시 및 자동 재시작
-set -euo pipefail
+set -uo pipefail
 
 ROOT="/home/wdsr88/workspace/crypto-trader"
 PYTHON="$ROOT/.venv/bin/python3"

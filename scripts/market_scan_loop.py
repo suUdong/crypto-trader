@@ -15,7 +15,7 @@ sys.path.insert(0, str(_project_root / "src"))
 
 from crypto_trader.strategy.alpha_calibrator import AlphaCalibration, load_calibration
 
-STATE_FILE = Path("state/market_scan.state.json")
+STATE_FILE = _project_root / "state" / "market_scan.state.json"
 RESEARCH_DIR = Path("../crypto-strategy-research/research")
 
 FETCH_WORKERS = 5       # 업비트 rate limit 고려 (10 req/s)
@@ -294,6 +294,7 @@ def get_alpha_scan_results() -> tuple[str, float, dict]:
 
 def update_state(cycle: int, note: str) -> None:
     try:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
         state: dict = {"current_cycle": cycle, "history": []}
         if STATE_FILE.exists():
