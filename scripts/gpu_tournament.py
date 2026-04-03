@@ -55,14 +55,40 @@ def _fetch_one(sym: str) -> tuple[str, object]:
         if df is None or len(df) < 60:
             return sym, None
         return sym, df
-    except Exception as e:
+    except Exception:
         return sym, None
+
+
+def _fetch_with_retry(sym: str, retries: int = 3, delay: float = 2.0) -> tuple[str, object]:
+    """중요 심볼(BTC 등)에 대한 재시도 fetch."""
+    import pyupbit
+    for attempt in range(retries):
+        try:
+            time.sleep(delay)
+            df = pyupbit.get_ohlcv(sym, interval=INTERVAL, count=COUNT)
+            if df is not None and len(df) >= 60:
+                return sym, df
+        except Exception:
+            pass
+        if attempt < retries - 1:
+            time.sleep(delay * (attempt + 1))
+    return sym, None
 
 
 def fetch_all(symbols: list[str], workers: int = 3) -> dict:
     data: dict = {}
+    # BTC 먼저 재시도 로직으로 fetch (rate-limit 안전)
+    btc_sym = "KRW-BTC"
+    if btc_sym in symbols:
+        _, btc_df = _fetch_with_retry(btc_sym)
+        if btc_df is not None:
+            data[btc_sym] = btc_df
+        remaining = [s for s in symbols if s != btc_sym]
+    else:
+        remaining = list(symbols)
+
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(_fetch_one, s): s for s in symbols}
+        futs = {ex.submit(_fetch_one, s): s for s in remaining}
         for f in as_completed(futs):
             sym, df = f.result()
             if df is not None:
