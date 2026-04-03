@@ -187,6 +187,10 @@ ${RESEARCH}
 - Safety 상수 변경 금지
 - daemon.toml 수정 시 Sharpe > 5.0 근거 필요
 - 완료 후 git commit 필수
+- n < 30 결과로 daemon 배포 결정 금지 (통계적으로 불충분 — Opus/Codex 리뷰)
+- OOS 윈도우 재사용 금지 — artifacts/oos_window_registry.json 확인 후 새 윈도우 사용, 완료 후 기록
+- daemon 반영 전 단순 보유(buy-and-hold) 대비 수익률 비교 필수
+- 슬리피지 미포함 백테스트 결과에는 반드시 ★슬리피지미포함 표시
 
 완료 후 반드시 마지막에 출력:
 [RALPH CYCLE ${CYCLE} DONE] 작업: <한줄요약> | 결과: <Sharpe/WR/기타> | 다음제안: <다음사이클에서 할 것>
