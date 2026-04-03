@@ -1,5 +1,69 @@
 {
-  "cycle": 0,
-  "done": [],
-  "last_run": null
+  "cycle": 30,
+  "done": [
+    "stealth_sol_sweep",
+    "truth_seeker_sweep",
+    "vpin_eth_grid",
+    "momentum_sol_grid",
+    "regime_stealth",
+    "alpha_backtest",
+    "strategy_tournament",
+    "btc_dip_recovery",
+    "btc_dip_alt_entry",
+    "new_strategy_hypothesis"
+  ],
+  "last_run": "2026-04-03T13:34:39.729006+00:00",
+  "quality_log": [
+    {
+      "id": "vpin_eth_grid",
+      "grade": "promising",
+      "sharpe": 7.461,
+      "reason": "Sharpe +7.461 — 유의미한 엣지 확인",
+      "cycle": 23
+    },
+    {
+      "id": "momentum_sol_grid",
+      "grade": "promising",
+      "sharpe": 14.367,
+      "reason": "Sharpe +14.367 — 유의미한 엣지 확인",
+      "cycle": 24
+    },
+    {
+      "id": "regime_stealth",
+      "grade": "poor",
+      "sharpe": null,
+      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
+      "cycle": 25
+    },
+    {
+      "id": "alpha_backtest",
+      "grade": "poor",
+      "sharpe": -0.101,
+      "reason": "Sharpe -0.101 — 엣지 부족",
+      "cycle": 26
+    },
+    {
+      "id": "strategy_tournament",
+      "grade": "poor",
+      "sharpe": null,
+      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
+      "cycle": 27
+    },
+    {
+      "id": "btc_dip_recovery",
+      "grade": "poor",
+      "sharpe": null,
+      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
+      "cycle": 28
+    },
+    {
+      "id": "btc_dip_alt_entry",
+      "grade": "poor",
+      "sharpe": null,
+      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
+      "cycle": 29
+    }
+  ],
+  "interval_last_run": {},
+  "dynamic_tasks": []
 }

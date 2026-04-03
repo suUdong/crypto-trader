@@ -50,6 +50,23 @@ def main() -> None:
         except Exception:
             pass
 
+    # 6. ralph done 히스토리
+    ralph_section = ""
+    ralph_path = ROOT / "ralph-loop.state.json"
+    if ralph_path.exists():
+        try:
+            rdata = json.loads(ralph_path.read_text())
+            done_list = rdata.get("ralph_done", [])
+            last_run = rdata.get("ralph_last_run", "없음")
+            if done_list:
+                lines = "\n".join(
+                    f"  사이클 {d['cycle']}: {d['summary']}"
+                    for d in done_list[-5:]
+                )
+                ralph_section = f"\n---\n\n## 6. 크립토 랄프 이전 작업 (최근 5개)\n\n```\n{lines}\n```\n\n마지막 실행: {last_run}\n"
+        except Exception:
+            pass
+
     content = f"""# 🔄 SESSION HANDOFF (자동 생성): {now}
 
 ## 1. 실행 상태
@@ -105,7 +122,7 @@ tail -f logs/strategy_research.log  # 전략연구 로그
 2. `wallet_changes.md` 이력 기반 성과 추적 루틴 추가
 3. `accumulation_breakout` 전략 코드에 `stealth_lookback` 파라미터 실제 반영
 4. market 회복 시 진입 신호 확인 (pre_bull score 0.75+, BTC SMA20 돌파 감시)
-"""
+{ralph_section}"""
     OUT.write_text(content)
     print(f"SESSION_HANDOFF.md 생성 완료: {OUT}")
 

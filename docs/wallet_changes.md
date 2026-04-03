@@ -62,3 +62,83 @@
 
 ---
 
+## 2026-04-03 07:48 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=74 alpha=1.192`
+- 변경: `KRW-GAS` → `KRW-MLK`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 07:48 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=74 alpha=1.192`
+- 변경: `KRW-MLK` → `KRW-TRX`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 09:48 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=76 alpha=2.926`
+- 변경: `KRW-MLK` → `KRW-ALGO`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 09:48 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=76 alpha=2.926`
+- 변경: `KRW-TRX` → `KRW-JST`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 10:48 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=77 alpha=2.623`
+- 변경: `KRW-ALGO` → `KRW-RAY`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 10:48 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=77 alpha=2.623`
+- 변경: `KRW-JST` → `KRW-TAIKO`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 11:48 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=78 alpha=1.185`
+- 변경: `KRW-RAY` → `KRW-MON`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 11:48 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=78 alpha=1.185`
+- 변경: `KRW-TAIKO` → `KRW-OPEN`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 12:48 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=79 alpha=2.328`
+- 변경: `KRW-MON` → `KRW-RAY`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-03 12:48 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=79 alpha=2.328`
+- 변경: `KRW-OPEN` → `KRW-TAIKO`
+- ✅ daemon 재시작됨
+
+---
+

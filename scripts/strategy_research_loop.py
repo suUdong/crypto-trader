@@ -167,7 +167,7 @@ def load_state() -> dict:
             return data
         except Exception:
             pass
-    return {"cycle": 0, "done": [], "last_run": None, "quality_log": []}
+    return {"cycle": 0, "done": [], "last_run": None, "quality_log": [], "dynamic_tasks": []}
 
 
 def save_state(state: dict) -> None:
@@ -176,8 +176,9 @@ def save_state(state: dict) -> None:
         "cycle": state["cycle"],
         "done": state["done"],
         "last_run": state["last_run"],
-        "quality_log": state.get("quality_log", [])[-50:],  # 최근 50개만 보존
+        "quality_log": state.get("quality_log", [])[-50:],
         "interval_last_run": state.get("interval_last_run", {}),
+        "dynamic_tasks": state.get("dynamic_tasks", [])[-20:],  # 최근 20개만 보존
     }, indent=2, ensure_ascii=False))
 
 
@@ -325,13 +326,25 @@ def notify(msg: str, *, always: bool = False) -> None:
 
 # ── Claude 가설 생성 ──────────────────────────────────────────────────────────
 
+def _run_claude_cli(prompt: str, timeout: int = 120) -> str:
+    """Claude CLI 호출 (--dangerously-skip-permissions). 실패 시 빈 문자열."""
+    try:
+        result = subprocess.run(
+            ["claude", "--dangerously-skip-permissions", "-p", prompt],
+            capture_output=True, text=True, timeout=timeout, cwd=ROOT,
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        print(f"[research] Claude CLI 호출 실패: {e}")
+        return ""
+
+
 def ask_claude_hypothesis(quality_log: list | None = None) -> str:
     """Claude CLI로 신규 전략 가설 생성. 실패 시 빈 문자열."""
     history_tail = ""
     if HISTORY_FILE.exists():
-        history_tail = HISTORY_FILE.read_text()[-3000:]  # 최근 3000자
+        history_tail = HISTORY_FILE.read_text()[-3000:]
 
-    # 품질 로그 요약 — promising/marginal만 전략 힌트로 전달
     quality_summary = ""
     if quality_log:
         promising = [q for q in quality_log if q.get("grade") == "promising"]
@@ -369,15 +382,138 @@ def ask_claude_hypothesis(quality_log: list | None = None) -> str:
 
 중복 실험 금지. 과거에 없는 새로운 시도만."""
 
-    try:
-        result = subprocess.run(
-            ["claude", "--print", "--no-session-persistence", "-p", prompt],
-            capture_output=True, text=True, timeout=60, cwd=ROOT,
-        )
-        return result.stdout.strip()
-    except Exception as e:
-        print(f"[research] Claude CLI 호출 실패: {e}")
-        return ""
+    return _run_claude_cli(prompt, timeout=120)
+
+
+# ── 유망 결과 → 즉시 후속 태스크 생성 ───────────────────────────────────────────
+
+def generate_followup_task(task: dict, result: dict, state: dict) -> dict | None:
+    """promising 결과가 나오면 즉시 후속 스크립트 작성 요청.
+
+    Claude가 직접 scripts/에 파일 작성 + NEW_TASK 마커 출력하면 반환.
+    """
+    history_tail = HISTORY_FILE.read_text()[-2000:] if HISTORY_FILE.exists() else ""
+    sharpe = result.get("best_sharpe", 0)
+    raw = result.get("raw_tail", "")[-1500:]
+
+    prompt = f"""crypto-trader 백테스트에서 유망한 결과가 나왔다. 즉시 다음 단계 스크립트를 작성해라.
+
+== 방금 완료된 태스크 ==
+전략: {task['desc']}
+Sharpe: {sharpe:+.3f}
+결과 상세:
+{raw}
+
+== 최근 히스토리 ==
+{history_tail}
+
+## 지시
+이 결과를 발전시키는 후속 백테스트 스크립트 1개를 scripts/ 에 작성해라.
+- 파라미터 범위 확장, 필터 추가, 복합 조건 등 다음 단계
+- Python: {PYTHON}, 데이터: data/historical/monthly/
+- 결과에 "Sharpe: X.XX", "WR: XX.X%", "trades: N" 포함
+
+완료 후 반드시 출력:
+NEW_TASK id=<snake_case_id> script=<파일명.py> desc=<한줄설명>"""
+
+    print(f"[research] 🔥 promising 결과 → 후속 태스크 즉시 생성 중...")
+    output = _run_claude_cli(prompt, timeout=900)
+    if not output:
+        return None
+
+    for line in output.splitlines():
+        m = re.match(r"NEW_TASK\s+id=(\S+)\s+script=(\S+\.py)\s+desc=(.+)", line.strip())
+        if m:
+            task_id, script, desc = m.group(1), m.group(2), m.group(3).strip()
+            if (SCRIPTS / script).exists():
+                print(f"[research] ✅ 후속 태스크: [{task_id}] {script}")
+                return {"id": task_id, "type": "backtest", "desc": desc,
+                        "script": script, "notify_on_significant": True}
+            else:
+                print(f"[research] ⚠️  스크립트 없음: {script}")
+    return None
+
+
+# ── 파이프라인 소진 시 신규 태스크 생성 ─────────────────────────────────────────
+
+def replenish_pipeline(state: dict) -> list[dict]:
+    """파이프라인 소진 시 Opus(Claude)에게 새 백테스트 스크립트 작성 + 태스크 정의 요청.
+
+    Claude가 직접 scripts/ 디렉토리에 파일을 작성하고,
+    NEW_TASK 마커로 태스크 정의를 출력하면 파싱해서 반환.
+    """
+    history_tail = HISTORY_FILE.read_text()[-4000:] if HISTORY_FILE.exists() else "(없음)"
+    quality_log = state.get("quality_log", [])
+    done_ids = state.get("done", [])
+
+    promising = [q for q in quality_log if q.get("grade") == "promising"]
+    poor_ids  = [q["id"] for q in quality_log if q.get("grade") == "poor"]
+
+    promising_summary = "\n".join(
+        f"  - {q['id']}: Sharpe {q.get('sharpe', 0):+.2f} — {q.get('reason', '')}"
+        for q in promising[-5:]
+    ) or "  없음"
+
+    prompt = f"""crypto-trader 전략 연구 루프의 파이프라인이 소진됐다.
+아래 데이터를 분석하고 새로운 백테스트 스크립트 2개를 직접 작성해서 scripts/ 디렉토리에 저장해라.
+
+== 유망 결과 (발전시킬 것) ==
+{promising_summary}
+
+== 완료된 태스크 (중복 금지) ==
+{', '.join(done_ids) or '없음'}
+
+== 엣지 없는 전략 (재탐색 불필요) ==
+{', '.join(poor_ids) or '없음'}
+
+== 최근 백테스트 히스토리 ==
+{history_tail}
+
+## 지시사항
+1. 위 유망 결과를 이어받거나, 아직 탐색 안 한 새로운 가설을 선택
+2. 각 전략에 대해 scripts/backtest_XXX.py 파일을 직접 작성 (실행 가능한 완성 코드)
+   - Python: {PYTHON}
+   - 데이터: data/historical/monthly/ 경로 사용
+   - 결과 출력: "Sharpe: X.XX", "WR: XX.X%", "trades: N" 형식 포함
+3. 스크립트 작성 완료 후 반드시 아래 형식으로 출력:
+
+NEW_TASK id=<snake_case_id> script=<파일명.py> desc=<한줄설명>
+NEW_TASK id=<snake_case_id> script=<파일명.py> desc=<한줄설명>
+
+규칙: Safety 상수 변경 금지. .venv/bin/python 사용. 완료 후 git commit."""
+
+    print("[research] 🔄 파이프라인 소진 — Opus(Claude)에게 신규 태스크 요청 중...")
+    notify("파이프라인 소진 — Claude에게 신규 백테스트 스크립트 요청 중...")
+
+    output = _run_claude_cli(prompt, timeout=1800)
+    if not output:
+        print("[research] ⚠️  신규 태스크 생성 실패")
+        return []
+
+    # NEW_TASK 마커 파싱
+    new_tasks = []
+    for line in output.splitlines():
+        m = re.match(r"NEW_TASK\s+id=(\S+)\s+script=(\S+\.py)\s+desc=(.+)", line.strip())
+        if m:
+            task_id, script, desc = m.group(1), m.group(2), m.group(3).strip()
+            script_path = SCRIPTS / script
+            if script_path.exists():
+                new_tasks.append({
+                    "id": task_id,
+                    "type": "backtest",
+                    "desc": desc,
+                    "script": script,
+                    "notify_on_significant": True,
+                })
+                print(f"[research] ✅ 신규 태스크 추가: [{task_id}] {script}")
+            else:
+                print(f"[research] ⚠️  스크립트 없음 (작성 실패?): {script}")
+
+    if new_tasks:
+        notify(f"신규 태스크 {len(new_tasks)}개 추가:\n" + "\n".join(
+            f"  - {t['id']}: {t['desc']}" for t in new_tasks
+        ))
+    return new_tasks
 
 
 # ── 백테스트 실행 ─────────────────────────────────────────────────────────────
@@ -424,7 +560,9 @@ def _is_interval_task_due(task: dict, state: dict) -> bool:
 
 def pick_next_task(state: dict) -> dict | None:
     done = set(state["done"])
-    for task in PIPELINE:
+    # 정적 파이프라인 + 동적으로 추가된 태스크 모두 탐색
+    all_tasks = PIPELINE + state.get("dynamic_tasks", [])
+    for task in all_tasks:
         # interval 태스크: 시간이 됐으면 done에 있어도 재실행
         if task.get("interval_hours") and _is_interval_task_due(task, state):
             return task
@@ -445,9 +583,17 @@ def run_cycle(state: dict, dry_run: bool = False) -> dict:
 
     task = pick_next_task(state)
     if task is None:
-        print("[research] 파이프라인 완료 — 신규 태스크 생성 대기")
-        # 파이프라인 소진 시 hypothesis 재실행 (done에서 제거)
-        state["done"] = [d for d in state["done"] if d != "new_strategy_hypothesis"]
+        print("[research] 파이프라인 완료 — Claude에게 신규 태스크 요청")
+        new_tasks = replenish_pipeline(state)
+        if new_tasks:
+            state.setdefault("dynamic_tasks", []).extend(new_tasks)
+            # 새 태스크 done 목록에서 제거 (재실행 가능하게)
+            new_ids = {t["id"] for t in new_tasks}
+            state["done"] = [d for d in state["done"] if d not in new_ids]
+        else:
+            # 생성 실패 시 1시간 대기 후 재시도
+            print("[research] 신규 태스크 없음 — 1시간 후 재시도")
+            time.sleep(3600)
         return state
 
     print(f"[research] 태스크: [{task['id']}] {task['desc']}")
@@ -479,6 +625,12 @@ def run_cycle(state: dict, dry_run: bool = False) -> dict:
                     f"유의미한 결과 발견!\n전략: {task['desc']}\n"
                     f"Sharpe: {sharpe:+.3f} | WR: {result['best_wr']}% | trades: {result['total_trades']}"
                 )
+            # promising이면 즉시 후속 태스크 생성 (자기개선 핵심)
+            if grade == "promising":
+                followup = generate_followup_task(task, result, state)
+                if followup and followup["id"] not in set(state["done"]):
+                    state.setdefault("dynamic_tasks", []).append(followup)
+                    print(f"[research] ➡️  후속 태스크 파이프라인에 추가: {followup['id']}")
             # ── 자동 파라미터 적용 ────────────────────────────────────────────
             if sharpe and not dry_run and grade != "error":
                 try:
@@ -565,11 +717,7 @@ promising: {stats['promising']}개 | marginal: {stats['marginal']}개 | poor: {s
 
     print(f"\n[research] 🔍 일일 품질 리뷰 시작...")
     try:
-        result = subprocess.run(
-            ["claude", "--print", "--no-session-persistence", "-p", prompt],
-            capture_output=True, text=True, timeout=90, cwd=ROOT,
-        )
-        review = result.stdout.strip()
+        review = _run_claude_cli(prompt, timeout=120)
     except Exception as e:
         print(f"[research] 품질 리뷰 실패: {e}")
         return

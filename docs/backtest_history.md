@@ -1555,3 +1555,65 @@ base (all bars)                      0
 </details>
 
 ---
+
+## 2026-04-03 13:14 UTC — BTC 급락 후 알트 진입 전략 (LINK/ADA/XRP) [ralph:btc_dip_alt_entry] 🔻[poor]
+
+**결과**: Sharpe N/A | WR 42.9% | trades 19
+
+
+<details><summary>raw output</summary>
+
+```
+=== BTC 급락+acc 이후 알트 진입 전략 백테스트 ===
+기간: 2022-01-01~2026-04-03  FWD=12봉(48h)
+
+BTC 신호 발생: 44회
+
+심볼                N   avg 48h      WR |  N(st)    st avg   st WR
+----------------------------------------------------------------------
+KRW-SUI          14    +2.30%  42.9% |      0       n/a     n/a
+KRW-APT          25    +1.52%  52.0% |      0       n/a     n/a
+KRW-LINK         44    +1.09%  56.8% |      0       n/a     n/a
+KRW-ADA          44    +0.82%  52.3% |      0       n/a     n/a
+KRW-XRP          44    +0.75%  54.5% |      0       n/a     n/a
+KRW-MANA         44    +0.53%  45.5% |     25    -0.42%   48.0%
+KRW-AVAX         44    +0.38%  52.3% |      0       n/a     n/a
+KRW-STX          44    +0.18%  45.5% |      0       n/a     n/a
+KRW-SAND         44    +0.16%  52.3% |     19    +0.23%   42.1%
+KRW-ARB          17    +0.03%  47.1% |      0       n/a     n/a
+KRW-ETH          44    -0.10%  50.0% |     17    -0.78%   29.4%
+KRW-SOL          44    -0.18%  38.6% |      0       n/a     n/a
+KRW-AXS          44    -0.24%  47.7% |     21    -0.22%   33.3%
+KRW-DOT          44    -0.32%  36.4% |      0       n/a     n/a
+KRW-ATOM         44    -0.44%  43.2% |     13    -0.34%   46.2%
+KRW-NEAR         44    -1.41%  31.8% |      0       n/a     n/a
+
+★ 최고 성과 알트: KRW-SUI  avg=+2.30%  WR=42.9%  n=14
+
+Stealth 필터 개선 심볼: 3/16
+  Best: KRW-SAND  stealth_avg=+0.23%  WR=42.1%  n=19
+
+```
+
+</details>
+
+---
+
+## 2026-04-03 13:35 UTC — Claude 신규 전략 가설 생성 [ralph:new_strategy_hypothesis] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: Claude 가설 (미검증)
+
+<details><summary>raw output</summary>
+
+```
+**전략명**: `momentum_vpin_combo`
+**가설**: momentum_sol_grid(Sharpe +14.37)와 vpin_eth_grid(Sharpe +7.46)의 유효성을 확인했으니, 두 신호를 AND 조건으로 결합하면 진입 정밀도가 높아진다 — VPIN 급등(거래량 이상)이 감지된 봉에서만 모멘텀 진입
+**탐색 파라미터**: `vpin_threshold` (0.6/0.7/0.8), `momentum_lookback` (3/6/12봉), `tp_sl_ratio` (1.5/2.0/3.0)
+**예상 스크립트**: `scripts/backtest_momentum_vpin_combo.py`
+**근거**: 두 전략이 각각 독립적으로 높은 Sharpe를 기록했고, 적용 심볼도 다름(SOL vs ETH). VPIN을 모멘텀의 필터로 쓰면 노이즈 진입을 줄이는 방향 — 완전히 새로운 조합이며, btc_dip_alt_entry에서 APT/LINK/SUI가 양의 수익을 보인 심볼들에 우선 적용하면 커버리지 확장도 가능.
+```
+
+</details>
+
+---

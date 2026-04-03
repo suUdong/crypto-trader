@@ -2,23 +2,23 @@
 # crypto_ralph.sh — Claude 자율 FIRE 모드 루프
 #
 # 매 사이클:
-#   1. 현재 시장/연구 상태 수집
-#   2. 가장 ROI 높은 작업 결정
-#   3. Claude가 자율 실행 (backtest/code/commit)
-#   4. 결과 기록 후 대기
+#   1. 현재 시장/연구 상태 + 이전 사이클 상세 결과 수집
+#   2. Claude가 자율 실행 (backtest/code/commit)
+#   3. 상세 결과 저장 → 다음 사이클에 완벽히 연결
 #
 # Usage:
 #   tmux new-window -n "crypto-ralph" -c ~/workspace/crypto-trader
-#   ./scripts/crypto_ralph.sh [interval_minutes]
+#   ./scripts/crypto_ralph.sh [cooldown_minutes]   # 기본 3분 쿨다운
 
 set -uo pipefail
 
 PROJ_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INTERVAL_MINUTES="${1:-20}"
-INTERVAL_SECS=$(( INTERVAL_MINUTES * 60 ))
+COOLDOWN_MINUTES="${1:-3}"
+COOLDOWN_SECS=$(( COOLDOWN_MINUTES * 60 ))
 STATE_FILE="$PROJ_ROOT/ralph-loop.state.json"
 LOG_FILE="$PROJ_ROOT/logs/crypto_ralph.log"
 CLAUDE_CMD="claude --dangerously-skip-permissions"
+CLAUDE_TIMEOUT=1800  # 30분 (작업 완료 기다림)
 
 mkdir -p "$PROJ_ROOT/logs"
 
@@ -41,32 +41,36 @@ except:
 
 save_cycle() {
     local cycle=$1
-    python3 -c "
-import json
+    python3 - "$STATE_FILE" "$cycle" <<'PY'
+import json, sys, os, datetime
+state_file, cycle = sys.argv[1], int(sys.argv[2])
 try:
-    s = json.load(open('$STATE_FILE'))
-except:
+    s = json.load(open(state_file))
+except Exception:
     s = {}
-s['current_cycle'] = $cycle
-s.setdefault('history', []).append({'cycle': $cycle, 'note': 'Cycle $cycle archived.', 'timestamp': __import__('datetime').datetime.now().isoformat()})
+s['current_cycle'] = cycle
+s.setdefault('history', []).append({'cycle': cycle, 'timestamp': datetime.datetime.now().isoformat()})
 s['history'] = s['history'][-50:]
-json.dump(s, open('$STATE_FILE', 'w'), indent=2)
-" 2>/dev/null
+tmp = state_file + ".tmp"
+with open(tmp, 'w') as f:
+    json.dump(s, f, indent=2)
+os.replace(tmp, state_file)
+PY
 }
 
 get_market_snapshot() {
     python3 -c "
-import json, os
+import json
 try:
     s = json.load(open('artifacts/pre-bull-signals.json'))
     l = s.get('latest', {})
-    btc_ret   = l.get('btc_raw_ret', 0)
-    btc_acc   = l.get('btc_acc', 1)
-    btc_cvd   = l.get('btc_cvd_slope', 0)
-    pre_bull  = l.get('pre_bull_score_adj', 0)
-    stealth   = l.get('stealth_acc_count', 0)
-    total     = l.get('total_coins_scanned', 0)
-    regime    = 'BULL' if l.get('btc_bull_regime', False) else 'BEAR'
+    btc_ret  = l.get('btc_raw_ret', 0)
+    btc_acc  = l.get('btc_acc', 1)
+    btc_cvd  = l.get('btc_cvd_slope', 0)
+    pre_bull = l.get('pre_bull_score_adj', 0)
+    stealth  = l.get('stealth_acc_count', 0)
+    total    = l.get('total_coins_scanned', 0)
+    regime   = 'BULL' if l.get('btc_bull_regime', False) else 'BEAR'
     print(f'BTC {regime} | ret={btc_ret:+.3f} | acc={btc_acc:.3f} | cvd={btc_cvd:+.3f} | pre_bull={pre_bull:+.3f} | stealth={stealth}/{total}')
 except Exception as e:
     print(f'snapshot error: {e}')
@@ -81,10 +85,61 @@ get_research_status() {
     tail -10 "$PROJ_ROOT/logs/strategy_research.log" 2>/dev/null || echo "(no research log)"
 }
 
+# 이전 사이클 상세 결과 (단순 요약이 아닌 실제 출력 포함)
+get_prev_context() {
+    python3 -c "
+import json
+try:
+    s = json.load(open('$STATE_FILE'))
+    done = s.get('ralph_done', [])
+    if not done:
+        print('(없음 — 첫 사이클)')
+    else:
+        # 마지막 3개는 상세 출력 포함
+        for d in done[-3:]:
+            print(f\"=== 사이클 {d['cycle']} ===\")
+            print(f\"요약: {d['summary']}\")
+            if d.get('detail'):
+                print('결과 상세:')
+                print(d['detail'])
+            print()
+except:
+    print('(없음)')
+" 2>/dev/null
+}
+
+save_done() {
+    local cycle=$1
+    local summary=$2
+    local detail=$3  # Claude 출력 마지막 40줄
+    RALPH_SUMMARY="$summary" RALPH_DETAIL="$detail" python3 - "$STATE_FILE" "$cycle" <<'PY'
+import json, sys, os, datetime
+state_file, cycle = sys.argv[1], int(sys.argv[2])
+summary = os.environ.get('RALPH_SUMMARY', '')
+detail  = os.environ.get('RALPH_DETAIL', '')
+try:
+    s = json.load(open(state_file))
+except Exception:
+    s = {}
+s.setdefault('ralph_done', []).append({
+    'cycle': cycle,
+    'summary': summary,
+    'detail': detail,
+    'timestamp': datetime.datetime.now().isoformat()
+})
+s['ralph_done'] = s['ralph_done'][-30:]
+s['ralph_last_run'] = datetime.datetime.now().isoformat()
+tmp = state_file + ".tmp"
+with open(tmp, 'w') as f:
+    json.dump(s, f, indent=2)
+os.replace(tmp, state_file)
+PY
+}
+
 # ── 메인 루프 ───────────────────────────────────────────────────────────────
 
 log "=============================="
-log "💎 crypto-ralph START (interval=${INTERVAL_MINUTES}m)"
+log "💎 crypto-ralph START (cooldown=${COOLDOWN_MINUTES}m, timeout=${CLAUDE_TIMEOUT}s)"
 log "=============================="
 
 while true; do
@@ -95,11 +150,15 @@ while true; do
     MARKET=$(get_market_snapshot)
     HISTORY=$(get_history_tail)
     RESEARCH=$(get_research_status)
+    PREV_CTX=$(get_prev_context)
 
     PROMPT="파이어 모드 crypto-ralph 자율 사이클 ${CYCLE}.
 
 ## 현재 시장 상태
 ${MARKET}
+
+## 이전 사이클 상세 결과 (여기서 이어받아 다음 단계 실행)
+${PREV_CTX}
 
 ## 최근 백테스트 히스토리 (마지막 80줄)
 ${HISTORY}
@@ -108,47 +167,61 @@ ${HISTORY}
 ${RESEARCH}
 
 ## 임무
-위 정보를 바탕으로 지금 당장 가장 ROI가 높은 작업 하나를 선택하고 완전히 실행해라.
+이전 사이클 결과를 정확히 이어받아 다음 단계로 발전시켜라.
+- 이전이 Sharpe 4.x → 파라미터 범위 확장 또는 필터 추가
+- 이전이 실패 → 원인 분석 후 수정 재실행
+- 이전이 없음 → 백테스트 히스토리 기반 가장 유망한 가설 선택
 
-### 우선순위 기준
-1. Sharpe > 5.0 전략 발견 → daemon.toml 즉시 반영 (백테스트 근거 있을 때만)
-2. 아직 백테스트 안 한 유망 가설 → 스크립트 작성 + 실행
-3. 실패한 스크립트 수정 → 재실행
-4. 현재 시장 조건에 맞는 즉시 활용 가능한 신호 분석
-5. 코드 품질/버그 수정 → 커밋
+지금 당장 작업 하나를 완전히 실행해라.
+
+### 우선순위
+1. Sharpe > 5.0 전략 → daemon.toml 반영 (백테스트 근거 있을 때만)
+2. 이전 promising 결과 → 개선 (파라미터 확장 / 필터 강화)
+3. 미탐색 유망 가설 → 스크립트 작성 + 실행
+4. 실패 작업 → 수정 재실행
+5. 시장 조건 맞는 신호 분석
 
 ### 규칙 (절대 준수)
-- Python 실행: .venv/bin/python
-- 백테스트 결과 → 반드시 docs/backtest_history.md 기록
-- Safety 상수(HARD_MAX_DAILY_LOSS_PCT, SAFE_MAX_CONSECUTIVE_LOSSES 등) 변경 금지
-- daemon.toml 수정 시 반드시 백테스트 Sharpe > 5.0 근거 필요
-- 작업 완료 후 git commit 필수
+- Python: .venv/bin/python
+- 백테스트 결과 → docs/backtest_history.md 기록
+- Safety 상수 변경 금지
+- daemon.toml 수정 시 Sharpe > 5.0 근거 필요
+- 완료 후 git commit 필수
 
-완료 후 마지막 줄에 반드시 다음 형식으로 출력:
-[RALPH CYCLE ${CYCLE} DONE] 작업: <한줄요약> | 결과: <Sharpe/WR/기타>
+완료 후 반드시 마지막에 출력:
+[RALPH CYCLE ${CYCLE} DONE] 작업: <한줄요약> | 결과: <Sharpe/WR/기타> | 다음제안: <다음사이클에서 할 것>
 "
 
-    log "프롬프트 생성 완료. Claude 실행 중..."
+    log "Claude 실행 중... (최대 ${CLAUDE_TIMEOUT}초, 완료 대기)"
+    START_TS=$(date +%s)
 
-    # Claude 실행 (print mode = 비대화형 자율)
-    OUTPUT=$(cd "$PROJ_ROOT" && echo "$PROMPT" | $CLAUDE_CMD -p --output-format text 2>&1) || true
+    # Claude 실행 — 완료될 때까지 대기 (timeout은 안전망)
+    OUTPUT=$(cd "$PROJ_ROOT" && echo "$PROMPT" | timeout "$CLAUDE_TIMEOUT" $CLAUDE_CMD -p --output-format text 2>&1) || true
 
-    # 결과 로그
-    log "--- Claude 출력 ---"
-    echo "$OUTPUT" | tail -30 >> "$LOG_FILE"
-    echo "$OUTPUT" | tail -5
+    END_TS=$(date +%s)
+    ELAPSED=$(( END_TS - START_TS ))
+    log "Claude 완료 (${ELAPSED}초 소요)"
+
+    # 전체 출력 로그 저장
+    echo "$OUTPUT" >> "$LOG_FILE"
 
     # DONE 신호 파싱
     DONE_LINE=$(echo "$OUTPUT" | grep "\[RALPH CYCLE ${CYCLE} DONE\]" | tail -1 || true)
+    DETAIL=$(echo "$OUTPUT" | tail -40)  # 마지막 40줄 = 실제 결과 상세
+
     if [ -n "$DONE_LINE" ]; then
         log "✅ $DONE_LINE"
+        SUMMARY=$(echo "$DONE_LINE" | sed 's/.*DONE\] //')
     else
-        log "⚠️  DONE 신호 없음 (에러 또는 미완료)"
+        log "⚠️  DONE 신호 없음 (타임아웃 ${ELAPSED}s 또는 에러)"
+        SUMMARY="DONE 신호 없음 — ${ELAPSED}s 후 종료"
     fi
 
+    save_done "$CYCLE" "$SUMMARY" "$DETAIL"
     save_cycle "$CYCLE"
-    log "=== RALPH CYCLE ${CYCLE} END === (다음: ${INTERVAL_MINUTES}분 후)"
+
+    log "=== RALPH CYCLE ${CYCLE} END === (${COOLDOWN_MINUTES}분 쿨다운 후 다음 사이클)"
     log ""
 
-    sleep "$INTERVAL_SECS"
+    sleep "$COOLDOWN_SECS"
 done

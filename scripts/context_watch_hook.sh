@@ -45,6 +45,29 @@ if command -v tmux &>/dev/null && tmux info &>/dev/null 2>&1; then
         sleep 4
         tmux send-keys -t "${TMUX_SESSION}:claude-next" "ㄱ" Enter 2>/dev/null || true
 
+        # ralph가 최근 활성 상태면 60초 후 자동 이어서 실행
+        RALPH_ACTIVE=$(python3 -c "
+import json, datetime
+try:
+    s = json.load(open('$PROJ_ROOT/ralph-loop.state.json'))
+    last = s.get('ralph_last_run')
+    if last:
+        dt = datetime.datetime.fromisoformat(last)
+        diff = (datetime.datetime.now() - dt).total_seconds()
+        print('yes' if diff < 7200 else 'no')
+    else:
+        print('no')
+except:
+    print('no')
+" 2>/dev/null || echo "no")
+
+        if [ "$RALPH_ACTIVE" = "yes" ]; then
+            (
+                sleep 60
+                tmux send-keys -t "${TMUX_SESSION}:claude-next" "크립토 랄프 이어서 실행해" Enter 2>/dev/null || true
+            ) &
+        fi
+
         # 새 창 확인 후 현재 창 종료 (45초 후 백그라운드 — Claude 응답 완료 대기)
         if [ -n "$CURRENT_WINDOW" ]; then
             (
