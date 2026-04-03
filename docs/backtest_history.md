@@ -5293,3 +5293,100 @@ stealth_3gate_wallet_1:
 **다음 탐색 제안**:
 - (A) Gate4=OFF + SL=1.0%로 전환 검토 (W2=5.199 vs 5.045, 거래수 2.5배 차이)
 - (B) BTC BULL 전환 후 실전 성과 모니터링
+
+## 2026-04-03 23:11 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37), vpin_eth(+7.46) 두 엣지 확보 상태이며, BEAR long-only 5사이클 전략 탐색을 완료하고 잠정 중단한 판단은 합리적.
+
+**2. poor 5/7(71%) 정상 범위.** BTC BEAR 레짐(Gate1 차단) + ETH long-only 평균 수익 <0.5% 구조에서 슬리피지 버퍼 부족이 근본 원인 — 전략 품질이 아닌 레짐 문제. momentum continuation 패턴이 5사이클 공통으로 확인됨.
+
+**3. 다음 1주일 우선순위:**
+1. **stealth_3gate 재최적화** — 현재 Sharpe+4.682, BULL 전환 즉시 배포 가능 상태로 준비
+2. **BEAR short 탐색 소규모 시작** — long-only 실패 원인이 momentum continuation이므로 방향 전환 타당성 검증
+3. **BULL 전환 감시 유지** — pre_bull≥0.90 포착 즉시 momentum_sol + ONDO vpin 자동 활성화
+
+**4. 즉시 daemon 반영 없음.** 현재 배포 구조(ONDO vpin Gate1+Gate2 대기) 완성 상태이며 BULL 전환 전까지 신규 파라미터 배포 근거 없음.
+```
+
+</details>
+
+---
+
+## 2026-04-03 23:21 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** stealth_3gate SL=1.0% 최적화로 W2 Sharpe 4.377→5.045 달성 및 daemon 반영 완료. momentum_sol(+14.37), vpin_eth(+7.46) 엣지 유지 중이며 연구 루프가 실질적 개선을 만들어내고 있음.
+
+**2. poor 5/7(71%) 정상 범위.** BTC BEAR 레짐에서 Gate1(BTC>SMA20) 차단으로 long-only 전략은 구조적으로 불리 — 전략 품질 문제가 아닌 레짐 문제. 슬리피지 0.10%에서 Sharpe 5.0 달성이 어려운 환경.
+
+**3. 다음 1주일 우선순위:**
+1. **Gate4=OFF + SL=1.0% 전환 검토** — W2 Sharpe 5.199 (vs ON 5.045), 거래수 2.5배로 통계적 신뢰도 향상 가능
+2. **BULL 전환 감시** — pre_bull≥0.90 시 momentum_sol + ONDO vpin 즉시 활성화 자동화 확인
+3. **BEAR short 탐색 소규모 시작** — momentum continuation 패턴 5사이클 공통 확인 완료, 방향 전환 타당성 검증
+
+**4. 즉시 daemon 반영 가능한 변경**: stealth_3gate TP=10%/SL=1.0% 이미 반영 완료. Gate4=OFF 전환은 추가 백테스트 후 결정 필요 (거래수 증가 vs 슬리피지 내성 0.15% 통과 여부 재확인).
+```
+
+</details>
+
+---
+
+## 2026-04-04 — stealth_3gate SMA period 최적화 (사이클 130)
+
+**목적**: SMA period가 지금까지 SMA=20으로 고정, 한번도 최적화 안 됨 → Gate4=OFF + SL=1.0% + TP=10% 상태에서 최적 SMA 탐색
+
+**파라미터 탐색 범위**:
+- W=36, RS[0.5,1.0), acc>1.0, Gate4=OFF, TP=10%, SL=1.0%, MAX_HOLD=24 (고정)
+- SMA period: [10, 15, 20, 25, 30]
+- WF: W1(2022-2023), W2(2024-2026), 심볼: 전체 KRW 알트 208~218개
+
+**탐색 결과**:
+| SMA | BTC활성봉 | alt심볼 | W1 Sharpe | W1 n | W2 Sharpe | W2 n | 통과 |
+|-----|-----------|---------|-----------|------|-----------|------|------|
+| 10 | 233 | 208 | 6.742 | 1704 | **6.876** | 3209 | ✅ |
+| 15 | 276 | 217 | 5.904 | 1921 | 6.001 | 4062 | ✅ |
+| 20 | 302 | 214 | 5.464 | 2186 | 5.199 | 4130 | ✅ (기준) |
+| 25 | 329 | 218 | 6.475 | 2273 | 5.188 | 4503 | ✅ |
+| 30 | 388 | 218 | 6.781 | 2388 | 4.510 | 5352 | ❌ |
+
+**SMA=10 슬리피지 내성**:
+| 슬리피지 | W1 Sharpe | W2 Sharpe | 통과 |
+|---------|-----------|-----------|------|
+| 0.10% | 6.742 | 6.876 | ✅ |
+| 0.15% | 6.546 | 6.696 | ✅ |
+| 0.20% | 6.349 | 6.515 | ✅ |
+
+**결론**: ✅ **daemon 반영 완료**
+- SMA=10이 최우수: W2 Sharpe 6.876 (기준 SMA=20의 5.199 대비 **+1.677 개선**)
+- 슬리피지 내성 0.20%에서도 안정적 통과 — 최강 내성
+- BTC 활성봉 233개 (SMA=20의 302개 대비 감소) → 더 선택적 진입 + 더 높은 품질
+- Gate4=OFF도 동시 반영 (사이클 130 작업)
+
+**daemon.toml 변경**:
+```
+stealth_3gate_wallet_1:
+  stealth_sma_period: 20 → 10
+  btc_trend_pos_gate: true → false (Gate4 OFF)
+```
+
+**누적 개선 요약 (stealth_3gate W2 Sharpe)**:
+- 기준: TP=15%, SL=3%, SMA=20, Gate4=ON → W2 ~4.377
+- 사이클 129: SL=1.0%, TP=10% 최적화 → W2 5.045 (+0.668)
+- 사이클 130: Gate4=OFF → W2 5.199 (+0.154)
+- 사이클 130: SMA=10 → W2 **6.876** (+1.677, 전체 누적 +2.499)
+
+**다음 탐색 제안**:
+- (A) SMA=10 + Gate4=ON 조합 검증 (현재 비교는 OFF 기준, ON+SMA=10 미탐색)
+- (B) W=36 외 다른 stealth_window와 SMA=10 조합 탐색
+- (C) BULL 전환 시 실전 성과 모니터링

@@ -400,6 +400,10 @@ atr_stop_multiplier = 1.5
 #   근거: WF W1=6.495(n=1100) W2=5.045(n=1618) 슬리피지 0.10% 통과
 #   변경 전: TP=15% SL=3% → W2 Sharpe ~4.37 (WF 기준)
 #   변경 후: TP=10% SL=1.0% → W2 Sharpe 5.045 (+0.675 개선)
+# 사이클 130 (2026-04-04): Gate4 OFF + stealth_sma_period 20→10
+#   근거1: Gate4=OFF W2=5.199(n=4130) > Gate4=ON W2=5.045(n=1618)
+#   근거2: SMA=10 W2=6.876(n=3209) vs SMA=20 W2=5.199(n=4130) — +1.677 개선
+#   슬리피지 내성: SMA=10 0.20%에서도 W2=6.515 통과 (최강 내성)
 # PRE-STAGED SUI (사이클 113, 2026-04-04):
 #   근거: W2 Sharpe +3.990, W3 Sharpe +3.068 (2/3창 통과), W1 실패는 SUI 초기 BEAR(2023) — Gate1 실전 차단
 #   상관관계: SUI vs 기존 7심볼 평균 0.606 (XRP 최저 0.504, AVAX 최고 0.643)
@@ -415,12 +419,12 @@ symbols = ["KRW-AVAX", "KRW-LINK", "KRW-APT", "KRW-XRP", "KRW-ADA", "KRW-DOT", "
 
 [wallets.strategy_overrides]
 stealth_window = 36
-stealth_sma_period = 20
+stealth_sma_period = 10
 rs_low = 0.5
 rs_high = 1.0
 cvd_slope_threshold = 0.0
 btc_stealth_gate = true
-btc_trend_pos_gate = true
+btc_trend_pos_gate = false
 btc_trend_window = 10
 
 [wallets.risk_overrides]
