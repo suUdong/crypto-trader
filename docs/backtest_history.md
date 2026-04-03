@@ -5,6 +5,51 @@
 
 ---
 
+## 2026-04-03 — momentum_sol 슬라이딩 윈도우 다중 OOS 검증 (사이클 74)
+
+**목적**: 사이클 73 단일 OOS 통과한 C1(lb=12, adx=25) 다중구간 안정성 검증
+**심볼**: KRW-SOL 4h봉
+**검증 기준**: OOS Sharpe > 3.0 && WR > 45% && trades >= 6
+
+### 슬라이딩 윈도우 결과 — C1(lb=12, adx=25, vol=2.0, TP=12%, SL=4%)
+
+| 윈도우 | IS 기간 | OOS 기간 | IS Sharpe | OOS Sharpe | OOS WR | OOS T | 판정 |
+|---|---|---|:---:|:---:|:---:|:---:|:---:|
+| W1 | 2022-2023 | 2024 | +8.584 | **+23.781** | 56.2% | 16 | ✅ |
+| W2 | 2023-2024 | 2025 | +14.911 | **+18.049** | 55.6% | 18 | ✅ |
+| W3 | 2024-2025 | 2026 초 | +20.744 | +9.624 | 50.0% | 4 | ❌ (trades 부족) |
+
+**총 통과: 2/3 윈도우** — W3 실패는 데이터 4개월만(trades=4) → 전략 결함 아님
+
+### 비교: C0(lb=20, adx=25)
+
+| 윈도우 | OOS Sharpe | OOS WR | OOS T | 판정 |
+|---|:---:|:---:|:---:|:---:|
+| W1 (2024) | +31.209 | 61.5% | 13 | ✅ |
+| W2 (2025) | +15.970 | 52.6% | 19 | ✅ |
+| W3 (2026 초) | 이상값 | 0.0% | 3 | ❌ (데이터 부족) |
+
+### 핵심 발견
+
+- **C1(lb=12, adx=25)**: 2024·2025 연속 OOS 통과 — Sharpe 18~24 범위에서 안정적
+- **C0(lb=20, adx=25)**: W1에서 더 높지만(+31) W2에서 C1보다 낮음(+16) — 안정성 유사
+- **adx=20 필터 완화**: W2(2025) 실패 — adx=25 필터가 범용성 유지에 중요
+- **결론**: C1 daemon 후보 **조건부 확정** — BULL 레짐 전환 시 momentum_sol_wallet 활성화
+
+### daemon.toml 반영 준비 파라미터
+
+```
+lookback = 12
+adx_threshold = 25.0
+vol_mult = 2.0
+take_profit = 0.12
+stop_loss = 0.04
+```
+
+**반영 조건**: BTC BULL 레짐 전환 확인 후 (현재 BEAR — 보류)
+
+---
+
 ## 포맷
 
 | 날짜 | 전략 | 파라미터 | 거래수 | 승률 | avg수익 | Sharpe | 결론 |
@@ -1973,5 +2018,29 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 - daemon 반영: 보류 (BEAR 레짐 + momentum_sol_wallet DISABLED)
 - BULL 레짐 전환 후 paper trade 재활성화 조건 충족
 - 주목: 그리드 1위가 아닌 lb=12(단축)가 OOS 1위 — ETH와 동일 패턴 (ETH도 lb=12 최적)
+
+---
+
+## 2026-04-03 14:26 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH(OOS +24.5)·SOL(OOS +17.5) momentum이 walk-forward 검증을 통과했고, 두 심볼 모두 lb=12+adx=25 조합이 OOS 우위라는 패턴이 수렴 중 — 엣지가 실재함.
+
+**2. poor 5/7(71%)는 허용 범위.** BTC는 BEAR 레짐에서 구조적 신호 억제, VPIN은 bkt=12 OOS 희소화 — 전략 자체 결함이 아닌 레짐·파라미터 미스매치. VPIN bkt=20 이상에서 16/17 통과로 수정 시 정상화됨.
+
+**3. 다음 1주일 우선순위:**
+1. **ETH momentum+VPIN(bkt=20, thr<0.35) daemon 후보 확정** — OOS +26.4, 베이스라인 대비 Δ+1.9, 조합 검증 완료 상태
+2. **SOL momentum(lb=12, adx=25) 추가 OOS 구간 검증** — 단일 OOS 구간만 통과, 2구간 이상 안정성 확인 필요
+3. **BTC 레짐 전환 감지 조건 설계** — BULL 전환 시 두 wallet 즉시 paper 재활성화할 트리거 로직
+
+**4. 즉시 daemon 반영 불가.** 두 후보 모두 BEAR 레짐 + wallet DISABLED 상태 — BTC 반등 + 레짐 전환 확인 전까지 paper 모드 대기가 맞음. 지금은 파라미터 확정 후 `daemon.toml` 주석으로 pre-staged만 해두는 것이 적절.
+```
+
+</details>
 
 ---
