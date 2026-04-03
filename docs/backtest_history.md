@@ -3,6 +3,43 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-04 — SOL momentum lb=12 슬라이딩 3구간 검증 (사이클 83)
+
+**목적**: walk-forward만 통과한 SOL C1(lb=12, adx=25)을 슬라이딩 3구간으로 안정성 검증  
+**설정**: KRW-SOL 240m(4h봉), C1(lb=12, adx=25, vol=2.0, TP=12%, SL=4%)  
+**스크립트**: `scripts/backtest_sol_sliding_wf.py`
+
+| 윈도우 | OOS 기간 | IS Sh | OOS Sh | OOS WR | OOS T | 판정 |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| W1 | 2024-01~2024-12 | +8.584 | +23.781 | 56.2% | 16 | ✅ |
+| W2 | 2025-01~2025-12 | +14.911 | +18.049 | 55.6% | 18 | ✅ |
+| W3 | 2026-01~2026-04 | +20.744 | +9.624 | 50.0% | 4 | ❌ |
+
+**결과: 2/3 통과 — 조건부 사용 가능**
+
+**W3 실패 원인 분석**:
+- trades=4 (기준 T≥6 미달) — 2026 Q1 BEAR 레짐 + 3개월 구간으로 거래 기회 부족
+- OOS Sh=+9.624, WR=50.0% — 내용 자체는 양호, 기계적 탈락
+
+**비교 (C0 기준)**:
+- C0(lb=20, adx=25): W1 Sh=+31.2 ✅, W2 Sh=+16.0 ✅, W3 Sh=-무한대(T=3) ❌ → 2/3
+- C2(lb=12, adx=20): 1/3 ✗ — 필터 완화 시 오히려 불안정
+
+**핵심 결론**:
+1. **SOL C1(lb=12, adx=25): 슬라이딩 2/3 통과** (XRP C8은 3/3 — SOL보다 검증 수준 낮음)
+2. W3 실패는 BEAR 레짐 + 기간 부족이 원인, 구조적 엣지는 W1/W2에서 강력 확인
+3. **daemon 활성화 조건**: BULL 레짐 전환 후 paper 모니터링 48h → live 전환 검토
+4. SOL은 XRP 다음 2순위 (XRP 이중 통과 > SOL walk-forward+sliding 2/3)
+
+**BULL 레짐 전환 프로토콜 (사이클 83 구현)**:
+- `scripts/bull_activation_protocol.py` — BTC SMA20 실시간 레짐 체크 + 단계적 활성화 가이드
+- Phase 1: SOL (paper 대기 중) → BULL 전환 48h 후 live 검토
+- Phase 2: ETH (주석 해제 + paper)
+- Phase 3: XRP (주석 해제 + paper)
+- `--apply` 플래그로 ETH/XRP daemon.toml 자동 활성화 가능 (BULL 확인 후)
+
+---
+
 ## 2026-04-04 — BCH/DOGE L1 momentum walk-forward 스크리닝 (사이클 82)
 
 **목적**: SOL/ETH/XRP 외 L1 메이저 momentum edge 추가 샘플 확인 (L1 한정 패턴인지 검증)
@@ -2449,5 +2486,29 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 - ETH: C0_base(lb=12, adx=25, vol_mult=2.0, TP=10%, SL=3%) ← VPIN에서 변경
 - SOL: lb=12, adx=25 (기존 유지)
 - XRP: C8(lb=8, adx=25, vol_mult=2.0, TP=12%, SL=4%) (기존 유지)
+
+---
+
+## 2026-04-03 15:28 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH/SOL/XRP 3심볼 독립 확인, VPIN 기각도 정량적으로 처리(ΔSh -0.17~-0.20) — 파이프라인이 노이즈를 걸러내는 중.
+
+**2. poor 5/7(71%) 허용 범위.** BTC BEAR 레짐 억제 + W3 데이터 부족(T<6)이 대부분 원인 — 전략 결함이 아닌 필터 정상 작동. 레짐 전환 시 재탐색 예정 심볼들.
+
+**3. 다음 1주일 우선순위:**
+1. **SOL lb=12 슬라이딩 3구간 검증** — walk-forward만 통과 상태, XRP lb=10 패턴(W1 WR 부진) 반복 가능성 확인 필수
+2. **BCH/DOGE 기각 이후 대체 심볼 스크리닝** — L1 메이저 외 후보 소진, Layer2는 이미 탈락 → BNB/ADA 등 미검증 심볼 탐색
+3. **BULL 레짐 전환 트리거 자동화** — 3개 심볼 pre-staged 완료, 전환 조건 명문화 + paper 자동 활성화 로직
+
+**4. 즉시 daemon 반영 없음.** ETH C0_base 확정으로 pre-staging 업데이트는 완료 — 그러나 현재 BEAR 레짐이므로 SOL 슬라이딩 검증 전까지 live 반영 보류가 맞음. XRP C8만 유일하게 이중 통과 완료 상태.
+```
+
+</details>
 
 ---
