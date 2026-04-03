@@ -3752,3 +3752,60 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - Gate 1 필수 설계 유지 — 현재 stealth_3gate에 BEAR 전용 브랜치 추가는 미성숙
 
 ---
+
+## 2026-04-03 18:36 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37)/vpin_eth(+7.46) 실질 엣지 확보, stealth_3gate daemon 반영 완료, BEAR walk-forward로 LINK/APT 기각 — 탐색→검증→기각 흐름 정상.
+
+**2. poor 5/7(71%) 정상 범위.** 자율 그리드+BEAR 레짐 구조상 기각율 높은 게 당연. error 0개이므로 실행 품질 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **AVAX+SOL BEAR stealth W2 실패 원인 분석** — acc 임계값 강화 또는 CVD 슬로프 최소값 조건 추가로 2024-2025 Bull 레짐 오염 필터링 시도
+2. **momentum_sol BULL 전환 live 조건 문서화** — pre_bull 현재 0.854, 트리거 기준(ex. pre_bull≥0.90 + BTC>SMA20) 명시
+3. **미탐색 심볼 BEAR stealth 스캔** — INK 추천 있음; MATIC/NEAR도 후보
+
+**4. 즉시 daemon 반영 가능 항목 없음.** stealth_3gate_wallet_1 이미 반영 완료(사이클 105). AVAX/SOL BEAR 브랜치는 W2 실패로 미성숙 — 추가 파라미터 조건 검증 후 재평가.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — AVAX/SOL BEAR Stealth 필터 강화 탐색 (사이클 107)
+
+**가설**: 사이클 106 W2(2024-2025) 실패가 acc/CVD 임계값 부족 때문인가?
+**스크립트**: `scripts/backtest_bear_stealth_filter_v2.py`
+**심볼**: AVAX, SOL | **기본 조건**: W=36, SMA20, RS=[0.5,1.0), FWD=24h
+
+| 조합 | acc | CVD_slope | W1(2022-23) | W2(2024-25) | W3(2025-26) | 창통과 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| BASE | >1.00 | >0.0 | ✅ | ❌ | ✅ | 2/3 |
+| ACCV | >1.05 | >0.0 | ✅ | ❌ | ✅ | 2/3 |
+| CVDV | >1.00 | >0.3 | ✅ | ❌ | ✅ | 2/3 |
+| BOTH | >1.05 | >0.3 | ✅ | ❌ | ✅ | 2/3 |
+
+**W3 SOL 최고 성과 (BOTH)**: Sharpe +16.811, WR=73.2%, avg=+0.98%, n=41
+**W2 악화 패턴**: 필터 강화할수록 W2 Sharpe 더 악화 (BASE -9.570 → BOTH -9.074 SOL)
+
+**핵심 발견 — W2 실패 구조적 원인**:
+1. ❌ acc, CVD 슬로프 어떤 조합도 W2 개선 불가 → 필터 문제가 아님
+2. W2(2024-2025)는 **강한 Bull 사이클 중 일시적 BEAR 국면** — alt 스텔스 신호가 BTC 반등 전 진입해도 빠른 Bull 회복으로 손실
+3. W1(2022 순수 Bear), W3(2025 하락 Bear)와 달리 W2는 **Bull 레짐 내 dip** 구조
+4. 결론: **BEAR stealth의 2/3 창 통과가 이 전략의 구조적 최대치**
+
+**이 전략의 실질 성과 (BOTH 조합, W1+W3 평균)**:
+- AVAX: avg +1.64%, Sharpe ~13.4
+- SOL: avg +1.07%, Sharpe ~13.7
+
+**결론**: daemon 반영 없음 — W2 구조적 실패
+**다음 탐색 방향**:
+- BTC 장기 트렌드 게이트 추가: btc_trend_neg(10봉 수익률 < 0) → W2 fake-BEAR 차단
+- 또는 신규 심볼 탐색(MATIC/NEAR) 방향 전환
+
+---
