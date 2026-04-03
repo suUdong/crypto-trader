@@ -3464,3 +3464,31 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 </details>
 
 ---
+
+## 2026-04-04 — vpin_eth + btc_trend_pos 필터 슬라이딩 WF 검증 (사이클 101)
+
+**목적**: vpin_eth W2(2025) WR 23.1% 개선 — btc_trend_pos(BTC 10봉 수익률 > 0) 필터 추가
+**전략**: 높은 VPIN momentum + BTC 추세 필터 (stealth_3gate 검증 기법 이식)
+**스크립트**: `scripts/backtest_vpin_eth_btc_trend.py`
+**daemon 파라미터 고정**: vh=0.55 vm=0.0005 hold=18 TP=6% SL=0.8%
+
+| 윈도우 | 구분 | Sharpe | WR | Trades | 판정 |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| W1(2024) | OFF daemon | +9.422 | 30.6% | 111 | ✅ |
+| W1(2024) | ON btc_trend | +11.972 | 35.2% | 91 | ✅ |
+| W2(2025) | OFF daemon | +4.662 | 23.1% | 130 | ❌ WR<30% |
+| W2(2025) | ON btc_trend | +5.260 | 22.3% | 103 | ❌ WR<30% |
+| W3(2026) | OFF daemon | +9.362 | 31.8% | 22 | ✅ |
+| W3(2026) | ON btc_trend | +5.991 | 25.0% | 24 | ❌ WR<30% |
+
+**통과 합계**: OFF=2/3 (기존 daemon), ON=1/3 (btc_trend 추가)
+
+**핵심 발견**:
+1. btc_trend_pos 필터 W1(BULL 2024)에서만 효과: Sharpe +9.4→+12.0, WR 30.6%→35.2%
+2. W2(2025 BEAR)에서 WR 개선 없음 (23.1%→22.3% 오히려 소폭 악화)
+3. W3(2026)에서 역효과: WR 31.8%→25.0% (-6.8%), Sharpe +9.4→+6.0 크게 하락
+4. stealth_3gate에서 효과적인 btc_trend_pos가 vpin_eth에는 부적합 — 전략 구조 차이
+
+**결론**: btc_trend_pos 필터 미적용 확정. daemon vpin_eth 파라미터 완전 최종 확정.
+- daemon.toml: rsi_ceil=65, vh=0.55, vm=0.0005, max_hold=18 (변경 없음)
+- vpin_eth W2 WR 구조적 한계: 2025 BEAR 환경 특성, 개선 불가 확인
