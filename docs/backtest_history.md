@@ -3,6 +3,59 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-04 — RSI Oversold Bounce 전략 탐색 (사이클 124)
+
+**목적**: BEAR 구간에서도 진입 가능한 long-only 전략 탐색 — BTC 레짐 필터 없이 단기 과매도 반등 포착  
+**전략**: RSI(14) 과매도 진입 → RSI 회복 or TP/SL/max_hold 청산 (BTC 레짐 필터 없음)  
+**심볼**: KRW-SOL, KRW-ETH, KRW-XRP  
+**타임프레임**: 240m (4시간봉)  
+**그리드**: rsi_entry×rsi_exit×max_hold×TP×SL = 3×3×3×3×3 = 243조합 × 3심볼 = 729조합  
+**스크립트**: `scripts/backtest_cycle124_rsi_oversold.py`  
+**WF**: W1 OOS=2024 (BULL/혼재), W2 OOS=2025-2026 (BEAR/혼재)  
+**판정 기준**: 2/2창 Sharpe > 3.0 && trades >= 6
+
+### 심볼별 그리드 결과 요약
+
+| 심볼 | 2/2창 통과 | 최고 avg Sharpe | W1 | W2 | 파라미터 |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| KRW-ETH | **1개** | **+6.969** | +10.675 (n=11) | +3.263 (n=22) | rsi_e=25/rsi_x=55/hold=24/TP=10%/SL=4% |
+| KRW-SOL | 0개 | +1.788 avg | +12.040 (n=13) | -8.464 (n=23) | rsi_e=25/rsi_x=45/hold=12/TP=5%/SL=2% |
+| KRW-XRP | 0개 | +0.457 avg | +2.954 (n=17) | -2.041 (n=28) | rsi_e=28/rsi_x=45/hold=36/TP=8%/SL=4% |
+
+### ETH RSI<25 Bounce 슬리피지 민감도
+
+| 슬리피지 | W1 Sharpe | W1 WR | W1 n | W2 Sharpe | W2 WR | W2 n | 2/2 |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 0.00% | +12.074 | 63.6% | 11 | +4.229 | 40.9% | 22 | ✅ |
+| **0.10%** | **+10.675** | **63.6%** | **11** | **+3.263** | **40.9%** | **22** | **✅** |
+| 0.20% | +9.264 | 63.6% | 11 | +2.284 | 40.9% | 22 | ❌ |
+| 0.30% | +6.841 | 54.5% | 11 | +1.292 | 40.9% | 22 | ❌ |
+
+### 핵심 발견
+
+1. **ETH RSI<25 bounce — BEAR에서도 약한 엣지 존재**: W2(BEAR) Sharpe +3.263 — BTC 레짐 필터 없이도 수익 패턴
+2. **슬리피지 내성 약함**: 0.10%→✅, 0.20%→❌ — 실제 거래 비용 경계선에서 즉시 탈락
+3. **거래 빈도 극도 희소**: W1=11 trades(1년), W2=22 trades(1.3년) — RSI<25는 매우 드문 상황
+4. **SOL/XRP 구조적 실패**: W2 Sharpe 모두 음수 — RSI bounce 패턴 없음
+5. **W2 WR=40.9%**: 절반 미만 승률 → 비대칭 TP/SL(10%/4%)에 의존한 구조
+
+### 판정
+
+❌ **ETH RSI Oversold Bounce — daemon 배포 불가**
+- W2 Sharpe +3.263 (daemon 기준 5.0+ 미달)
+- 슬리피지 0.20%에서 즉시 탈락 — 내성 부족
+- 거래 빈도 극도 희소 (월 1~1.5회) — 실용성 떨어짐
+- SOL/XRP: 구조적 실패
+
+**발견 의미**: BEAR에서 long-only RSI bounce는 ETH RSI<25 극단 과매도에서만 미약한 엣지 존재 확인. 현재 수준으로는 배포 불가하나, RSI<20 극단 조건 + 볼륨 필터 추가 시 W2 Sharpe 개선 가능성.
+
+**다음 탐색**:
+(A) ETH RSI<20 + 볼륨 급증 필터 추가 → W2 Sharpe 5.0+ 달성 시도
+(B) BTC BULL 전환 모니터링 스크립트 — pre_bull ≥ 0.90 + Gate1 + Gate2 자동 감지
+(C) 다른 BEAR 특화 메커니즘 탐색 (볼린저 밴드 하단 이탈 반등 등)
+
+---
+
 ## 2026-04-04 — ONDO vpin Gate2 daemon 배포 (사이클 123)
 
 **목적**: 사이클 122에서 확보한 ONDO vpin + Gate2(BTC 30봉>0%) 파라미터를 daemon.toml에 반영  
@@ -4867,6 +4920,54 @@ ONDO/SUI/SEI에 이어 APT도 동일 패턴 → vpin 프레임워크 BEAR 취약
 3. **BULL 전환 트리거 자동화** — pre_bull ≥ 0.90 + BTC > SMA20 + BTC 30봉 > 0% 조건 모니터링 로직 구현
 
 **4. 즉시 반영 가능.** ONDO vpin 배포 근거 확보됨(슬리피지 0.10% 2/2 통과) — 단, 현재 BTC BEAR로 Gate1+Gate2 미통과이므로 daemon.toml에 wallet 추가하되 BULL 전환까지 진입 없음. momentum_sol/vpin_eth 기배포 유지.
+```
+
+</details>
+
+---
+
+## 2026-04-03 21:35 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+1. **방향 올바름.** momentum_sol(+14.37), vpin_eth(+7.46), ONDO vpin Gate2(W1+8.36/W2+5.43) — 3개 검증된 엣지 확보, 사이클 122에서 W2 구조적 취약성까지 해결. 연구 ROI 최고 수준.
+
+2. **poor 5/7(71%) 정상.** 원인은 전략 품질 문제가 아니라 BTC BEAR(pre_bull=0.740) + Gate1 자연 차단 — vpin 전략군의 W2 한계를 심볼 선별로 이미 정리 완료. error 0개로 실행 무결.
+
+3. **다음 1주일 우선순위:**
+   - ONDO vpin daemon 배포 확정 — Gate2 로직 daemon 코드 레벨 검증 + pre_bull ≥ 0.90 트리거 자동화
+   - BEAR 특화 전략 신규 설계 — mean-reversion 또는 funding rate 기반 (vpin W2 한계 확정됨)
+   - momentum_sol 슬리피지 민감도 추가 검증 — 0.30%까지 내성 확인 후 daemon 확정 근거 강화
+
+4. **즉시 반영 가능.** ONDO vpin wallet을 daemon.toml에 추가 (사이클 123에서 이미 완료). 단, 현재 Gate1+Gate2 미통과(BEAR)이므로 실제 진입은 없음 — 구조만 심고 BULL 전환 시 자동 활성화.
+```
+
+</details>
+
+---
+
+## 2026-04-03 21:46 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37), vpin_eth(+7.46), ONDO vpin Gate2(W1+8.36/W2+5.43) — 3개 검증된 엣지 확보. 사이클 122에서 W2 구조적 취약성까지 Gate2로 해결, 연구 ROI 최고 수준.
+
+**2. poor 5/7(71%) 정상.** BTC BEAR(pre_bull~0.70) Gate1 자연 차단이 주 원인 — 전략 품질 문제 아님. vpin W2 한계는 심볼 선별로 이미 정리됐고, error 0개로 실행 품질 무결.
+
+**3. 다음 1주일 우선순위:**
+1. **BEAR 특화 전략 신규 설계** — vpin/momentum 모두 BULL 의존적이므로 현 BEAR 구간 활용 가능한 mean-reversion 또는 funding rate 기반 메커니즘
+2. **pre_bull ≥ 0.90 트리거 모니터링 자동화** — BULL 전환 즉시 ONDO vpin 활성화되도록 알림 스크립트
+3. **momentum_sol 슬리피지 민감도 검증** — 0.20~0.30%까지 내성 확인 후 daemon 확정 근거 강화
+
+**4. 즉시 반영 가능.** ONDO vpin wallet은 사이클 123에서 daemon.toml 추가 완료. 현재 Gate1+Gate2 미통과(BEAR)이므로 추가 코드 변경 불필요 — BULL 전환 시 자동 활성화 구조 완성 상태.
 ```
 
 </details>
