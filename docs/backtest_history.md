@@ -1776,3 +1776,73 @@ Stealth 필터 개선 심볼: 3/16
 **결론**: vol_mult=2.5가 ETH momentum 최적값으로 확정. OOS 검증 통과. 단, 현재 BEAR 레짐에서는 paper trade 재활성화 시 주의 요망.
 
 ---
+
+## 2026-04-03 — ETH momentum + VPIN_fixed 콤보 백테스트 (사이클 70) ✅[good]
+
+**목적**: 사이클 67 VPIN 버그(분모 오류) 수정 후, ETH momentum + VPIN 필터 콤보 효과 검증
+**스크립트**: `scripts/backtest_eth_momentum_vpin_fixed.py`
+**베이스 파라미터**: lb=12, adx=20, vol_mult=2.5 (사이클 69 확정값)
+**데이터**: KRW-ETH 4h 2022-01-01~2026-04-03 (8585행)
+
+### VPIN 버그 수정 내용
+
+| 항목 | 기존 (버그) | 수정 |
+|---|---|---|
+| 분모 | `\|close-open\|` (= 분자와 동일) | `high - low` |
+| 결과 | VPIN ≈ 1.0 항상 → 필터 무효 | VPIN 범위 [0.16, 0.46], 평균 0.32 |
+
+### 베이스라인 (VPIN 없음)
+
+| TP | SL | Sharpe | WR | avg% | N |
+|---|---|---|---|---|---|
+| 0.10 | 0.02 | +17.464 | 49.1% | +2.37% | 55 |
+| 0.10 | 0.03 | +18.210 | 53.8% | +2.72% | 52 |
+| 0.12 | 0.03 | +19.059 | 54.0% | +3.18% | 50 |
+
+### 그리드 탐색 결과 Top (trades≥10)
+
+| direction | vpin_thresh | bucket | TP | SL | Sharpe | WR | avg% | N |
+|---|---|---|---|---|---|---|---|---|
+| safe (VPIN<) | 0.30 | 20 | 0.12 | 0.03 | **+27.159** | 62.5% | +4.52% | 16 |
+| safe (VPIN<) | 0.35 | 12 | 0.10 | 0.03 | +24.670 | 60.0% | +3.76% | **30** |
+| confirm (VPIN>) | 0.35 | 30 | 0.10 | 0.02 | +24.482 | 61.1% | +3.38% | 18 |
+| confirm (VPIN>) | 0.35 | 20 | 0.10 | 0.02 | +23.608 | 57.9% | +3.38% | 19 |
+
+**핵심 발견**:
+1. VPIN 필터 유효 확인: 베이스라인 +19.059 → 최적 +27.159 (Δ **+8.1**)
+2. `safe` 방향(저독성 구간 진입): VPIN<0.35에서 peak (avg +19.132 vs 베이스 +17.5)
+3. VPIN 분포 특성: 전체 95.1%가 0.40 미만 → 임계값 0.30~0.35가 핵심 필터 구간
+4. trades=30 안정판: `safe VPIN<0.35 bucket=12` → Sharpe +24.670, WR=60.0%
+
+**권장 후보**:
+- 고성능: `safe VPIN<0.30 bucket=20 TP=0.12 SL=0.03` → Sharpe **+27.159**, WR=62.5%, N=16
+- 안정성: `safe VPIN<0.35 bucket=12 TP=0.10 SL=0.03` → Sharpe **+24.670**, WR=60.0%, N=30
+
+**daemon 반영**: 보류 (walk-forward OOS 검증 미완료 + BEAR 레짐)
+**다음**: VPIN+momentum 콤보 walk-forward 검증 (IS 2022-2024 / OOS 2025-2026)
+
+---
+
+## 2026-04-03 14:05 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** momentum_eth walk-forward OOS Sharpe +22.2 확인, momentum_sol +14.4 유망 — 실질적 엣지가 수렴 중이다.
+
+**2. poor 71%는 정상 범위.** btc_dip 계열은 신호 자체가 희소하고, 현재 BEAR 레짐에서 BTC 레짐 필터가 과도하게 억제하는 구조적 원인이 크다. 탐색 비용으로 수용 가능.
+
+**3. 다음 1주일 우선순위:**
+1. **momentum_vpin_combo** — 두 유망 전략(ETH momentum + vpin) AND 결합, 기대값 최고
+2. **momentum_sol walk-forward** — Sharpe +14.4 OOS 검증 미완료, 그리드 결과만으론 daemon 불가
+3. **BTC 레짐 필터 가중치 실험** — stealth-only > combined 케이스 재현, 필터 과억제 해소
+
+**4. 즉시 daemon 반영 불가.** momentum_eth는 OOS 통과했으나 해당 wallet이 DISABLED 상태 + 현재 BEAR 레짐 — BTC 반등 확인 후 paper 재활성화가 선결 조건이다.
+```
+
+</details>
+
+---
