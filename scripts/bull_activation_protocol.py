@@ -1,19 +1,20 @@
 """
-BULL 레짐 전환 프로토콜 — 자동화 스크립트 (사이클 83)
+BULL 레짐 전환 프로토콜 — 자동화 스크립트 (사이클 83→86 업데이트)
 
 목적:
   - BTC BULL 레짐 전환 시 pre-staged wallet 활성화 계획 출력
-  - SOL/ETH/XRP 순서로 단계적 paper → live 활성화 가이드
+  - XRP/TRX(이중통과★) → ETH/SOL(조건부) 순서로 단계적 paper → live 활성화 가이드
   - --apply 플래그 없이는 dry-run (실제 변경 없음)
 
 사용법:
   .venv/bin/python scripts/bull_activation_protocol.py          # 현재 상태 + 계획
   .venv/bin/python scripts/bull_activation_protocol.py --apply  # daemon.toml 실제 업데이트
 
-Pre-staged 파라미터 (백테스트 확정):
-  SOL: lb=12, adx=25, vol=2.0, TP=12%, SL=4%  ← walk-forward 통과 (슬라이딩 검증 중)
-  ETH: lb=12, adx=25, vol=2.0, TP=10%, SL=3%  ← C0_base, 슬라이딩 2/3 통과
-  XRP: lb=8,  adx=25, vol=2.0, TP=12%, SL=4%  ← C8, 슬라이딩+walk-forward 이중 통과
+Pre-staged 파라미터 (백테스트 확정 — 사이클 84~85):
+  XRP: lb=8,  adx=25, vol=2.0, TP=12%, SL=4%  ← C8, WF+슬라이딩 3/3 이중 통과★
+  TRX: lb=12, adx=25, vol=2.0, TP=12%, SL=3%  ← WF+슬라이딩 3/3 이중 통과★ (사이클 84~85 확정)
+  ETH: lb=12, adx=25, vol=2.0, TP=10%, SL=3%  ← C0_base, 슬라이딩 2/3 통과 (조건부)
+  SOL: lb=12, adx=25, vol=2.0, TP=12%, SL=4%  ← 슬라이딩 2/3 통과 (조건부, W3 T=4 데이터 부족)
 """
 from __future__ import annotations
 
@@ -42,37 +43,49 @@ RECENT_WINDOW = 10  # market_scan_loop.py 와 동일
 BULL_THRESHOLD_PRE_BULL = 0.60   # pre_bull_score_adj 기준 (secondary)
 # primary: btc_bull_regime = True
 
-# ── Pre-staged wallet 정의 ───────────────────────────────────────────────────
+# ── Pre-staged wallet 정의 (확정 등급 순 — 사이클 86 업데이트) ───────────────
+# Phase 1~2: 이중 통과★ (WF + 슬라이딩 3/3) — BULL 전환 즉시 활성화
+# Phase 3~4: 조건부 (슬라이딩 2/3) — 이중통과 심볼 안정 확인 후 활성화
 STAGED_WALLETS = [
     {
-        "name":        "momentum_sol_wallet",
-        "symbol":      "KRW-SOL",
+        "name":        "momentum_xrp_wallet",
+        "symbol":      "KRW-XRP",
         "phase":       1,
-        "status":      "paper_active",   # 이미 paper 실행 중
-        "action":      "live_switch",    # BULL 시 live 전환 검토
-        "params":      "lb=12, adx=25, vol=2.0, TP=12%, SL=4%",
-        "validation":  "walk-forward ✅ | sliding 검증 중 (사이클 83)",
-        "capital_krw": 1_200_000,
+        "status":      "disabled",       # PRE-STAGED (주석처리)
+        "action":      "enable_paper",   # BULL 시 주석 해제 + paper 활성화
+        "params":      "lb=8, adx=25, vol=2.0, TP=12%, SL=4%",
+        "validation":  "C8 WF ✅ | sliding 3/3 ✅★ (이중 통과 확정)",
+        "capital_krw": 800_000,
+    },
+    {
+        "name":        "momentum_trx_wallet",
+        "symbol":      "KRW-TRX",
+        "phase":       2,
+        "status":      "disabled",       # PRE-STAGED (주석처리)
+        "action":      "enable_paper",   # BULL 시 주석 해제 + paper 활성화
+        "params":      "lb=12, adx=25, vol=2.0, TP=12%, SL=3%",
+        "validation":  "WF ✅ | sliding 3/3 ✅★ (이중 통과 확정 — 사이클 84~85)",
+        "capital_krw": 800_000,
     },
     {
         "name":        "momentum_eth_wallet",
         "symbol":      "KRW-ETH",
-        "phase":       2,
+        "phase":       3,
         "status":      "disabled",       # DISABLED (주석처리)
-        "action":      "enable_paper",   # BULL 시 주석 해제 + paper 활성화
+        "action":      "enable_paper",   # 이중통과 심볼 24h 안정 후 활성화
         "params":      "lb=12, adx=25, vol=2.0, TP=10%, SL=3%",
-        "validation":  "C0_base sliding 2/3 ✅ | walk-forward ✅",
+        "validation":  "C0_base WF ✅ | sliding 2/3 ✅ (조건부 확정)",
         "capital_krw": 1_000_000,
     },
     {
-        "name":        "momentum_xrp_wallet",
-        "symbol":      "KRW-XRP",
-        "phase":       3,
-        "status":      "disabled",       # PRE-STAGED (주석처리)
-        "action":      "enable_paper",   # BULL 시 주석 해제 + paper 활성화
-        "params":      "lb=8, adx=25, vol=2.0, TP=12%, SL=4%",
-        "validation":  "C8 sliding 3/3 ✅ | walk-forward ✅ (이중 통과 완료)",
-        "capital_krw": 800_000,
+        "name":        "momentum_sol_wallet",
+        "symbol":      "KRW-SOL",
+        "phase":       4,
+        "status":      "paper_active",   # 이미 paper 실행 중
+        "action":      "live_switch",    # 이중통과 심볼 48h 안정 후 live 전환 검토
+        "params":      "lb=12, adx=25, vol=2.0, TP=12%, SL=4%",
+        "validation":  "WF ✅ | sliding 2/3 ✅ (조건부 — W3 T=4 데이터 부족)",
+        "capital_krw": 1_200_000,
     },
 ]
 
@@ -189,24 +202,32 @@ def print_activation_plan(is_bull: bool, state: dict) -> None:
     print(f"\n{'─'*70}")
 
     if is_bull:
-        print("\n  🚀 BULL 레짐 감지 — 활성화 실행 가이드:")
+        print("\n  🚀 BULL 레짐 감지 — 단계적 활성화 실행 가이드:")
         print()
-        print("  1. SOL (Phase 1) — 이미 paper 실행 중")
-        print("     daemon.toml: momentum_sol_wallet 섹션 확인")
-        print("     → 48h paper 모니터링 후 live 전환 검토")
-        print()
-        print("  2. ETH (Phase 2) — daemon.toml 주석 해제")
-        print("     # name = \"momentum_eth_wallet\" → name = \"momentum_eth_wallet\"")
-        print("     lb=12, adx=25, vol_mult=2.0, tp=0.10, sl=0.03")
-        print()
-        print("  3. XRP (Phase 3) — daemon.toml 주석 해제")
+        print("  ── Phase 1 (이중통과★ 즉시 활성화) ──")
+        print("  1. XRP (Phase 1) — daemon.toml 주석 해제")
         print("     # name = \"momentum_xrp_wallet\" → name = \"momentum_xrp_wallet\"")
         print("     lb=8, adx=25, vol_mult=2.0, tp=0.12, sl=0.04")
         print()
+        print("  2. TRX (Phase 2) — daemon.toml 주석 해제")
+        print("     # name = \"momentum_trx_wallet\" → name = \"momentum_trx_wallet\"")
+        print("     lb=12, adx=25, vol_mult=2.0, tp=0.12, sl=0.03")
+        print()
+        print("  ── Phase 2 (조건부 — 이중통과 심볼 24h 모니터링 후) ──")
+        print("  3. ETH (Phase 3) — daemon.toml 주석 해제")
+        print("     # name = \"momentum_eth_wallet\" → name = \"momentum_eth_wallet\"")
+        print("     lb=12, adx=25, vol_mult=2.0, tp=0.10, sl=0.03")
+        print()
+        print("  4. SOL (Phase 4) — 이미 paper 실행 중")
+        print("     daemon.toml: momentum_sol_wallet 섹션 확인")
+        print("     lb=12, adx=25, vol_mult=2.0, tp=0.12, sl=0.04")
+        print("     → 48h paper 모니터링 후 live 전환 검토")
+        print()
         print("  ⚠️  주의:")
-        print("     - SOL 슬라이딩 3/3 완료 전 live 전환 유보 권장")
-        print("     - 각 phase 사이 최소 24h paper 모니터링")
-        print("     - --apply 플래그로 daemon.toml 자동 업데이트 가능 (SOL 제외)")
+        print("     - XRP/TRX 이중통과★ → 즉시 paper 활성화 우선")
+        print("     - ETH/SOL 조건부 → XRP/TRX 24h 이상 안정 확인 후 순차 활성화")
+        print("     - SOL W3 슬라이딩 T=4 (데이터 부족) — 4월 데이터 충족 후 재검증 예정")
+        print("     - --apply 플래그로 XRP/TRX/ETH daemon.toml 자동 업데이트 가능")
     else:
         pre_bull_adj = state.get("pre_bull_score_adj", 0.0)
         gap = BULL_THRESHOLD_PRE_BULL - pre_bull_adj
@@ -218,8 +239,8 @@ def print_activation_plan(is_bull: bool, state: dict) -> None:
     print(f"\n{'='*70}\n")
 
 
-def apply_eth_xrp_activation(dry_run: bool = True) -> None:
-    """ETH/XRP wallet 주석 해제 (--apply 시)."""
+def apply_bull_activation(dry_run: bool = True) -> None:
+    """XRP/TRX/ETH wallet 주석 해제 (--apply 시). SOL은 이미 paper 실행 중."""
     if dry_run:
         print("  [DRY-RUN] --apply 없이 실행 중 — 변경 없음")
         return
@@ -227,25 +248,32 @@ def apply_eth_xrp_activation(dry_run: bool = True) -> None:
     toml_text = DAEMON_TOML.read_text()
     changes = []
 
-    # ETH 활성화 (주석 해제)
-    eth_disabled = "# name = \"momentum_eth_wallet\""
-    eth_enabled  = "name = \"momentum_eth_wallet\""
-    if eth_disabled in toml_text:
-        toml_text = toml_text.replace(eth_disabled, eth_enabled, 1)
-        changes.append("momentum_eth_wallet 활성화")
-
-    # XRP 활성화 (주석 해제)
+    # XRP 활성화 (주석 해제) — Phase 1 이중통과★
     xrp_disabled = "# name = \"momentum_xrp_wallet\""
     xrp_enabled  = "name = \"momentum_xrp_wallet\""
     if xrp_disabled in toml_text:
         toml_text = toml_text.replace(xrp_disabled, xrp_enabled, 1)
         changes.append("momentum_xrp_wallet 활성화")
 
+    # TRX 활성화 (주석 해제) — Phase 2 이중통과★
+    trx_disabled = "# name = \"momentum_trx_wallet\""
+    trx_enabled  = "name = \"momentum_trx_wallet\""
+    if trx_disabled in toml_text:
+        toml_text = toml_text.replace(trx_disabled, trx_enabled, 1)
+        changes.append("momentum_trx_wallet 활성화")
+
+    # ETH 활성화 (주석 해제) — Phase 3 조건부
+    eth_disabled = "# name = \"momentum_eth_wallet\""
+    eth_enabled  = "name = \"momentum_eth_wallet\""
+    if eth_disabled in toml_text:
+        toml_text = toml_text.replace(eth_disabled, eth_enabled, 1)
+        changes.append("momentum_eth_wallet 활성화")
+
     if changes:
         DAEMON_TOML.write_text(toml_text)
         print(f"  ✅ daemon.toml 업데이트: {', '.join(changes)}")
     else:
-        print("  ℹ️  변경 사항 없음 (이미 활성화 상태)")
+        print("  ℹ️  변경 사항 없음 (이미 활성화 상태 또는 섹션 없음)")
 
 
 def main() -> None:
@@ -262,12 +290,12 @@ def main() -> None:
 
     if apply:
         if is_bull:
-            print("  [--apply] BULL 레짐 확인 — daemon.toml ETH/XRP 활성화 실행")
-            apply_eth_xrp_activation(dry_run=False)
+            print("  [--apply] BULL 레짐 확인 — daemon.toml XRP/TRX/ETH 활성화 실행")
+            apply_bull_activation(dry_run=False)
         else:
             print("  [--apply] BEAR 레짐 — BULL 전환 후 재실행 필요")
     else:
-        print("  팁: BULL 전환 시 --apply 플래그로 ETH/XRP 자동 활성화 가능")
+        print("  팁: BULL 전환 시 --apply 플래그로 XRP/TRX/ETH 자동 활성화 가능")
 
 
 if __name__ == "__main__":
