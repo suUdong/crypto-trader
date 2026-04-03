@@ -5077,3 +5077,113 @@ ONDO/SUI/SEI에 이어 APT도 동일 패턴 → vpin 프레임워크 BEAR 취약
 **사용법**: `.venv/bin/python scripts/check_bull_trigger.py --threshold 0.90 --watch 600`
 
 ---
+
+## 2026-04-03 22:18 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37), vpin_eth(+7.46) 두 검증된 엣지 존재. BEAR 구간 BULL 의존 전략 대신 BB 반등(사이클 126) 탐색 중 — RSI보다 평균 수익 높을 가능성이 있어 올바른 피벗.
+
+**2. poor 5/7(71%) 정상.** BTC BEAR(pre_bull=0.480, 3조건 중 1/3만 충족) Gate1 자연 차단이 주원인. ETH BEAR long-only 전략은 평균 수익 <0.5%로 슬리피지 버퍼 구조적 부족 — 전략 품질 문제 아님.
+
+**3. 다음 1주일 우선순위:**
+1. 사이클 126 BB 반등 결과 확인 — 슬리피지 0.20% 이상 내성 검증 (RSI 계열 탈락 원인 해소 여부)
+2. BEAR 전략 설계 시 평균 수익 ≥ 1.5% 기준 사전 강제 — 슬리피지 내성 게이트로 활용
+3. `check_bull_trigger.py --watch 600` 상시 실행 — pre_bull 0.480→0.90 전환 즉시 ONDO vpin + momentum_sol 자동 활성화
+
+**4. 즉시 daemon 반영 가능한 변경 없음.** 현재 배포 구조 완성 상태(ONDO vpin Gate1+Gate2 자동 활성화 준비). BULL 전환 전까지 신규 파라미터 배포 근거 없음.
+```
+
+</details>
+
+---
+
+## 2026-04-03 22:29 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37), vpin_eth(+7.46) 두 검증된 엣지가 daemon에서 작동 중이고, BEAR 구간에서 RSI → BB 반등으로 메커니즘을 바꾼 피벗도 합리적.
+
+**2. poor 5/7(71%) 정상 범위.** BTC BEAR(pre_bull=0.480, Gate1 차단) + ETH long-only 평균 수익 <0.5% 구조적 한계가 원인 — 전략 품질 문제가 아닌 레짐 문제.
+
+**3. 다음 1주일 우선순위:**
+1. **사이클 126 BB 반등 결과 분석** — 슬리피지 0.20%+ 내성 확인 (ETH BEAR 탈락 원인 해소 여부가 핵심)
+2. **BEAR 전략 설계 기준 강화** — 평균 수익 ≥ 1.5% 사전 게이트 적용 (RSI/볼륨 계열 반복 실패 방지)
+3. **`check_bull_trigger.py --watch 600` 상시 실행** — pre_bull 0.480→0.90 전환 즉시 포착
+
+**4. 즉시 daemon 반영 없음.** 현재 배포 구조(ONDO vpin Gate1+Gate2) 완성 상태이며 BULL 전환 전까지 추가 변경 근거 없음.
+```
+
+</details>
+
+---
+
+## 2026-04-03 22:39 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37), vpin_eth(+7.46) 두 엣지가 daemon에서 작동 중이고, RSI 슬리피지 취약 확인 후 BB 반등(사이클 126)으로 피벗한 것은 합리적 진행.
+
+**2. poor 5/7(71%) 정상.** BTC BEAR(pre_bull=0.480, Gate1 차단) + ETH long-only 평균 수익 <0.5%로 슬리피지 버퍼 구조적 부족이 원인 — 전략 품질 문제가 아닌 레짐 문제. BB 반등 결과(사이클 126)가 이 구조적 한계를 돌파하는지가 핵심 검증 포인트.
+
+**3. 다음 1주일 우선순위:**
+1. **사이클 126/128 BB 반등 결과 분석** — 슬리피지 0.20%+ 내성 확인 (평균 수익 ≥ 1.5% 달성 여부)
+2. **BEAR 전략 설계 기준 강화** — 신규 전략 설계 시 평균 수익 ≥ 1.5% 사전 게이트 강제 적용
+3. **`check_bull_trigger.py --watch 600` 상시 실행** — pre_bull 0.480→0.90 전환 즉시 ONDO vpin + momentum_sol 자동 활성화 포착
+
+**4. 즉시 daemon 반영 변경 없음.** 현재 배포 구조(ONDO vpin Gate1+Gate2) 완성 상태이며 BULL 전환 전까지 신규 파라미터 배포 근거 없음.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — 사이클 126/128: ETH + SOL Bollinger Band 하단 반등 전략
+
+**목적**: RSI 계열(사이클 124/125) 슬리피지 내성 취약 → 다른 메커니즘(BB 통계적 과매도) BEAR 엣지 탐색
+
+**파라미터 탐색 범위 (ETH, 864조합)**:
+- BB Period: [15, 20, 25], BB Std: [2.0, 2.5]
+- Entry PCT: [0.0, 0.005, 0.01], TP: [5%, 8%, 10%, 15%]
+- SL: [2%, 3%], max_hold: [12, 24, 48], bb_exit_mid: [False, True]
+- 심볼: KRW-ETH | 타임프레임: 240m | WF: W1 OOS=2024, W2 OOS=2025-2026
+
+**ETH 결과 요약**:
+| 슬리피지 | 통과 조합 | 상위 W2 Sharpe | 비고 |
+|----------|-----------|----------------|------|
+| 0.10% | 0개 | 7.637 (W1 n=3) | 거래 수 부족 |
+| 0.20% | 0개 | N/A | — |
+| 0.30% | 0개 | N/A | — |
+
+**SOL 빠른 검증 (96조합, 사이클 128)**:
+| 슬리피지 | 통과 조합 | 상위 W2 Sharpe | 비고 |
+|----------|-----------|----------------|------|
+| 0.10% | 0개 | 11.697 (W1 n=1) | 거래 수 부족 |
+| 0.20% | 0개 | N/A | — |
+
+**결론**: ❌ **daemon 배포 미달 — ETH, SOL 모두 실패**
+- 극단 필터(bb_std=2.5, entry_pct=0.01): W1 n=1~3 거래 수 절대 부족 → 통계 무효
+- 완화 필터(bb_std=2.0): W2 Sharpe 음수 일관 → BEAR 구간에서 BB 하단 터치 후 추가 하락 경향
+- 심볼 무관(ETH/SOL) 동일 패턴 확인
+
+**종합 분석**: 사이클 124~128 BEAR long-only 전략 탐색 (RSI×2 + BB×2) 모두 daemon 기준 미달
+- 공통 원인: BEAR 구간에서 기술적 과매도 신호는 추가 하락의 전조 경향 (momentum continuation)
+- ETH 평균 수익 <0.5% 구조 → 슬리피지 비용 버퍼 부족
+- **BEAR 구간 long-only 탐색 잠정 중단** — BULL 전환 후 메인 전략 집중 권고
+
+**다음 탐색 제안**:
+- (A) BULL 전환 대비: stealth_3gate 파라미터 재최적화 (현재 Sharpe+4.682)
+- (B) BTC BULL 전환 모니터링 지속: pre_bull≥0.90 + Gate1 + Gate2
+
