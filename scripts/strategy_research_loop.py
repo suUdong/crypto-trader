@@ -507,7 +507,9 @@ def run_cycle(state: dict, dry_run: bool = False) -> dict:
             qc = quality_check_hypothesis(hypothesis)
             if qc["grade"] == "error":
                 print(f"[research] ❌ 가설 기록 스킵 — {qc['reason']}")
-                # 재시도를 위해 done에 추가하지 않음
+                # Credit 부족 등 API 에러: done에 추가해 1사이클 쉬고 다음 파이프라인으로 이동
+                # (파이프라인 소진 시 자동으로 done에서 제거되어 재시도됨)
+                state["done"].append(task["id"])
                 return state
             print(f"\n[research] Claude 가설:\n{hypothesis}\n")
             notify(f"신규 전략 가설 생성 완료:\n\n{hypothesis}")
