@@ -642,6 +642,7 @@ def run_cycle(state: dict, dry_run: bool = False) -> dict:
                         best_sharpe=sharpe,
                         trigger=trigger,
                         restart=True,
+                        n_trades=result.get("total_trades"),
                     )
                     if applied:
                         notify(

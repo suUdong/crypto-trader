@@ -349,14 +349,22 @@ def apply_param_update(
     best_sharpe: float,
     trigger: str,
     restart: bool = True,
+    n_trades: int | None = None,
 ) -> bool:
     """
     백테스트 결과에서 파라미터 파싱 → daemon.toml 업데이트 + 히스토리 기록.
     Sharpe < AUTO_APPLY_SHARPE 이면 스킵.
     변경이 있으면 True 반환.
     """
+    # Gate 1: Sharpe 기준
     if best_sharpe < AUTO_APPLY_SHARPE:
         print(f"[updater] {strategy_id}: Sharpe={best_sharpe:+.3f} < {AUTO_APPLY_SHARPE} — 자동 적용 스킵")
+        return False
+
+    # Gate 2: 최소 거래 수 (n<30 배포 차단 — Opus/Codex 리뷰)
+    _MIN_DEPLOY_TRADES = 30
+    if n_trades is not None and n_trades < _MIN_DEPLOY_TRADES:
+        print(f"[updater] {strategy_id}: n={n_trades} < {_MIN_DEPLOY_TRADES} — 샘플 부족, 배포 차단")
         return False
 
     wallet_name = STRATEGY_TO_WALLET.get(strategy_id)
