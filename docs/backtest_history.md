@@ -1364,3 +1364,77 @@ lookback   adx   vol    TP    SL |  Sharpe     WR    avg%  trades
 **결론**: BTC cvd_slope threshold 튜닝 효과 없음. 대형 코인에서 stealth edge 없음. **중형 알트 동적 선택이 핵심**.
 
 ---
+
+## 2026-04-03 06:45 UTC — GPU Alpha filter 백테스트 [ralph:alpha_backtest] 🔻[poor]
+
+**결과**: Sharpe -0.101 | WR N/A | trades 141
+
+
+<details><summary>raw output</summary>
+
+```
+87     -0.163      0.104      -1.201
+KRW-TT          -0.016     -0.111     -0.749      -1.469
+KRW-UNI          0.241      0.472      0.820       1.582
+KRW-USDC        -0.079     -0.154     -0.094      -0.259
+KRW-USDT        -0.059     -0.078     -0.106      -0.135
+KRW-VANA         0.231      0.161     -0.038       0.491
+KRW-VET          0.098      0.171      0.381       0.338
+KRW-W           -0.099      0.041     -0.201       0.707
+KRW-WAVES       -0.171     -0.547     -1.453      -2.252
+KRW-WAXP        -0.155     -0.402     -0.767      -1.282
+KRW-XEC          0.042     -0.301     -1.364      -1.666
+KRW-XLM          0.316      1.139      2.098       4.855
+KRW-XRP          0.153      0.408      0.543       1.537
+KRW-XTZ         -0.148     -0.536     -0.753      -0.579
+KRW-ZETA        -0.148     -0.219     -1.189      -1.739
+KRW-ZIL         -0.150     -0.446     -1.120      -1.069
+KRW-ZRO         -0.077     -0.160     -0.212       0.417
+KRW-ZRX         -0.023     -0.130     -0.496      -0.848
+
+평균 엣지: {'edge_1b_%': -0.058375886524822694, 'edge_3b_%': -0.15106382978723404, 'edge_6b_%': -0.49000709219858163, 'edge_12b_%': -0.6390921985815603}
+
+======================================================================
+  [결론]
+❌ Alpha Score 예측력 불충분 → 가중치 재조정 또는 다른 지표 검토 필요
+======================================================================
+
+[Optimizer] Searching best weights + threshold on GPU components...
+  Best: rs=0.3 acc=0.35 cvd=0.35  threshold=0.5  edge=-0.101%  corr=-0.021
+  Calibration saved → artifacts/alpha-calibration.json  verdict=invalid
+
+[LOOKBACK Grid Search] Testing lookback windows on all fetched symbols...
+  LB= 6 ( 24h): edge=+nan%  corr=+nan  n=0
+  LB=12 ( 48h): edge=-0.5564%  corr=-0.0341  n=141
+  LB=18 ( 72h): edge=-0.5570%  corr=-0.0366  n=141
+  LB=24 ( 96h): edge=-0.4921%  corr=-0.0303  n=141
+  LB=30 (120h): edge=-0.4900%  corr=-0.0246  n=141
+
+  ★ 최적 LOOKBACK: 30봉 (120h) edge=-0.4900%  corr=-0.0246
+  Report saved → artifacts/alpha-backtest-result.md
+
+```
+
+</details>
+
+---
+
+## 2026-04-03 — GPU Strategy Tournament (quick mode, 51심볼, 30일)
+
+| 순위 | 전략 | Sharpe | WR | avg% | trades |
+|---|---|---|---|---|---|
+| 1 | low_rs_high_acc | +3.608 | 55.5% | +0.76% | 562 |
+| 2 | **stealth_3gate** | **+3.136** | **78.8%** | **+2.59%** | 33 |
+| 3 | rsi_oversold | +0.317 | 49.6% | +0.05% | 542 |
+
+**결론**: stealth_3gate WR 78.8% avg +2.59% → 30일 실전 환경에서 우수.
+
+---
+
+## 2026-04-03 — low_rs_high_acc 전체 기간 검증 (2022~2026)
+
+**조건**: RS∈(0.5,1.0) AND acc>1.2 (BTC gate 없음, CVD 없음)
+**결과**: trades=2933, WR=30.4%, avg=-0.12%, **Sharpe=-0.625**
+**결론**: 미배포. 30일 토너먼트는 생존 편향. 장기 기준 손실 전략.
+
+---

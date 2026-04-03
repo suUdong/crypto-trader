@@ -402,6 +402,26 @@ def main() -> None:
             btc_bull_flag      = pre_bull.get("btc_bull_regime", False)
             btc_stealth_label  = "🔥BTC_STEALTH" if btc_stealth_flag else "btc_normal"
             btc_regime_label   = "BULL" if btc_bull_flag else "BEAR"
+
+            # ── 레짐 전환 감지 (BEAR→BULL flip 알림) ────────────────────────
+            prev_regime_path = Path("artifacts/prev_btc_regime.txt")
+            prev_bull = False
+            if prev_regime_path.exists():
+                try:
+                    prev_bull = prev_regime_path.read_text().strip() == "BULL"
+                except Exception:
+                    pass
+            prev_regime_path.write_text("BULL" if btc_bull_flag else "BEAR")
+
+            if btc_bull_flag and not prev_bull:
+                print("\n" + "=" * 60)
+                print("🚀🚀🚀 [REGIME FLIP] BEAR → BULL — BTC SMA20 돌파!")
+                print(f"   ret={pre_bull.get('btc_raw_ret', 0):+.4f}  acc={pre_bull.get('btc_acc', 0):.3f}  cvd={pre_bull.get('btc_cvd_slope', 0):+.3f}")
+                print("   stealth_3gate + momentum_sol 즉시 활성화 기대")
+                print("=" * 60 + "\n")
+            elif not btc_bull_flag and prev_bull:
+                print("\n⚠️  [REGIME FLIP] BULL → BEAR — BTC SMA20 이탈. 방어 모드.")
+
             print(
                 f"[Pre-Bull] score={pre_bull['pre_bull_score']:+.3f} "
                 f"macro_bonus={pre_bull['macro_bonus']:+.3f} "
