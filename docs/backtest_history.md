@@ -3542,3 +3542,52 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - 실질적으로 W1+W2 강력 통과 + W3 품질 기준 충족 → 전략 robustness 검증 완료
 - BEAR 레짐 유지 중 → paper 상태 유지, BULL 전환 시 live 검토
 - pre_bull=0.854 고수위 → BULL 전환 임박 대비 bull_activation_protocol.py 점검 권장
+
+## 2026-04-03 17:54 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol W1+W2 OOS Sharpe 23.8/18.0은 진짜 엣지 — 과적합 우려가 기우였음 확인. vpin_eth btc_trend_pos 기각도 올바른 판단.
+
+**2. poor 5/7(71%)은 정상.** 자율 탐색 특성상 넓게 던지고 걸러내는 구조이며 error 0개라 실행 품질은 양호. 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **stealth_3gate Gate 4 daemon 반영** — Sharpe +5.129 기준 충족, 사이클 98 완료, 미반영 상태가 가장 큰 손실
+2. **BULL 전환 대비 bull_activation_protocol.py 점검** — pre_bull=0.854 고수위, momentum_sol live 전환 준비
+3. **신규 전략 탐색** — vpin_eth/momentum_sol 파라미터 확정 완료, 새 시장 비효율 발굴 차례
+
+**4. 즉시 반영 가능:** `stealth_3gate` — `btc_trend_pos_gate=true`, `btc_trend_window=10` daemon.toml 반영. 나머지(vpin_eth, momentum_sol)는 현재 파라미터 그대로.
+```
+
+</details>
+
+---
+
+---
+
+## 2026-04-04 — momentum_eth 슬라이딩 WF W3(2026) 검증 (사이클 103)
+
+**목적**: 사이클 75 C0_base(lb=12) W1+W2 2/3 통과 후 W3(2026) OOS 추가 확인 (SOL과 동일 방식)
+**전략**: momentum_eth (4h봉, TP=12%, SL=4%)
+**스크립트**: `scripts/backtest_eth_sliding_wf.py`
+
+| 파라미터 | W1(2024) OOS | W2(2025) OOS | W3(2026) OOS | 통과 |
+|:---|:---:|:---:|:---:|:---:|
+| C0_base lb=12 adx=25 ★daemon | Sharpe+19.5 WR56% T16 ✅ | Sharpe+7.2 WR40% T15 ❌ | Sharpe+6.6 WR33% T3 ❌ | **1/3** |
+| C_old lb=20 adx=25 | Sharpe+22.3 WR60% T15 ✅ | Sharpe+7.1 WR46% T13 ✅ | nan WR0% T0 ❌ | **2/3** |
+| C2 lb=12 adx=20 | Sharpe+14.5 WR50% T22 ✅ | Sharpe+1.5 WR30% T20 ❌ | Sharpe+12.6 WR60% T5 ❌ | **1/3** |
+
+**핵심 발견**:
+1. C0_base(lb=12): W2(2025) WR=40.0% — 45% 기준 미달로 1/3만 통과 (사이클 75 결과와 차이 발생)
+2. C_old(lb=20): W2(2025) WR=46.2% 통과 → 2/3. 단, W3(2026)에서 0 트레이드 — 2026 ETH 하락 레짐에서 ADX 필터가 진입 전면 차단
+3. ETH는 SOL과 달리 lb=20이 BEAR 레짐(2025) 적합성 더 높음
+4. SOL(lb=12): W1+W2 OOS Sharpe 23.8/18.0 vs ETH(lb=12): W1 19.5, W2 7.2 — ETH 모멘텀 안정성 SOL보다 낮음
+
+**결론**: daemon.toml 변경 없음 (momentum_eth_wallet 비활성화 유지)
+- C0_base(lb=12) 현재 기준으로 1/3만 통과 → pre-staged 재검토 필요
+- C_old(lb=20) 2/3 통과이나 W3 신호 없음 → 2026 ETH 모멘텀 약화 구조적 문제 가능성
+- BULL 전환 대비 ETH momentum paper 활성화 시 lb=20으로 변경 검토 필요
