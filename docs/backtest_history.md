@@ -5508,3 +5508,66 @@ stealth_3gate_wallet_1:
 - (B) acc 임계값 탐색 — 현재 acc>1.0 고정, 1.1/1.2/1.5 등 탐색
 - (C) BULL 전환 시 실전 성과 모니터링 (pre_bull 현재 0.804)
 
+
+## 2026-04-03 23:43 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** stealth_3gate W2 Sharpe 4.377→9.941 (+5.564 누적)은 체계적 파라미터 탐색의 교과서적 성공. RS 상한 0.9 컷이 핵심 인사이트(BTC 동행 종목 제거)이며, momentum_sol(+14.37) + vpin_eth(+7.46)까지 포함하면 파이프라인 품질 양호.
+
+**2. poor 5/7(71%) 정상.** BTC BEAR 레짐에서 long-only 알트는 구조적으로 불리 — 전략 결함이 아니라 레짐 필터가 올바르게 작동 중인 것. 오히려 이 환경에서 Sharpe 9.9+ 달성이 이례적.
+
+**3. 다음 1주일 우선순위:**
+1. **Gate4=ON + RS[0.4,0.9) 조합 검증** — RS 변경 후 Gate4 ON/OFF 비교가 무효화됨, 재검증 필요 (제안 A)
+2. **acc 임계값 탐색** — acc>1.0 고정 해제, 1.1/1.2/1.5 탐색 (제안 B); Sharpe 9.941 베이스에서 추가 선택성 확보 가능성 있음
+3. **pre_bull 0.804 모니터링** — 0.90 돌파 시 momentum_sol + vpin_eth 즉시 활성화 자동화 상태 재확인
+
+**4. 즉시 반영 가능한 변경 없음.** RS[0.4,0.9) 이미 사이클 132에서 daemon 반영 완료. 현재 배포 구조가 최적 상태이며 Gate4/acc 탐색 결과 나오기 전까지 추가 변경 근거 없음.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — stealth_3gate Gate4(btc_trend_pos_gate) 재검증 (사이클 133)
+
+**목적**: RS[0.4,0.9) 변경 후 Gate4 ON/OFF 비교 재검증 (사이클 130은 RS[0.5,1.0) 기준으로 수행 — RS 변경 후 무효화)
+**고정 파라미터**: W=36, SMA=10, RS=[0.4,0.9), TP=10%, SL=1.0%, MAX_HOLD=24
+**탐색**: Gate4=OFF vs Gate4=ON (btc_trend_pos_gate, window=10)
+**스크립트**: `scripts/backtest_cycle133_gate4_recheck.py`
+**소요**: 18.3초
+
+### 탐색 결과
+
+| Gate4 설정 | BTC활성봉 | alt심볼 | W1 Sharpe | W1 n | W2 Sharpe | W2 n | W2 WR | 통과 |
+|---|---|---|---|---|---|---|---|---|
+| OFF (현재 daemon) 📌 | 233 | 116 | 9.003 | 105 | **9.941** | 554 | 43.7% | ✅ |
+| ON (btc_trend_pos_gate) | 135 | 26 | 7.193 | 22 | 6.315 | 76 | 30.3% | ✅ |
+
+**비교**:
+- W2 Sharpe: Gate4=OFF 9.941 vs Gate4=ON 6.315 → **델타 -3.626** (OFF 우세)
+- W1 Sharpe: Gate4=OFF 9.003 vs Gate4=ON 7.193 → **델타 -1.810** (OFF 우세)
+- 거래수: 554 vs 76 (Gate4=ON이 87% 신호 차단)
+- alt 심볼: 116 vs 26 (Gate4=ON이 90종목 차단)
+
+**해석**:
+- Gate4=ON(btc_trend_pos_gate)은 "BTC 10봉 수익률 > 0" 추가 조건
+- RS[0.4,0.9) 환경에서 Gate4=ON이 오히려 역효과 — 유효 스텔스 신호를 과도하게 차단
+- BTC 스텔스 누적(ret_W < 1.0 + acc > 1.0)은 BTC 하락/횡보 국면에서도 발생 → Gate4가 이를 차단
+- 사이클 130(RS[0.5,1.0) 기준)과 동일 방향: Gate4=OFF가 지속적으로 우세
+
+**결론**: ✅ **현재 설정 유지 확정**
+- Gate4=OFF(btc_trend_pos_gate=false) 확정 — RS 변경 후에도 동일 결론
+- daemon.toml 변경 불필요
+- 누적 파라미터 최적화: W=36, SMA=10, RS=[0.4,0.9), TP=10%, SL=1.0%, Gate4=OFF → W2 Sharpe **9.941**
+
+**다음 탐색 제안**:
+- (A) acc 임계값 탐색 — 현재 alt acc>1.0 고정, 1.1/1.2/1.5 등 상향 탐색 (선택성 강화)
+- (B) cvd_slope 게이트 추가 탐색 — 현재 cvd_slope_threshold=0.0 (미활용)
+- (C) BULL 전환(pre_bull≥0.90) 모니터링 — momentum_sol+vpin_eth 활성화 시점 준비
+
+---
