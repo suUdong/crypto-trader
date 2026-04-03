@@ -3695,3 +3695,60 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - BULL 전환 시 즉시 paper 신호 생성 가능
 
 **결론**: daemon.toml 반영 완료 — 수 사이클간 지연된 최우선 작업 처리
+
+## 2026-04-03 18:26 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** stealth_3gate Gate 1 필수성 재확인(BEAR Δ Sharpe -3.478), daemon 반영 완료, momentum_sol Sharpe +14.37 실질 엣지 확보 — 검증→기각→반영 흐름이 정상 작동 중.
+
+**2. poor 5/7(71%) 정상 범위.** 자율 그리드 탐색 구조상 불가피하며, error 0개로 실행 품질 양호. 원인은 BEAR 레짐 + 파라미터 탐색 범위 확장에 따른 구조적 기각이지 탐색 설계 문제가 아님.
+
+**3. 다음 1주일 우선순위:**
+1. **momentum_sol live 전환 조건 명시** — Sharpe +14.37, pre_bull 고수위(0.854) 상황에서 BULL 전환 시 즉시 투입 가능한 트리거 기준 문서화
+2. **AVAX/LINK BEAR stealth walk-forward** — 사이클 104에서 BEAR 양수 포착(n=126-198), 표본 부족 검증 필요
+3. **신규 비효율 발굴** — vpin_eth/momentum_sol 파라미터 확정 완료, 새 심볼·레짐 탐색 차례 (MATIC, NEAR 등 미탐색 심볼)
+
+**4. 즉시 반영 가능 항목 없음.** 사이클 105에서 stealth_3gate_wallet_1 daemon 반영 완료(btc_trend_pos_gate=True, 7 symbols). 현재 BTC BEAR 상태에서 Gate 1 차단 중 — BULL 전환 시 자동 진입, 추가 파라미터 변경 불필요.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — AVAX/LINK/SOL/APT BEAR Stealth Walk-Forward (사이클 106)
+
+**가설**: 사이클 104 BEAR 양수 심볼 (AVAX/LINK/SOL/APT) — 실제 엣지인가 noise인가?
+**스크립트**: `scripts/backtest_bear_stealth_walkforward.py`
+**조건**: W=36, SMA20, RS=[0.5,1.0), CVD>0, acc>1.0, FWD=24h
+
+| 창 | 기간 | AVAX | LINK | SOL | APT | 집계Sharpe |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|
+| W1 | 2022~2023 | ✅ +1.56% | ✅ +1.17% | ✅ +1.04% | ✅ +0.43% | **+9.524** |
+| W2 | 2024~2025-03 | ❌ -0.81% | ❌ -0.38% | ❌ -0.98% | ✅ +1.15% | **-2.555** |
+| W3 | 2025-04~2026 | ✅ +1.38% | ❌ +0.25% | ✅ +0.64% | ❌ -1.63% | **+3.660** |
+
+**창 통과 (2+심볼)**: 2/3 (W1, W3 통과; W2 실패)
+
+**심볼별 일관성**:
+- AVAX: 2/3 (W1✅, W2❌, W3✅)
+- SOL: 2/3 (W1✅, W2❌, W3✅)
+- APT: 2/3 (W1✅, W2✅, W3❌) — W3 Sharpe -19 급락, 불안정
+- LINK: 1/3 (W1만) — BEAR 엣지 없음
+
+**핵심 발견**:
+1. ⚠️ W2(2024-2025)에서 AVAX/LINK/SOL 모두 실패 — 강한 Bull 레짐에서 BEAR 신호 품질 저하
+2. ✅ W1(2022 Bear)과 W3(최근 Bear)에서 AVAX/SOL 일관된 양의 성과
+3. ❌ LINK/APT: 일관성 없음 — BEAR stealth 불적합
+4. APT W3 Sharpe -19: 최근 레짐에서 역효과 심각
+
+**결론**: daemon.toml 변경 없음 — walk-forward 일관성 부족 (W2 실패)
+- AVAX + SOL이 2/3 창 통과하는 유일한 심볼 조합
+- W2 실패 원인 추가 탐색 필요 (acc 임계값 강화 또는 CVD 슬로프 최소값)
+- Gate 1 필수 설계 유지 — 현재 stealth_3gate에 BEAR 전용 브랜치 추가는 미성숙
+
+---
