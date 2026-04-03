@@ -1,0 +1,34 @@
+[trading]
+exchange = "upbit"
+symbol = "KRW-BTC"
+symbols = ["KRW-BTC"]
+interval = "minute60"
+paper_trading = true
+
+[strategy]
+rsi_period = 14
+max_holding_bars = 48
+
+[risk]
+risk_per_trade_pct = 0.02
+stop_loss_pct = 0.04
+take_profit_pct = 0.08
+max_concurrent_positions = 1
+min_entry_confidence = 0.6
+
+[macro]
+enabled = true
+base_url = "http://localhost:8000"
+
+[[wallets]]
+name = "etf_admission_wallet"
+strategy = "etf_flow_admission"
+initial_capital = 10000000.0
+symbols = ["KRW-BTC"]
+
+[wallets.strategy_overrides]
+max_fear_index = 20
+max_kimchi_premium = -0.002
+rsi_oversold = 35.0
+std_multiplier = 0.5
+min_absolute_flow = 20.0
