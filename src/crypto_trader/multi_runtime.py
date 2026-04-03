@@ -167,6 +167,10 @@ class MultiSymbolRuntime:
         self._strategy_run_journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
         snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
         self._wallet_health = WalletHealthMonitor(snapshot_path)
+        # Alpha watchlist 동적 심볼 교체 (lab loop 연동)
+        self._alpha_watchlist_path = Path("artifacts/alpha-watchlist.json")
+        self._alpha_watchlist_mtime: float = 0.0
+        self._active_symbols: list[str] = list(config.trading.symbols)
         self._last_health_check: float = 0.0
         self._health_check_interval = 86400  # 24h
         self._notified_disabled_wallets: set[str] = set()
@@ -319,6 +323,7 @@ class MultiSymbolRuntime:
             "network",
             "remote end closed connection",
             "name or service not known",
+            "no ohlcv data",
         )
         return any(marker in message for marker in transient_markers)
 
@@ -326,14 +331,14 @@ class MultiSymbolRuntime:
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
 
-        symbols = self._config.trading.symbols
+        self._active_symbols = list(self._config.trading.symbols)
         max_iter = self._config.runtime.max_iterations
         daemon = self._config.runtime.daemon_mode
         poll = self._config.runtime.poll_interval_seconds
 
         self._logger.info(
             "Starting multi-symbol runtime: symbols=%s wallets=%s daemon=%s poll=%ds",
-            symbols,
+            self._active_symbols,
             [w.name for w in self._wallets],
             daemon,
             poll,
@@ -355,7 +360,8 @@ class MultiSymbolRuntime:
                 self._begin_tick()
                 tick_started = time.monotonic()
                 self._maybe_check_wallet_health()
-                tick_results = self._run_tick(symbols)
+                self._maybe_reload_alpha_watchlist()
+                tick_results = self._run_tick(self._active_symbols)
                 self._check_kill_switch_after_tick(tick_results)
                 if self._latest_prices:
                     self._maybe_rebalance_idle_wallet_cash(self._latest_prices)
@@ -1708,6 +1714,42 @@ class MultiSymbolRuntime:
                     session_id=self._session_id,
                 )
                 self._journal_trade_counts[wallet.name] = current_count
+
+    def _maybe_reload_alpha_watchlist(self) -> None:
+        """alpha-watchlist.json 변경 감지 시 accumulation 지갑 심볼을 동적 교체."""
+        try:
+            if not self._alpha_watchlist_path.exists():
+                return
+            mtime = self._alpha_watchlist_path.stat().st_mtime
+            if mtime <= self._alpha_watchlist_mtime:
+                return
+            with self._alpha_watchlist_path.open() as f:
+                data = json.load(f)
+            # calibration threshold 동적 로드
+            from crypto_trader.strategy.alpha_calibrator import load_calibration as _load_cal
+            _cal = _load_cal()
+            _threshold = _cal.threshold if _cal.is_usable else 1.0
+            new_symbols = [
+                s["symbol"] for s in data.get("top_symbols", [])
+                if s.get("alpha", 0) >= _threshold
+            ]
+            if not new_symbols:
+                return
+            acc_wallets = [w for w in self._wallets if "accumulation" in w.name]
+            for i, wallet in enumerate(acc_wallets):
+                sym = new_symbols[i % len(new_symbols)]
+                old = wallet.allowed_symbols.copy()
+                wallet.allowed_symbols = {sym}
+                if sym not in self._active_symbols:
+                    self._active_symbols.append(sym)
+                if old != wallet.allowed_symbols:
+                    self._logger.info(
+                        "Alpha watchlist: %s symbol %s → %s",
+                        wallet.name, old, sym,
+                    )
+            self._alpha_watchlist_mtime = mtime
+        except Exception as exc:
+            self._logger.warning("Alpha watchlist reload failed: %s", exc)
 
     def _maybe_check_wallet_health(self) -> None:
         """Periodically evaluate wallet health and auto-disable losers."""

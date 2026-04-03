@@ -17,10 +17,13 @@ import torch
 
 _root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_root / "src"))
+sys.path.insert(0, str(_root / "scripts"))
+from historical_loader import load_historical, get_available_symbols
 
 # ── 파라미터 ──────────────────────────────────────────────────────────────────
-INTERVAL      = "minute240"  # 4시간봉
-COUNT         = 500          # ~83일
+INTERVAL      = "240m"       # 4시간봉
+START         = "2022-01-01"
+END           = "2026-12-31"
 LOOKBACK      = 30
 RECENT_W      = 6
 ALPHA_THRESH  = 1.0          # 진입 기준 (z-score 기반)
@@ -151,27 +154,24 @@ def backtest_symbol(
 
 
 def main() -> None:
-    import pyupbit
-
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"BTC Regime Rotation Backtest v2  [{device}]")
-    print(f"interval={INTERVAL}  count={COUNT}  alpha_thresh={ALPHA_THRESH}  max_hold={MAX_HOLD_BARS}bars")
+    print(f"interval={INTERVAL}  period={START}~{END}  alpha_thresh={ALPHA_THRESH}  max_hold={MAX_HOLD_BARS}bars")
     print()
 
-    print("Fetching BTC...", end=" ", flush=True)
-    btc_df = pyupbit.get_ohlcv("KRW-BTC", interval=INTERVAL, count=COUNT)
+    print("Loading BTC...", end=" ", flush=True)
+    btc_df = load_historical("KRW-BTC", INTERVAL, START, END)
     print(f"{len(btc_df)} bars")
     regime = detect_btc_regime(btc_df)
     print(f"BTC regime: bull={( regime=='bull').mean()*100:.1f}%  pre_bull={(regime=='pre_bull').mean()*100:.1f}%  bear={(regime=='bear').mean()*100:.1f}%")
     print()
 
-    tickers = [t for t in pyupbit.get_tickers("KRW") if t != "KRW-BTC"][:TOP_N]
-    print(f"Fetching {len(tickers)} alts (sequential, sleep={FETCH_SLEEP}s)...")
+    tickers = [s for s in get_available_symbols(INTERVAL) if s != "KRW-BTC"][:TOP_N]
+    print(f"Loading {len(tickers)} alts from historical data...")
     data: dict[str, pd.DataFrame] = {}
     for sym in tickers:
         try:
-            time.sleep(FETCH_SLEEP)
-            df = pyupbit.get_ohlcv(sym, interval=INTERVAL, count=COUNT)
+            df = load_historical(sym, INTERVAL, START, END)
             if df is not None and len(df) >= LOOKBACK + MAX_HOLD_BARS + 10:
                 data[sym] = df
         except Exception:

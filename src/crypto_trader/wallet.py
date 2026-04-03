@@ -48,6 +48,7 @@ from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrateg
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
 from crypto_trader.strategy.vpin import VPINStrategy
 from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
+from crypto_trader.strategy.stealth_3gate import Stealth3GateStrategy
 
 # --- Lab Mode Strategies ---
 from crypto_trader.strategy.btc_regime_rotation import BtcRegimeRotationStrategy
@@ -195,6 +196,9 @@ def create_strategy(
             vpin_threshold=float(params.get("vpin_threshold", 0.55)),
             cvd_slope_threshold=float(params.get("cvd_slope_threshold", 10.0)),
             volatility_ceiling=float(params.get("volatility_ceiling", 0.015)),
+            stealth_lookback=int(params.get("stealth_lookback", 36)),
+            stealth_rs_low=float(params.get("stealth_rs_low", 0.5)),
+            stealth_rs_high=float(params.get("stealth_rs_high", 1.0)),
         )
     if strategy_type == "funding_rate":
         return FundingRateStrategy(
@@ -261,6 +265,17 @@ def create_strategy(
     if strategy_type == "btc_regime_rotation":
         min_alpha = float(params.get("min_alpha", 1.0))
         return BtcRegimeRotationStrategy(strategy_config, min_alpha=min_alpha)
+    if strategy_type == "stealth_3gate":
+        return Stealth3GateStrategy(
+            strategy_config,
+            stealth_window=int(params.get("stealth_window", 36)),
+            stealth_sma_period=int(params.get("stealth_sma_period", 20)),
+            rs_low=float(params.get("rs_low", 0.5)),
+            rs_high=float(params.get("rs_high", 1.0)),
+            cvd_slope_threshold=float(params.get("cvd_slope_threshold", 0.0)),
+            btc_stealth_gate=bool(params.get("btc_stealth_gate", True)),
+            min_confidence=float(params.get("min_confidence", 0.3)),
+        )
     return CompositeStrategy(strategy_config, regime_config)
 
 

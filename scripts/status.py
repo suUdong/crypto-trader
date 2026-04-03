@@ -232,6 +232,60 @@ def render_watchlist() -> Panel:
     )
 
 
+def render_prebull() -> Panel:
+    pb = load_json("artifacts/pre-bull-signals.json")
+    latest = pb.get("latest", {})
+    if not latest:
+        return Panel(Text("대기 중 (다음 사이클 후 생성)", style="dim"), title="[bold cyan]🧭 Pre-Bull Signal[/]", border_style="yellow", padding=(0, 1))
+
+    history = pb.get("history", [])
+    cycle   = history[-1].get("cycle", "?") if history else "?"
+    ago     = time_ago(pb.get("updated_at", ""))
+    score   = latest.get("pre_bull_score", 0)
+    adj     = latest.get("pre_bull_score_adj", score)
+    bonus   = latest.get("macro_bonus", 0)
+    btc_reg = latest.get("btc_bull_regime", False)
+    btc_ret = latest.get("btc_raw_ret", 0)
+    btc_acc = latest.get("btc_acc", 0)
+    btc_cvd = latest.get("btc_cvd_slope", 0)
+    st_cnt  = latest.get("stealth_acc_count", 0)
+    total   = latest.get("total_coins_scanned", 0)
+    st_rat  = latest.get("stealth_acc_ratio", 0)
+
+    score_color = "bold green" if adj >= 0.8 else ("yellow" if adj >= 0.5 else "bold red")
+    btc_label   = Text("BULL", style="bold green") if btc_reg else Text("BEAR", style="bold red")
+
+    t = Table.grid(padding=(0, 2))
+    t.add_column(); t.add_column(); t.add_column(); t.add_column()
+
+    t.add_row(
+        Text("Pre-Bull", style="dim"),
+        Text(f"{adj:+.3f}", style=score_color),
+        Text("macro_bonus", style="dim"),
+        Text(f"{bonus:+.3f}", style="dim green" if bonus > 0 else "dim"),
+    )
+    t.add_row(
+        Text("BTC", style="dim"),
+        btc_label,
+        Text(f"ret={btc_ret:+.4f}  acc={btc_acc:.3f}  cvd={btc_cvd:+.3f}", style="dim"),
+        Text(""),
+    )
+    t.add_row(
+        Text("Stealth", style="dim"),
+        Text(f"{st_cnt}/{total}", style="bold white"),
+        Text(f"({st_rat*100:.1f}%)", style="dim"),
+        Text(""),
+    )
+
+    sw = load_json("artifacts/stealth-watchlist.json")
+    wl_coins = sw.get("stealth_coins", [])
+    if wl_coins:
+        t.add_row(Text("Watchlist", style="dim"), Text(", ".join(wl_coins[:6]), style="cyan"), Text(""), Text(""))
+
+    title = f"[bold cyan]🧭 Pre-Bull Signal[/]  [dim]Cycle {cycle} | {ago}[/]"
+    return Panel(t, title=title, border_style="yellow", padding=(0, 1))
+
+
 def render_calibration() -> Panel:
     cal = load_json("artifacts/alpha-calibration.json")
     if not cal:
@@ -268,7 +322,7 @@ def render_calibration() -> Panel:
 
 
 def render_logs() -> Panel:
-    lab_lines    = last_lines("lab-stable.log", 4)
+    lab_lines    = last_lines("logs/market_scan.log", 4)
     daemon_lines = last_lines("artifacts/daemon.log", 4)
 
     import re
@@ -310,6 +364,9 @@ def draw() -> None:
     console.print(render_positions())
     console.print(render_kill_switch())
     console.print()
+
+    # Pre-Bull 전체 너비
+    console.print(render_prebull())
 
     # 워치리스트 + Calibration 나란히
     console.print(Columns([render_watchlist(), render_calibration()], equal=True, expand=True))

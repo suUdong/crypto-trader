@@ -56,10 +56,17 @@ class ConsensusStrategy:
         position: Position | None = None,
         *,
         symbol: str = "",
+        macro: MacroSnapshot | None = None,
     ) -> Signal:
         signals: list[Signal] = []
         for strategy in self._strategies:
-            sig = evaluate_strategy(strategy, candles, position, symbol=symbol)
+            sig = evaluate_strategy(
+                strategy,
+                candles,
+                position,
+                symbol=symbol,
+                macro=macro,
+            )
             signals.append(sig)
 
         context = {

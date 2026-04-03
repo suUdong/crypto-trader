@@ -47,6 +47,9 @@ class MacroSnapshot:
     btc_dominance: float | None = None
     kimchi_premium: float | None = None
     fear_greed_index: int | None = None
+    etf_flow_musd: float | None = None
+    etf_flow_ma_20d: float | None = None
+    etf_flow_std_20d: float | None = None
 
 
 class MacroClient:
@@ -156,6 +159,9 @@ class MacroClient:
                 btc_dominance=crypto.get("btc_dominance") if crypto else None,
                 kimchi_premium=crypto.get("kimchi_premium") if crypto else None,
                 fear_greed_index=crypto.get("fear_greed_index") if crypto else None,
+                etf_flow_musd=crypto.get("etf_flow_musd") if crypto else None,
+                etf_flow_ma_20d=crypto.get("etf_flow_ma_20d") if crypto else None,
+                etf_flow_std_20d=crypto.get("etf_flow_std_20d") if crypto else None,
             )
 
         layers = data.get("layers")
@@ -174,6 +180,9 @@ class MacroClient:
                 btc_dominance=crypto_metrics.get("btc_dominance"),
                 kimchi_premium=crypto_metrics.get("kimchi_premium"),
                 fear_greed_index=crypto_metrics.get("fear_greed_index"),
+                etf_flow_musd=crypto_metrics.get("etf_flow_musd"),
+                etf_flow_ma_20d=crypto_metrics.get("etf_flow_ma_20d"),
+                etf_flow_std_20d=crypto_metrics.get("etf_flow_std_20d"),
             )
 
         primary_layer = data.get("primary_layer")
@@ -208,6 +217,15 @@ class MacroClient:
                 ),
                 fear_greed_index=MacroClient._coerce_optional_int(
                     crypto_metrics.get("fear_greed_index", signals.get("fear_greed"))
+                ),
+                etf_flow_musd=MacroClient._coerce_optional_float(
+                    crypto_metrics.get("etf_flow_musd", signals.get("etf_flow_musd"))
+                ),
+                etf_flow_ma_20d=MacroClient._coerce_optional_float(
+                    crypto_metrics.get("etf_flow_ma_20d", signals.get("etf_flow_ma_20d"))
+                ),
+                etf_flow_std_20d=MacroClient._coerce_optional_float(
+                    crypto_metrics.get("etf_flow_std_20d", signals.get("etf_flow_std_20d"))
                 ),
             )
 

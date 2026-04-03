@@ -1,7 +1,6 @@
 # crypto-trader
 
-Upbit-first multi-strategy crypto auto-trading system with backtesting, paper trading, and live execution.
-Part of the FIRE workspace -- see `~/workspace/WORKSPACE.md` for cross-project dependency graph.
+Upbit multi-strategy auto-trading. Backtesting, paper, live. FIRE workspace: `~/workspace/WORKSPACE.md`.
 
 ## Architecture
 
@@ -43,13 +42,11 @@ tests/               # pytest suite
 
 ## Safety Rules (NEVER BYPASS)
 
-These hard limits in `config.py` are non-negotiable safety rails:
-- `HARD_MAX_DAILY_LOSS_PCT = 0.05` -- 5% daily max loss ceiling, config cannot exceed this
-- `SAFE_MAX_CONSECUTIVE_LOSSES = 3` -- auto-stop after 3 consecutive losses
-- `SAFE_DEFAULT_MAX_POSITION_PCT = 0.10` -- no single position > 10% of portfolio
-
-The kill switch in `risk/kill_switch.py` is tiered: warn (50%) -> reduce position (75%) -> halt (100%).
-Any change to safety constants requires explicit user approval.
+`config.py` hard limits — change requires explicit user approval:
+- `HARD_MAX_DAILY_LOSS_PCT = 0.05`
+- `SAFE_MAX_CONSECUTIVE_LOSSES = 3`
+- `SAFE_DEFAULT_MAX_POSITION_PCT = 0.10`
+- kill switch: warn(50%) → reduce(75%) → halt(100%)
 
 ## Coding Rules
 
@@ -80,8 +77,7 @@ python -m crypto_trader.cli         # run daemon
 
 ## Wallet Strategy
 
-Capital allocated by 90-day ROI + Sharpe ratio. Disabled wallets stay in config
-as comments. See `daemon.toml` comments for allocation rationale.
+Allocated by 90-day ROI + Sharpe. Disabled wallets commented in `daemon.toml`.
 
 ## Macro Regime Integration
 
@@ -96,6 +92,18 @@ macro_bonus = vix_falling(+0.2) + dxy_falling(+0.1) + expansionary(+0.3)
 pre_bull_score_adjusted = pre_bull_score + macro_bonus
 ```
 - 서버 다운 또는 confidence < 0.3 이면 macro_bonus = 0.0 (fallback)
+
+## Codex 활용
+
+| 트리거 | 커맨드 |
+|---|---|
+| 백테스트 30분+ | `/codex:rescue --background scripts/xxx.py` |
+| daemon.toml 반영 전 | `/codex:review` |
+| 두 작업 병렬 | Claude 하나 + `/codex:rescue --background` |
+| 리팩토링/검증 | `/codex:adversarial-review` |
+| 탐색적 분석 | `/codex:rescue 결과만 보고` |
+
+금지: safety 상수 변경, daemon.toml 수정, API 키 — Claude 직접 처리.
 
 ## Backtest Rules
 

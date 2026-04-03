@@ -6,6 +6,10 @@ from typing import Any, Protocol, cast
 from crypto_trader.models import Candle, Position, Signal
 
 
+from crypto_trader.macro.client import MacroSnapshot
+from crypto_trader.models import Candle, Position, Signal
+
+
 class _LegacyStrategyProtocol(Protocol):
     def evaluate(self, candles: list[Candle], position: Position | None = None) -> Signal: ...
 
@@ -20,28 +24,46 @@ class _SymbolAwareStrategyProtocol(Protocol):
     ) -> Signal: ...
 
 
+class _MacroAwareStrategyProtocol(Protocol):
+    def evaluate(
+        self,
+        candles: list[Candle],
+        macro: MacroSnapshot | None = None,
+        position: Position | None = None,
+        *,
+        symbol: str = "",
+    ) -> Signal: ...
+
+
 def evaluate_strategy(
     strategy: object,
     candles: list[Candle],
     position: Position | None = None,
     *,
     symbol: str = "",
+    macro: MacroSnapshot | None = None,
 ) -> Signal:
     evaluate = cast(Any, strategy).evaluate
-    if _supports_symbol_kwarg(evaluate):
-        return cast(_SymbolAwareStrategyProtocol, strategy).evaluate(
-            candles,
-            position,
-            symbol=symbol,
-        )
-    return cast(_LegacyStrategyProtocol, strategy).evaluate(candles, position)
+    params = _get_parameters(evaluate)
+
+    kwargs: dict[str, Any] = {}
+    if "symbol" in params or _has_var_kwargs(params):
+        kwargs["symbol"] = symbol
+    if "macro" in params or _has_var_kwargs(params):
+        kwargs["macro"] = macro
+
+    if kwargs:
+        return evaluate(candles, position=position, **kwargs)
+
+    return evaluate(candles, position=position)
 
 
-def _supports_symbol_kwarg(method: Any) -> bool:
+def _get_parameters(method: Any) -> dict[str, Parameter]:
     try:
-        params = signature(method).parameters
+        return dict(signature(method).parameters)
     except (TypeError, ValueError):
-        return False
-    return "symbol" in params or any(
-        param.kind is Parameter.VAR_KEYWORD for param in params.values()
-    )
+        return {}
+
+
+def _has_var_kwargs(params: dict[str, Parameter]) -> bool:
+    return any(param.kind is Parameter.VAR_KEYWORD for param in params.values())

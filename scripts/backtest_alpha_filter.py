@@ -17,9 +17,12 @@ import torch
 
 _root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_root / "src"))
+sys.path.insert(0, str(_root / "scripts"))
+from historical_loader import load_historical, get_available_symbols
 
-INTERVAL = "minute240"   # 4시간봉 (lab loop와 동일)
-COUNT = 500              # 약 83일치 (충분한 검증 구간)
+INTERVAL = "240m"        # 4시간봉
+START    = "2022-01-01"
+END      = "2026-12-31"
 LOOKBACK = 30            # Alpha 계산 윈도우 (30봉 = 5일)
 RECENT_W = 6             # 최근 윈도우 (24시간)
 FORWARD_BARS = [1, 3, 6, 12]  # 검증할 미래 구간 (4h 단위: 4h, 12h, 24h, 48h)
@@ -57,11 +60,8 @@ def detect_btc_regime(btc_df: pd.DataFrame, sma_period: int = 20) -> pd.Series:
 
 
 def fetch_symbol(symbol: str) -> tuple[str, pd.DataFrame | None]:
-    import time
     try:
-        import pyupbit
-        time.sleep(0.3)  # Upbit rate limit 방지
-        df = pyupbit.get_ohlcv(symbol, interval=INTERVAL, count=COUNT)
+        df = load_historical(symbol, INTERVAL, START, END)
         if df is None or len(df) < LOOKBACK + max(FORWARD_BARS) + 10:
             return symbol, None
         return symbol, df
@@ -303,19 +303,18 @@ def validate_alpha_predictiveness(
 
 
 def main() -> None:
-    import pyupbit
     if not torch.cuda.is_available():
         print("ERROR: CUDA unavailable")
         sys.exit(1)
 
     print("=" * 70)
     print("  Alpha Score 예측력 검증 (RTX 3080)")
-    print(f"  Interval: {INTERVAL} | Count: {COUNT} | Lookback: {LOOKBACK}봉")
+    print(f"  Interval: {INTERVAL} | Period: {START}~{END} | Lookback: {LOOKBACK}봉")
     print(f"  Forward bars: {FORWARD_BARS} | Alpha threshold: {ALPHA_THRESHOLD}")
     print("=" * 70)
 
-    symbols = pyupbit.get_tickers(fiat="KRW")
-    btc_df = pyupbit.get_ohlcv("KRW-BTC", interval=INTERVAL, count=COUNT)
+    symbols = get_available_symbols(INTERVAL)
+    btc_df = load_historical("KRW-BTC", INTERVAL, START, END)
     btc_regime = detect_btc_regime(btc_df)
 
     # Try ML regime detector if model exists; train if first run

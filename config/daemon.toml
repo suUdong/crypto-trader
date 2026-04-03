@@ -7,7 +7,7 @@
 [trading]
 exchange = "upbit"
 symbol = "KRW-BTC"
-symbols = ["KRW-ETH", "KRW-SOL", "KRW-BTC"]
+symbols = ["KRW-ETH", "KRW-SOL", "KRW-BTC", "KRW-DOOD", "KRW-TREE"]
 interval = "minute60"
 candle_count = 200
 paper_trading = true
@@ -109,8 +109,56 @@ strategy_report_path = "artifacts/strategy-report.md"
 
 # === ACTIVE WALLETS (P0 optimization 2026-03-29) ===
 
-# momentum_sol_wallet: P1 tuned — ADX 12→20, vol_filter 0→1.5, F&G 20→30 (2026-03-29)
-# Backtest Sharpe 1.55, MDD 0.46%, PF 2.95. Tightened filters to reduce false entries.
+# accumulation_dood_wallet: Lab Mode Alpha Hunter (2026-03-30)
+# Backtest ROI: +36.24% (15m), VolCeil: 0.03, CVD_Th: 7.0
+# 2026-04-02: TP/SL updated — stealth_3gate Sharpe +1.862 (TP=15%/SL=3%)
+# 2026-04-03: W=36 확정 — 정밀 탐색 W=32~42 결과 W=36 피크 Sharpe +4.682 WR=31.1% avg=+2.41%
+[[wallets]]
+name = "accumulation_dood_wallet"
+strategy = "accumulation_breakout"
+initial_capital = 500_000.0
+symbols = ["KRW-GAS"]
+[wallets.strategy_overrides]
+vpin_threshold = 0.45
+cvd_slope_threshold = 7.0
+volatility_ceiling = 0.03
+max_holding_bars = 24
+btc_stealth_gate = true
+stealth_lookback = 36
+stealth_rs_low = 0.5
+stealth_rs_high = 1.0
+stealth_sma_period = 20
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.02
+
+# accumulation_tree_wallet: Lab Mode Alpha Hunter (2026-03-30)
+# 2026-04-02: TP/SL updated — stealth_3gate Sharpe +1.862 (TP=15%/SL=3%)
+# 2026-04-03: W=36 확정 — 정밀 탐색 W=32~42 결과 W=36 피크 Sharpe +4.682 WR=31.1% avg=+2.41%
+[[wallets]]
+name = "accumulation_tree_wallet"
+strategy = "accumulation_breakout"
+initial_capital = 500_000.0
+symbols = ["KRW-MLK"]
+[wallets.strategy_overrides]
+vpin_threshold = 0.45
+cvd_slope_threshold = 7.0
+volatility_ceiling = 0.03
+max_holding_bars = 24
+btc_stealth_gate = true
+stealth_lookback = 36
+stealth_rs_low = 0.5
+stealth_rs_high = 1.0
+stealth_sma_period = 20
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.02
+
+# momentum_sol_wallet: 2026-04-03 4h 그리드 최적화 Sharpe +14.367 WR 46.8%
+# UPDATED: adx 20→25, vol 1.5→2.0, TP 8%→12%, SL 3%→4%
+# 이전값: adx=20, vol=1.5, TP=0.08, SL=0.03
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
@@ -122,12 +170,13 @@ momentum_entry_threshold = 0.005
 rsi_period = 14
 rsi_overbought = 75.0
 max_holding_bars = 48
-adx_threshold = 20.0
-volume_filter_mult = 1.5
+adx_threshold = 25.0
+volume_filter_mult = 2.0
 fear_greed_block_threshold = 30
+btc_stealth_gate = true
 [wallets.risk_overrides]
-stop_loss_pct = 0.03
-take_profit_pct = 0.08
+stop_loss_pct = 0.04
+take_profit_pct = 0.12
 risk_per_trade_pct = 0.015
 atr_stop_multiplier = 1.5
 partial_tp_pct = 0.5
@@ -205,36 +254,40 @@ rsi_period = 14
 rsi_overbought = 72.0
 max_holding_bars = 36
 adx_threshold = 20.0
+btc_stealth_gate = true
 [wallets.risk_overrides]
-stop_loss_pct = 0.03
+stop_loss_pct = 0.02
 take_profit_pct = 0.06
 risk_per_trade_pct = 0.01
 atr_stop_multiplier = 1.5
 partial_tp_pct = 0.5
 
-# vpin_eth_wallet: P0 backtest Sharpe 1.11, WR 60%, MDD 0.10%, PF 1.78
-# OPTIMIZED: vpin_high 0.7→0.65, momentum 0.0005→0.0003, max_hold 18→24, ATR 3→1.5
+# vpin_eth_wallet: 2026-04-03 그리드 최적화 Sharpe +7.461 WR 27.6%
+# UPDATED: TP 4%→6%, SL 1.2%→0.8%, max_hold 24→18, vpin_mom 0.0003→0.0005
+# 이전값: TP=0.04, SL=0.012, hold=24, vpin_mom=0.0003
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
-initial_capital = 3_500_000.0
+initial_capital = 2_000_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
 momentum_lookback = 8
-max_holding_bars = 24
+max_holding_bars = 18
 vpin_low_threshold = 0.35
-vpin_high_threshold = 0.65
-vpin_momentum_threshold = 0.0003
+vpin_high_threshold = 0.55
+vpin_momentum_threshold = 0.0005
 vpin_rsi_ceiling = 65.0
 vpin_rsi_floor = 20.0
 rsi_overbought = 75.0
 bucket_count = 24
 ema_trend_period = 20
+ema_weight = 0.5
 adx_threshold = 15.0
+btc_stealth_gate = true
 [wallets.risk_overrides]
-stop_loss_pct = 0.012
-take_profit_pct = 0.04
+stop_loss_pct = 0.008
+take_profit_pct = 0.06
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
@@ -301,6 +354,26 @@ atr_stop_multiplier = 1.5
 # atr_stop_multiplier = 1.5
 # trailing_stop_pct = 0.01
 # cooldown_bars = 3
+
+# stealth_3gate_wallet_1: Sharpe +4.682 검증 (2026-04-03)
+[[wallets]]
+name = "stealth_3gate_wallet_1"
+strategy = "stealth_3gate"
+initial_capital = 750_000.0
+paper_trading = true
+
+[wallets.strategy_overrides]
+stealth_window = 36
+stealth_sma_period = 20
+rs_low = 0.5
+rs_high = 1.0
+cvd_slope_threshold = 0.0
+btc_stealth_gate = true
+
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.02
 
 [credentials]
 upbit_access_key = ""

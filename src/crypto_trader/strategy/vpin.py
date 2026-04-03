@@ -34,6 +34,7 @@ class VPINStrategy:
         vpin_rsi_floor: float = 30.0,
         ema_trend_period: int = 20,
         adx_threshold: float | None = None,
+        ema_weight: float = 0.5,
     ) -> None:
         self._config = config
         self._vpin_high = vpin_high_threshold
@@ -45,6 +46,8 @@ class VPINStrategy:
         self._ema_trend_period = ema_trend_period
         # Use config.adx_threshold unless explicitly overridden
         self._adx_threshold = adx_threshold if adx_threshold is not None else config.adx_threshold
+        # Weight applied to confidence when EMA trend is down (0.0 = block, 1.0 = ignore)
+        self._ema_weight = ema_weight
 
     def evaluate(
         self,
@@ -128,8 +131,10 @@ class VPINStrategy:
                 context=context,
             )
 
-        # Trend gate: block long entry when price below declining EMA
-        if not ema_trend_up:
+        # EMA trend weight: reduce confidence when price below declining EMA
+        # ema_weight=0.0 → hard block, ema_weight=1.0 → fully ignored
+        ema_factor = 1.0 if ema_trend_up else self._ema_weight
+        if ema_factor == 0.0:
             return Signal(
                 action=SignalAction.HOLD,
                 reason="ema_trend_down",
@@ -160,7 +165,7 @@ class VPINStrategy:
                 return Signal(
                     action=SignalAction.BUY,
                     reason="vpin_safe_momentum_entry",
-                    confidence=min(1.0, 0.5 + (self._vpin_low - vpin_value) * 2),
+                    confidence=min(1.0, (0.5 + (self._vpin_low - vpin_value) * 2) * ema_factor),
                     indicators=indicators,
                     context=context,
                 )
@@ -174,7 +179,7 @@ class VPINStrategy:
                 return Signal(
                     action=SignalAction.BUY,
                     reason="vpin_moderate_momentum_entry",
-                    confidence=min(1.0, 0.4 + momentum_value * 10),
+                    confidence=min(1.0, (0.4 + momentum_value * 10) * ema_factor),
                     indicators=indicators,
                     context=context,
                 )

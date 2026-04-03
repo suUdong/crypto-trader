@@ -8,7 +8,7 @@ import torch
 
 def compute_gpu_features(
     closes_mat: torch.Tensor,   # (n, T)
-    opens_mat: torch.Tensor,    # (n, T)
+    opens_mat: torch.Tensor,    # (n, T) — reserved for gap/body features; unused for now
     highs_mat: torch.Tensor,    # (n, T)
     lows_mat: torch.Tensor,     # (n, T)
     vols_mat: torch.Tensor,     # (n, T)
@@ -22,8 +22,26 @@ def compute_gpu_features(
     """
     Compute RSI, MACD, ATR, OBV slope, Bollinger Band width/position for all symbols at once.
     Returns dict of tensors, each shape (n_symbols,).
+
+    Args:
+        closes_mat:  Closing prices, shape (n, T).
+        opens_mat:   Opening prices, shape (n, T).  Reserved for future gap/body features.
+        highs_mat:   High prices, shape (n, T).
+        lows_mat:    Low prices, shape (n, T).
+        vols_mat:    Volume, shape (n, T).
+        rsi_period:  Lookback for RSI average gain/loss (requires T > rsi_period).
+        macd_fast:   Fast SMA window for MACD (requires T >= macd_fast).
+        macd_slow:   Slow SMA window for MACD (requires T >= macd_slow).
+        atr_period:  Lookback for ATR (requires T > atr_period).
+        obv_window:  Lookback for OBV slope (requires T > obv_window).
+        bb_period:   Lookback for Bollinger Bands (requires T >= bb_period).
     """
     n, T = closes_mat.shape
+
+    if T <= obv_window:
+        raise ValueError(
+            f"Time dimension T={T} must be greater than obv_window={obv_window}."
+        )
 
     # ── RSI ──────────────────────────────────────────────────────────────────
     diff = closes_mat[:, 1:] - closes_mat[:, :-1]          # (n, T-1)

@@ -69,6 +69,7 @@ class MacroRegimeAdapter:
             "kimchi_premium": 0.8,
             "volatility_breakout": 1.3,
             "consensus": 1.2,
+            "etf_flow_admission": 0.5,
         },
         "sideways": {
             "momentum": 0.6,
@@ -81,6 +82,7 @@ class MacroRegimeAdapter:
             "kimchi_premium": 0.7,
             "volatility_breakout": 0.5,
             "consensus": 0.8,
+            "etf_flow_admission": 1.0,
         },
         "bear": {
             "momentum": 0.4,
@@ -93,6 +95,7 @@ class MacroRegimeAdapter:
             "kimchi_premium": 0.5,
             "volatility_breakout": 0.3,
             "consensus": 0.5,
+            "etf_flow_admission": 1.6,
         },
     }
 
@@ -111,6 +114,7 @@ class MacroRegimeAdapter:
             "ema_crossover": 1.15,
             "funding_rate": 1.0,
             "volume_spike": 1.15,
+            "etf_flow_admission": 0.7,
         },
         "neutral": {},
         "contractionary": {
@@ -127,6 +131,7 @@ class MacroRegimeAdapter:
             "ema_crossover": 0.8,
             "funding_rate": 1.1,
             "volume_spike": 0.85,
+            "etf_flow_admission": 1.5,
         },
     }
 
@@ -169,6 +174,8 @@ class MacroRegimeAdapter:
         snapshot: MacroSnapshot | None,
         *,
         strategy_type: str = "",
+        force_fear_buy: bool = False,
+        btc_bull_regime: bool | None = None,
     ) -> tuple[bool, str]:
         """Return (blocked, reason) for entry gating based on macro regime.
 
@@ -176,9 +183,14 @@ class MacroRegimeAdapter:
         - Contractionary overall regime  -> block all entries
         - Contractionary crypto layer with high confidence -> block entries
         - Extreme fear (F&G <= 15) -> block entries (capitulation risk)
+          - Exception: if force_fear_buy is True (for specific contrarian strategies)
         """
+        # BTC SMA20 regime gate (backtest-validated 2026-04-02: stealth only works in bull)
+        if btc_bull_regime is False:
+            return True, "btc_regime_gate: BTC below SMA20 (stealth gate blocked)"
+
         if snapshot is None:
-            return False, ""
+            return True, "macro_unavailable: fail-closed (no data)"
 
         regime = self.normalize_overall_regime(snapshot.overall_regime)
 
@@ -196,9 +208,10 @@ class MacroRegimeAdapter:
             )
 
         if snapshot.fear_greed_index is not None and snapshot.fear_greed_index <= 15:
-            return True, (
-                f"macro_regime_gate: extreme_fear F&G={snapshot.fear_greed_index}"
-            )
+            if not force_fear_buy:
+                return True, (
+                    f"macro_regime_gate: extreme_fear F&G={snapshot.fear_greed_index}"
+                )
 
         return False, ""
 

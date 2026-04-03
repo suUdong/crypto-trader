@@ -47,6 +47,22 @@ _TORCH_AVAILABLE = _check_torch(PYTHON)
 NOTIFY_SHARPE = 3.0   # 이 이상 Sharpe면 알림
 CYCLE_SLEEP = 600     # 사이클 간 대기 (초)
 
+# ── 품질 기준 ─────────────────────────────────────────────────────────────────
+MIN_MEANINGFUL_TRADES = 15   # 통계적 의미를 갖기 위한 최소 거래 수
+MIN_PROMISING_SHARPE  = 3.0  # promising 등급 기준
+MIN_MARGINAL_SHARPE   = 0.5  # marginal 등급 기준 (이하는 poor)
+
+# 에러/쓰레기 결과 감지 패턴
+_ERROR_PATTERNS = [
+    "Credit balance is too low",
+    "Traceback (most recent call last)",
+    "ModuleNotFoundError",
+    "ImportError",
+    "ConnectionError",
+    "TimeoutError",
+    "Error:",
+]
+
 # ── 태스크 파이프라인 ──────────────────────────────────────────────────────────
 # 완료된 id는 state["done"]에 기록 → 재실행 방지
 # type:
@@ -114,6 +130,13 @@ PIPELINE: list[dict] = [
         "desc": "Claude 신규 전략 가설 생성",
         "notify": True,
     },
+    {
+        "id": "daily_quality_review",
+        "type": "quality_review",
+        "desc": "Claude 품질/방향성 일일 리뷰",
+        "notify": True,
+        "interval_hours": 24,   # 24시간마다 재실행
+    },
 ]
 
 
@@ -126,10 +149,11 @@ def load_state() -> dict:
             data.setdefault("cycle", 0)
             data.setdefault("done", [])
             data.setdefault("last_run", None)
+            data.setdefault("quality_log", [])
             return data
         except Exception:
             pass
-    return {"cycle": 0, "done": [], "last_run": None}
+    return {"cycle": 0, "done": [], "last_run": None, "quality_log": []}
 
 
 def save_state(state: dict) -> None:
@@ -138,6 +162,8 @@ def save_state(state: dict) -> None:
         "cycle": state["cycle"],
         "done": state["done"],
         "last_run": state["last_run"],
+        "quality_log": state.get("quality_log", [])[-50:],  # 최근 50개만 보존
+        "interval_last_run": state.get("interval_last_run", {}),
     }, indent=2, ensure_ascii=False))
 
 
@@ -180,16 +206,58 @@ def parse_result(output: str) -> dict:
     }
 
 
+# ── 품질 체커 ─────────────────────────────────────────────────────────────────
+
+def quality_check_backtest(result: dict) -> dict:
+    """백테스트 결과 품질 등급 판정.
+
+    Returns:
+        {"grade": "promising"|"marginal"|"poor"|"error", "reason": str}
+    """
+    raw = result.get("raw_tail", "")
+    for pat in _ERROR_PATTERNS:
+        if pat in raw:
+            return {"grade": "error", "reason": f"에러 감지: {pat[:40]}"}
+
+    sharpe = result.get("best_sharpe")
+    trades = result.get("total_trades")
+
+    if sharpe is None:
+        return {"grade": "poor", "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음"}
+    if trades is not None and trades < MIN_MEANINGFUL_TRADES:
+        return {"grade": "poor", "reason": f"거래 수 부족: {trades} < {MIN_MEANINGFUL_TRADES}"}
+    if sharpe >= MIN_PROMISING_SHARPE:
+        return {"grade": "promising", "reason": f"Sharpe {sharpe:+.3f} — 유의미한 엣지 확인"}
+    if sharpe >= MIN_MARGINAL_SHARPE:
+        return {"grade": "marginal", "reason": f"Sharpe {sharpe:+.3f} — 추가 검증 필요"}
+    return {"grade": "poor", "reason": f"Sharpe {sharpe:+.3f} — 엣지 부족"}
+
+
+def quality_check_hypothesis(text: str) -> dict:
+    """hypothesis 텍스트 품질 판정."""
+    for pat in _ERROR_PATTERNS:
+        if pat in text:
+            return {"grade": "error", "reason": f"에러 응답: {pat[:40]}"}
+    if len(text.strip()) < 50:
+        return {"grade": "error", "reason": "응답 너무 짧음 (API 오류 의심)"}
+    return {"grade": "ok", "reason": "정상 응답"}
+
+
+def _grade_emoji(grade: str) -> str:
+    return {"promising": "🌟", "marginal": "🔶", "poor": "🔻", "error": "❌", "ok": "✅"}.get(grade, "")
+
+
 # ── 히스토리 기록 ─────────────────────────────────────────────────────────────
 
-def record_history(task: dict, result: dict, note: str = "") -> None:
+def record_history(task: dict, result: dict, note: str = "", grade: str = "") -> None:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     sharpe_str = f"{result['best_sharpe']:+.3f}" if result["best_sharpe"] is not None else "N/A"
     wr_str = f"{result['best_wr']:.1f}%" if result["best_wr"] is not None else "N/A"
     trades_str = str(result["total_trades"]) if result["total_trades"] else "N/A"
 
+    grade_str = f" {_grade_emoji(grade)}[{grade}]" if grade else ""
     entry = f"""
-## {ts} — {task['desc']} [ralph:{task['id']}]
+## {ts} — {task['desc']} [ralph:{task['id']}]{grade_str}
 
 **결과**: Sharpe {sharpe_str} | WR {wr_str} | trades {trades_str}
 {f'**메모**: {note}' if note else ''}
@@ -206,7 +274,7 @@ def record_history(task: dict, result: dict, note: str = "") -> None:
 """
     with HISTORY_FILE.open("a") as f:
         f.write(entry)
-    print(f"[research] history 기록: {task['id']} Sharpe={sharpe_str}")
+    print(f"[research] history 기록: {task['id']} Sharpe={sharpe_str} {grade_str.strip()}")
 
 
 # ── 알림 ─────────────────────────────────────────────────────────────────────
@@ -243,15 +311,39 @@ def notify(msg: str, *, always: bool = False) -> None:
 
 # ── Claude 가설 생성 ──────────────────────────────────────────────────────────
 
-def ask_claude_hypothesis() -> str:
+def ask_claude_hypothesis(quality_log: list | None = None) -> str:
     """Claude CLI로 신규 전략 가설 생성. 실패 시 빈 문자열."""
     history_tail = ""
     if HISTORY_FILE.exists():
         history_tail = HISTORY_FILE.read_text()[-3000:]  # 최근 3000자
 
-    prompt = f"""crypto-trader 프로젝트의 백테스트 히스토리를 보고 다음에 탐색할 전략 아이디어를 1개만 제안해.
+    # 품질 로그 요약 — promising/marginal만 전략 힌트로 전달
+    quality_summary = ""
+    if quality_log:
+        promising = [q for q in quality_log if q.get("grade") == "promising"]
+        marginal  = [q for q in quality_log if q.get("grade") == "marginal"]
+        poor      = [q for q in quality_log if q.get("grade") == "poor"]
+        lines = []
+        if promising:
+            lines.append("✅ 유망 결과: " + ", ".join(
+                f"{q['id']}(Sharpe{q.get('sharpe', '?'):+.2f})" for q in promising[-5:]
+            ))
+        if marginal:
+            lines.append("🔶 추가검증 필요: " + ", ".join(
+                f"{q['id']}(Sharpe{q.get('sharpe', '?'):+.2f})" for q in marginal[-5:]
+            ))
+        if poor:
+            lines.append("🔻 엣지 부족 (재탐색 불필요): " + ", ".join(
+                q['id'] for q in poor[-5:]
+            ))
+        quality_summary = "\n".join(lines)
 
-현재까지 완료된 실험 (최근):
+    prompt = f"""crypto-trader 프로젝트의 백테스트 히스토리와 품질 평가를 보고 다음에 탐색할 전략 아이디어를 1개만 제안해.
+
+== 품질 평가 요약 ==
+{quality_summary if quality_summary else '(아직 없음)'}
+
+== 최근 백테스트 히스토리 ==
 {history_tail}
 
 형식:
@@ -259,7 +351,7 @@ def ask_claude_hypothesis() -> str:
 가설: <한 줄 설명>
 탐색 파라미터: <핵심 파라미터 3개 이내>
 예상 스크립트: <scripts/ 디렉토리에 만들 파일명>
-근거: <왜 이게 다음 탐색 대상인지>
+근거: <왜 이게 다음 탐색 대상인지> (유망 결과를 발전시키거나 poor를 피하는 방향으로)
 
 중복 실험 금지. 과거에 없는 새로운 시도만."""
 
@@ -303,9 +395,25 @@ def run_backtest(task: dict, dry_run: bool = False) -> dict | None:
 
 # ── 메인 루프 ─────────────────────────────────────────────────────────────────
 
+def _is_interval_task_due(task: dict, state: dict) -> bool:
+    """interval_hours가 설정된 태스크의 재실행 여부 확인."""
+    interval_h = task.get("interval_hours")
+    if interval_h is None:
+        return False
+    last_runs = state.get("interval_last_run", {})
+    last = last_runs.get(task["id"])
+    if last is None:
+        return True
+    elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last)).total_seconds() / 3600
+    return elapsed >= interval_h
+
+
 def pick_next_task(state: dict) -> dict | None:
     done = set(state["done"])
     for task in PIPELINE:
+        # interval 태스크: 시간이 됐으면 done에 있어도 재실행
+        if task.get("interval_hours") and _is_interval_task_due(task, state):
+            return task
         if task["id"] in done:
             continue
         if task.get("requires_torch") and not _TORCH_AVAILABLE:
@@ -333,7 +441,23 @@ def run_cycle(state: dict, dry_run: bool = False) -> dict:
     if task["type"] == "backtest":
         result = run_backtest(task, dry_run=dry_run)
         if result:
-            record_history(task, result)
+            qc = quality_check_backtest(result)
+            grade = qc["grade"]
+            print(f"[research] 품질 체크: {_grade_emoji(grade)}[{grade}] — {qc['reason']}")
+
+            if grade == "error":
+                print(f"[research] ❌ 기록 스킵 — 에러 결과: {qc['reason']}")
+            else:
+                record_history(task, result, grade=grade)
+                # 품질 로그 누적
+                state.setdefault("quality_log", []).append({
+                    "id": task["id"],
+                    "grade": grade,
+                    "sharpe": result["best_sharpe"],
+                    "reason": qc["reason"],
+                    "cycle": state["cycle"],
+                })
+
             sharpe = result["best_sharpe"]
             should_notify = task.get("notify_on_significant") and sharpe and sharpe >= NOTIFY_SHARPE
             if should_notify:
@@ -341,21 +465,113 @@ def run_cycle(state: dict, dry_run: bool = False) -> dict:
                     f"유의미한 결과 발견!\n전략: {task['desc']}\n"
                     f"Sharpe: {sharpe:+.3f} | WR: {result['best_wr']}% | trades: {result['total_trades']}"
                 )
+            # ── 자동 파라미터 적용 ────────────────────────────────────────────
+            if sharpe and not dry_run and grade != "error":
+                try:
+                    from wallet_auto_updater import apply_param_update
+                    trigger = f"{task['id']} Sharpe={sharpe:+.3f} cycle={state['cycle']}"
+                    applied = apply_param_update(
+                        strategy_id=task["id"],
+                        output=result["raw_tail"],
+                        best_sharpe=sharpe,
+                        trigger=trigger,
+                        restart=True,
+                    )
+                    if applied:
+                        notify(
+                            f"파라미터 자동 적용!\n전략: {task['desc']}\n"
+                            f"Sharpe: {sharpe:+.3f} → daemon 재시작 완료"
+                        )
+                except Exception as _e:
+                    print(f"[research] 파라미터 자동 적용 실패: {_e}")
         state["done"].append(task["id"])
 
     elif task["type"] == "hypothesis":
         notify(f"[신규 전략 탐색 시작] Claude 가설 생성 중...")
-        hypothesis = ask_claude_hypothesis()
+        hypothesis = ask_claude_hypothesis(quality_log=state.get("quality_log"))
         if hypothesis:
+            qc = quality_check_hypothesis(hypothesis)
+            if qc["grade"] == "error":
+                print(f"[research] ❌ 가설 기록 스킵 — {qc['reason']}")
+                # 재시도를 위해 done에 추가하지 않음
+                return state
             print(f"\n[research] Claude 가설:\n{hypothesis}\n")
             notify(f"신규 전략 가설 생성 완료:\n\n{hypothesis}")
-            # 가설을 history에 기록
-            fake_result = {"best_sharpe": None, "best_wr": None, "total_trades": None, "avg_pct": None, "raw_tail": hypothesis}
-            record_history(task, fake_result, note="Claude 가설 (미검증)")
+            fake_result = {
+                "best_sharpe": None, "best_wr": None,
+                "total_trades": None, "avg_pct": None, "raw_tail": hypothesis,
+            }
+            record_history(task, fake_result, note="Claude 가설 (미검증)", grade="ok")
         state["done"].append(task["id"])
+
+    elif task["type"] == "quality_review":
+        _run_quality_review(task, state)
+        # interval 태스크: done에 추가하지 않고 last_run만 갱신
+        state.setdefault("interval_last_run", {})[task["id"]] = (
+            datetime.now(timezone.utc).isoformat()
+        )
 
     save_state(state)
     return state
+
+
+def _run_quality_review(task: dict, state: dict) -> None:
+    """Claude에게 최근 품질 로그와 히스토리를 보여주고 방향성 리뷰를 받는다."""
+    quality_log = state.get("quality_log", [])
+    history_tail = ""
+    if HISTORY_FILE.exists():
+        history_tail = HISTORY_FILE.read_text()[-4000:]
+
+    # 품질 통계 요약
+    grades = [q.get("grade", "") for q in quality_log]
+    stats = {g: grades.count(g) for g in ("promising", "marginal", "poor", "error")}
+    promising_items = [q for q in quality_log if q.get("grade") == "promising"]
+
+    prompt = f"""crypto-trader 자율 전략 연구 루프의 품질 리뷰어 역할이야.
+아래 데이터를 보고 간결하게 답해줘.
+
+== 품질 통계 (전체 누적) ==
+promising: {stats['promising']}개 | marginal: {stats['marginal']}개 | poor: {stats['poor']}개 | error: {stats['error']}개
+
+== 유망 결과 목록 ==
+{chr(10).join(f"- {q['id']}: Sharpe{q.get('sharpe',0):+.2f} ({q['reason']})" for q in promising_items[-10:]) or '없음'}
+
+== 최근 백테스트 히스토리 (최신순) ==
+{history_tail}
+
+답해야 할 것:
+1. 현재 연구 방향이 올바른가? (유망한 결과가 나오고 있는가)
+2. poor/error 비율이 너무 높지 않은가? 원인은?
+3. 다음 1주일 탐색 우선순위 3가지
+4. 즉시 daemon에 반영 가능한 파라미터 변경이 있는가?
+
+3~5문장으로 핵심만."""
+
+    print(f"\n[research] 🔍 일일 품질 리뷰 시작...")
+    try:
+        result = subprocess.run(
+            ["claude", "--print", "--no-session-persistence", "-p", prompt],
+            capture_output=True, text=True, timeout=90, cwd=ROOT,
+        )
+        review = result.stdout.strip()
+    except Exception as e:
+        print(f"[research] 품질 리뷰 실패: {e}")
+        return
+
+    qc = quality_check_hypothesis(review)
+    if qc["grade"] == "error":
+        print(f"[research] ❌ 품질 리뷰 스킵 — {qc['reason']}")
+        return
+
+    print(f"\n[research] 📋 품질 리뷰 결과:\n{review}\n")
+    notify(f"📋 일일 품질 리뷰:\n\n{review}")
+
+    # history에 기록
+    fake_result = {
+        "best_sharpe": None, "best_wr": None,
+        "total_trades": None, "avg_pct": None, "raw_tail": review,
+    }
+    record_history(task, fake_result, note="LLM 품질/방향성 리뷰", grade="ok")
 
 
 def main() -> None:

@@ -360,6 +360,29 @@ def main() -> None:
                 }, f, indent=2)
             print(f"Watchlist saved: {[s['symbol'] for s in top_symbols]}")
 
+            # ── 자동 심볼 교체: accumulation 지갑 ────────────────────────────
+            # top_symbols 상위 2개를 accumulation 지갑에 자동 배정
+            ACCUM_WALLETS = [
+                "accumulation_dood_wallet",
+                "accumulation_tree_wallet",
+            ]
+            if len(top_symbols) >= 2:
+                try:
+                    sys.path.insert(0, str(_project_root / "scripts"))
+                    from wallet_auto_updater import apply_symbol_rotation
+                    assignments = [
+                        (ACCUM_WALLETS[0], top_symbols[0]["symbol"]),
+                        (ACCUM_WALLETS[1], top_symbols[1]["symbol"]),
+                    ]
+                    trigger = f"cycle={cycle} alpha={top_symbols[0]['alpha']:.3f}"
+                    changed = apply_symbol_rotation(assignments, trigger=trigger, restart=True)
+                    if changed:
+                        print(f"[AutoUpdate] 심볼 교체 완료 → daemon 재시작")
+                except Exception as _e:
+                    print(f"[AutoUpdate] 심볼 교체 실패: {_e}")
+            else:
+                print("[AutoUpdate] top_symbols 부족 — 심볼 교체 스킵")
+
             # Pre-bull 시그널 저장 (시계열 누적)
             prebull_path = Path("artifacts/pre-bull-signals.json")
             history = []

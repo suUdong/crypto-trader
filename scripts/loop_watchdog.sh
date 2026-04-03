@@ -27,5 +27,20 @@ while true; do
         echo "[$(date)] strategy_research_loop 재시작 PID=$!" >> "$LOG_DIR/watchdog.log"
     fi
 
+    # improvement_loop 감시
+    if ! pgrep -f "improvement_loop.py" > /dev/null; then
+        echo "[$(date)] improvement_loop 중단됨. 재시작..." >> "$LOG_DIR/watchdog.log"
+        nohup "$PYTHON" -u scripts/improvement_loop.py >> "$LOG_DIR/improvement.log" 2>&1 &
+        echo "[$(date)] improvement_loop 재시작 PID=$!" >> "$LOG_DIR/watchdog.log"
+    fi
+
+    # daemon 감시
+    if ! pgrep -f "crypto_trader.cli" > /dev/null; then
+        echo "[$(date)] daemon 중단됨. 재시작..." >> "$LOG_DIR/watchdog.log"
+        nohup "$PYTHON" -m crypto_trader.cli run-multi --config "$ROOT/config/daemon.toml" \
+            >> "$ROOT/artifacts/daemon.log" 2>&1 &
+        echo "[$(date)] daemon 재시작 PID=$!" >> "$LOG_DIR/watchdog.log"
+    fi
+
     sleep 30
 done

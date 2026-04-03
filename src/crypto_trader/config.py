@@ -222,7 +222,7 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "fear_greed_band_buffer_pct",
         "fear_greed_confidence_boost",
     },
-    "momentum": {"fear_greed_block_threshold"},
+    "momentum": {"fear_greed_block_threshold", "btc_stealth_gate"},
     "kimchi_premium": {"min_trade_interval_bars", "min_confidence", "cooldown_hours"},
     "consensus": {
         "sub_strategies",
@@ -243,7 +243,7 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "volume_window",
         "min_body_ratio",
     },
-    "volume_spike": {"spike_mult", "volume_window", "min_body_ratio"},
+    "volume_spike": {"spike_mult", "volume_window", "min_body_ratio", "btc_stealth_gate"},
     "vpin": {
         "bucket_count",
         "vpin_high_threshold",
@@ -252,7 +252,9 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "vpin_rsi_ceiling",
         "vpin_rsi_floor",
         "ema_trend_period",
+        "ema_weight",
         "adx_threshold",
+        "btc_stealth_gate",
     },
     "funding_rate": {
         "high_funding_threshold",
@@ -265,6 +267,41 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "min_confidence",
         "max_holding_bars",
         "cooldown_bars",
+    },
+    "accumulation_breakout": {
+        "vpin_threshold",
+        "cvd_slope_threshold",
+        "volatility_ceiling",
+        "btc_stealth_gate",
+        "stealth_lookback",
+        "stealth_rs_low",
+        "stealth_rs_high",
+        "stealth_sma_period",
+    },
+    "truth_seeker": {
+        "vpin_threshold",
+        "obi_threshold",
+    },
+    "truth_seeker_v2": {
+        "vpin_threshold",
+        "obi_threshold",
+        "toxic_vpin_threshold",
+    },
+    "etf_flow_admission": {
+        "max_fear_index",
+        "max_kimchi_premium",
+        "rsi_oversold",
+        "std_multiplier",
+        "min_absolute_flow",
+    },
+    "stealth_3gate": {
+        "stealth_window",
+        "stealth_sma_period",
+        "rs_low",
+        "rs_high",
+        "cvd_slope_threshold",
+        "btc_stealth_gate",
+        "min_confidence",
     },
 }
 
@@ -1060,6 +1097,12 @@ def _validate_config(
         "consensus",
         "volume_spike",
         "funding_rate",
+        "accumulation_breakout",
+        "truth_seeker",
+        "truth_seeker_v2",
+        "bollinger_mr",
+        "etf_flow_admission",
+        "stealth_3gate",
     }
     for wc in config.wallets:
         if not wc.name.strip():
