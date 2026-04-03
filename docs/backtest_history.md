@@ -1641,3 +1641,64 @@ Stealth 필터 개선 심볼: 3/16
 </details>
 
 ---
+
+## 2026-04-03 13:45 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+## 품질 리뷰
+
+**1. 연구 방향**
+방향은 맞다. momentum_sol_grid(+14.37)와 vpin_eth_grid(+7.46)는 실질적 엣지이며, 두 신호의 AND 조합 가설은 논리적으로 타당한 다음 단계.
+
+**2. poor 비율 (5/7 = 71%)**
+높지만 정상 범위. btc_dip_recovery/btc_dip_alt_entry가 poor인 근본 원인은 "BTC 급락 후 알트 반등" 패턴 자체의 부재 — WR 39~70% 범위에 Sharpe 미산출이 대부분이고, 신호 n=14~44로 표본 부족. BTC 레짐 + Stealth 2-Factor 조합(-2.292)은 레짐 필터가 오히려 성과를 악화시킨 케이스(레짐 없이 -0.951이 더 낫다)로, 레짐 필터 설계 재검토 필요.
+
+**3. 다음 1주일 우선순위**
+1. `momentum_vpin_combo` 백테스트 실행 — 기존 두 유망 전략의 AND 결합, 가장 ROI 높음
+2. momentum_sol_grid / vpin_eth_grid 파라미터 walk-forward 검증 — 과적합 여부 확인 후 daemon 반영 결정
+3. BTC 레짐 필터 재설계 — stealth_only가 combined보다 낫다면 레짐 가중치 축소 또는 제거 검토
+
+**4. daemon 즉시 반영**
+아직 불가. momentum_sol/vpin_eth 둘 다 walk-forward 미완료 상태. 그리드 최적값은 in-sample 과적합 가능성이 있으므로, out-of-sample 검증 통과 전까지 daemon 반영 보류.
+```
+
+</details>
+
+---
+
+## 2026-04-03 — momentum_eth_grid (사이클 68) [ralph:momentum_eth_grid] ✅[good]
+
+**목적**: ETH momentum 전용 그리드 탐색 — 사이클67 발견 Sharpe +13.59 파라미터 확장/최적화
+
+**스크립트**: `scripts/backtest_momentum_eth_grid.py`
+**기간**: 2022-01-01 ~ 2026-12-31  **심볼**: KRW-ETH  **캔들**: 4h
+
+**그리드**: lookback(6/8/10/12/14/16/20/24) × adx(20/22/25/28/30) × vol_mult(1.5/2.0/2.5/3.0) × TP(0.08/0.10/0.12/0.15/0.18) × SL(0.02/0.03/0.04/0.05) = 3200조합
+
+### 결과 요약
+
+| 구분 | lookback | adx | vol_mult | TP | SL | Sharpe | WR | avg수익 | trades |
+|---|---|---|---|---|---|---|---|---|---|
+| 전체 최고 (과적합 위험) | 12 | 30 | 3.0 | 0.12 | 0.05 | **+39.736** | 80.0% | +6.47% | 15 |
+| trades≥30 최적 | 14 | 20 | 3.0 | 0.15 | 0.03 | **+27.704** | 63.3% | +5.03% | 30 |
+| trades≥30 차선 | 12 | 20 | 3.0 | 0.12 | 0.03 | **+27.670** | 63.3% | +4.47% | 30 |
+| 사이클67 베이스 | 12 | 25 | 2.0 | 0.12 | 0.03 | +13.59 | 45.0% | +2.24% | 60 |
+
+**핵심 발견**:
+1. **vol_mult=3.0이 핵심 드라이버**: 2.0→3.0으로 바꾸는 것만으로 Sharpe 2배+ 개선
+2. adx=20에서 trades≥30 확보 가능 (adx=30은 trades=15로 과적합 위험)
+3. lookback=12~14가 ETH에 최적 구간
+4. **trades=15 결과는 신뢰 불가** — walk-forward 전까지 daemon 반영 금지
+
+**권장 daemon 파라미터 후보**:
+- `lookback=12, adx=20, vol_mult=3.0, TP=0.12, SL=0.03` → Sharpe +27.670, WR=63.3%, trades=30
+- walk-forward 검증 필요 (2022-2024 in-sample / 2025-2026 out-of-sample)
+
+**결론**: vol_mult=3.0 상향이 ETH momentum의 핵심 개선. 그러나 trades=30은 경계선 — walk-forward 검증 후 daemon 반영 결정.
+
+---
