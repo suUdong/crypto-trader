@@ -1846,3 +1846,35 @@ Stealth 필터 개선 심볼: 3/16
 </details>
 
 ---
+
+## 2026-04-03 — ETH momentum+VPIN_fixed walk-forward 검증 (사이클 71) ✅[good]
+
+**목적**: 사이클 70 VPIN+momentum 최적 파라미터 OOS 검증 (IS 2022-2024 / OOS 2025-2026)
+**스크립트**: `scripts/backtest_vpin_walkforward.py`
+**데이터**: KRW-ETH 4h(240m) 2022-01-01~2026-03-31 (8585행)
+
+### walk-forward 결과
+
+| 후보 | IS Sharpe | IS WR | IS N | OOS Sharpe | OOS WR | OOS avg | OOS N | 통과 |
+|---|---|---|---|---|---|---|---|---|
+| C1_stable (VPIN<0.35 bucket=12) | +23.742 | 58.3% | 24 | **+28.913** | 66.7% | +4.057% | 6 | ❌ (N<8) |
+| C2_perf (VPIN<0.30 bucket=20) | +22.648 | 57.1% | 14 | NaN | — | — | 2 | ❌ |
+| C0_base (VPIN 없음) | +15.930 | 52.6% | 38 | **+24.550** | 57.1% | +3.750% | 14 | ✅ |
+
+### 핵심 발견
+
+1. **VPIN 필터 OOS 신호 희소화**: 2025년 ETH 시장에서 VPIN<0.35 조건이 거의 미충족 → trades=6 (기준 8 미달)
+   - OOS Sharpe +28.913, WR=66.7% — 품질 자체는 우수하나 통계적 충분성 부족
+2. **베이스라인(VPIN 없음)이 OOS 더 강함**: Sharpe +24.550, WR=57.1%, trades=14 → 통과
+3. **VPIN 필터는 IS에서 유효하나 OOS 적응력 저하** — 2025 ETH 시장 VPIN 분포가 IS 대비 상이
+
+### 결론
+
+- **C0_base OOS 검증 통과** → `lb=12, adx=20, vol_mult=2.5, TP=0.10, SL=0.03` (VPIN 없이)
+- daemon 반영: 보류 (BEAR 레짐 + momentum_eth_wallet DISABLED)
+- BULL 레짐 전환 + paper trade 확인 후 재활성화 가능
+- VPIN 필터는 신호 희소화 문제 해결 필요 (버킷 수 증가 또는 임계값 완화 재탐색)
+
+**다음**: momentum_sol walk-forward 검증 (우선순위 2번) 또는 VPIN 버킷 재조정 탐색
+
+---
