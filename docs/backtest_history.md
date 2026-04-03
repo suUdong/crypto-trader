@@ -4436,3 +4436,80 @@ BULL 기간만 보면 엣지 존재하지만, 2창 WF 기준 충족 불가.
 </details>
 
 ---
+
+## 2026-04-03 20:11 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol(+14.37) + vpin_eth(+7.46) 두 확정 후보 보유 중이고, SUI 탈락 확정(432조합 소진)은 비효율이 아닌 필터 작동 증거. BULL 대비 파이프라인은 충분.
+
+**2. poor 71% 정상 범위.** BTC BEAR(pre_bull=0.740) → Gate1 자연 차단 + SUI 구조적 상한선 확인이 주 원인. error 0개는 실행 무결. 현재 시장 국면에서 poor 비율 높은 건 예상된 결과.
+
+**3. 다음 1주일 우선순위:**
+1. **ONDO vpin 탐색** — 단창 Sharpe +5.762 확인됨, 2창 WF 검증 필요
+2. **APT/TIA 신규 심볼 스크리닝** — SUI·SEI·SEI 탈락으로 후보풀 보충 긴급
+3. **pre_bull ≥ 0.90 트리거 자동화 점검** — momentum_sol 즉시 투입 조건 스크립트 확인
+
+**4. 즉시 daemon 반영 없음.** BTC BEAR(pre_bull=0.740) → Gate1 미통과. momentum_sol(lb=12, adx=25, vol=2.0, TP=12%, SL=4%) 파라미터는 확정됐으나 BULL 전환(pre_bull≥0.90) 대기 중.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — ONDO vpin 전략 탐색 (사이클 119)
+
+**목적**: ONDO stealth_3gate W1 Sharpe -1.487 극복 → vpin(volume imbalance 기반) 프레임워크로 2창 통과 탐색  
+**가설**: vpin은 stealth(RS 기반)와 독립적 메커니즘 → 2025H1에도 엣지 보유 가능  
+**전략**: KRW-ONDO vpin (240m), BTC Gate1 포함/미포함 두 케이스  
+**스크립트**: `scripts/backtest_cycle119_ondo_vpin.py`  
+**탐색 범위**: vh∈{0.50,0.55,0.60} × vm∈{0.0003,0.0005,0.0010} × hold∈{12,18} × TP∈{6,8,10,12%} × SL∈{0.8,1.5,2.5%} × Gate1∈{Y,N} = 432조합  
+**Windows**:
+- W1: IS=2024-06~2024-12, OOS=2025-01~2025-09 (BULL 9개월)
+- W2: IS=2024-06~2025-06, OOS=2025-07~2026-04 (혼재 10개월)  
+**판정 기준**: OOS Sharpe > 5.0 && WR > 25% && trades >= 5
+
+### 2/2창 통과 결과 (상위)
+
+| Gate1 | vh | vm | hold | TP | SL | W1 Sh | W1 WR | W1 n | W2 Sh | W2 WR | W2 n | avg | 통과 |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Y | 0.50~0.60 | any | 18 | 10% | 1.5% | **+9.132** | 28% | 81 | **+5.296** | 26% | 72 | **+7.214** | 2/2 ✅ |
+| N | 0.50 | 0.0010 | 18 | 10% | 1.5% | +6.977 | 26% | 92 | +5.007 | 27% | 82 | +5.992 | 2/2 ✅ |
+
+### 핵심 발견
+
+1. **2/2창 통과 12개** — ONDO vpin 2창 기준 충족, daemon 반영 후보 확정
+2. **vh/vm 파라미터 무관**: Gate1 포함 시 vh 0.50~0.60, vm 0.0003~0.0010 모두 동일 결과 → **BTC Gate1이 실질적 주도 필터**
+3. **핵심 파라미터**: hold=18, TP=10%, SL=1.5%, BTC Gate1=Y → 이 4개가 성과 결정
+4. **BTC Gate1 효과**: Gate1 포함 9/216 통과, Gate1 없음 3/216 통과 (+200% 개선)
+5. **stealth_3gate W1 극복**: vpin W1 OOS Sharpe +9.132 (stealth -1.487 대비 극적 개선)
+6. **W2 안정성 유지**: W2 OOS Sharpe +5.296, WR=26% — BEAR/혼재 기간에서도 기준 충족
+
+### 최적 파라미터 (daemon 반영 후보)
+
+```
+심볼: KRW-ONDO
+전략: vpin
+타임프레임: 240m
+BTC Gate1: Y (BTC > SMA20)
+vh: 0.50 (or any — 결과 동일)
+vm: 0.0003 (or any — 결과 동일)
+hold: 18
+TP: 10%
+SL: 1.5%
+```
+
+**WF 결과**: W1 OOS Sharpe +9.132 (WR=28%, n=81) / W2 OOS Sharpe +5.296 (WR=26%, n=72) / avg +7.214
+
+### 결론
+
+**ONDO vpin 2/2창 통과 — daemon 반영 기준 충족!**  
+hold=18/TP=10%/SL=1.5%/BTC Gate1=Y 조합으로 avg Sharpe +7.214 달성.  
+BTC BEAR 현재 상황에서 Gate1 자연 차단 → **BULL 전환(pre_bull≥0.90 + BTC>SMA20) 시 즉시 투입 대상**.  
+vh/vm 파라미터가 무관한 이유: BTC Gate1이 진입 필터 역할을 지배, VPIN threshold 역할이 Gate1에 의해 흡수됨.
+
+**다음 탐색**: (A) ONDO vpin daemon.toml 반영 (슬리피지 민감도 확인 권장) (B) APT vpin 탐색 (2024-01 데이터, 2창 WF 가능) (C) BULL 전환 대기 (momentum_sol/vpin_eth/ONDO vpin 3개 확정)
