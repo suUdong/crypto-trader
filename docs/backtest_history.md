@@ -2208,3 +2208,63 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 - **pre-staged in daemon.toml**: BULL 전환 시 즉시 활성화 가능
 
 ---
+
+## 2026-04-03 14:57 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH(lb=12)/SOL(lb=12)/XRP(lb=8) 세 심볼이 독립 검증에서 모두 2/3 슬라이딩 통과 — 각 심볼별 모멘텀 지속성 차이(XRP 단기 lb=8)까지 드러나는 실질 엣지 발견 단계.
+
+**2. poor 5/7(71%) 허용 범위.** BTC BEAR 레짐 구조 억제 + SUI 2025 급등락 구조적 불일치 + W3 데이터 부족(3개월) — 전략 결함이 아닌 필터링 정상 작동. 실질 통과 불가 종목을 빠르게 기각한 것이 오히려 효율적.
+
+**3. 다음 1주일 우선순위:**
+1. **XRP C8(lb=8, adx=25) walk-forward 검증** — 슬라이딩 2/3 통과했지만 단일 OOS walk-forward 미실시, SOL/ETH와 동일 절차 필수
+2. **ETH C0_base vs C2_VPIN Δ Sharpe 정량 결론** — VPIN 기여가 노이즈인지 실질인지 미확정 상태로 daemon 후보 미결
+3. **BULL 레짐 전환 트리거 설계** — SOL/ETH/XRP 세 후보 모두 pre-staged 완료, 활성화 조건 명문화만 남음
+
+**4. 즉시 daemon 반영 없음.** 세 후보(SOL lb=12, ETH C2_VPIN, XRP C8) 모두 BEAR 레짐 + wallet DISABLED — XRP walk-forward 완료 후 `daemon.toml` pre-staged 주석 추가, BULL 전환 확인 후 paper 활성화 순서 유지.
+```
+
+</details>
+
+---
+
+---
+
+## 2026-04-03 — XRP momentum walk-forward 검증 (사이클 78)
+
+**목적**: 사이클 77에서 슬라이딩 2/3 통과한 C8(lb=8, adx=25)의 단일 OOS walk-forward 검증  
+**설정**: KRW-XRP 4h봉  
+- IS: 2022-05-01 ~ 2024-12-31 (5850행)  
+- OOS: 2025-01-01 ~ 2026-04-03 (2730행)
+
+| 후보 | IS Sharpe | IS WR | IS T | OOS Sharpe | OOS WR | OOS T | 판정 |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **C8 lb=8 adx=25** | +8.59 | 48.9% | 47 | **+8.493** | **45.5%** | 22 | **✅ PASS** |
+| C_lb6 lb=6 adx=25 | +9.62 | 52.2% | 46 | +7.170 | 43.5% | 23 | ❌ FAIL (WR) |
+| **C_lb10 lb=10 adx=25** | +9.60 | 50.0% | 48 | **+15.228** | **55.6%** | 18 | **✅ PASS** |
+| C_adx20 lb=8 adx=20 | +4.15 | 42.4% | 66 | +7.119 | 43.5% | 23 | ❌ FAIL (WR) |
+| **C_adx30 lb=8 adx=30** | +10.01 | 45.7% | 35 | **+12.963** | **50.0%** | 18 | **✅ PASS** |
+| C_tp10_sl3 | +6.89 | 38.8% | 49 | +2.865 | 33.3% | 24 | ❌ FAIL |
+| C_vol1.5 | +9.15 | 50.8% | 63 | -0.210 | 35.3% | 34 | ❌ FAIL |
+| **C_lb12 lb=12 adx=25** | +10.03 | 50.0% | 48 | **+15.228** | **55.6%** | 18 | **✅ PASS** |
+
+### 핵심 발견
+
+1. **C8(lb=8, adx=25) 이중 검증 완료**: 슬라이딩 2/3(W1+W2) + walk-forward PASS → daemon 조건부 후보 확정
+2. **lb=10 = lb=12 (OOS 동일 결과)**: T=18, Sh=+15.2, WR=55.6% 완전 일치 → XRP 4h 기준 이 두 lookback이 동일 신호 발생
+3. **lb=12가 walk-forward에서 강함 (Sh+15.2)**: 하지만 슬라이딩에서 1/3만 통과 (사이클 77 C1_lb12)
+4. **lb=8 adx=30**: walk-forward Sh+12.9 — adx 강화가 필터링 질 향상 가능성
+
+### 결론 및 daemon 후보
+
+- **최종 안정 후보: C8(lb=8, adx=25)** — 슬라이딩 2/3 + walk-forward 두 관문 통과 유일
+- lb=12는 walk-forward 강하지만 슬라이딩 1/3 → 과적합 위험 있음
+- lb=10 슬라이딩 미실시 → 다음 사이클에서 검증 필요
+
+**daemon.toml**: BEAR 레짐 + DISABLED 상태 유지. BULL 전환 확인 후 paper 활성화 (pre-staged: C8 lb=8 adx=25 vol=2.0 TP=12% SL=4%)
+
