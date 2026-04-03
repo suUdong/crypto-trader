@@ -2512,3 +2512,69 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 </details>
 
 ---
+
+## 2026-04-03 15:38 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH(Sh+7.46), SOL(Sh+14.37), XRP C8 이중 통과 — 3개 L1 심볼에서 독립적으로 엣지 확인. VPIN 기각도 ΔSh -0.17~-0.20 정량 근거로 처리, 파이프라인이 노이즈를 제대로 걸러내는 중.
+
+**2. poor 5/7(71%) 허용 범위.** BTC BEAR 레짐 억제, W3 데이터 부족(T<6), lb=10 슬라이딩 탈락이 원인 — 전략 결함이 아닌 필터 정상 작동. 레짐 전환 시 재탐색 대상이므로 낭비 아님.
+
+**3. 다음 1주일 우선순위:**
+1. **SOL lb=12 슬라이딩 3구간 검증** — walk-forward만 통과 상태, XRP lb=10 탈락 패턴 반복 가능성 미확인
+2. **BNB/ADA 등 미검증 L1 스크리닝** — BCH/DOGE/Layer2 기각 후 후보 풀 소진 상태
+3. **BULL 레짐 전환 트리거 자동화** — 3심볼 pre-staging 완료, 수동 확인 의존도 제거
+
+**4. 즉시 daemon 반영 없음.** 현재 BEAR 레짐 — ETH C0_base 확정 및 pre-staging 업데이트 완료됐지만 SOL 슬라이딩 검증 전 live 반영 보류. XRP C8(lb=8, adx=25, vol=2.0, TP=12%, SL=4%)만 이중 통과 완료로 BULL 전환 즉시 활성화 준비 상태.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — 미검증 L1 알트코인 momentum 스크리닝 (사이클 84)
+
+**목적**: BCH/DOGE/Layer2 탈락 후 미검증 L1 후보 풀 소진 탐색 (ADA/AVAX/ATOM/DOT/TRX)  
+**설정**: KRW-{심볼} 240m(4h봉), walk-forward IS=2022-2024 / OOS=2025-2026  
+**스크립트**: `scripts/backtest_l1_alt_screening.py`  
+**기준**: OOS Sharpe > 3.0 && WR > 45% && trades >= 6
+
+### 탈락 심볼
+
+| 심볼 | 최고 OOS Sh | 최고 WR | 결론 |
+|---|:---:|:---:|:---:|
+| ADA | -7.81 | 27.8% | ❌ 구조적 WR 부족 |
+| AVAX | -1.35 | 29.4% | ❌ IS 과적합 극심 (OOS Sh=-123 사례 있음) |
+| ATOM | +2.05 | 40.0% | ❌ WR 45% 미달 |
+| DOT | +3.00 | 42.4% | ❌ WR 45% 미달 (근접) |
+
+### **TRX 채택** ← 신규 발견
+
+| 후보 | IS Sh | OOS Sh | OOS WR | T | 슬라이딩 | 판정 |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| lb=12 adx=25 (SOL/ETH 기준) | +4.09 | +13.56 | 57.1% | 14 | **3/3** ✅✅✅ | **◆ 이중 통과** |
+| lb=8 adx=25 (XRP 기준) | +7.48 | +11.44 | 53.8% | 13 | 1/3 ❌ | ✗ 탈락 |
+| lb=12 adx=25 TP10 SL3 | +8.65 | +12.56 | 53.3% | 15 | **3/3** ✅✅✅ | ◆ 조건부 채택 |
+| lb=16 adx=25 | +5.55 | +13.57 | 57.1% | 14 | 2/3 ✅ | ◆ 조건부 채택 |
+
+**TRX lb=12 adx=25 슬라이딩 상세:**
+- W1 OOS=2024: Sh=+8.27 WR=60.0% T=10 ✅
+- W2 OOS=2025: Sh=+15.98 WR=62.5% T=8 ✅
+- W3 OOS=2026: Sh=+5.87 WR=50.0% T=6 ✅ (W3 유일하게 BEAR 레짐 포함에도 통과)
+
+**핵심 결론**:
+1. **TRX lb=12 adx=25 이중 통과 확정** — walk-forward + 슬라이딩 3/3 완전 통과
+2. **L1 momentum edge 확장**: SOL/ETH/XRP → **SOL/ETH/XRP/TRX 4개 심볼**
+3. ADA/AVAX/ATOM/DOT 탈락 — L1 momentum edge는 유동성/거래량 상위 심볼에 국한됨
+
+**daemon pre-staging 업데이트 (4개 심볼)**:
+- XRP: C8(lb=8, adx=25, vol_mult=2.0, TP=12%, SL=4%) — 이중 통과 확정 ★
+- TRX: lb=12, adx=25, vol_mult=2.0, TP=12%, SL=4% — **이중 통과 확정 ★ (신규)**
+- ETH: C0_base(lb=12, adx=25, vol_mult=2.0, TP=10%, SL=3%) — 조건부 확정 (2/3)
+- SOL: lb=12, adx=25 — 조건부 확정 (2/3)
+
