@@ -3591,3 +3591,60 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - C0_base(lb=12) 현재 기준으로 1/3만 통과 → pre-staged 재검토 필요
 - C_old(lb=20) 2/3 통과이나 W3 신호 없음 → 2026 ETH 모멘텀 약화 구조적 문제 가능성
 - BULL 전환 대비 ETH momentum paper 활성화 시 lb=20으로 변경 검토 필요
+
+## 2026-04-03 18:05 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** momentum_sol 3구간 실질 검증 완료(W3 기술적 ❌는 데이터 부족이지 전략 문제 아님), ETH와 SOL 모멘텀 특성 차이 파악 — 불필요한 탐색을 기각하고 근거를 축적하는 흐름이 정상 작동 중.
+
+**2. poor 5/7(71%) 정상 범위.** 자율 그리드 탐색 구조상 불가피하며 error 0개로 실행 품질 양호. 단, stealth_3gate가 Sharpe +5.129 기준 충족 후에도 daemon 미반영 상태로 수 사이클 경과 중 — 검증→반영 지연이 실질 손실.
+
+**3. 다음 1주일 우선순위:**
+1. **stealth_3gate daemon.toml 반영** — `btc_trend_pos_gate=true, btc_trend_window=10`, 가장 즉각적 가치
+2. **BULL 전환 대비 bull_activation_protocol.py 점검** — pre_bull=0.854 고수위, momentum_sol live 전환 조건 명시
+3. **신규 전략 탐색** — vpin_eth/momentum_sol 파라미터 모두 확정, 새 비효율 발굴 차례
+
+**4. 즉시 반영 가능:** stealth_3gate 파라미터만. vpin_eth/momentum_sol은 현 파라미터 그대로 유지 (momentum_eth는 비활성화 유지, BULL 전환 시 lb=20 재검토).
+```
+
+</details>
+
+---
+
+## 2026-04-04 — Bear Regime Alt Stealth Signal 검증 (사이클 104)
+
+**목적**: BTC BEAR 레짐(BTC < SMA20)에서 alt-side stealth signal(CVD+acc+RS)만으로 유효한 엣지 존재 여부 확인
+**전략**: stealth_3gate alt-only (Gate 1 제거) — W=36, RS=[0.5,1.0), CVD>0, acc>1.0
+**스크립트**: `scripts/backtest_bear_stealth.py`
+**대상**: 16 symbols, 2022-2026, 240m, FWD=24h
+
+| 레짐 | Trades | WR | Avg% | Sharpe |
+|:---|:---:|:---:|:---:|:---:|
+| **BULL (BTC>SMA20)** | 4409 | 48.1% | +0.33% | **+2.630** |
+| **BEAR (BTC<SMA20)** | 2660 | 46.3% | -0.09% | **-0.848** |
+
+**심볼별 BEAR 성과 상위 (양의 avg)**:
+| 심볼 | BearN | BearWR | BearAvg |
+|:---|:---:|:---:|:---:|
+| KRW-AVAX | 126 | 52.4% | +0.83% |
+| KRW-LINK | 198 | 50.0% | +0.47% |
+| KRW-SOL | 170 | 51.2% | +0.36% |
+| KRW-APT | 131 | 52.7% | +0.31% |
+
+**핵심 발견**:
+1. ❌ BEAR 레짐 전체: Sharpe -0.848 — alt-side stealth signal 단독으로는 BEAR에서 엣지 없음
+2. ✅ Gate 1(BTC>SMA20) 필수성 재확인 — BULL vs BEAR Δ Sharpe = +3.478
+3. ⚠️ AVAX/LINK/SOL/APT: BEAR에서 양의 avg (WR 51-53%) — 심볼 특화 BEAR 스텔스 가능성
+4. BTC BULL 비율: 50.2% (2022-2026 기간)
+
+**결론**: daemon.toml 변경 없음 — Gate 1 필수 재확인
+- 현재 stealth_3gate 설계(BTC>SMA20 필수) 유효성 검증 완료
+- AVAX/LINK/SOL/APT BEAR 양수는 표본 부족(n=126-198) — walk-forward 필요
+- 현재 BTC BEAR(-9.45%) 상황: 모든 stealth 전략 대기 상태 정상
+- 다음 BULL 전환 시 AVAX/LINK를 stealth_3gate 심볼로 추가 검토 권장
+
