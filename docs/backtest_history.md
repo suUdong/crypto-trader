@@ -2044,3 +2044,62 @@ OOS Sharpe=+26.451, WR=62.5%, trades=8
 </details>
 
 ---
+
+## 2026-04-03 — ETH momentum+VPIN 슬라이딩 윈도우 검증 (사이클 75)
+
+**설정**
+- 심볼: KRW-ETH, 4h봉
+- 슬라이딩 윈도우 3구간:
+  - W1: IS=2022-2023 / OOS=2024 (2,191봉)
+  - W2: IS=2023-2024 / OOS=2025 (2,185봉)
+  - W3: IS=2024-2025 / OOS=2026초 (540봉, 데이터 부족)
+- 검증 기준: OOS Sharpe > 3.0 && WR > 45% && trades ≥ 6
+
+### 후보 결과
+
+| 후보 | W1(2024) | W2(2025) | W3(2026) | 통과 |
+|---|:---:|:---:|:---:|:---:|
+| C1_VPIN (bkt=20, thr<0.35) | ✅ Sh+29.0 WR60% T10 | ❌ Sh+13.2 WR42.9% T7 | ❌ T=0 | 1/3 ✗ |
+| **C2_VPIN (bkt=12, thr<0.40)** | ✅ Sh+25.5 WR53.8% T13 | ✅ Sh+18.2 WR50.0% T12 | ❌ T=0 | **2/3 ◆** |
+| C0_base (VPIN 없음) | ✅ Sh+23.4 WR60.0% T15 | ✅ Sh+17.4 WR46.2% T13 | ❌ T=0 | **2/3 ◆** |
+
+### 핵심 발견
+
+- **C1_VPIN(bkt=20, thr<0.35)**: 사이클 72 단일 OOS (+26.4) 성과 불재현 — W2(2025) WR=42.9%로 기준 미달(45% 요구). 슬라이딩 검증에서 1/3만 통과, 단일 구간 과적합 가능성.
+- **C2_VPIN(bkt=12, thr<0.40)**: W1/W2 모두 Sharpe 18+ 안정적으로 2/3 통과. SOL과 동일 수준.
+- **C0_base**: VPIN 없이도 2/3 통과 — VPIN의 추가 기여가 제한적.
+- W3(2026초)는 전 후보 trades=0 — 3개월 데이터 부족 (SOL W3와 동일).
+
+### 결론
+
+- **C1_VPIN(bkt=20, thr<0.35) daemon 후보 기각** — 슬라이딩 검증 실패 (1/3)
+- **C2_VPIN(bkt=12, thr<0.40)**: 2/3 통과, SOL(lb=12 adx=25)과 동일 안정성 수준 — BEAR 해소 시 조건부 daemon 후보
+- **C0_base**: 동등 안정성, trades 수 더 많아 실전 활용도 높음
+- daemon 반영: 보류 (BEAR 레짐 + wallet DISABLED)
+- VPIN의 ETH 기여도 재평가 필요 — 추가 Sharpe Δ가 단일구간 노이즈일 가능성
+
+---
+
+## 2026-04-03 14:36 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 맞음.** ETH+SOL 모두 lb=12+adx=25가 OOS 우위로 수렴 중 — 우연이 아닌 패턴. 두 심볼의 독립적 검증이 일치하는 건 강력한 신호.
+
+**2. poor 5/7은 허용 범위.** BTC는 BEAR 레짐 구조적 억제, VPIN bkt=12는 OOS 희소화(N<6) — 전략 결함이 아닌 파라미터 미스매치. VPIN bkt≥20 전환 후 16/17 통과로 즉시 정상화됨.
+
+**3. 다음 1주일 우선순위:**
+1. **SOL lb=12 슬라이딩 윈도우 3구간 검증** — 단일 OOS 통과 상태, 2026-04-03 사이클 74에서 진행 중
+2. **ETH momentum+VPIN(bkt=20, thr<0.35) daemon pre-staging** — OOS +26.4 확정, `daemon.toml` 주석으로 BULL 전환 시 즉시 활성화 준비
+3. **BULL 레짐 전환 트리거 설계** — BTC 반등 조건(ex. ADX>25 + 레짐 변경) 정의 후 paper 재활성화 자동화
+
+**4. 즉시 daemon 반영 불가.** 두 후보 모두 wallet DISABLED + BEAR 레짐 — 지금은 파라미터만 pre-staged하고 BTC 레짐 전환 확인 후 paper 활성화가 맞음.
+```
+
+</details>
+
+---
