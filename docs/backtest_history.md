@@ -3095,3 +3095,68 @@ N=8 이벤트 161개 기준 TRX 진입 28개
 - **N=12 추가 검증 권장**: n=126 충분하지만, TRX Sharpe=+0.41로 다른 심볼 대비 낮음 → TRX N=8로 하향 검토 가능
 
 ---
+
+## 2026-04-03 16:51 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향: 올바름.** N=8/N=12 BULL 필터 재검증으로 버그 수정 후 성과가 오히려 향상(Sharpe +0.41/+0.61)되었고, 4개 심볼 모두 일관된 엣지 확인. 방향성 검증 → 파라미터 정밀화 → daemon 반영의 사이클이 정상 작동 중.
+
+**2. poor 비율(5/7=71%): 정상.** 필터 강화로 인한 자연스러운 탈락(SOL/XRP 소샘플 구간, XRP max_bars 실용성 부재)이 주원인이며 전략 결함이 아님. VPIN ETH(+7.46) / momentum SOL(+14.37)은 과최적화 강한 의심 — walk-forward 전 promising 분류 자체도 보류 고려.
+
+**3. 다음 1주일 우선순위:**
+1. **VPIN ETH + momentum SOL walk-forward 검증** — out-of-sample 없으면 daemon 반영 불가, 가장 긴급
+2. **N=12 TRX Sharpe=+0.41 낮음 → N=8로 하향 비교** — TRX만 N=8 적용 시 전체 포트폴리오 Sharpe 최적화
+3. **pre_bull_score + macro_bonus 통합** — pre_bull=+0.673으로 BULL 전환 임박, macro_bonus 가중치 실전 검증이 타이밍상 가장 높은 레버리지
+
+**4. 즉시 반영 가능:** `TRX max_bars=48, SL=5%` (사이클 90 검증 완료). BULL 전환 확인(BTC SMA20 N=8 연속) 즉시 stealth 진입 조건도 실전 적용 준비 완료. ETH max_bars=12 변경은 현행 대비 개선폭 미미(+0.21→+0.24)라 보류.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — Macro Bonus Proxy 복합 필터 백테스트 (사이클 94)
+
+**스크립트**: `scripts/backtest_macro_bonus_proxy.py`
+**기간**: 2022-01 ~ 2026-04, 240m(4h) 캔들
+**목적**: CLAUDE.md TODO `macro_bonus = vix_falling + dxy_falling + expansionary` 역사적 검증 — BTC OHLCV proxy 사용
+
+### proxy 정의
+- `vix_falling` : BTC 20봉 realized vol < 40봉 realized vol (변동성 압축)
+- `btc_trend_pos` : BTC 10봉 수익률 > 0 (DXY 약세 proxy)
+- `expansionary` : N>=8/12 연속 SMA20 위 (기존 필터에 내포)
+
+### 결과 요약
+
+| 필터 | 이벤트 | 진입 | WR% | avg_ret | Sharpe |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| N=12 단독 (사이클93 기준선) | 112 | 126 | 70.6% | +3.33% | +0.61 |
+| N=8  + vix_falling | 79 | 77 | 51.9% | +1.74% | +0.31 |
+| N=8  + btc_trend_pos | 117 | 117 | 64.1% | +2.69% | +0.48 |
+| N=8  + vix+trend (full macro_bonus) | 61 | 54 | 59.3% | +2.41% | +0.42 |
+| N=12 + vix_falling | 60 | 62 | 59.7% | +2.74% | +0.48 |
+| **N=12 + btc_trend_pos ★** | **88** | **96** | **71.9%** | **+3.73%** | **+0.66** |
+| N=12 + vix+trend (full macro_bonus) | 47 | 44 | 65.9% | +3.40% | +0.58 |
+
+### 결론 및 인사이트
+
+1. **N=12 + btc_trend_pos가 최우수**: Sharpe +0.61 → +0.66, WR 70.6% → 71.9%, n=96으로 신뢰도 유지
+   - BTC 10봉 수익률 > 0 조건 추가 시 평균 수익 +3.33% → +3.73% (+12.1% 개선)
+2. **vix_falling 필터는 역효과**: N=8/N=12 모두 Sharpe 하락 → BTC vol 압축 구간이 오히려 진입 타이밍 미스
+   - VIX proxy로서 BTC realized vol 변화는 stealth 진입 필터로 부적합
+3. **macro_bonus 수정 권장**: `btc_trend_pos(+0.1)` 유효, `vix_falling(+0.2)` 삭제
+   - 수정 formula: `macro_bonus = btc_trend_pos(+0.1) + expansionary(+0.3)`
+4. **현재 시장 (2026-04-04) 상태**: vix_falling=1, btc_trend_pos=1 → macro_score=0.30
+   - pre_bull=0.673 + macro_bonus=0.30 → 0.973 (BULL 전환 임박, 조건 충족 대기)
+
+**권장**:
+- **BULL 전환 확인 조건**: N=12(48h) + BTC 10봉 수익률 > 0 → 가장 높은 품질 이벤트
+- **vix_falling 제거**: macro_bonus에서 vix_falling 항목 삭제 권장
+- **daemon 반영 전 추가 검증**: Sharpe +0.66으로 5.0 미달 → 현재 daemon 반영 불가, 전략 코드 수준에서 조건 추가 검토
+
+---
