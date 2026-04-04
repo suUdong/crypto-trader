@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "threshold": {
+    "min_cycles": 5,
+    "min_backtests": 2,
+    "min_interval_minutes": 30,
+    "last_adjusted": null
+  },
+  "evaluations": [],
+  "self_review": {
+    "total_evaluations": 0,
+    "actionable_rate": null,
+    "last_threshold_adjustment": null
+  }
+}
