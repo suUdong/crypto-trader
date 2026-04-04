@@ -55,10 +55,64 @@ class BacktestEngine:
         min_bars_between_trades: int = 2
         trade_regimes: list[str] = []
 
+        # 1봉 지연 진입: 신호 봉에서 pending 등록 → 다음 봉 시가에 실제 진입
+        pending_entry_side: str | None = None
+        pending_entry_confidence: float = 0.0
+        pending_entry_regime: str = "unknown"
+
         for index in range(len(candles)):
             window = candles[: index + 1]
             current = window[-1]
             market_price = current.close
+
+            # ── pending entry 처리: 전 봉 신호 → 현재 봉 시가로 진입 ──────────
+            # 마지막 봉에서는 진입해도 즉시 강제청산이므로 스킵
+            if pending_entry_side is not None and open_position is None and index < len(candles) - 1:
+                fill_price = _entry_fill_price(
+                    pending_entry_side,
+                    current.open,
+                    self._config.slippage_pct,
+                )
+                regime_mult = 1.0
+                if self._regime_aware and self._regime_detector is not None and index >= 31:
+                    regime = self._regime_detector.detect(window)
+                    regime_mult = self.REGIME_SIZE_MULT.get(regime, 1.0)
+                quantity = self._risk_manager.size_position(cash, fill_price, regime_mult)
+                if quantity > 0:
+                    gross = quantity * fill_price
+                    fee = gross * self._config.fee_rate
+                    total_cost = gross + fee
+                    if pending_entry_side == "short":
+                        cash += gross - fee
+                        entry_bar = index
+                        entry_confidence = pending_entry_confidence
+                        entry_regime = pending_entry_regime
+                        open_position = Position(
+                            symbol=self._symbol,
+                            quantity=quantity,
+                            entry_price=fill_price,
+                            entry_time=current.timestamp,
+                            entry_index=index,
+                            entry_fee_paid=fee,
+                            side=pending_entry_side,
+                        )
+                    elif total_cost <= cash:
+                        cash -= total_cost
+                        entry_bar = index
+                        entry_confidence = pending_entry_confidence
+                        entry_regime = pending_entry_regime
+                        open_position = Position(
+                            symbol=self._symbol,
+                            quantity=quantity,
+                            entry_price=fill_price,
+                            entry_time=current.timestamp,
+                            entry_index=index,
+                            entry_fee_paid=fee,
+                            side=pending_entry_side,
+                        )
+                pending_entry_side = None
+                pending_entry_confidence = 0.0
+                pending_entry_regime = "unknown"
 
             if index >= 15:
                 self._risk_manager.update_atr_from_candles(window)
@@ -194,50 +248,13 @@ class BacktestEngine:
                     and bars_since_exit >= min_bars_between_trades
                     and (should_open_long or should_open_short)
                     and signal.confidence >= self._risk_manager.effective_min_confidence
+                    and index < len(candles) - 1  # 마지막 봉에서는 다음 봉이 없으므로 진입 불가
                 ):
                     position_side = "short" if should_open_short else "long"
-                    fill_price = _entry_fill_price(
-                        position_side,
-                        market_price,
-                        self._config.slippage_pct,
-                    )
-                    regime_mult = 1.0
-                    if self._regime_aware and self._regime_detector is not None and index >= 31:
-                        regime = self._regime_detector.detect(window)
-                        regime_mult = self.REGIME_SIZE_MULT.get(regime, 1.0)
-                    quantity = self._risk_manager.size_position(cash, fill_price, regime_mult)
-                    if quantity > 0:
-                        gross = quantity * fill_price
-                        fee = gross * self._config.fee_rate
-                        total_cost = gross + fee
-                        if position_side == "short":
-                            cash += gross - fee
-                            entry_bar = index
-                            entry_confidence = signal.confidence
-                            entry_regime = signal.context.get("market_regime", "unknown")
-                            open_position = Position(
-                                symbol=self._symbol,
-                                quantity=quantity,
-                                entry_price=fill_price,
-                                entry_time=current.timestamp,
-                                entry_index=index,
-                                entry_fee_paid=fee,
-                                side=position_side,
-                            )
-                        elif total_cost <= cash:
-                            cash -= total_cost
-                            entry_bar = index
-                            entry_confidence = signal.confidence
-                            entry_regime = signal.context.get("market_regime", "unknown")
-                            open_position = Position(
-                                symbol=self._symbol,
-                                quantity=quantity,
-                                entry_price=fill_price,
-                                entry_time=current.timestamp,
-                                entry_index=index,
-                                entry_fee_paid=fee,
-                                side=position_side,
-                            )
+                    # 신호 봉 종가 즉시 진입 대신 → 다음 봉 시가 진입을 위해 pending 등록
+                    pending_entry_side = position_side
+                    pending_entry_confidence = signal.confidence
+                    pending_entry_regime = signal.context.get("market_regime", "unknown")
 
             marked_equity = cash
             if open_position is not None:
