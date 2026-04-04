@@ -44,6 +44,7 @@ class Stealth3GateStrategy:
         btc_trend_pos_gate: bool = False,
         btc_trend_window: int = 10,
         alt_cvd_slope_max: float | None = None,
+        btc_stealth_acc_min: float | None = None,
     ) -> None:
         self._config = config
         self._stealth_window = stealth_window
@@ -56,6 +57,7 @@ class Stealth3GateStrategy:
         self._btc_trend_pos_gate = btc_trend_pos_gate
         self._btc_trend_window = btc_trend_window
         self._alt_cvd_slope_max = alt_cvd_slope_max
+        self._btc_stealth_acc_min = btc_stealth_acc_min
 
         # Internal BTC candle buffer updated via set_btc_candles()
         self._btc_candles: list[Candle] = []
@@ -128,12 +130,26 @@ class Stealth3GateStrategy:
                 context=context,
             )
 
-        # Gate 2 – BTC Stealth (CVD slope > threshold)
+        # Gate 2 – BTC Stealth
+        # acc mode (btc_stealth_acc_min set): price-down + acc > threshold (backtest-validated)
+        # cvd mode (default): CVD slope > threshold
         if self._btc_stealth_gate:
             if btc_ok:
-                btc_cvd_slope = self._calculate_cvd_slope(btc_ref, self._stealth_window)
-                indicators["btc_cvd_slope"] = btc_cvd_slope
-                btc_stealth_ok = btc_cvd_slope > self._cvd_slope_threshold
+                if self._btc_stealth_acc_min is not None:
+                    w = self._stealth_window
+                    btc_acc_val = self._calculate_acc(btc_ref, w)
+                    btc_ret_w = (
+                        btc_ref[-1].close / btc_ref[-w - 1].close
+                        if len(btc_ref) > w
+                        else 1.0
+                    )
+                    indicators["btc_acc"] = btc_acc_val
+                    indicators["btc_ret_w"] = btc_ret_w
+                    btc_stealth_ok = (btc_ret_w < 1.0) and (btc_acc_val > self._btc_stealth_acc_min)
+                else:
+                    btc_cvd_slope = self._calculate_cvd_slope(btc_ref, self._stealth_window)
+                    indicators["btc_cvd_slope"] = btc_cvd_slope
+                    btc_stealth_ok = btc_cvd_slope > self._cvd_slope_threshold
             else:
                 btc_stealth_ok = True  # fallback
 
@@ -255,6 +271,25 @@ class Stealth3GateStrategy:
     # ------------------------------------------------------------------
     # Indicators
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _calculate_acc(candles: list[Candle], window: int) -> float:
+        """Compute accumulation indicator: (close/close_ma) * (volume/vol_ma).
+
+        Values > 1 indicate above-average price AND volume relative to the window,
+        signalling smart-money accumulation even during price declines.
+        Validated in backtest cycles 134 (alt) and 139 (BTC stealth gate).
+        """
+        if len(candles) < window + 1:
+            return 0.0
+        recent = candles[-window:]
+        closes = [c.close for c in recent]
+        volumes = [c.volume for c in recent]
+        c_ma = sum(closes) / len(closes)
+        v_ma = sum(volumes) / len(volumes)
+        if c_ma < 1e-9 or v_ma < 1e-9:
+            return 0.0
+        return (closes[-1] / c_ma) * (volumes[-1] / v_ma)
 
     @staticmethod
     def _calculate_cvd_slope(candles: list[Candle], window: int) -> float:

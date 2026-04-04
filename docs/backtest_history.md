@@ -5857,3 +5857,58 @@ stealth_3gate_wallet_1:
 </details>
 
 ---
+
+## 2026-04-04 00:36 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** stealth_3gate 세밀화가 체계적으로 진행 중. vpin_eth(Sharpe 7.46), momentum_sol(14.37) 두 유망 결과 확보됐으나 메인 스텔스 전략은 베이스라인(9.941) 돌파 차원 소진 중 — 새 탐색 축으로 전환 타이밍.
+
+**2. poor 5/7은 정상 범위.** 현재 BTC 약세/횡보 레짐에서 long-only 알트 진입이 구조적으로 억제되는 결과이며, 레짐 필터가 제대로 작동하는 증거. error 0개는 인프라 안정성 양호.
+
+**3. 다음 우선순위:**
+- **(1) BTC stealth acc 임계값** — alt acc>1.0 확정, BTC 축 미탐색으로 효과 기대치 가장 높음
+- **(2) momentum_sol + vpin_eth daemon 반영 검토** — Sharpe 14.37/7.46 검증됐으나 실제 반영 여부 결정 필요
+- **(3) CVD 창 크기 W=12/24 재탐색** — 사이클 136 W=12에서 유효했던 근거 존재
+
+**4. 즉시 반영 가능한 변경 없음.** stealth_3gate는 모든 파라미터가 베이스라인 미달로 현상 유지. momentum_sol/vpin_eth는 Sharpe 우수하나 daemon 반영 전 walk-forward + 실거래 스케일 검증 필요.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — stealth_3gate BTC stealth acc 임계값 탐색 (사이클 139)
+
+**목적**: BTC Gate2 acc 임계값 탐색 — 현재 CVD slope 방식 대비 acc 방식으로 전환 및 최적값 결정
+**스크립트**: `scripts/backtest_cycle139_btc_acc.py`
+**소요**: 21.0초
+
+### 탐색 결과
+
+| BTC_ACC_MIN | BTC활성봉 | W1 Sharpe | W1 n | W1 WR | W2 Sharpe | W2 n | W2 WR | 통과 |
+|---|---|---|---|---|---|---|---|---|
+| 0.8 | 327 | 9.287 | 114 | 46.5% | 9.551 | 664 | 42.5% | ✅ |
+| **1.0** (이전) | 233 | 9.003 | 105 | 44.8% | 9.941 | 554 | 43.7% | ✅ |
+| **1.2** ✅ 채택 | 169 | 9.658 | 90 | 48.9% | **10.160** | 508 | 44.5% | ✅ |
+| 1.5 | 94 | 9.864 | 65 | 47.7% | 5.186 | 313 | 26.5% | ✅ |
+
+**핵심 발견**:
+- BTC_ACC_MIN=1.2: W2 Sharpe **10.160** (+0.219 vs 베이스라인 9.941), W1 Sharpe 9.658(+0.655) ✅
+- 1.5는 W2 WR 26.5%로 급감 (신호 과적합, 313 거래로 불안정)
+- acc 방식(ret_w<1.0 & acc>임계값) vs CVD slope 방식 — acc 방식이 백테스트에서 일관되게 더 나은 성능
+- 불일치 발견: 실제 코드 Gate2는 CVD slope, 백테스트는 acc 방식 → 사이클 139에서 코드 통일
+
+**결론**: ✅ **daemon.toml 변경 완료 — BTC stealth acc 방식 전환 + btc_stealth_acc_min=1.2 반영**
+- `stealth_3gate.py`: `btc_stealth_acc_min` 파라미터 추가 + `_calculate_acc()` 메서드 추가
+- `daemon.toml`: `btc_stealth_acc_min = 1.2` 추가
+- Gate2 로직: acc_min 설정 시 acc 방식, 미설정 시 기존 CVD slope 방식 (하위 호환)
+
+**다음 탐색 제안**:
+- (A) **TP/SL 조합 탐색** — 현재 TP=10%/SL=1.0%, 새 파라미터(btc_acc=1.2) 기반 재탐색
+- (B) **CVD 창 크기 탐색** — cvd_slope 창(W=12 기준 사이클 136 유효했음) 재검증
+- (C) **심볼 확장** — btc_acc_min=1.2 조건에서 유망 신규 종목 추가 탐색

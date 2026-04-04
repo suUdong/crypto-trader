@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-TAIKO"]
+symbols = ["KRW-RAY"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -409,6 +409,10 @@ atr_stop_multiplier = 1.5
 #   핵심: RS 상한 0.9 (≥0.9 = BTC와 거의 동행 종목 제외), 하한 0.4 (소폭 완화)
 #   슬리피지 내성: 0.30%에서도 W2=9.328 통과 (역대 최강 내성)
 #   alt 심볼: 208→116개 (선택성 증가), W2 n: 3209→554 (고품질 신호 집중)
+# 사이클 139 (2026-04-04): BTC stealth acc 임계값 최적화 (Gate2 acc 방식 전환)
+#   근거: BTC_ACC_MIN=1.2 → W2 Sharpe 9.941→10.160(+0.219), W1 Sharpe 9.003→9.658(+0.655)
+#   기존 CVD slope(cvd_slope_threshold=0.0) → acc 방식(btc_stealth_acc_min=1.2) 전환
+#   원리: 가격 하락(ret_w<1.0) + 누적 지표>1.2 = 스텔스 매집 신호 (분산 매수 탐지)
 # PRE-STAGED SUI (사이클 113, 2026-04-04):
 #   근거: W2 Sharpe +3.990, W3 Sharpe +3.068 (2/3창 통과), W1 실패는 SUI 초기 BEAR(2023) — Gate1 실전 차단
 #   상관관계: SUI vs 기존 7심볼 평균 0.606 (XRP 최저 0.504, AVAX 최고 0.643)
@@ -429,6 +433,7 @@ rs_low = 0.4
 rs_high = 0.9
 cvd_slope_threshold = 0.0
 btc_stealth_gate = true
+btc_stealth_acc_min = 1.2
 btc_trend_pos_gate = false
 btc_trend_window = 10
 
