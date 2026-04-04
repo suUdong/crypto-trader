@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-RAY"]
+symbols = ["KRW-ONT"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -140,7 +140,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-G"]
+symbols = ["KRW-ZBT"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -417,6 +417,10 @@ atr_stop_multiplier = 1.5
 #   근거: TP=8% W2 Sharpe 10.160→11.204(+1.044), W1 Sharpe 9.571(n=90)
 #   그리드: TP∈{8,10,12,15}% × SL∈{0.8,1.0,1.5,2.0}% (16조합) — TP=8%/SL=1.0% 최적
 #   분석: TP 낮을수록(8%>10%>12%>15%) W2 Sharpe 개선 → BEAR 레짐 단기 목표가 적합
+# 사이클 143 (2026-04-04): 심볼 확장 — 7개→14개
+#   근거: 7개 wallet 실제 W2 Sharpe=9.547(n=31) vs 확장 14개 W2 Sharpe=13.183(n=71,WR=59.2%)
+#   추가 심볼: ASTR, CELO, CHZ, IOST, NEO, PEPE, THETA (W2 Sharpe 상위 신규 종목)
+#   주의: 심볼 선택이 W2 기간 성과 기반 — paper 모드에서 forward 검증 필요
 # PRE-STAGED SUI (사이클 113, 2026-04-04):
 #   근거: W2 Sharpe +3.990, W3 Sharpe +3.068 (2/3창 통과), W1 실패는 SUI 초기 BEAR(2023) — Gate1 실전 차단
 #   상관관계: SUI vs 기존 7심볼 평균 0.606 (XRP 최저 0.504, AVAX 최고 0.643)
@@ -428,7 +432,7 @@ name = "stealth_3gate_wallet_1"
 strategy = "stealth_3gate"
 initial_capital = 750_000.0
 paper_trading = true
-symbols = ["KRW-AVAX", "KRW-LINK", "KRW-APT", "KRW-XRP", "KRW-ADA", "KRW-DOT", "KRW-ATOM"]
+symbols = ["KRW-AVAX", "KRW-LINK", "KRW-APT", "KRW-XRP", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-ASTR", "KRW-CELO", "KRW-CHZ", "KRW-IOST", "KRW-NEO", "KRW-PEPE", "KRW-THETA"]
 
 [wallets.strategy_overrides]
 stealth_window = 36
