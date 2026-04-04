@@ -77,6 +77,27 @@ except Exception as e:
 " 2>/dev/null
 }
 
+get_evaluator_report() {
+    python3 -c "
+import json
+from pathlib import Path
+report_path = Path('$PROJ_ROOT/state/evaluator_report.json')
+if not report_path.exists():
+    print('(평가자 리포트 없음 — 아직 첫 평가 전)')
+else:
+    try:
+        r = json.loads(report_path.read_text())
+        print(f'[평가자 리포트 {r.get(\"eval_id\", \"?\")}] {r.get(\"generated_at\", \"\")[:16]}')
+        print(f'방향: {r.get(\"direction\", \"\")}')
+        for d in r.get('directives', []):
+            print(f'  • [{d[\"type\"]}] {d[\"target\"]}: {d[\"suggested_action\"]}')
+        if r.get('blockers'):
+            print(f'⚠️  블로커: {r[\"blockers\"]}')
+    except Exception as e:
+        print(f'리포트 파싱 에러: {e}')
+" 2>/dev/null
+}
+
 get_history_tail() {
     tail -80 "$PROJ_ROOT/docs/backtest_history.md" 2>/dev/null || echo "(no history)"
 }
@@ -151,11 +172,15 @@ while true; do
     HISTORY=$(get_history_tail)
     RESEARCH=$(get_research_status)
     PREV_CTX=$(get_prev_context)
+    EVAL_REPORT=$(get_evaluator_report)
 
     PROMPT="파이어 모드 crypto-ralph 자율 사이클 ${CYCLE}.
 
 ## 현재 시장 상태
 ${MARKET}
+
+## 평가자 리포트 (전문 심사관 방향 제시)
+${EVAL_REPORT}
 
 ## 이전 사이클 상세 결과 (여기서 이어받아 다음 단계 실행)
 ${PREV_CTX}
