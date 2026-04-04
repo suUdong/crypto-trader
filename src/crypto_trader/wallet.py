@@ -326,6 +326,16 @@ class StrategyWallet:
         self._btc_30bar_gate: bool = bool(
             wallet_config.strategy_overrides.get("btc_30bar_gate", False)
         )
+        # Regime-aware gate: list of regime strings this wallet may trade in.
+        # Populated from strategy_overrides["active_regimes"]; defaults to ["bull"].
+        # Gate only fires when active_regimes is explicitly configured in strategy_overrides.
+        self._active_regimes: list[str] = list(
+            wallet_config.strategy_overrides.get("active_regimes", ["bull"])
+        )
+        self._active_regimes_explicit: bool = "active_regimes" in wallet_config.strategy_overrides
+        # Injected per-tick by multi_runtime via set_market_regime(); defaults to "sideways"
+        # so un-initialized wallets do not accidentally trade in unknown regimes.
+        self._current_market_regime: str = "sideways"
         self._limit_confidence_cap = float(
             wallet_config.strategy_overrides.get("limit_confidence_cap", 0.72)
         )
@@ -346,6 +356,10 @@ class StrategyWallet:
         self._macro_snapshot = snapshot
         if hasattr(self.strategy, "set_macro_snapshot"):
             self.strategy.set_macro_snapshot(snapshot)
+
+    def set_market_regime(self, regime: str) -> None:
+        """Inject the current market regime string (bull/sideways/bear) from multi_runtime."""
+        self._current_market_regime = regime
 
     def adjust_capital(self, delta_cash: float) -> None:
         if abs(delta_cash) <= 0:
@@ -545,6 +559,23 @@ class StrategyWallet:
                 else:
                     utc_hour = ts.hour
             vol_ratio = self._volume_ratio(candles)
+
+            # --- active_regimes gate (fast, no I/O) — must run before macro gate ---
+            if position is None and signal.action is SignalAction.BUY and self._active_regimes_explicit:
+                if self._current_market_regime not in self._active_regimes:
+                    self._logger.info(
+                        "[%s] BUY blocked by active_regimes gate: regime=%s not in %s",
+                        symbol,
+                        self._current_market_regime,
+                        self._active_regimes,
+                    )
+                    signal = Signal(
+                        action=SignalAction.HOLD,
+                        reason=f"regime_gate: {self._current_market_regime}",
+                        confidence=signal.confidence,
+                        indicators=signal.indicators,
+                        context={**(signal.context or {}), "original_action": "BUY"},
+                    )
 
             # --- Macro regime gate: block entries in adverse regimes ---
             force_fear_buy = str(signal.context.get("force_fear_buy", "")).lower() == "true"
