@@ -64,7 +64,10 @@ def _read_config() -> str:
 
 
 def _write_config(content: str) -> None:
-    DAEMON_CONFIG.write_text(content, encoding="utf-8")
+    """daemon.toml을 원자적으로 쓴다. 쓰기 중 다른 프로세스의 파셜 읽기 방지."""
+    tmp = DAEMON_CONFIG.with_suffix(".toml.tmp")
+    tmp.write_text(content, encoding="utf-8")
+    os.replace(tmp, DAEMON_CONFIG)
 
 
 def _get_current_symbol(wallet_name: str) -> str | None:
