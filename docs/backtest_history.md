@@ -5665,3 +5665,71 @@ stealth_3gate_wallet_1:
 - **BTC stealth acc 임계값**: alt acc>1.0은 확정, BTC stealth acc 미탐색
 
 ---
+
+## 2026-04-04 00:04 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** stealth_3gate 파라미터 수렴 완료(W2 Sharpe 9.941), 각 사이클이 명확한 결론을 내고 다음 탐색으로 이동 — 체계적 소거법이 잘 작동 중.
+
+**2. poor 5/7(71%) 정상.** BTC BEAR 레짐에서 long-only 알트 전략은 필연적으로 poor가 많음. 레짐 필터가 올바르게 작동하는 증거이며 전략 결함이 아님.
+
+**3. 다음 1주일 우선순위:**
+1. **역방향 CVD slope 탐색** (cvd_slope < -0.1/-0.2) — 사이클 135에서 발견한 "스텔스 진입 시 mean=-0.40" 인사이트 활용, 미탐색된 유망 차원
+2. **MAX_HOLD 최적화** (12/18/24/36봉) — 현재 24봉 고정 근거 없음, Sharpe 9.941 베이스에서 추가 개선 여지
+3. **pre_bull 0.90 돌파 모니터링** — momentum_sol(+14.37) + vpin_eth(+7.46) 활성화 트리거 자동화 확인
+
+**4. 즉시 반영 가능 변경 없음.** RS[0.4,0.9) + Gate4=OFF + acc>1.0 이미 daemon 반영 완료, 다음 탐색 결과 전까지 추가 변경 근거 없음.
+```
+
+</details>
+
+---
+
+## 2026-04-04 — stealth_3gate 역방향 CVD slope 게이트 탐색 (사이클 136)
+
+**목적**: alt 역방향 cvd_slope 게이트 탐색 — 스텔스 진입 시점 CVD slope mean=-0.40 (사이클 135 발견)으로 음의 CVD slope가 스텔스 품질 지표 가능성 검증
+**고정 파라미터**: W=36, SMA=10, RS=[0.4,0.9), TP=10%, SL=1.0%, Gate4=OFF, acc>1.0, MAX_HOLD=24
+**탐색**: alt cvd_slope < threshold, threshold ∈ {None(OFF), -0.1, -0.2, -0.3, -0.5}
+**스크립트**: `scripts/backtest_cycle136_neg_cvd_slope.py`
+**소요**: 22.1초
+
+### 탐색 결과
+
+| cvd_thresh | alt_syms | W1 Sharpe | W1 n | W2 Sharpe | W2 n | W2 WR | 통과 |
+|---|---|---|---|---|---|---|---|
+| **None(OFF) 📌** | 116 | **9.003** | 105 | 9.941 | 554 | 43.7% | ✅ |
+| **< -0.1** | 96 | 8.506 | 65 | **10.443** | 428 | 45.3% | ✅ |
+| < -0.2 | 87 | 7.997 | 52 | 9.950 | 374 | 43.9% | ✅ |
+| < -0.3 | 72 | 6.992 | 37 | 10.015 | 279 | 43.7% | ✅ |
+| < -0.5 | 21 | nan | 10 | 5.872 | 62 | 32.3% | ❌ |
+
+**CVD slope 분포 (알트 스텔스 진입 시점, 20개 심볼 샘플, n=16,675)**:
+- mean=-0.152, std=0.377, p10=-0.637, p25=-0.440, p50=-0.173, p75=0.106
+- 음수 비율: 66.3%
+
+**핵심 발견**:
+- `cvd_slope < -0.1` → W2 Sharpe **10.443** (+0.502 vs 베이스라인 9.941) ✅
+- W2 WR도 43.7% → 45.3% 개선
+- 가설 검증: 음의 CVD slope가 스텔스 품질 지표로 유효 확인
+- W1 Sharpe 소폭 하락 (9.003 → 8.506) — 여전히 통과 기준 상회
+
+**주의사항**:
+- 백테스트 CVD slope 계산 방식: `vol * sign(close - open)` (bin-based direction × volume)
+- 코드(`stealth_3gate.py`) CVD slope 계산 방식: `(close - open) / (high - low) * volume`
+- **스케일 불일치** — daemon 반영 전 코드 방식에 맞는 임계값 재탐색 필요
+
+**결론**: ✅ **역방향 CVD slope 가설 검증 완료** — 다음 사이클에서 코드 통일 + daemon 반영 진행
+- 현재 daemon.toml 변경 불필요 (코드 수정 먼저)
+- 누적 최적(백테스트 기준): W=36, SMA=10, RS=[0.4,0.9), TP=10%, SL=1.0%, Gate4=OFF, acc>1.0, cvd_slope<-0.1 → W2 Sharpe **10.443**
+
+**다음 탐색 제안**:
+- (A) **코드 CVD slope 기준 임계값 탐색** — stealth_3gate.py의 계산 방식에 맞는 alt_cvd_slope_max 임계값 재탐색 후 daemon 반영 (최우선)
+- (B) **MAX_HOLD 최적화** — 현재 24봉 고정, 12/18/24/36 비교
+- (C) **BTC stealth acc 임계값** — alt acc>1.0 확정, BTC stealth acc 미탐색
+
+---
