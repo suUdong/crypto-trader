@@ -441,9 +441,10 @@ btc_stealth_acc_min = 1.2
 btc_trend_pos_gate = false
 btc_trend_window = 10
 
+# 2026-04-04: TP 최적화 — stealth_3gate 사이클 141 (TP=5%/SL=1.0% W2 Sharpe 12.126, +0.922)
 [wallets.risk_overrides]
 stop_loss_pct = 0.010
-take_profit_pct = 0.08
+take_profit_pct = 0.05
 risk_per_trade_pct = 0.02
 
 # vpin_ondo_wallet: 사이클 119+122 walk-forward 검증 확정 (2026-04-04)
