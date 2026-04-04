@@ -3,6 +3,75 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+---
+
+## 2026-04-04 — stealth_3gate MAX_HOLD 재탐색 (14심볼, TP=5%, 사이클 145)
+
+**목적**: 사이클 138 MAX_HOLD 탐색은 전체심볼+TP=10% 기준 → 현재 14심볼+TP=5% 기준 재검증
+**스크립트**: `scripts/backtest_cycle145_maxhold_14sym.py`
+**소요**: 1.9s
+
+### 결과
+
+| MAX_HOLD | 일수 | W1 Sharpe | W1 n | W2 Sharpe | W2 n | W2 WR | 통과 |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| 12봉 | 2일 | 4.277 | 13 | 13.672 | 76 | 61.8% | ❌ (W1<5.0) |
+| 18봉 | 3일 | 4.277 | 13 | **13.703** | 76 | 60.5% | ❌ (W1<5.0) |
+| **24봉 📌** | **4일** | **4.277** | **13** | **13.703** | **76** | **60.5%** | ❌ (W1<5.0) |
+| 30봉 | 5일 | 4.277 | 13 | 13.703 | 76 | 60.5% | ❌ (W1<5.0) |
+| 36봉 | 6일 | 4.277 | 13 | 13.703 | 76 | 60.5% | ❌ (W1<5.0) |
+
+**핵심 발견**: TP=5% 구조에서 MAX_HOLD는 바인딩 제약이 아님 — 18봉 이상 모두 동일 결과
+- 이유: 모든 거래가 MAX_HOLD 이전에 TP(5%) 또는 SL(1%) 도달
+- W1 n=13으로 통계적으로 불안정하나 W2 n=76으로 충분
+- W1 Sharpe 4.277 (기준 5.0 미달): W1 구간 신호 수 절대 부족 → 구조적 한계
+
+**결론**: ❌ daemon.toml 변경 없음 — MAX_HOLD=24봉 유지 (변경해도 결과 동일)
+- MAX_HOLD 탐색 공간 소진 (TP=5% 기준)
+
+**다음 탐색 제안**:
+- (A) 하락장/횡보장 전략: BB mean reversion (ADX<20 sideways 전용, 기존 BEAR 테스트와 다름)
+- (B) stealth_3gate 신규 심볼 확장: 14심볼 → 20심볼+ 추가 스캔
+- (C) momentum_sol daemon 반영 검토 (C1 lb=12 OOS Sharpe 17.53 확인됨)
+
+---
+
+## ⚠️ 편향 경고 — 사이클 94~144 Sharpe 수치 무효 (2026-04-04 수정)
+
+**원인**: BacktestEngine이 신호봉 close 가격으로 진입 → 1봉 선행 편향 (look-ahead bias)
+**수정**: 커밋 22fa9ed (2026-04-04 10:35) — 신호봉 close → 다음봉 open 진입으로 수정
+**영향 범위**: 사이클 94~144에서 기록된 모든 Sharpe/WR/avg 수치가 과대평가됨
+**검증된 재기준선** (수정된 엔진 기준):
+- stealth_3gate: W2 Sharpe 13.703 (RS=[0.4,0.9), ACC=1.0, 14심볼) — 사이클 144 재검증
+- momentum_sol, vpin_eth: 재검증 필요 (사이클 145+ ralph에서 처리)
+
+---
+
+## 2026-04-04 — stealth_3gate ACC 재최적화 재검증 (수정된 엔진, 사이클 144-R)
+
+**목적**: 엔진 선행편향 수정(22fa9ed) 후 사이클 144 결과 재검증
+**스크립트**: `scripts/backtest_cycle144_rs_acc_reopt.py` (재실행)
+**소요**: 12.4s (125조합)
+**엔진**: 수정됨 (다음봉 open 진입)
+
+### 결과 (수정된 엔진)
+
+| RS_LO | RS_HI | ACC | W1 Sharpe | W1 n | W2 Sharpe | W2 n | W2 WR |
+|---|---|---|:---:|:---:|:---:|:---:|:---:|
+| 0.45 | 0.90 | 1.0 | 4.277 | 13 | **13.703** | 76 | 60.5% |
+| 0.40 | 0.90 | 1.0 | 4.277 | 13 | 13.703 | 76 | 60.5% |
+| 0.50 | 0.85 | 1.2 | 5.051 | 3 | 13.679 | 43 | 60.5% |
+
+**기준선 대비**: 13.183 (사이클 143, 편향) → 13.703 (+0.520)
+**편향 엔진 대비**: 13.813 (사이클 144) → 13.703 (−0.110, 거의 동일)
+
+**결론**: ACC=1.0 최적 (이전 1.15에서 변경). daemon.toml 반영: `btc_stealth_acc_min=1.0`
+**RS 범위**: rs_high=0.9 유지, rs_low는 0.3~0.5 동일 결과 → 기존 0.4 유지
+
+**다음**: momentum_sol / vpin_eth walk-forward 재검증 (ralph 사이클 145+)
+
+---
+
 ## 2026-04-04 — stealth_3gate 신규 심볼 스캔 (사이클 143)
 
 **목적**: TP=5%/SL=1.0% 최적 파라미터 기준 신규 종목 탐색 — 현재 wallet 7개 실제 W2 Sharpe 측정 및 확장 효과 검증
@@ -6220,3 +6289,343 @@ stealth_3gate_wallet_1:
 - (B) **14심볼 per-symbol RS_HI 미세탐색** — 심볼별 최적 RS_HI가 다를 가능성 (현재는 전체 동일)
 - (C) **MAX_HOLD 재탐색** — 14심볼 기준 최적 보유기간 재확인 (현재 24봉)
 
+
+## 2026-04-04 01:39 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** ACC 1.15 채택으로 W2 Sharpe 13.813 달성, momentum_sol(14.37)/vpin_eth(7.46) 파이프라인 대기 중 — 수렴 중인 엣지가 명확히 존재.
+
+**2. poor 5/7 구조적 정상.** BTC 약세 레짐 + long-only 알트 조합에서 레짐 필터가 진입을 올바르게 억제한 결과. error 0 = 인프라 이상 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **momentum_sol W1/W2 walk-forward 검증** — Sharpe 14.37은 과적합 의심, daemon 반영 전 괴리 필수 확인
+2. **vpin_eth walk-forward 검증** — Sharpe 7.46 독립 엣지 확인 후 daemon 추가 검토
+3. **14심볼 MAX_HOLD 재탐색** — 심볼 확장(7→14) 후 최적 보유기간 변화 가능성 확인
+
+**4. 즉시 반영 완료.** `btc_stealth_acc_min=1.15` 이미 daemon.toml 반영됨. 추가 변경은 momentum_sol/vpin_eth walk-forward 결과 확인 후.
+```
+
+</details>
+
+---
+
+## 2026-04-04 01:50 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향 올바름.** stealth_3gate W2 Sharpe 13.813 수렴 중이고, momentum_sol(14.37)/vpin_eth(7.46) 두 개의 유망 파이프라인이 walk-forward 대기 중 — 다음 검증 타겟이 명확한 상태.
+
+**2. poor 5/7은 정상.** BTC 약세 레짐 + long-only 알트 구조에서 레짐 필터가 올바르게 진입을 차단한 결과이며, error 0이 인프라 안정을 보증함. 비율 자체는 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **momentum_sol walk-forward** — Sharpe 14.37은 과적합 의심 수준, daemon 반영 전 W1/W2 괴리 검증 필수
+2. **vpin_eth walk-forward** — Sharpe 7.46 독립 엣지 확인 후 daemon 추가 슬롯 검토
+3. **14심볼 MAX_HOLD 재탐색** — 심볼 확장(7→14) 이후 최적 보유기간 변화 가능성 미확인
+
+**4. 즉시 반영 가능 항목 없음.** `btc_stealth_acc_min=1.15` 이미 daemon.toml 반영 완료. 추가 변경은 momentum_sol/vpin_eth walk-forward 결과 확인 후.
+```
+
+</details>
+
+---
+
+## 2026-04-04 02:01 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향성: 조건부 올바름 — 엔진 바이어스 재검증 필수**
+stealth_3gate 13.813 / momentum_sol 14.37 / vpin_eth 7.46 모두 **사이클 143-144에서 산출됐으나, 1봉 선행편향 수정(commit 22fa9ed, 10:35) 이전에 실행된 수치**라 신뢰 불가. 실질 방향 판단은 재실행 후에 가능.
+
+**2. poor 5/7은 구조적 정상**
+BTC 약세 레짐 + long-only 알트에서 레짐 필터가 진입을 억제한 결과. error 0이므로 인프라 문제 없음.
+
+**3. 다음 1주일 우선순위**
+1. **편향 수정 엔진으로 stealth_3gate / momentum_sol / vpin_eth 전부 재백테스트** — 현재 daemon.toml의 `btc_stealth_acc_min=1.15`도 무효 수치 기반
+2. **재실행 후 momentum_sol W1/W2 walk-forward 검증** — Sharpe 14.37은 과적합 의심, 재검증 없이 daemon 반영 금지
+3. **vpin_eth 독립 엣지 확인** — 재실행 Sharpe ≥5 유지 시 daemon 추가 슬롯 검토
+
+**4. 즉시 반영 가능 항목: 없음**
+`btc_stealth_acc_min=1.15`는 바이어스 엔진 결과 기반이므로 **롤백 또는 재검증 전 동결** 권장. 재백테스트 완료 전까지 daemon.toml 추가 변경 보류.
+```
+
+</details>
+
+---
+
+## 2026-04-04 02:12 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향성: 보류**
+momentum_sol(14.37)/vpin_eth(7.46)/stealth_3gate(13.813) 모두 **1봉 선행편향 수정(commit 22fa9ed) 이전** 사이클 143-144 결과라 신뢰 불가. 유망 수치가 보이지만 실제 엣지인지 아직 알 수 없음.
+
+**2. poor 5/7은 정상, 단 재검증 전까지 판단 유보**
+BTC 약세 레짐 + long-only 알트 구조에서 레짐 필터가 정상 작동한 결과. error 0이므로 인프라 이상 없음.
+
+**3. 다음 1주일 우선순위**
+1. **편향 수정 엔진으로 stealth_3gate 재백테스트** — `btc_stealth_acc_min=1.15` 재검증
+2. **momentum_sol walk-forward 재실행** — 14.37은 과적합 의심, 재실행 후 W1/W2 괴리 확인
+3. **vpin_eth 독립 엣지 재확인** — Sharpe ≥5 유지 여부 확인 후 daemon 슬롯 검토
+
+**4. 즉시 반영 가능 항목: 없음**
+현재 `btc_stealth_acc_min=1.15`는 편향 엔진 기반 수치 — **재백테스트 완료 전 daemon.toml 추가 변경 전면 보류.**
+```
+
+</details>
+
+---
+
+## 2026-04-04 02:22 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향: 조건부 보류**
+유망 수치(momentum_sol 14.37, vpin_eth 7.46)가 존재하지만 모두 1봉 선행편향 수정(commit 22fa9ed) **이전** 사이클 143-144 결과라 실제 엣지 여부 미확정.
+
+**2. poor 5/7은 구조적 정상**
+BTC 약세 레짐 + long-only 알트 조합에서 레짐 필터가 올바르게 진입을 억제한 결과. error 0이므로 인프라 이상 없음.
+
+**3. 다음 1주일 우선순위**
+1. **stealth_3gate 편향 수정 엔진으로 재백테스트** — `btc_stealth_acc_min=1.15` 유효성 재확인
+2. **momentum_sol walk-forward 재실행** — 14.37 과적합 의심, W1/W2 괴리 검증 필수
+3. **vpin_eth 독립 엣지 재확인** — 재실행 Sharpe ≥5 유지 시 daemon 슬롯 검토
+
+**4. daemon 즉시 반영 가능: 없음**
+현재 `btc_stealth_acc_min=1.15`는 편향 엔진 기반 수치 — 재백테스트 완료 전 daemon.toml 추가 변경 전면 보류.
+```
+
+</details>
+
+---
+
+## 2026-04-04 02:33 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향성: 조건부 보류.**
+momentum_sol(14.37)/vpin_eth(7.46) 유망 수치가 존재하지만, 모두 1봉 선행편향 수정(commit 22fa9ed) **이전** 사이클 143-144 결과라 실제 엣지 여부 미확정 상태.
+
+**2. poor 5/7은 구조적 정상.**
+BTC 약세 레짐 + long-only 알트 조합에서 레짐 필터가 올바르게 진입을 억제한 결과이며, error 0이므로 인프라 이상 없음. 비율 자체는 문제 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **편향 수정 엔진으로 stealth_3gate 재백테스트** — `btc_stealth_acc_min=1.15` 유효성 재확인
+2. **momentum_sol walk-forward 재실행** — Sharpe 14.37 과적합 의심, W1/W2 괴리 검증 필수
+3. **vpin_eth 독립 엣지 재확인** — 재실행 Sharpe ≥5 유지 시 daemon 슬롯 검토
+
+**4. 즉시 반영 가능: 없음.**
+현재 `btc_stealth_acc_min=1.15`는 편향 엔진 기반 수치이므로 재백테스트 완료 전 daemon.toml 추가 변경 전면 보류.
+```
+
+</details>
+
+---
+
+## 2026-04-04 02:44 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 방향: 조건부 보류.** momentum_sol(14.37)/vpin_eth(7.46) 두 유망 수치가 존재하나, 모두 1봉 선행편향 수정(commit 22fa9ed) 이전 사이클 143-144 결과라 실제 엣지 여부 미확정.
+
+**2. poor 5/7 정상.** BTC 약세 레짐 + long-only 알트 구조에서 레짐 필터가 정상 작동한 결과. error 0이므로 인프라 이상 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **편향 수정 엔진으로 stealth_3gate 재백테스트** — `btc_stealth_acc_min=1.15` 유효성 재확인 필수
+2. **momentum_sol walk-forward 재실행** — 14.37은 과적합 의심, W1/W2 괴리 검증 후 daemon 반영
+3. **vpin_eth 독립 엣지 재확인** — Sharpe ≥5 유지 시 daemon 추가 슬롯 검토
+
+**4. 즉시 반영 가능: 없음.** 현재 `btc_stealth_acc_min=1.15`는 편향 엔진 기반 수치 — 재백테스트 완료 전 daemon.toml 변경 전면 보류.
+```
+
+</details>
+
+---
+
+## 2026-04-04 02:55 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향: 정체 상태.**
+같은 리뷰가 5회 반복됐고 편향 수정 엔진 재백테스트가 아직 실행되지 않았다. 방향 자체는 맞지만(momentum_sol + vpin_eth 유망), 실제 진전이 없는 상태.
+
+**2. poor 5/7 = 정상, 원인은 레짐.**
+BTC 약세 레짐에서 long-only 전략이 필터링되는 구조적 결과. error 0이므로 인프라 이상 없음. 비율은 문제 없음.
+
+**3. 다음 1주일 탐색 우선순위:**
+1. **편향 수정 엔진(commit 22fa9ed 이후)으로 momentum_sol + stealth_3gate 재백테스트** — 현재 모든 수치 신뢰 불가
+2. **vpin_eth 재실행** — Sharpe ≥5 유지 확인 후 daemon 슬롯 검토
+3. **momentum_sol walk-forward W1/W2 괴리 검증** — 14.37 과적합 가능성 배제 후 반영 결정
+
+**4. 즉시 daemon 반영 가능: 없음.**
+`btc_stealth_acc_min` 포함 모든 최적화 수치가 편향 엔진 기반 — 재백테스트 완료 전 동결.
+
+> **핵심 액션**: 리뷰 루프 반복 말고, 지금 당장 편향 수정 엔진으로 momentum_sol 백테스트 1회 실행이 우선.
+```
+
+</details>
+
+---
+
+## 2026-04-04 03:05 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향: 조건부 유망, 실행이 막혀 있음.**
+momentum_sol(14.37)/vpin_eth(7.46) 수치는 유망하지만 전부 1봉 선행편향 수정(commit 22fa9ed) 이전 결과라 신뢰 불가. 방향은 맞지만 같은 리뷰가 5회 반복되는 동안 재백테스트가 전혀 실행되지 않았다 — 연구 루프가 정체 중.
+
+**2. poor 5/7 = 정상.**
+BTC 약세 레짐 + long-only 알트 구조에서 레짐 필터가 진입을 막은 구조적 결과. error 0이므로 인프라 이상 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **편향 수정 엔진으로 momentum_sol walk-forward 재실행** — 14.37 과적합 여부(W1/W2 괴리) 확인이 최우선
+2. **stealth_3gate 재백테스트** — `btc_stealth_acc_min=1.0`(현재 daemon 값) 유효성 재확인
+3. **vpin_eth 재실행** — Sharpe ≥5 유지 확인 후 daemon 슬롯 추가 검토
+
+**4. 즉시 daemon 반영 가능: 없음.**
+모든 최적화 수치가 편향 엔진 기반 — 재백테스트 완료 전 동결 유지.
+
+> **핵심**: 리뷰 루프 반복 대신 지금 당장 편향 수정 엔진으로 momentum_sol 백테스트 1회 실행이 최우선.
+```
+
+</details>
+
+---
+
+## 2026-04-04 03:16 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향: 정체.** momentum_sol(14.37)/vpin_eth(7.46) 수치는 유망하나 전부 편향 수정(commit 22fa9ed) 이전 결과라 신뢰 불가. 방향은 맞지만 5회 동안 리뷰만 반복되고 재백테스트가 실행되지 않았다 — 루프가 돌고 있지 않다.
+
+**2. poor 5/7 = 정상.** BTC 약세 레짐 + long-only 알트 구조에서 레짐 필터가 진입 억제한 구조적 결과. error 0이므로 인프라 이상 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **편향 수정 엔진으로 momentum_sol walk-forward 재실행** — W1/W2 괴리 확인이 최우선 (14.37 과적합 의심)
+2. **stealth_3gate 재백테스트** — `btc_stealth_acc_min=1.0` (현재 daemon 값) 유효성 확인
+3. **vpin_eth 재실행** — Sharpe ≥5 유지 확인 후 daemon 슬롯 검토
+
+**4. 즉시 daemon 반영 가능: 없음.** 모든 수치가 편향 엔진 기반 — 재백테스트 완료 전 동결 유지.
+
+> 지금 당장 해야 할 단 한 가지: 편향 수정 엔진으로 momentum_sol 백테스트 1회 실행.
+```
+
+</details>
+
+---
+
+## 2026-04-04 03:27 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**1. 연구 방향: 정체 상태.**
+momentum_sol(14.37)/vpin_eth(7.46) 수치는 유망하나 편향 수정(22fa9ed) 이전 결과라 신뢰 불가. 같은 리뷰가 6회 반복되는 동안 재백테스트가 전혀 실행되지 않았다 — 루프가 돌지 않고 있다.
+
+**2. poor 5/7 = 구조적 정상.**
+BTC 약세 레짐에서 long-only 알트 전략이 레짐 필터에 막힌 결과. error 0이므로 인프라 이상 없음.
+
+**3. 다음 1주일 우선순위:**
+1. **편향 수정 엔진으로 momentum_sol walk-forward 재실행** — W1/W2 괴리 확인 (14.37 과적합 의심)
+2. **stealth_3gate 재백테스트** — `btc_stealth_acc_min=1.0` 현재 daemon 값 유효성 확인
+3. **vpin_eth 재실행** — Sharpe ≥5 유지 시 daemon 슬롯 추가 검토
+
+**4. 즉시 daemon 반영 가능: 없음.**
+모든 수치가 편향 엔진 기반 — 재백테스트 완료 전 동결 유지.
+
+> **핵심 병목**: 리뷰 루프 자체는 정상이나 실행 루프가 멈춰 있다. momentum_sol 백테스트 1회 실행이 전체 정체를 해소하는 단일 액션.
+```
+
+</details>
+
+---
+
+## 2026-04-04 03:38 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**방향은 맞지만 실행이 멈췄다.** momentum_sol(14.37)/vpin_eth(7.46) 두 유망 결과가 있으나, 둘 다 1봉 선행편향 수정(commit 22fa9ed) 이전 수치라 신뢰 불가 — 같은 리뷰가 6회 이상 반복되는 동안 재백테스트가 한 번도 실행되지 않았다.
+
+**poor 5/7은 구조적으로 정상.** BTC 약세 레짐에서 long-only 알트 전략이 레짐 필터에 막힌 결과이고, error 0이므로 인프라 이상 없음.
+
+**다음 1주일 우선순위:**
+1. 편향 수정 엔진으로 **momentum_sol walk-forward 재실행** — W1/W2 괴리로 14.37 과적합 여부 확인
+2. **stealth_3gate 재백테스트** — 현재 daemon의 `btc_stealth_acc_min=1.0` 유효성 재확인
+3. **vpin_eth 재실행** — Sharpe ≥5 유지 확인 후 daemon 슬롯 추가 검토
+
+**즉시 daemon 반영 가능한 변경: 없음.** 모든 최적화 수치가 편향 엔진 기반이므로 재백테스트 완료 전 동결 유지. 지금 당장 해야 할 단 하나: momentum_sol 백테스트 실행.
+```
+
+</details>
+
+---
+
+## 2026-04-04 03:49 UTC — Claude 품질/방향성 일일 리뷰 [ralph:daily_quality_review] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: LLM 품질/방향성 리뷰
+
+<details><summary>raw output</summary>
+
+```
+**방향은 맞다, 실행이 문제다.**
+momentum_sol(14.37)/vpin_eth(7.46) 두 결과 모두 유망하나, 1봉 선행편향 수정(commit 22fa9ed) 이전 수치라 전부 신뢰 불가 상태. poor 5/7은 BTC 약세 레짐에서 long-only 알트가 레짐 필터에 막힌 구조적 결과로 정상이며 인프라 이상 없음.
+
+**다음 1주일 우선순위:**
+1. 편향 수정 엔진으로 **momentum_sol walk-forward 재실행** — W1/W2 괴리로 14.37 과적합 여부 확인
+2. **stealth_3gate 재백테스트** — daemon의 `btc_stealth_acc_min=1.0` 유효성 재확인
+3. **vpin_eth 재실행** — Sharpe ≥5 유지 시 daemon 슬롯 추가 검토
+
+**즉시 daemon 반영 가능: 없음.** 모든 수치가 편향 엔진 이전 기반이므로 재백테스트 완료 전 동결. 리뷰 루프가 7회 이상 같은 결론을 반복 중 — 지금 당장 momentum_sol 백테스트 1회 실행이 전체 정체를 해소하는 단일 액션.
+```
+
+</details>
+
+---

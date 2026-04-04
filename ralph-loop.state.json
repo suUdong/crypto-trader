@@ -1,0 +1,406 @@
+{
+  "current_cycle": 145,
+  "history": [
+    {
+      "cycle": 94,
+      "timestamp": "2026-04-04T01:52:19.861132"
+    },
+    {
+      "cycle": 95,
+      "timestamp": "2026-04-04T01:58:38.064970"
+    },
+    {
+      "cycle": 96,
+      "timestamp": "2026-04-04T02:07:55.950050"
+    },
+    {
+      "cycle": 97,
+      "timestamp": "2026-04-04T02:16:12.250121"
+    },
+    {
+      "cycle": 98,
+      "timestamp": "2026-04-04T02:23:47.072441"
+    },
+    {
+      "cycle": 99,
+      "timestamp": "2026-04-04T02:31:48.573544"
+    },
+    {
+      "cycle": 100,
+      "timestamp": "2026-04-04T02:37:45.304202"
+    },
+    {
+      "cycle": 101,
+      "timestamp": "2026-04-04T02:43:47.870733"
+    },
+    {
+      "cycle": 102,
+      "timestamp": "2026-04-04T02:49:58.336454"
+    },
+    {
+      "cycle": 103,
+      "timestamp": "2026-04-04T02:56:23.086712"
+    },
+    {
+      "cycle": 104,
+      "timestamp": "2026-04-04T03:07:36.281870"
+    },
+    {
+      "cycle": 105,
+      "timestamp": "2026-04-04T03:26:39.268608"
+    },
+    {
+      "cycle": 106,
+      "timestamp": "2026-04-04T03:32:40.561202"
+    },
+    {
+      "cycle": 107,
+      "timestamp": "2026-04-04T03:38:17.467216"
+    },
+    {
+      "cycle": 108,
+      "timestamp": "2026-04-04T03:44:02.278430"
+    },
+    {
+      "cycle": 109,
+      "timestamp": "2026-04-04T03:55:23.794757"
+    },
+    {
+      "cycle": 110,
+      "timestamp": "2026-04-04T04:01:32.574352"
+    },
+    {
+      "cycle": 111,
+      "timestamp": "2026-04-04T04:09:05.506199"
+    },
+    {
+      "cycle": 112,
+      "timestamp": "2026-04-04T04:16:51.923141"
+    },
+    {
+      "cycle": 113,
+      "timestamp": "2026-04-04T04:23:34.996640"
+    },
+    {
+      "cycle": 114,
+      "timestamp": "2026-04-04T04:32:55.538674"
+    },
+    {
+      "cycle": 115,
+      "timestamp": "2026-04-04T04:38:45.007404"
+    },
+    {
+      "cycle": 116,
+      "timestamp": "2026-04-04T04:45:06.643459"
+    },
+    {
+      "cycle": 117,
+      "timestamp": "2026-04-04T04:53:04.161126"
+    },
+    {
+      "cycle": 118,
+      "timestamp": "2026-04-04T05:07:31.364206"
+    },
+    {
+      "cycle": 119,
+      "timestamp": "2026-04-04T05:19:10.291907"
+    },
+    {
+      "cycle": 120,
+      "timestamp": "2026-04-04T05:53:01.221064"
+    },
+    {
+      "cycle": 121,
+      "timestamp": "2026-04-04T06:06:51.391546"
+    },
+    {
+      "cycle": 122,
+      "timestamp": "2026-04-04T06:16:12.928548"
+    },
+    {
+      "cycle": 123,
+      "timestamp": "2026-04-04T06:36:00.660349"
+    },
+    {
+      "cycle": 124,
+      "timestamp": "2026-04-04T06:47:51.561235"
+    },
+    {
+      "cycle": 125,
+      "timestamp": "2026-04-04T06:58:26.464914"
+    },
+    {
+      "cycle": 126,
+      "timestamp": "2026-04-04T07:04:23.222069"
+    },
+    {
+      "cycle": 127,
+      "timestamp": "2026-04-04T07:13:11.770010"
+    },
+    {
+      "cycle": 128,
+      "timestamp": "2026-04-04T07:43:11.584047"
+    },
+    {
+      "cycle": 129,
+      "timestamp": "2026-04-04T08:17:13.481577"
+    },
+    {
+      "cycle": 130,
+      "timestamp": "2026-04-04T08:27:14.820899"
+    },
+    {
+      "cycle": 131,
+      "timestamp": "2026-04-04T08:33:25.312379"
+    },
+    {
+      "cycle": 132,
+      "timestamp": "2026-04-04T08:41:56.947565"
+    },
+    {
+      "cycle": 133,
+      "timestamp": "2026-04-04T08:48:28.584268"
+    },
+    {
+      "cycle": 134,
+      "timestamp": "2026-04-04T08:54:10.200425"
+    },
+    {
+      "cycle": 135,
+      "timestamp": "2026-04-04T09:01:47.968839"
+    },
+    {
+      "cycle": 136,
+      "timestamp": "2026-04-04T09:09:26.510680"
+    },
+    {
+      "cycle": 137,
+      "timestamp": "2026-04-04T09:20:00.731715"
+    },
+    {
+      "cycle": 138,
+      "timestamp": "2026-04-04T09:25:46.609484"
+    },
+    {
+      "cycle": 139,
+      "timestamp": "2026-04-04T09:43:19.144200"
+    },
+    {
+      "cycle": 140,
+      "timestamp": "2026-04-04T09:49:33.659290"
+    },
+    {
+      "cycle": 141,
+      "timestamp": "2026-04-04T10:06:46.621808"
+    },
+    {
+      "cycle": 142,
+      "timestamp": "2026-04-04T10:12:30.932532"
+    },
+    {
+      "cycle": 143,
+      "timestamp": "2026-04-04T10:24:16.442703"
+    },
+    {
+      "cycle": 145,
+      "timestamp": "2026-04-04T12:50:00",
+      "result": "MAX_HOLD 재탐색 — 24봉 유지 (TP=5% 구조에서 바인딩 제약 아님)"
+    }
+  ],
+  "ralph_cycle": 0,
+  "ralph_done": [
+    {
+      "cycle": 114,
+      "summary": "작업: vpin_eth 슬리피지 민감도 분석 — 과적합 의심 해소 | 결과: **슬리피지 0.05% 3/3(평균 Sharpe +6.26), 0.10% 2/3(평균 Sharpe +4.93) — Upbit ETH 현실 슬리피지 구간에서 엣지 유지 확인. daemon 파라미터 vh=0.55/vm=0.0005/hold=18/TP=6%/SL=0.8% 최종 확정 (슬리피지 강건성 검증 완료). W2(2025) 슬리피지와 무관한 구조적 취약 재확인.** | 다음제안: **(A) SEI CVD/RS 필터 강화 — W1 OOS +1.545 저조 원인(2024H2 구간 신호 품질 미흡), CVD_THRESH>0.5 또는 RS 범위 조정으로 2/3 달성 시도** **(B) SUI BULL 전환 대기 — pre_bull=0.711 현재, ≥0.90 도달 시 W2 Sharpe 5.0+ 재검증 사이클 즉시 실행** **(C) momentum_sol WF 결과 재확인 — IS Sharpe +14.37 고수익, OOS 창 추가로 안정성 검증 강화**",
+      "detail": "[RALPH CYCLE 114 DONE] 작업: vpin_eth 슬리피지 민감도 분석 — 과적합 의심 해소 | 결과: **슬리피지 0.05% 3/3(평균 Sharpe +6.26), 0.10% 2/3(평균 Sharpe +4.93) — Upbit ETH 현실 슬리피지 구간에서 엣지 유지 확인. daemon 파라미터 vh=0.55/vm=0.0005/hold=18/TP=6%/SL=0.8% 최종 확정 (슬리피지 강건성 검증 완료). W2(2025) 슬리피지와 무관한 구조적 취약 재확인.** | 다음제안: **(A) SEI CVD/RS 필터 강화 — W1 OOS +1.545 저조 원인(2024H2 구간 신호 품질 미흡), CVD_THRESH>0.5 또는 RS 범위 조정으로 2/3 달성 시도** **(B) SUI BULL 전환 대기 — pre_bull=0.711 현재, ≥0.90 도달 시 W2 Sharpe 5.0+ 재검증 사이클 즉시 실행** **(C) momentum_sol WF 결과 재확인 — IS Sharpe +14.37 고수익, OOS 창 추가로 안정성 검증 강화**",
+      "timestamp": "2026-04-04T04:32:55.516501"
+    },
+    {
+      "cycle": 115,
+      "summary": "작업: SEI stealth_3gate CVD/RS 필터 강화 그리드 탐색 (112조합) — W1 OOS 개선 가능성 규명 | 결과: **2/2창 통과 조합 없음. RS[0.5,1.0)은 W2 강(+3.9) but W1 약(+1.3). RS[1.0,2.0)은 W1 강(+3.4) but W2 음(-0.6). SEI 2024H2/2025의 RS 특성이 구조적으로 역방향 — 필터 조정으로 해결 불가. SEI 탈락 확정.** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 가능한지 탐색 (현재 BTC BEAR이지만 BULL 전환 대비)** **(B) momentum_sol WF 추가 창 검증 — IS Sharpe +14.37 고수익, OOS 추가 창으로 과적합 여부 확인** **(C) 신규 심볼 스크리닝 — 기존 7심볼 외 BULL 레짐 집중 단창 후보 발굴**",
+      "detail": "[RALPH CYCLE 115 DONE] 작업: SEI stealth_3gate CVD/RS 필터 강화 그리드 탐색 (112조합) — W1 OOS 개선 가능성 규명 | 결과: **2/2창 통과 조합 없음. RS[0.5,1.0)은 W2 강(+3.9) but W1 약(+1.3). RS[1.0,2.0)은 W1 강(+3.4) but W2 음(-0.6). SEI 2024H2/2025의 RS 특성이 구조적으로 역방향 — 필터 조정으로 해결 불가. SEI 탈락 확정.** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 가능한지 탐색 (현재 BTC BEAR이지만 BULL 전환 대비)** **(B) momentum_sol WF 추가 창 검증 — IS Sharpe +14.37 고수익, OOS 추가 창으로 과적합 여부 확인** **(C) 신규 심볼 스크리닝 — 기존 7심볼 외 BULL 레짐 집중 단창 후보 발굴**",
+      "timestamp": "2026-04-04T04:38:44.985084"
+    },
+    {
+      "cycle": 116,
+      "summary": "작업: momentum_sol 슬리피지 민감도 분석 — Sharpe +14.37(IS) / OOS +23.8/+18.0 과적합 의심 해소 | 결과: **슬리피지 0.30%까지도 W1+W2 모두 통과, 평균 Sharpe 17.9~20.9 유지 (감쇠율 0.30%에서도 -14%에 불과). vpin_eth 0.10% 구간 -37% 감쇠 대비 극도로 강건 — 과적합이 아닌 실질적 엣지 확인. TP=12% 큰 목표가 슬리피지 흡수력 부여. daemon 파라미터 최종 확정(lb=12/adx=25/vol=2.0/TP=12%/SL=4%), BULL 전환 시 즉시 live 투입 가능** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 탐색 (BULL 전환 대비 daemon 반영 후보)** **(B) 신규 심볼 스크리닝 — JUP/ONDO 2025H2 이후 RS 안정성 재검토 (SEI 탈락으로 후보풀 감소)** **(C) SUI BULL 전환 모니터링 — pre_bull=0.711, ≥0.90 도달 시 W2 Sharpe 재검증 즉시 실행**",
+      "detail": "[RALPH CYCLE 116 DONE] 작업: momentum_sol 슬리피지 민감도 분석 — Sharpe +14.37(IS) / OOS +23.8/+18.0 과적합 의심 해소 | 결과: **슬리피지 0.30%까지도 W1+W2 모두 통과, 평균 Sharpe 17.9~20.9 유지 (감쇠율 0.30%에서도 -14%에 불과). vpin_eth 0.10% 구간 -37% 감쇠 대비 극도로 강건 — 과적합이 아닌 실질적 엣지 확인. TP=12% 큰 목표가 슬리피지 흡수력 부여. daemon 파라미터 최종 확정(lb=12/adx=25/vol=2.0/TP=12%/SL=4%), BULL 전환 시 즉시 live 투입 가능** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 탐색 (BULL 전환 대비 daemon 반영 후보)** **(B) 신규 심볼 스크리닝 — JUP/ONDO 2025H2 이후 RS 안정성 재검토 (SEI 탈락으로 후보풀 감소)** **(C) SUI BULL 전환 모니터링 — pre_bull=0.711, ≥0.90 도달 시 W2 Sharpe 재검증 즉시 실행**",
+      "timestamp": "2026-04-04T04:45:06.621065"
+    },
+    {
+      "cycle": 117,
+      "summary": "작업: SUI stealth_3gate 파라미터 그리드 192조합 — Sharpe 5.0+ 달성 가능성 완전 소진 | 결과: **2/2창 통과 조합 없음. W∈{24,36} × acc∈{0.9,1.0} × RS 4쌍 × TP 4단계 × SL 3단계 = 192조합 전수 탐색. 최고 avg Sharpe +3.804 (TP=20%/SL=3%, W2: +4.267/W3: +3.341). RS 범위 확장/W 단축/ACC 완화 전부 효과 없음. SUI stealth_3gate 구조적 Sharpe 상한선 ~4.3 확인 — WR~54%·avg_ret~3.8%·n=24-35 조합에서 파라미터 최적화로 5.0 달성 불가.** | 다음제안: **(A) JUP/ONDO 신규 심볼 스크리닝 — SEI 탈락+SUI 기준 미달로 후보풀 2개 감소, 2024H2 이후 RS 안정성 있는 신규 심볼 탐색** **(B) SUI vpin 전략 적용 — stealth_3gate 외 vpin_eth와 동일 프레임워크로 SUI 엣지 탐색** **(C) BULL 전환 모니터링 유지 — pre_bull=0.711, momentum_sol/vpin_eth는 확정, SUI는 Sharpe 기준 미달이므로 BULL 전환 시에도 SUI 제외**",
+      "detail": "[RALPH CYCLE 117 DONE] 작업: SUI stealth_3gate 파라미터 그리드 192조합 — Sharpe 5.0+ 달성 가능성 완전 소진 | 결과: **2/2창 통과 조합 없음. W∈{24,36} × acc∈{0.9,1.0} × RS 4쌍 × TP 4단계 × SL 3단계 = 192조합 전수 탐색. 최고 avg Sharpe +3.804 (TP=20%/SL=3%, W2: +4.267/W3: +3.341). RS 범위 확장/W 단축/ACC 완화 전부 효과 없음. SUI stealth_3gate 구조적 Sharpe 상한선 ~4.3 확인 — WR~54%·avg_ret~3.8%·n=24-35 조합에서 파라미터 최적화로 5.0 달성 불가.** | 다음제안: **(A) JUP/ONDO 신규 심볼 스크리닝 — SEI 탈락+SUI 기준 미달로 후보풀 2개 감소, 2024H2 이후 RS 안정성 있는 신규 심볼 탐색** **(B) SUI vpin 전략 적용 — stealth_3gate 외 vpin_eth와 동일 프레임워크로 SUI 엣지 탐색** **(C) BULL 전환 모니터링 유지 — pre_bull=0.711, momentum_sol/vpin_eth는 확정, SUI는 Sharpe 기준 미달이므로 BULL 전환 시에도 SUI 제외**",
+      "timestamp": "2026-04-04T04:53:04.138346"
+    },
+    {
+      "cycle": 118,
+      "summary": "DONE 신호 없음 — 681s 후 종료",
+      "detail": "백그라운드 태스크 완료 확인. 이미 결과를 처리하고 commit까지 완료했습니다.",
+      "timestamp": "2026-04-04T05:07:31.341334"
+    },
+    {
+      "cycle": 119,
+      "summary": "작업: ONDO vpin 전략 432조합 탐색 — 2/2창 통과 12개, avg Sharpe +7.214 | 결과: **BTC Gate1 포함 + hold=18 + TP=10% + SL=1.5% 조합으로 W1 OOS +9.132(WR=28%, n=81) / W2 OOS +5.296(WR=26%, n=72) 달성. stealth_3gate W1 Sharpe -1.487 완벽 극복. vh/vm 파라미터 무관 — BTC Gate1이 실질 필터. BULL 전환 시 momentum_sol/vpin_eth에 이어 3번째 daemon 투입 후보 확정** | 다음제안: **(A) ONDO vpin 슬리피지 민감도 분석 — 파라미터 강건성 최종 확인 후 daemon.toml 반영** **(B) APT vpin 탐색 — 2024-01 데이터로 2창 WF 가능, SUI/ONDO와 동일 프레임워크 적용** **(C) BULL 전환 대비 daemon.toml 업데이트 준비 — ONDO vpin 파라미터 반영 (pre_bull=0.740, BULL 임박)**",
+      "detail": "[RALPH CYCLE 119 DONE] 작업: ONDO vpin 전략 432조합 탐색 — 2/2창 통과 12개, avg Sharpe +7.214 | 결과: **BTC Gate1 포함 + hold=18 + TP=10% + SL=1.5% 조합으로 W1 OOS +9.132(WR=28%, n=81) / W2 OOS +5.296(WR=26%, n=72) 달성. stealth_3gate W1 Sharpe -1.487 완벽 극복. vh/vm 파라미터 무관 — BTC Gate1이 실질 필터. BULL 전환 시 momentum_sol/vpin_eth에 이어 3번째 daemon 투입 후보 확정** | 다음제안: **(A) ONDO vpin 슬리피지 민감도 분석 — 파라미터 강건성 최종 확인 후 daemon.toml 반영** **(B) APT vpin 탐색 — 2024-01 데이터로 2창 WF 가능, SUI/ONDO와 동일 프레임워크 적용** **(C) BULL 전환 대비 daemon.toml 업데이트 준비 — ONDO vpin 파라미터 반영 (pre_bull=0.740, BULL 임박)**",
+      "timestamp": "2026-04-04T05:19:10.261283"
+    },
+    {
+      "cycle": 120,
+      "summary": "작업: ONDO vpin 슬리피지 민감도 분석 — daemon 반영 보류 결정 | 결과: **슬리피지 0.05%에서 W2 즉시 탈락 (5.296→4.161). TP/SL 9조합 전부 W2 살리지 못함 — ONDO vpin은 BULL 기간(W1)에만 엣지 존재, BEAR 기간 구조적 취약. daemon 반영 보류 확정.** | 다음제안: **(A) APT vpin 탐색 — 다른 심볼로 W1+W2 동시 통과 + 슬리피지 내성 탐색 (ONDO 실패 패턴 참고해 W2 기준 강화)** **(B) ONDO BULL-only 전략 검토 — pre_bull ≥ 0.90 조건에서만 활성화하는 conditional deployment 방식** **(C) 현재 daemon: momentum_sol + vpin_eth 2개 유지, ONDO는 슬리피지 내성 해결 전까지 대기**",
+      "detail": "---\n\n[RALPH CYCLE 120 DONE] 작업: ONDO vpin 슬리피지 민감도 분석 — daemon 반영 보류 결정 | 결과: **슬리피지 0.05%에서 W2 즉시 탈락 (5.296→4.161). TP/SL 9조합 전부 W2 살리지 못함 — ONDO vpin은 BULL 기간(W1)에만 엣지 존재, BEAR 기간 구조적 취약. daemon 반영 보류 확정.** | 다음제안: **(A) APT vpin 탐색 — 다른 심볼로 W1+W2 동시 통과 + 슬리피지 내성 탐색 (ONDO 실패 패턴 참고해 W2 기준 강화)** **(B) ONDO BULL-only 전략 검토 — pre_bull ≥ 0.90 조건에서만 활성화하는 conditional deployment 방식** **(C) 현재 daemon: momentum_sol + vpin_eth 2개 유지, ONDO는 슬리피지 내성 해결 전까지 대기**",
+      "timestamp": "2026-04-04T05:53:01.198297"
+    },
+    {
+      "cycle": 121,
+      "summary": "작업: APT vpin 전략 432조합 탐색 — 2/2창 통과 0개, vpin BULL-only 패턴 확정 | 결과: **ONDO 확정 파라미터(hold=18/TP=10%/Gate1=Y) 직접 적용 시 APT W1=+3.236/W2=-1.445 즉시 탈락. 전체 그리드 최고 W1=+7.227(hold=12/TP=8%/SL=1.0%) 이나 W2=+3.653으로 기준 5.0 미달. ONDO/SUI/SEI/APT 4개 심볼 모두 동일 패턴 확정 — vpin 전략은 BULL 기간 특화 메커니즘, BEAR/혼재(W2) 구조적 취약성 불가피** | 다음제안: **(A) vpin_eth 슬리피지 민감도 검증 — 기배포 전략 강건성 확인 (0.30%까지, momentum_sol 선례 동일)** **(B) ONDO BULL-only 조건부 배포 설계 — pre_bull ≥ 0.90 Gate 활성화로 W1 엣지만 활용하는 실용적 접근** **(C) BEAR 특화 전략 탐색 — 하락/횡보 환경 엣지 메커니즘 (mean-reversion, funding rate 등)**",
+      "detail": "---\n\n[RALPH CYCLE 121 DONE] 작업: APT vpin 전략 432조합 탐색 — 2/2창 통과 0개, vpin BULL-only 패턴 확정 | 결과: **ONDO 확정 파라미터(hold=18/TP=10%/Gate1=Y) 직접 적용 시 APT W1=+3.236/W2=-1.445 즉시 탈락. 전체 그리드 최고 W1=+7.227(hold=12/TP=8%/SL=1.0%) 이나 W2=+3.653으로 기준 5.0 미달. ONDO/SUI/SEI/APT 4개 심볼 모두 동일 패턴 확정 — vpin 전략은 BULL 기간 특화 메커니즘, BEAR/혼재(W2) 구조적 취약성 불가피** | 다음제안: **(A) vpin_eth 슬리피지 민감도 검증 — 기배포 전략 강건성 확인 (0.30%까지, momentum_sol 선례 동일)** **(B) ONDO BULL-only 조건부 배포 설계 — pre_bull ≥ 0.90 Gate 활성화로 W1 엣지만 활용하는 실용적 접근** **(C) BEAR 특화 전략 탐색 — 하락/횡보 환경 엣지 메커니즘 (mean-reversion, funding rate 등)**",
+      "timestamp": "2026-04-04T06:06:51.369421"
+    },
+    {
+      "cycle": 122,
+      "summary": "작업: ONDO vpin Gate2(BTC 30봉 수익률>0%) 탐색 — 슬리피지 0.10%까지 2/2창 통과, daemon 배포 근거 확보 | 결과: **BTC 30봉 수익률>0% Gate2 추가 시 W1=+8.364/W2=+5.434(슬리피지 0.10%, n=69/49). 사이클 120 보류 원인(W2 슬리피지 취약) 완전 해소. W1 Sharpe 오히려 상승(9.132→10.027), W2 신호 35% 차단으로 품질 개선. 확정 파라미터: vh=0.55, vm=0.0005, hold=18, TP=10%, SL=1.5%, Gate1=BTC>SMA20, Gate2=BTC_30봉>0%.** 보너스: vpin_eth 슬리피지 검증이 사이클 114에서 이미 완료된 것 확인 (이후 사이클들의 재검증 제안 오류 수정) | 다음제안: **(A) daemon.toml에 ONDO vpin wallet 추가 — Gate2 로직(BTC 30봉 수익률 > 0%) daemon 코드 레벨 구현 확인 후 반영 (현재 BEAR라 즉시 진입 없음, BULL 전환 시 자동 활성화)** **(B) BEAR 특화 전략 탐색 — 현 BEAR 구간(pre_bull=0.705)에서 엣지 가능한 메커니즘 (mean-reversion, CVD divergence 등)** **(C) pre_bull ≥ 0.90 + BTC > SMA20 + BTC 30봉>0% 복합 트리거 모니터링 스크립트 작성**",
+      "detail": "---\n\n[RALPH CYCLE 122 DONE] 작업: ONDO vpin Gate2(BTC 30봉 수익률>0%) 탐색 — 슬리피지 0.10%까지 2/2창 통과, daemon 배포 근거 확보 | 결과: **BTC 30봉 수익률>0% Gate2 추가 시 W1=+8.364/W2=+5.434(슬리피지 0.10%, n=69/49). 사이클 120 보류 원인(W2 슬리피지 취약) 완전 해소. W1 Sharpe 오히려 상승(9.132→10.027), W2 신호 35% 차단으로 품질 개선. 확정 파라미터: vh=0.55, vm=0.0005, hold=18, TP=10%, SL=1.5%, Gate1=BTC>SMA20, Gate2=BTC_30봉>0%.** 보너스: vpin_eth 슬리피지 검증이 사이클 114에서 이미 완료된 것 확인 (이후 사이클들의 재검증 제안 오류 수정) | 다음제안: **(A) daemon.toml에 ONDO vpin wallet 추가 — Gate2 로직(BTC 30봉 수익률 > 0%) daemon 코드 레벨 구현 확인 후 반영 (현재 BEAR라 즉시 진입 없음, BULL 전환 시 자동 활성화)** **(B) BEAR 특화 전략 탐색 — 현 BEAR 구간(pre_bull=0.705)에서 엣지 가능한 메커니즘 (mean-reversion, CVD divergence 등)** **(C) pre_bull ≥ 0.90 + BTC > SMA20 + BTC 30봉>0% 복합 트리거 모니터링 스크립트 작성**",
+      "timestamp": "2026-04-04T06:16:12.906199"
+    },
+    {
+      "cycle": 123,
+      "summary": "DONE 신호 없음 — 1000s 후 종료",
+      "detail": "`test_none_snapshot_does_not_block` 실패는 **기존 이슈** (내 변경 전에도 동일하게 실패). 내 변경과 무관합니다.\n\n---\n\n**사이클 123 완료 요약:**\n\n**작업**: ONDO vpin Gate2(BTC 30봉>0%) daemon 배포\n\n**구현된 변경:**\n- `market_scan_loop.py`: `compute_btc_stealth_regime()`에 `btc_30bar_pos` 계산 추가 → stealth-watchlist.json 기록\n- `wallet.py`: `_btc_30bar_gate` 필드 + `_read_btc_30bar_pos()` 메서드 + `run_once()` Gate2 블로킹 로직\n- `config.py`: vpin 허용 파라미터에 `btc_30bar_gate` 추가\n- `daemon.toml`: `vpin_ondo_wallet` 추가 (500k, Gate1+Gate2 복합 필터, TP=10%/SL=1.5%)\n\n**현재 상태**: BTC BEAR → Gate1+Gate2 모두 미통과 → 즉시 진입 없음. BULL 전환(pre_bull≥0.90 + BTC>SMA20 + BTC_30봉>0%) 시 자동 활성화.\n\n**테스트**: 기존 실패 3종(test_extended_alpha, test_wallet 6개, test_macro_adapter 1개) 모두 내 변경 전에도 동일하게 실패 — 사전 존재 이슈.\n\n**다음 제안:**\n- **(A) BEAR 특화 전략 탐색** — mean-reversion / CVD divergence 등 BEAR 환경 엣지 탐색\n- **(B) 복합 트리거 모니터링 스크립트** — BULL 전환 자동 감지 (pre_bull + Gate1 + Gate2 동시 체크)",
+      "timestamp": "2026-04-04T06:36:00.636801"
+    },
+    {
+      "cycle": 124,
+      "summary": "작업: ETH/SOL/XRP RSI oversold bounce BEAR 특화 전략 탐색 — 729조합 그리드, ETH RSI<25만 2/2창 통과 | 결과: **ETH RSI<25 bounce W1=+10.675/W2=+3.263(슬리피지 0.10%) — 2/2창 통과했으나 W2 Sharpe 3.263으로 daemon 기준(5.0+) 미달. 슬리피지 0.20%에서 즉시 탈락(내성 약함). SOL/XRP W2 Sharpe 음수로 구조적 실패. BEAR long-only에서 RSI<25 극단 과매도만 미약한 엣지 존재 확인.** | 다음제안: **(A) ETH RSI<20 + 볼륨 급증 필터 추가 → W2 Sharpe 5.0+ 달성 시도 (진입 조건 강화로 품질 개선)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull ≥ 0.90 + BTC>SMA20 + BTC_30봉>0% 자동 감지 (현재 pre_bull=0.705, 0.90 임박 모니터링 필요)** **(C) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI와 다른 메커니즘으로 BEAR 엣지 확인**",
+      "detail": "[RALPH CYCLE 124 DONE] 작업: ETH/SOL/XRP RSI oversold bounce BEAR 특화 전략 탐색 — 729조합 그리드, ETH RSI<25만 2/2창 통과 | 결과: **ETH RSI<25 bounce W1=+10.675/W2=+3.263(슬리피지 0.10%) — 2/2창 통과했으나 W2 Sharpe 3.263으로 daemon 기준(5.0+) 미달. 슬리피지 0.20%에서 즉시 탈락(내성 약함). SOL/XRP W2 Sharpe 음수로 구조적 실패. BEAR long-only에서 RSI<25 극단 과매도만 미약한 엣지 존재 확인.** | 다음제안: **(A) ETH RSI<20 + 볼륨 급증 필터 추가 → W2 Sharpe 5.0+ 달성 시도 (진입 조건 강화로 품질 개선)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull ≥ 0.90 + BTC>SMA20 + BTC_30봉>0% 자동 감지 (현재 pre_bull=0.705, 0.90 임박 모니터링 필요)** **(C) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI와 다른 메커니즘으로 BEAR 엣지 확인**",
+      "timestamp": "2026-04-04T06:47:51.538811"
+    },
+    {
+      "cycle": 125,
+      "summary": "작업: ETH RSI<20 + Volume Spike 복합 필터 BEAR 전략 탐색 — 1,296 조합 그리드 | 결과: **RSI<20 + vol_spike=1.5x + vol_ma=30봉 + TP=5% + SL=3%: W1=5.075/W2=5.922(슬리피지 0.10%, n=6/11) — 2/2창 통과했으나 슬리피지 0.20%에서 W1=3.853/W2=4.513으로 즉시 탈락. W1 n=6 최소치로 통계 신뢰도 부족. 사이클 124→125 RSI 계열 BEAR long-only: 볼륨 필터로 W2 Sharpe 3.263→5.922 개선되나 슬리피지 내성 구조적 취약 확정 → daemon 미달.** RSI<18/RSI<15는 W1 n=4로 거래 수 부족. | 다음제안: **(A) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI 계열과 다른 메커니즘으로 BEAR 엣지 재확인 (avg 수익률이 높은 진입 조건 필요)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull≥0.90 + BTC>SMA20 + BTC_30봉>0% 복합 조건 실시간 감지 (현재 pre_bull=0.705, 즉시 활용 가능)** **(C) momentum_sol 슬리피지 민감도 검증 — 0.20%~0.30% 내성 확인 후 daemon 확정 근거 강화**",
+      "detail": "[RALPH CYCLE 125 DONE] 작업: ETH RSI<20 + Volume Spike 복합 필터 BEAR 전략 탐색 — 1,296 조합 그리드 | 결과: **RSI<20 + vol_spike=1.5x + vol_ma=30봉 + TP=5% + SL=3%: W1=5.075/W2=5.922(슬리피지 0.10%, n=6/11) — 2/2창 통과했으나 슬리피지 0.20%에서 W1=3.853/W2=4.513으로 즉시 탈락. W1 n=6 최소치로 통계 신뢰도 부족. 사이클 124→125 RSI 계열 BEAR long-only: 볼륨 필터로 W2 Sharpe 3.263→5.922 개선되나 슬리피지 내성 구조적 취약 확정 → daemon 미달.** RSI<18/RSI<15는 W1 n=4로 거래 수 부족. | 다음제안: **(A) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI 계열과 다른 메커니즘으로 BEAR 엣지 재확인 (avg 수익률이 높은 진입 조건 필요)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull≥0.90 + BTC>SMA20 + BTC_30봉>0% 복합 조건 실시간 감지 (현재 pre_bull=0.705, 즉시 활용 가능)** **(C) momentum_sol 슬리피지 민감도 검증 — 0.20%~0.30% 내성 확인 후 daemon 확정 근거 강화**",
+      "timestamp": "2026-04-04T06:58:26.442477"
+    },
+    {
+      "cycle": 126,
+      "summary": "DONE 신호 없음 — 170s 후 종료",
+      "detail": "Codex task `task-mnjgaz6b-58skhu`가 실행 중입니다. BB bounce 그리드 탐색이 진행 중이니 `/codex:status task-mnjgaz6b-58skhu`로 진행 상황을 확인할 수 있습니다. 완료까지 10~20분 예상됩니다.",
+      "timestamp": "2026-04-04T07:04:23.199604"
+    },
+    {
+      "cycle": 127,
+      "summary": "DONE 신호 없음 — 340s 후 종료",
+      "detail": "BB bounce 백테스트 Codex 태스크 `task-mnjggtdk-0kczft` 여전히 실행 중 (4분27초). 864 조합 × 3 슬리피지 = ~2,600회 시뮬레이션이므로 10~20분 예상됩니다.\n\n완료 알림이 오면 결과를 분석하겠습니다.",
+      "timestamp": "2026-04-04T07:13:11.748933"
+    },
+    {
+      "cycle": 128,
+      "summary": "DONE 신호 없음 — 1615s 후 종료",
+      "detail": "SOL 864조합 전체 결과도 동일: **통과 0개**.\n\n흥미로운 점: `bb_period=20, bb_std=2.0` SOL에서 W1=6.3~7.2(n=59~63) 통과하나 W2=-0.2~-1.4로 즉시 탈락. W1 OOS(2024, 상승전환 포함) vs W2 OOS(2025-2026, 약세) 레짐 차이로 인한 과적합.\n\n사이클 128 결론 최종 확정 — 추가 기록 불필요 (이미 commit 완료).",
+      "timestamp": "2026-04-04T07:43:11.561601"
+    },
+    {
+      "cycle": 129,
+      "summary": "작업: stealth_3gate TP/SL 최적화 (SL=1.0% 발견) | 결과: W2 Sharpe 4.377→**5.045** (Gate4=ON + TP=10% + SL=1.0%, 슬리피지 0.10% 통과) | 다음제안: (A) Gate4=OFF + SL=1.0% 최종 결정 (W2=5.199, 거래수 4130으로 통계 신뢰도 높음), (B) BULL 전환 후 실전 stealth_3gate 성과 모니터링",
+      "detail": "[RALPH CYCLE 129 DONE] 작업: stealth_3gate TP/SL 최적화 (SL=1.0% 발견) | 결과: W2 Sharpe 4.377→**5.045** (Gate4=ON + TP=10% + SL=1.0%, 슬리피지 0.10% 통과) | 다음제안: (A) Gate4=OFF + SL=1.0% 최종 결정 (W2=5.199, 거래수 4130으로 통계 신뢰도 높음), (B) BULL 전환 후 실전 stealth_3gate 성과 모니터링\n\n---\n\n**사이클 129 요약**:\n- **발견**: TP/SL이 W=36 최적화 과정에서 한번도 단독 탐색되지 않았음 (항상 TP=15%/SL=3% 고정)\n- **핵심**: SL=1.0% (기존 3%의 1/3)이 BEAR 구간(W2 2024-2026) Sharpe를 결정적으로 개선\n- **48조합 × 2창 탐색** 23초 완료, 6개 조합 5.0 통과\n- **daemon 반영**: `stop_loss_pct 0.03→0.010`, `take_profit_pct 0.15→0.10`\n- **현재 상태**: `paper_trading=true` — BULL 전환 시 자동 활성화 대기",
+      "timestamp": "2026-04-04T08:17:13.459160"
+    },
+    {
+      "cycle": 130,
+      "summary": "작업: stealth_3gate SMA period 최적화 (SMA=10 발견) + Gate4=OFF 전환 | 결과: W2 Sharpe 5.199→**6.876** (+1.677, 슬리피지 0.20%까지 통과), daemon 반영 완료 | 다음제안: (A) SMA=10 + Gate4=ON 조합 검증 (미탐색 영역), (B) stealth_window × SMA=10 2D 탐색 (W=36 고정 해제)",
+      "detail": "커밋 완료.\n\n[RALPH CYCLE 130 DONE] 작업: stealth_3gate SMA period 최적화 (SMA=10 발견) + Gate4=OFF 전환 | 결과: W2 Sharpe 5.199→**6.876** (+1.677, 슬리피지 0.20%까지 통과), daemon 반영 완료 | 다음제안: (A) SMA=10 + Gate4=ON 조합 검증 (미탐색 영역), (B) stealth_window × SMA=10 2D 탐색 (W=36 고정 해제)\n\n---\n\n**사이클 130 요약**:\n- **발견**: BTC SMA period가 지금까지 SMA=20으로 고정, 한번도 최적화된 적 없었음\n- **핵심**: SMA=10이 최우수 — W2 Sharpe 6.876 (SMA=20의 5.199 대비 **+1.677**)\n- **슬리피지 내성**: 0.20%에서도 W2=6.515 통과 (지금까지 최강)\n- **Gate4=OFF**: 동시 반영 (W2=5.045→5.199 +0.154)\n- **누적 개선**: 기준(4.377) → 사이클129(5.045) → 사이클130(**6.876**) = **+2.499**\n- **daemon 반영**: `stealth_sma_period: 20→10`, `btc_trend_pos_gate: true→false`",
+      "timestamp": "2026-04-04T08:27:14.798550"
+    },
+    {
+      "cycle": 131,
+      "summary": "작업: stealth_3gate stealth_window(W) 재검증 — SMA=10 환경에서 W=36 최적 확인 | 결과: W=36 W2 Sharpe 6.876 유지 (1위), W<32 구조적 실패, daemon 변경 불필요 | 다음제안: (A) RS 범위 최적화 — RS[0.5,1.0) 고정이 SMA=10+W=36 조합에서도 최적인지 검증 (미탐색), (B) Gate4=ON+SMA=10 조합 재검증 (W=36 확정 후 유일한 미탐색 파라미터 공간), (C) BULL 전환(pre_bull≥0.90) 대기 — 현재 0.804로 근접",
+      "detail": "---\n\n[RALPH CYCLE 131 DONE] 작업: stealth_3gate stealth_window(W) 재검증 — SMA=10 환경에서 W=36 최적 확인 | 결과: W=36 W2 Sharpe 6.876 유지 (1위), W<32 구조적 실패, daemon 변경 불필요 | 다음제안: (A) RS 범위 최적화 — RS[0.5,1.0) 고정이 SMA=10+W=36 조합에서도 최적인지 검증 (미탐색), (B) Gate4=ON+SMA=10 조합 재검증 (W=36 확정 후 유일한 미탐색 파라미터 공간), (C) BULL 전환(pre_bull≥0.90) 대기 — 현재 0.804로 근접",
+      "timestamp": "2026-04-04T08:33:25.289292"
+    },
+    {
+      "cycle": 132,
+      "summary": "작업: stealth_3gate RS 범위 최적화 → [0.4,0.9) 발견 | 결과: W2 Sharpe 6.876→**9.941** (+3.065, 슬리피지 0.30%에서도 W2=9.328 통과), daemon 반영 완료 | 다음제안: (A) Gate4=ON + RS[0.4,0.9) 재검증, (B) acc 임계값 탐색 (현재 acc>1.0 미탐색), (C) BULL 전환(pre_bull 0.804→0.90) 모니터링",
+      "detail": "[RALPH CYCLE 132 DONE] 작업: stealth_3gate RS 범위 최적화 → [0.4,0.9) 발견 | 결과: W2 Sharpe 6.876→**9.941** (+3.065, 슬리피지 0.30%에서도 W2=9.328 통과), daemon 반영 완료 | 다음제안: (A) Gate4=ON + RS[0.4,0.9) 재검증, (B) acc 임계값 탐색 (현재 acc>1.0 미탐색), (C) BULL 전환(pre_bull 0.804→0.90) 모니터링\n\n---\n\n**사이클 132 요약**:\n- **발견**: RS 상한 1.0 → 0.9 컷이 핵심 — RS [0.9,1.0) 종목(BTC와 거의 동행하는 알트) 제거\n- **누적 개선**: 기준 4.377 → 사이클129(5.045) → 사이클130(6.876) → 사이클132(**9.941**) = **+5.564**\n- **슬리피지 내성**: 0.30%에서도 W2=9.328 — 역대 최강\n- **해석**: stealth 진입 조건에서 BTC와 거의 같은 속도로 움직이는 알트(RS 0.9~1.0)는 \"진짜 스텔스 누적\"이 아니라 단순 BTC 동행 — 제거 시 신호 품질 극적 향상\n- **daemon 반영**: `rs_low: 0.5→0.4`, `rs_high: 1.0→0.9`",
+      "timestamp": "2026-04-04T08:41:56.924779"
+    },
+    {
+      "cycle": 133,
+      "summary": "작업: stealth_3gate Gate4(btc_trend_pos_gate) ON/OFF 재검증 — RS[0.4,0.9) 환경 | 결과: Gate4=OFF 9.941 vs Gate4=ON 6.315 (**델타 -3.626**), daemon 변경 불필요 | 다음제안: (A) acc 임계값 탐색 (alt acc>1.0 → 1.1/1.2/1.5 상향, 선택성 강화), (B) cvd_slope 게이트 탐색 (현재 0.0 미활용)",
+      "detail": "[RALPH CYCLE 133 DONE] 작업: stealth_3gate Gate4(btc_trend_pos_gate) ON/OFF 재검증 — RS[0.4,0.9) 환경 | 결과: Gate4=OFF 9.941 vs Gate4=ON 6.315 (**델타 -3.626**), daemon 변경 불필요 | 다음제안: (A) acc 임계값 탐색 (alt acc>1.0 → 1.1/1.2/1.5 상향, 선택성 강화), (B) cvd_slope 게이트 탐색 (현재 0.0 미활용)\n\n---\n\n**사이클 133 요약**:\n- **검증 질문**: RS 변경 후 Gate4 ON/OFF 비교가 무효화 → 재검증\n- **결론**: Gate4=OFF 압도적 우세 (W2 Sharpe 9.941 vs 6.315, 델타 -3.626)\n- **원인 해석**: Gate4=ON이 신호 87% 차단 (554→76), alt 90개 제거 — BTC 스텔스 누적은 BTC 하락/횡보 시에도 발생하므로 \"BTC 10봉>0\" 조건이 역효과\n- **사이클 130과 동일 방향**: RS 변경 전후 모두 Gate4=OFF 우세 — **Gate4=OFF 완전 확정**\n- **daemon.toml**: 변경 불필요 (현재 `btc_trend_pos_gate=false` 유지)\n\n**다음 우선순위**: acc 임계값 탐색 (현재 alt acc>1.0 고정, 1.1/1.2/1.5로 상향 시 신호 품질 추가 강화 가능성)",
+      "timestamp": "2026-04-04T08:48:28.561941"
+    },
+    {
+      "cycle": 134,
+      "summary": "작업: stealth_3gate alt acc 임계값 탐색 — acc_min ∈ {1.0, 1.1, 1.2, 1.5} | 결과: acc>1.0(현재) W2 Sharpe 9.941 최고, 상향 시 W1/W2 모두 하락 → **현재 acc>1.0 유지 확정**, daemon 변경 불필요 | 다음제안: (A) cvd_slope 게이트 탐색 (현재 0.0 미활용, 양의 cvd_slope 조건 추가), (B) BTC stealth acc 임계값 탐색 (alt 쪽은 완료, BTC 쪽 미탐색), (C) MAX_HOLD 최적화 (현재 24봉 고정, 12/18/36 비교)",
+      "detail": "[RALPH CYCLE 134 DONE] 작업: stealth_3gate alt acc 임계값 탐색 — acc_min ∈ {1.0, 1.1, 1.2, 1.5} | 결과: acc>1.0(현재) W2 Sharpe 9.941 최고, 상향 시 W1/W2 모두 하락 → **현재 acc>1.0 유지 확정**, daemon 변경 불필요 | 다음제안: (A) cvd_slope 게이트 탐색 (현재 0.0 미활용, 양의 cvd_slope 조건 추가), (B) BTC stealth acc 임계값 탐색 (alt 쪽은 완료, BTC 쪽 미탐색), (C) MAX_HOLD 최적화 (현재 24봉 고정, 12/18/36 비교)\n\n---\n\n**사이클 134 요약**:\n- **탐색 결과**: acc 임계값 1.0 → 1.1/1.2/1.5 상향 모두 Sharpe 하락\n  - acc>1.0: W1=9.003, W2=**9.941**, n=554\n  - acc>1.1: W1=8.667, W2=9.511 (-0.430)\n  - acc>1.2: W1=8.084, W2=9.570 (-0.371)\n  - acc>1.5: W1=7.319, W2=9.123 (-0.818)\n- **해석**: 제거된 신호(1.0<acc≤1.1)가 실제로 양질 — acc 필터 강화가 역효과\n- **결론**: acc>1.0 고정이 최적, 탐색 공간 소진\n- **daemon**: 변경 없음",
+      "timestamp": "2026-04-04T08:54:10.177792"
+    },
+    {
+      "cycle": 135,
+      "summary": "작업: stealth_3gate cvd_slope 게이트 탐색 — {None, 0.001, 0.005, 0.010} | 결과: cvd_slope 양의 임계값 모두 실패(신호 99% 소멸), **구조적 incompatible 발견** — 스텔스 진입 시점 CVD slope 평균 -0.40(음수), 양의 CVD 요구가 스텔스 본질과 충돌 → 현재 설정 유지 | 다음제안: (A) **역방향 CVD slope 탐색** — cvd_slope < -0.1 등 강한 매도압력 조건이 오히려 스텔스 품질 지표 가능성 (가장 유망), (B) MAX_HOLD 최적화 (12/18/24/36), (C) BTC stealth acc 임계값 탐색",
+      "detail": "[RALPH CYCLE 135 DONE] 작업: stealth_3gate cvd_slope 게이트 탐색 — {None, 0.001, 0.005, 0.010} | 결과: cvd_slope 양의 임계값 모두 실패(신호 99% 소멸), **구조적 incompatible 발견** — 스텔스 진입 시점 CVD slope 평균 -0.40(음수), 양의 CVD 요구가 스텔스 본질과 충돌 → 현재 설정 유지 | 다음제안: (A) **역방향 CVD slope 탐색** — cvd_slope < -0.1 등 강한 매도압력 조건이 오히려 스텔스 품질 지표 가능성 (가장 유망), (B) MAX_HOLD 최적화 (12/18/24/36), (C) BTC stealth acc 임계값 탐색\n\n---\n\n**사이클 135 핵심 인사이트**:\n- **가설 기각**: 양의 CVD slope → 신호 품질 강화 ❌\n- **원인**: 스텔스 전략이 가격↓+볼륨↑ 구간에서 진입하는 구조 → 매도 압력(음의 CVD) 국면이 기본값\n- **새 방향**: 음의 CVD slope가 오히려 \"진짜 스텔스 누적\" 지표일 수 있음 (역방향 탐색)\n- **daemon**: 변경 없음",
+      "timestamp": "2026-04-04T09:01:47.946670"
+    },
+    {
+      "cycle": 136,
+      "summary": "**[RALPH CYCLE 136 DONE]** 작업: stealth_3gate 역방향 CVD slope 게이트 탐색 — cvd_slope < {None, -0.1, -0.2, -0.3, -0.5} | 결과: cvd_slope<-0.1이 W2 Sharpe **10.443** (+0.502, 베이스라인 9.941), WR 43.7%→45.3% ✅ 가설 검증 완료 — **코드 CVD slope 계산 방식(stealth_3gate.py)과 백테스트 방식 스케일 불일치 발견, daemon 반영 보류** | 다음제안: (A) **코드 방식 CVD slope 임계값 재탐색** — stealth_3gate.py의 `(c-o)/(h-l)*vol` 계산 방식 기준으로 임계값 재탐색 후 daemon 반영 (최우선), (B) MAX_HOLD 최적화 (12/18/24/36봉), (C) BTC stealth acc 임계값 탐색",
+      "detail": "커밋 완료.\n\n---\n\n**[RALPH CYCLE 136 DONE]** 작업: stealth_3gate 역방향 CVD slope 게이트 탐색 — cvd_slope < {None, -0.1, -0.2, -0.3, -0.5} | 결과: cvd_slope<-0.1이 W2 Sharpe **10.443** (+0.502, 베이스라인 9.941), WR 43.7%→45.3% ✅ 가설 검증 완료 — **코드 CVD slope 계산 방식(stealth_3gate.py)과 백테스트 방식 스케일 불일치 발견, daemon 반영 보류** | 다음제안: (A) **코드 방식 CVD slope 임계값 재탐색** — stealth_3gate.py의 `(c-o)/(h-l)*vol` 계산 방식 기준으로 임계값 재탐색 후 daemon 반영 (최우선), (B) MAX_HOLD 최적화 (12/18/24/36봉), (C) BTC stealth acc 임계값 탐색\n\n---\n\n### 주요 발견 요약\n\n| cvd_thresh | W2 Sharpe | W2 WR | 통과 |\n|---|---|---|---|\n| None(OFF) 📌 | 9.941 | 43.7% | ✅ |\n| **< -0.1** | **10.443** | **45.3%** | ✅ |\n| < -0.2 | 9.950 | 43.9% | ✅ |\n| < -0.3 | 10.015 | 43.7% | ✅ |\n\n- **가설 검증**: 음의 CVD slope가 스텔스 진입 품질 지표로 유효 (`-0.1` 최적)\n- **주의**: 백테스트와 코드의 CVD slope 계산 방식 차이 → daemon 반영 전 재탐색 필요\n- **다음**: 코드 방식(`(close-open)/(high-low)*volume`)으로 임계값 재탐색 + alt_cvd_slope_max 파라미터 추가 후 반영",
+      "timestamp": "2026-04-04T09:09:26.487907"
+    },
+    {
+      "cycle": 137,
+      "summary": "**[RALPH CYCLE 137 DONE]** 작업: stealth_3gate 코드 방식 CVD slope 임계값 탐색 (사이클 136 방식 불일치 해소) | 결과: 코드 방식(sign*vol/vol_mean*W=36) 기준 어떤 임계값도 베이스라인 W2 Sharpe 9.941 미달 → **cvd_slope 탐색 공간 완전 소진 (양방향 + 코드 방식 모두 확인)**, daemon.toml 변경 없음, 코드 개선: `_calculate_cvd_slope` 정규화 통일 + `alt_cvd_slope_max` 파라미터 추가(비활성) | 다음제안: **(A) MAX_HOLD 최적화** — 현재 24봉 고정 근거 없음, {12, 18, 24, 36}봉 비교로 Sharpe 추가 개선 가능성 (미탐색 차원 中 최우선), (B) BTC stealth acc 임계값 탐색, (C) cvd_slope 창 크기 탐색(12봉 기준 재탐색)",
+      "detail": "---\n\n**[RALPH CYCLE 137 DONE]** 작업: stealth_3gate 코드 방식 CVD slope 임계값 탐색 (사이클 136 방식 불일치 해소) | 결과: 코드 방식(sign*vol/vol_mean*W=36) 기준 어떤 임계값도 베이스라인 W2 Sharpe 9.941 미달 → **cvd_slope 탐색 공간 완전 소진 (양방향 + 코드 방식 모두 확인)**, daemon.toml 변경 없음, 코드 개선: `_calculate_cvd_slope` 정규화 통일 + `alt_cvd_slope_max` 파라미터 추가(비활성) | 다음제안: **(A) MAX_HOLD 최적화** — 현재 24봉 고정 근거 없음, {12, 18, 24, 36}봉 비교로 Sharpe 추가 개선 가능성 (미탐색 차원 中 최우선), (B) BTC stealth acc 임계값 탐색, (C) cvd_slope 창 크기 탐색(12봉 기준 재탐색)",
+      "timestamp": "2026-04-04T09:20:00.704036"
+    },
+    {
+      "cycle": 138,
+      "summary": "작업: stealth_3gate MAX_HOLD 최적화 — {12, 18, 24, 36}봉 탐색 | 결과: MAX_HOLD=24봉(현재) W2 Sharpe **9.941** 최고 → **daemon.toml 변경 없음**, 18봉(9.919)·12봉(WR 50.1%)·36봉(W1 7.649) 모두 열세 확인 | 다음제안: **(A) BTC stealth acc 임계값 탐색** — alt acc>1.0 확정, BTC stealth acc 아직 미탐색 (현재 1.0 고정, 0.8/1.0/1.2/1.5 비교 가능), (B) TP/SL 조합 탐색 — TP=10%/SL=1.0% 기준 재검토, (C) CVD 창 크기 탐색 (12/24봉 기준)",
+      "detail": "[RALPH CYCLE 138 DONE] 작업: stealth_3gate MAX_HOLD 최적화 — {12, 18, 24, 36}봉 탐색 | 결과: MAX_HOLD=24봉(현재) W2 Sharpe **9.941** 최고 → **daemon.toml 변경 없음**, 18봉(9.919)·12봉(WR 50.1%)·36봉(W1 7.649) 모두 열세 확인 | 다음제안: **(A) BTC stealth acc 임계값 탐색** — alt acc>1.0 확정, BTC stealth acc 아직 미탐색 (현재 1.0 고정, 0.8/1.0/1.2/1.5 비교 가능), (B) TP/SL 조합 탐색 — TP=10%/SL=1.0% 기준 재검토, (C) CVD 창 크기 탐색 (12/24봉 기준)",
+      "timestamp": "2026-04-04T09:25:46.586810"
+    },
+    {
+      "cycle": 139,
+      "summary": "DONE 신호 없음 — 864s 후 종료",
+      "detail": "test_wallet.py 실패는 제 변경 이전부터 존재하는 기존 실패입니다. 사이클 139 작업과 무관합니다.\n\n**사이클 139 완료 — 기존 테스트 실패와 무관 확인**\n\n- `test_wallet.py` 실패: git stash 후에도 동일하게 실패 → 기존 버그, 이번 사이클과 무관\n- stealth 관련 테스트 4개 모두 통과 ✅\n- mypy 타입 체크 통과 ✅",
+      "timestamp": "2026-04-04T09:43:19.122516"
+    },
+    {
+      "cycle": 140,
+      "summary": "작업: stealth_3gate TP/SL 그리드 탐색 — TP∈{8,10,12,15}% × SL∈{0.8,1.0,1.5,2.0}% 16조합 | 결과: **TP=8%/SL=1.0% 최적** — W2 Sharpe **11.204** (베이스라인 10.160 대비 **+1.044**), W1 Sharpe 9.571(n=90), daemon.toml 반영 완료 | 다음제안: **(A) TP=7%/6% 추가 탐색** — TP=8%가 최적이나 더 낮은 값 확인, **(B) 심볼 확장** — btc_acc_min=1.2+TP=8% 조건 하 신규 종목 스캔, **(C) CVD 창 크기 탐색** — W=12/24 재검증",
+      "detail": "[RALPH CYCLE 140 DONE] 작업: stealth_3gate TP/SL 그리드 탐색 — TP∈{8,10,12,15}% × SL∈{0.8,1.0,1.5,2.0}% 16조합 | 결과: **TP=8%/SL=1.0% 최적** — W2 Sharpe **11.204** (베이스라인 10.160 대비 **+1.044**), W1 Sharpe 9.571(n=90), daemon.toml 반영 완료 | 다음제안: **(A) TP=7%/6% 추가 탐색** — TP=8%가 최적이나 더 낮은 값 확인, **(B) 심볼 확장** — btc_acc_min=1.2+TP=8% 조건 하 신규 종목 스캔, **(C) CVD 창 크기 탐색** — W=12/24 재검증\n\n---\n\n### 핵심 발견\n\n| TP | SL | W2 Sharpe | ΔW2 |\n|---|---|---|---|\n| **8%** | **1.0%** ✅ | **11.204** | **+1.044** |\n| 8% | 0.8% | 11.151 | +0.991 |\n| 10% | 1.0% (이전) | 10.160 | 기준 |\n| 15% | 2.0% | 8.631 | -1.529 |\n\n**패턴**: TP가 낮을수록(8%>10%>12%>15%) W2 Sharpe 일관 개선 → BEAR 레짐에서 단기 수익 실현 전략이 유효. SL은 1.0%가 W1/W2 균형 최적.",
+      "timestamp": "2026-04-04T09:49:33.636469"
+    },
+    {
+      "cycle": 141,
+      "summary": "DONE 신호 없음 — 842s 후 종료",
+      "detail": "백그라운드 pytest도 exit code 0으로 완료됐습니다. 사이클 141 모든 검증 통과.",
+      "timestamp": "2026-04-04T10:06:46.595255"
+    },
+    {
+      "cycle": 142,
+      "summary": "작업: stealth_3gate TP 하한 탐색 — TP=3%/4% vs 현재 TP=5%/SL=1.0% 6조합 비교 | 결과: **TP=5% 하한 확인** — TP=3%에서 W2 Sharpe 하락(11.359/11.757), TP=4%도 SL=1.0% 기준 열세(11.952), 현재 TP=5%/SL=1.0% (W2 12.126) 균형 최적 유지, daemon 변경 불필요 | 다음제안: **(A) momentum_sol W1/W2 walk-forward 검증** — Sharpe 14.37 과적합 의심, daemon 반영 전 필수 검증, **(B) 신규 심볼 스캔** — TP=5%/btc_acc_min=1.2 현재 최적 파라미터 기준 신규 종목 탐색, **(C) vpin_eth walk-forward** — Sharpe 7.46 검증 후 daemon 추가 검토",
+      "detail": "커밋 완료.\n\n---\n\n[RALPH CYCLE 142 DONE] 작업: stealth_3gate TP 하한 탐색 — TP=3%/4% vs 현재 TP=5%/SL=1.0% 6조합 비교 | 결과: **TP=5% 하한 확인** — TP=3%에서 W2 Sharpe 하락(11.359/11.757), TP=4%도 SL=1.0% 기준 열세(11.952), 현재 TP=5%/SL=1.0% (W2 12.126) 균형 최적 유지, daemon 변경 불필요 | 다음제안: **(A) momentum_sol W1/W2 walk-forward 검증** — Sharpe 14.37 과적합 의심, daemon 반영 전 필수 검증, **(B) 신규 심볼 스캔** — TP=5%/btc_acc_min=1.2 현재 최적 파라미터 기준 신규 종목 탐색, **(C) vpin_eth walk-forward** — Sharpe 7.46 검증 후 daemon 추가 검토",
+      "timestamp": "2026-04-04T10:12:30.910729"
+    },
+    {
+      "cycle": 143,
+      "summary": "작업: stealth_3gate 신규 심볼 스캔 — 전체 141개 심볼 W1/W2 per-symbol 분석 + 확장 세트 비교 | 결과: **7개 wallet 실제 W2 Sharpe=9.547(n=31)** vs **14개 확장 후 W2 Sharpe=13.183(n=71, WR=59.2%)** — daemon.toml symbols에 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA 추가 완료 | 다음제안: **(A) vpin_eth walk-forward 검증** — Sharpe 7.46 검증 후 daemon 추가 검토, **(B) RS 범위 재탐색** — 14개 심볼 기준 RS=[0.4,0.9) 재최적화 (확장 심볼 반영), **(C) 14개 심볼 기준 BTC_ACC_MIN 재탐색** — 신규 심볼 추가로 최적 임계값 변화 가능성",
+      "detail": "커밋 완료.\n\n---\n\n[RALPH CYCLE 143 DONE] 작업: stealth_3gate 신규 심볼 스캔 — 전체 141개 심볼 W1/W2 per-symbol 분석 + 확장 세트 비교 | 결과: **7개 wallet 실제 W2 Sharpe=9.547(n=31)** vs **14개 확장 후 W2 Sharpe=13.183(n=71, WR=59.2%)** — daemon.toml symbols에 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA 추가 완료 | 다음제안: **(A) vpin_eth walk-forward 검증** — Sharpe 7.46 검증 후 daemon 추가 검토, **(B) RS 범위 재탐색** — 14개 심볼 기준 RS=[0.4,0.9) 재최적화 (확장 심볼 반영), **(C) 14개 심볼 기준 BTC_ACC_MIN 재탐색** — 신규 심볼 추가로 최적 임계값 변화 가능성",
+      "timestamp": "2026-04-04T10:24:16.420876"
+    }
+  ],
+  "ralph_last_run": "2026-04-04T10:24:16.420888",
+  "engine_bias_note": "⚠️ 사이클 94~144 Sharpe 수치는 1봉 선행편향 엔진 결과 (무효). 수정: 22fa9ed (2026-04-04 10:35). 사이클 145부터 수정된 엔진 기준.",
+  "revalidated_baselines": {
+    "stealth_3gate": {
+      "w2_sharpe": 13.703,
+      "acc_min": 1.0,
+      "rs_low": 0.4,
+      "rs_high": 0.9,
+      "cycle": "144-R"
+    },
+    "momentum_sol": "pending (cycle 145+)",
+    "vpin_eth": "pending (cycle 145+)"
+  }
+}
