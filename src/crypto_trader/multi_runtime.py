@@ -438,6 +438,7 @@ class MultiSymbolRuntime:
         }
         # Refresh macro/regime-aware multipliers after regime detection and price collection.
         self._refresh_macro()
+        self._propagate_market_regime()
         self._apply_kill_switch_penalty()
         self._latest_prices = dict(latest_prices)
         self._maybe_rebalance_for_macro_regime_change(candle_cache, latest_prices)
@@ -1002,6 +1003,11 @@ class MultiSymbolRuntime:
     def _propagate_macro_snapshot(self, snapshot: MacroSnapshot | None) -> None:
         for wallet in self._wallets:
             wallet.set_macro_snapshot(snapshot)
+
+    def _propagate_market_regime(self) -> None:
+        """Inject current market regime string into every wallet for active_regimes gating."""
+        for wallet in self._wallets:
+            wallet.set_market_regime(self._current_market_regime)
 
     def _apply_kill_switch_penalty(self) -> None:
         """Scale down position sizes when kill switch tiered thresholds are breached."""

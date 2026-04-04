@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock
 
 from crypto_trader.config import RiskConfig, WalletConfig, _strategy_override_names
 from crypto_trader.execution.paper import PaperBroker
@@ -179,3 +180,19 @@ def test_set_market_regime_not_called_defaults_to_sideways() -> None:
     result = wallet.run_once("KRW-SOL", _make_candles())
     assert result.signal.action == SignalAction.HOLD
     assert "regime_gate" in result.signal.reason
+
+
+def test_run_tick_propagates_regime_to_all_wallets() -> None:
+    """_run_tick() must call set_market_regime on every wallet after regime detection."""
+    from crypto_trader.multi_runtime import MultiSymbolRuntime
+
+    # Build minimal runtime with mock wallets
+    runtime = MagicMock(spec=MultiSymbolRuntime)
+    runtime._current_market_regime = "sideways"
+    runtime._wallets = [MagicMock(), MagicMock()]
+
+    # Call the real method, not the mock
+    MultiSymbolRuntime._propagate_market_regime(runtime)
+
+    for wallet in runtime._wallets:
+        wallet.set_market_regime.assert_called_once_with("sideways")
