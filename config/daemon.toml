@@ -413,6 +413,10 @@ atr_stop_multiplier = 1.5
 #   근거: BTC_ACC_MIN=1.2 → W2 Sharpe 9.941→10.160(+0.219), W1 Sharpe 9.003→9.658(+0.655)
 #   기존 CVD slope(cvd_slope_threshold=0.0) → acc 방식(btc_stealth_acc_min=1.2) 전환
 #   원리: 가격 하락(ret_w<1.0) + 누적 지표>1.2 = 스텔스 매집 신호 (분산 매수 탐지)
+# 사이클 140 (2026-04-04): TP/SL 최적화 — TP=8%/SL=1.0%
+#   근거: TP=8% W2 Sharpe 10.160→11.204(+1.044), W1 Sharpe 9.571(n=90)
+#   그리드: TP∈{8,10,12,15}% × SL∈{0.8,1.0,1.5,2.0}% (16조합) — TP=8%/SL=1.0% 최적
+#   분석: TP 낮을수록(8%>10%>12%>15%) W2 Sharpe 개선 → BEAR 레짐 단기 목표가 적합
 # PRE-STAGED SUI (사이클 113, 2026-04-04):
 #   근거: W2 Sharpe +3.990, W3 Sharpe +3.068 (2/3창 통과), W1 실패는 SUI 초기 BEAR(2023) — Gate1 실전 차단
 #   상관관계: SUI vs 기존 7심볼 평균 0.606 (XRP 최저 0.504, AVAX 최고 0.643)
@@ -439,7 +443,7 @@ btc_trend_window = 10
 
 [wallets.risk_overrides]
 stop_loss_pct = 0.010
-take_profit_pct = 0.10
+take_profit_pct = 0.08
 risk_per_trade_pct = 0.02
 
 # vpin_ondo_wallet: 사이클 119+122 walk-forward 검증 확정 (2026-04-04)
