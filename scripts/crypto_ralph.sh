@@ -216,6 +216,7 @@ ${RESEARCH}
 - OOS 윈도우 재사용 금지 — artifacts/oos_window_registry.json 확인 후 새 윈도우 사용, 완료 후 기록
 - daemon 반영 전 단순 보유(buy-and-hold) 대비 수익률 비교 필수
 - 슬리피지 미포함 백테스트 결과에는 반드시 ★슬리피지미포함 표시
+- 백테스트 진입가: 신호 발생 봉의 종가(close) 사용 금지 → 반드시 다음 봉 시가(next_bar['open']) 사용
 
 완료 후 반드시 마지막에 출력:
 [RALPH CYCLE ${CYCLE} DONE] 작업: <한줄요약> | 결과: <Sharpe/WR/기타> | 다음제안: <다음사이클에서 할 것>
