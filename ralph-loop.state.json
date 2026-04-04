@@ -1,5 +1,5 @@
 {
-  "current_cycle": 145,
+  "current_cycle": 146,
   "history": [
     {
       "cycle": 94,
@@ -205,6 +205,11 @@
       "cycle": 145,
       "timestamp": "2026-04-04T12:50:00",
       "result": "MAX_HOLD 재탐색 — 24봉 유지 (TP=5% 구조에서 바인딩 제약 아님)"
+    },
+    {
+      "cycle": "145-B",
+      "timestamp": "2026-04-04T12:55:00",
+      "result": "momentum_sol C1 bias-corrected — OOS Sharpe 18.798 (open entry), daemon 파라미터 유지 확정"
     }
   ],
   "ralph_cycle": 0,
@@ -400,7 +405,12 @@
       "rs_high": 0.9,
       "cycle": "144-R"
     },
-    "momentum_sol": "pending (cycle 145+)",
+    "momentum_sol": {
+      "oos_sharpe": 18.798,
+      "method": "open[i+1]",
+      "params": "lb=12 adx=25 vol=2.0 TP=12% SL=4%",
+      "cycle": "145-B"
+    },
     "vpin_eth": "pending (cycle 145+)"
   }
 }

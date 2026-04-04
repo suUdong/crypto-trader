@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-04-04 — momentum_sol C1 편향 보정 검증 (open[i+1] entry, 사이클 145-B)
+
+**목적**: close[i+1] vs open[i+1] 진입 방식 비교 — close 방식의 경미한 편향 확인
+**스크립트**: `scripts/backtest_momentum_sol_walkforward.py` (Codex 실행)
+
+| 후보 | 방법 | IS Sharpe | OOS Sharpe | OOS WR | 거래수 | 판정 |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| C0 lb=20 | close[i+1] | +15.276 | +12.067 | 47.8% | 23 | ✅ PASS |
+| C0 lb=20 | open[i+1] | +10.882 | +13.115 | 42.3% | 26 | ❌ (WR<45%) |
+| **C1 lb=12** | **close[i+1]** | **+12.578** | **+17.525** | **56.5%** | **23** | **✅ PASS** |
+| **C1 lb=12** | **open[i+1] ★** | **+9.103** | **+18.798** | **52.0%** | **25** | **✅ PASS** |
+| C2~C5 | 모두 | — | — | — | — | ❌ FAIL |
+
+**핵심 발견**:
+- C1이 두 방법 모두 통과 — 신호 자체가 robust
+- open[i+1] 기준 OOS Sharpe 오히려 개선 (17.5→18.8): 편향에 의한 과대평가 없음
+- IS Sharpe는 close 방식이 더 높음 → close 방식에 경미한 IS 편향 존재 확인
+
+**결론**: ✅ **C1 daemon 유지 확정** — `lb=12, adx=25, vol=2.0, TP=12%, SL=4%`
+- daemon.toml 이미 C1 파라미터 반영됨 (변경 불필요)
+- OOS Sharpe 18.798 (bias-corrected) — 가장 강한 단일 전략 엣지
+
+---
+
 ## 2026-04-04 — stealth_3gate MAX_HOLD 재탐색 (14심볼, TP=5%, 사이클 145)
 
 **목적**: 사이클 138 MAX_HOLD 탐색은 전체심볼+TP=10% 기준 → 현재 14심볼+TP=5% 기준 재검증
