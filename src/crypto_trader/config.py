@@ -309,6 +309,9 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
     },
 }
 
+# Fields allowed in strategy_overrides for ALL wallet strategies (not strategy-specific)
+_COMMON_WALLET_OVERRIDE_FIELDS: frozenset[str] = frozenset({"active_regimes"})
+
 
 def load_config(
     path: str | Path | None = None,
@@ -954,7 +957,11 @@ def _read_wallet_override_map(raw_wallet: dict[str, Any], key: str) -> dict[str,
 
 
 def _strategy_override_names(strategy_name: str) -> set[str]:
-    return _STRATEGY_FIELD_NAMES | _STRATEGY_EXTRA_OVERRIDE_FIELDS.get(strategy_name, set())
+    return (
+        _STRATEGY_FIELD_NAMES
+        | _STRATEGY_EXTRA_OVERRIDE_FIELDS.get(strategy_name, set())
+        | _COMMON_WALLET_OVERRIDE_FIELDS
+    )
 
 
 def _apply_strategy_overrides(
