@@ -58,7 +58,7 @@ def test_live_monitor_absent_when_no_daemon_strategies():
     assert "live_monitor" not in traits
 
 
-def test_comparative_analyst_requires_two_similar_strategies():
+def test_comparative_analyst_requires_two_daemon_strategies():
     data = {
         "new_backtests": [],
         "ralph_cycles_since_last": 5,

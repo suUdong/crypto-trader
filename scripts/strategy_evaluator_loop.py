@@ -91,6 +91,13 @@ def collect_data(last_eval_cycle: int | None) -> dict:
         done = ralph.get("ralph_done", [])
         since = [d for d in done if d.get("cycle", 0) > (last_eval_cycle or 0)]
         data["ralph_cycles_since_last"] = len(since)
+        # backtest count: ralph cycles that mention backtest work
+        backtest_keywords = ("백테스트", "Sharpe", "backtest", "W1=", "W2=")
+        bt_cycles = [
+            d for d in since
+            if any(kw in d.get("summary", "") for kw in backtest_keywords)
+        ]
+        data["new_backtests_count"] = len(bt_cycles)
         data["ralph_recent_summaries"] = [
             {"cycle": d["cycle"], "summary": d.get("summary", "")} for d in done[-5:]
         ]
@@ -109,7 +116,6 @@ def collect_data(last_eval_cycle: int | None) -> dict:
             if m:
                 bt_entries.append({"slippage": float(m.group(1)), "sharpe": float(m.group(2))})
         data["new_backtests"] = bt_entries
-        data["new_backtests_count"] = len(bt_entries)
     except Exception:
         pass
 
