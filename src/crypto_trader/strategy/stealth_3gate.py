@@ -43,6 +43,7 @@ class Stealth3GateStrategy:
         min_confidence: float = 0.3,
         btc_trend_pos_gate: bool = False,
         btc_trend_window: int = 10,
+        alt_cvd_slope_max: float | None = None,
     ) -> None:
         self._config = config
         self._stealth_window = stealth_window
@@ -54,6 +55,7 @@ class Stealth3GateStrategy:
         self._min_confidence = min_confidence
         self._btc_trend_pos_gate = btc_trend_pos_gate
         self._btc_trend_window = btc_trend_window
+        self._alt_cvd_slope_max = alt_cvd_slope_max
 
         # Internal BTC candle buffer updated via set_btc_candles()
         self._btc_candles: list[Candle] = []
@@ -157,6 +159,21 @@ class Stealth3GateStrategy:
                 context=context,
             )
 
+        # Gate 5 – Alt CVD Slope (optional, cycle 137: alt cvd_slope < alt_cvd_slope_max)
+        # Negative CVD slope on alt = strong sell pressure → validates stealth accumulation.
+        # Validated: cvd_slope < -0.1 → W2 Sharpe 10.443 (+0.502 vs baseline 9.941, cycle 136).
+        if self._alt_cvd_slope_max is not None:
+            alt_cvd_slope = self._calculate_cvd_slope(candles, self._stealth_window)
+            indicators["alt_cvd_slope"] = alt_cvd_slope
+            if alt_cvd_slope >= self._alt_cvd_slope_max:
+                return Signal(
+                    action=SignalAction.HOLD,
+                    reason="alt_cvd_slope_gate_fail",
+                    confidence=0.1,
+                    indicators=indicators,
+                    context=context,
+                )
+
         # Gate 4 – BTC Trend Positive (10-bar return > 0, validated cycles 94–96)
         if self._btc_trend_pos_gate and btc_ok:
             tw = self._btc_trend_window
@@ -241,31 +258,37 @@ class Stealth3GateStrategy:
 
     @staticmethod
     def _calculate_cvd_slope(candles: list[Candle], window: int) -> float:
-        """Compute CVD slope over the last *window* candles.
+        """Compute normalised CVD slope over the last *window* candles.
 
-        CVD = cumulative sum of (close - open) / (high - low) * volume.
-        Slope = (CVD[-1] - CVD[0]) / window.
-        Returns 0.0 when the price range is zero or data is insufficient.
+        CVD delta per bar = sign(close - open) * volume  {-1, 0, +1} × volume.
+        Slope = sum(CVD_deltas in window) / (vol_mean * window)  -- dimensionless.
+
+        This normalised form (validated in backtest cycle 136) makes the threshold
+        comparable across symbols with different volume scales:
+        - Positive slope: net buying pressure over the window.
+        - Negative slope: net selling pressure (stealth accumulation signal).
+        Returns 0.0 when volume is zero or data is insufficient.
         """
         recent = candles[-window:]
         if len(recent) < 2:
             return 0.0
 
-        cvd = 0.0
-        cvd_first: float | None = None
+        cvd_raw_sum = 0.0
+        vol_sum = 0.0
         for candle in recent:
-            price_range = candle.high - candle.low
-            if price_range > 0:
-                direction = (candle.close - candle.open) / price_range
+            if candle.close > candle.open:
+                direction = 1.0
+            elif candle.close < candle.open:
+                direction = -1.0
             else:
                 direction = 0.0
-            cvd += direction * candle.volume
-            if cvd_first is None:
-                cvd_first = cvd
+            cvd_raw_sum += direction * candle.volume
+            vol_sum += candle.volume
 
-        if cvd_first is None:
+        vol_mean = vol_sum / len(recent)
+        if vol_mean < 1e-9:
             return 0.0
-        return (cvd - cvd_first) / window
+        return cvd_raw_sum / (vol_mean * window)
 
     @staticmethod
     def _calculate_rs_score(candles: list[Candle], window: int) -> float:
