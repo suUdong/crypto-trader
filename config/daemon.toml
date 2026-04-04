@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-ONT"]
+symbols = ["KRW-MASK"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -141,7 +141,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-SOMI"]
+symbols = ["KRW-G"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -307,7 +307,11 @@ partial_tp_pct = 0.5
 
 # vpin_eth_wallet: 2026-04-03 그리드 최적화 Sharpe +7.461 WR 27.6%
 # UPDATED: TP 4%→6%, SL 1.2%→0.8%, max_hold 24→18, vpin_mom 0.0003→0.0005
-# 이전값: TP=0.04, SL=0.012, hold=24, vpin_mom=0.0003
+# UPDATED 2026-04-05 사이클 152: TP 6%→7% — WF avg OOS +8.379 > +7.625 (Δ+0.754)
+#   근거: TP=7%/SL=0.8% F1=+8.015(n=93) F2=+8.744(n=67) ✅ 양 Fold 통과
+#   슬리피지 0.10%까지 Sharpe≥5.0, 전 수준에서 TP=6% 대비 우세
+#   연도별: 2022만 TP=6% 소폭 우세(-1.091), 2023~2026 TP=7% 압도
+#   이전값: TP=0.06
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
@@ -331,7 +335,7 @@ btc_stealth_gate = false
 active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
 stop_loss_pct = 0.008
-take_profit_pct = 0.06
+take_profit_pct = 0.07
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
