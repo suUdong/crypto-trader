@@ -420,6 +420,10 @@ atr_stop_multiplier = 1.5
 # 사이클 143 (2026-04-04): 심볼 확장 — 7개→14개
 #   근거: 7개 wallet 실제 W2 Sharpe=9.547(n=31) vs 확장 14개 W2 Sharpe=13.183(n=71,WR=59.2%)
 #   추가 심볼: ASTR, CELO, CHZ, IOST, NEO, PEPE, THETA (W2 Sharpe 상위 신규 종목)
+# 사이클 144 (2026-04-04): BTC_ACC_MIN 재최적화 — 1.2→1.15 (14심볼 기준)
+#   근거: 미세탐색 ACC∈{1.0~1.5} → ACC=1.15가 W2 Sharpe 13.813(+0.630), W1=5.051(≥5.0 통과)
+#   7심볼 기준 최적(1.2) → 14심볼 확장 후 1.15로 이동 (더 약한 BTC 스텔스 신호도 포착)
+#   RS_LO는 0.3~0.5 전체 동일 결과 → 불필요한 하한 필터 확인 (0.4 유지)
 #   주의: 심볼 선택이 W2 기간 성과 기반 — paper 모드에서 forward 검증 필요
 # PRE-STAGED SUI (사이클 113, 2026-04-04):
 #   근거: W2 Sharpe +3.990, W3 Sharpe +3.068 (2/3창 통과), W1 실패는 SUI 초기 BEAR(2023) — Gate1 실전 차단
@@ -441,7 +445,7 @@ rs_low = 0.4
 rs_high = 0.9
 cvd_slope_threshold = 0.0
 btc_stealth_gate = true
-btc_stealth_acc_min = 1.2
+btc_stealth_acc_min = 1.15
 btc_trend_pos_gate = false
 btc_trend_window = 10
 
