@@ -56,12 +56,14 @@ def load_history() -> dict:
 
 
 def save_history(history: dict) -> None:
+    HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = HISTORY_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(history, indent=2, ensure_ascii=False))
     tmp.replace(HISTORY_FILE)
 
 
 def save_report(report: dict) -> None:
+    REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = REPORT_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(report, indent=2, ensure_ascii=False))
     tmp.replace(REPORT_FILE)
@@ -143,8 +145,7 @@ def decide_traits(data: dict) -> list[str]:
     if len(slippage_values) >= 2:
         traits.append("slippage_stress_tester")
 
-    strategies = {b.get("strategy", "") for b in bt if b.get("strategy")}
-    if len(strategies) >= 2:
+    if len(data.get("daemon_strategies", [])) >= 2:
         traits.append("comparative_analyst")
 
     if data.get("daemon_strategies"):
@@ -261,7 +262,7 @@ def parse_evaluation_output(raw: str) -> dict:
 
 # ── Claude Opus 호출 ──────────────────────────────────────────────────────────
 
-def call_opus(prompt: str, timeout: int = 300) -> str:
+def call_opus(prompt: str, timeout: int = 300) -> str | None:
     """Claude CLI로 Opus 호출. 실패 시 빈 문자열."""
     try:
         result = subprocess.run(
@@ -271,7 +272,7 @@ def call_opus(prompt: str, timeout: int = 300) -> str:
         return result.stdout.strip()
     except Exception as e:
         print(f"[evaluator] Opus 호출 실패: {e}")
-        return ""
+        return None
 
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
@@ -359,6 +360,8 @@ def run_once(dry_run: bool = False) -> bool:
     if last_eval:
         try:
             last_ts = datetime.fromisoformat(last_eval["timestamp"])
+            if last_ts.tzinfo is None:
+                last_ts = last_ts.replace(tzinfo=timezone.utc)
             minutes_since = (datetime.now(timezone.utc) - last_ts).total_seconds() / 60
         except Exception:
             minutes_since = 9999.0
@@ -394,6 +397,9 @@ def run_once(dry_run: bool = False) -> bool:
     else:
         prompt = build_opus_prompt(traits, data)
         raw = call_opus(prompt)
+        if not raw:
+            print("[evaluator] Opus 응답 없음 — 이번 평가 스킵")
+            return False
         verdict = parse_evaluation_output(raw)
 
     eval_id = f"eval-{uuid.uuid4().hex[:8]}"

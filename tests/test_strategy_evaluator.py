@@ -60,12 +60,10 @@ def test_live_monitor_absent_when_no_daemon_strategies():
 
 def test_comparative_analyst_requires_two_similar_strategies():
     data = {
-        "new_backtests": [
-            {"strategy": "vpin_eth", "sharpe": 5.0},
-            {"strategy": "vpin_ondo", "sharpe": 4.0},
-        ],
+        "new_backtests": [],
         "ralph_cycles_since_last": 5,
-        "daemon_strategies": [],
+        "daemon_strategies": ["momentum_sol", "vpin_eth"],
+        "backtest_history_tail": "",
     }
     traits = ev.decide_traits(data)
     assert "comparative_analyst" in traits
