@@ -5630,3 +5630,38 @@ stealth_3gate_wallet_1:
 - (C) MAX_HOLD 최적화 탐색 — 현재 24봉 고정, 12/18/24/36 비교
 
 ---
+
+## 2026-04-04 — stealth_3gate cvd_slope 게이트 탐색 (사이클 135)
+
+**목적**: alt cvd_slope 게이트 추가 — 진입 시 순매수 압력(양의 CVD slope) 확인으로 신호 품질 강화 가능성 탐색
+**고정 파라미터**: W=36, SMA=10, RS=[0.4,0.9), TP=10%, SL=1.0%, Gate4=OFF, acc>1.0, MAX_HOLD=24
+**탐색**: cvd_slope_threshold ∈ {None(OFF), 0.001, 0.005, 0.010}, CVD 창=12봉(48h)
+**스크립트**: `scripts/backtest_cycle135_cvd_slope.py`
+**소요**: 21.0초
+
+### 탐색 결과
+
+| cvd_thresh | alt_syms | W1 Sharpe | W1 n | W2 Sharpe | W2 n | W2 WR | 통과 |
+|---|---|---|---|---|---|---|---|
+| **None(OFF) 📌** | 116 | **9.003** | 105 | **9.941** | 554 | 43.7% | ✅ |
+| 0.001 | 1 | nan | 0 | nan | 3 | nan | ❌ |
+| 0.005 | 1 | nan | 0 | nan | 3 | nan | ❌ |
+| 0.010 | 1 | nan | 0 | nan | 3 | nan | ❌ |
+
+**핵심 발견 — 구조적 충돌**:
+- 진입 시점의 CVD slope 분포: mean=-0.40, std=0.32 (ETH 기준)
+- 스텔스 조건(ret_W < 1.0 = 가격 하락 + acc > 1.0 = 볼륨 누적)이 구조적으로 매도 압력 국면에서 발생
+- "양의 CVD slope" 요구는 스텔스 신호의 본질과 정반대 — 진입 후보의 83% 제거
+- cvd_slope > 0.001 → 116 심볼에서 1 심볼로 급락 (신호 99% 소멸)
+
+**결론**: ✅ **현재 설정(cvd_slope 필터 없음) 유지 확정**
+- 양의 CVD slope 게이트는 스텔스 전략과 구조적으로 incompatible
+- 탐색 공간 소진 — cvd_slope ≥ 0 계열 필터 무의미
+- daemon.toml 변경 불필요
+
+**새 가설 (사이클 136 후보)**:
+- **역방향 CVD slope**: cvd_slope < -0.1 등 "강한 매도 압력" 조건이 오히려 스텔스 품질 지표일 수 있음 (진입 시점 mean=-0.40)
+- **MAX_HOLD 최적화**: 현재 24봉 고정, 12/18/24/36 비교
+- **BTC stealth acc 임계값**: alt acc>1.0은 확정, BTC stealth acc 미탐색
+
+---
