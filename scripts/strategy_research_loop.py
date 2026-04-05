@@ -562,17 +562,21 @@ def pick_next_task(state: dict) -> dict | None:
     done = set(state["done"])
     # 정적 파이프라인 + 동적으로 추가된 태스크 모두 탐색
     all_tasks = PIPELINE + state.get("dynamic_tasks", [])
+    # 1) 일반 태스크 먼저 — interval 태스크가 replenish를 차단하지 않도록
     for task in all_tasks:
-        # interval 태스크: 시간이 됐으면 done에 있어도 재실행
-        if task.get("interval_hours") and _is_interval_task_due(task, state):
-            return task
+        if task.get("interval_hours"):
+            continue
         if task["id"] in done:
             continue
         if task.get("requires_torch") and not _TORCH_AVAILABLE:
             print(f"[research] torch 없음 — 건너뜀: {task['id']}")
             continue
         return task
-    return None  # 파이프라인 전부 완료
+    # 2) 일반 태스크 없으면 interval 태스크 체크 (due일 때만)
+    for task in all_tasks:
+        if task.get("interval_hours") and _is_interval_task_due(task, state):
+            return task
+    return None  # 파이프라인 전부 완료 → run_cycle에서 replenish 트리거
 
 
 def run_cycle(state: dict, dry_run: bool = False) -> dict:
