@@ -15059,3 +15059,79 @@ trades: 13
 </details>
 
 ---
+
+## 2026-04-05 10:54 UTC — 시그널강도(VPIN+MOM) 기반 적응형 TP/SL 스케일링 108조합 3-fold WF — 진입 유지, fat-tail 수확 극대화 [ralph:c209_signal_strength_tpsl] 🌟[promising]
+
+**결과**: Sharpe +42.878 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+ [PASS]
+  slip=0.0020: Sharpe=+14.399 WR=42.5% n=64 [PASS]
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: wVPIN=0.7 wMOM=0.3 tpBoost=0.8 slTighten=0.0) ===
+  KRW-ETH Fold 1: Sharpe=+12.479  WR=37.5%  n=8  avg=+0.76%  MDD=-0.0110
+  KRW-SOL Fold 1: Sharpe=+18.963  WR=57.1%  n=7  avg=+1.44%  MDD=-0.0171
+  KRW-XRP Fold 1: Sharpe=+13.388  WR=16.7%  n=6  avg=+2.92%  MDD=-0.0205
+  KRW-ETH Fold 2: Sharpe=+22.730  WR=50.0%  n=10  avg=+2.43%  MDD=-0.0194
+  KRW-SOL Fold 2: Sharpe=-2.551  WR=33.3%  n=9  avg=-0.10%  MDD=-0.0473
+  KRW-XRP Fold 2: Sharpe=+21.223  WR=50.0%  n=4  avg=+5.28%  MDD=-0.0285
+  KRW-ETH Fold 3: Sharpe=+18.056  WR=37.5%  n=8  avg=+2.04%  MDD=-0.0331
+  KRW-SOL Fold 3: Sharpe=+11.730  WR=37.5%  n=8  avg=+0.71%  MDD=-0.0177
+  KRW-XRP Fold 3: Sharpe=+42.878  WR=75.0%  n=4  avg=+1.52%  MDD=+0.0000
+  KRW-ETH 평균: Sharpe=+17.755  총 trades=26
+  KRW-SOL 평균: Sharpe=+9.381  총 trades=24
+  KRW-XRP 평균: Sharpe=+25.830  총 trades=14
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c209 최적 (wVPIN=0.7 wMOM=0.3 tpBoost=0.8 slTighten=0.0): avg_OOS=+17.655 n=64
+  Δ vs c179: -25.223 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: wVPIN=0.7 wMOM=0.3 tpBoost=0.8 slTighten=0.0
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +17.655 PASS
+  train Sharpe: +17.950
+  Fold 1: Sharpe=+14.943  WR=37.1%  trades=21  avg=+1.71%  MDD=-0.0162
+  Fold 2: Sharpe=+13.801  WR=44.4%  trades=23  avg=+2.54%  MDD=-0.0317
+  Fold 3: Sharpe=+24.221  WR=50.0%  trades=20  avg=+1.42%  MDD=-0.0169
+
+Sharpe: +17.655
+WR: 43.8%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 19:55 UTC — c213 Cross-Asset Lead-Lag 분석 (BTC 240m/60m → ETH/SOL/XRP) [ralph:c213_cross_asset_lead_lag]
+
+**목적**: BTC가 ALT를 선행하는지 통계적 검증 — 평가자 [explore] 방향
+
+**240m (4h) 결과**:
+| 페어 | Best Lag | Hours | r | p-value | 방향성 WR (BTC↑후) |
+|---|---|---|---|---|---|
+| BTC→ETH | 11 | 44h | +0.0396 | 0.0009 | **57.2%** (n=736, p<0.001) |
+| BTC→SOL | 6 | 24h | -0.0425 | 0.0003 | 55.4% lag11 (n=736, p=0.002) |
+| BTC→XRP | 6 | 24h | -0.0341 | 0.004 | 없음 |
+
+**60m (1h) 결과**: lag=1에서 음의 상관 (r=-0.04~-0.06) — 1시간 mean reversion, 트렌드팔로잉 부적합
+
+**레짐별**: BULL에서만 BTC→ETH/SOL lag=2 WR 55-57% 유효, BEAR에서 소멸
+
+**결론**: ❌ **독립 알파로 불충분** — 최대 r=0.04, 방향성 WR 57% (ETH, 44h lag). 거래비용 후 순수익 불명확. 기존 전략 보조 게이트로만 가치 가능. 단독 전략 설계는 비추천.
+
+---
