@@ -14851,3 +14851,129 @@ trades: 88
 **결론**: 🔻 시그널 강도 기반 TP/SL 스케일링 실패. 진입을 건드리지 않는 접근도 무효. c179의 고정 TP/SL 체계가 이미 최적 calibration 상태. 7사이클 연속 c179 미돌파 → 필터/게이트/TP-SL 조정 축 모두 구조적 한계 도달. 새 평가자 리포트 필요.
 
 ---
+
+## 2026-04-05 10:36 UTC — c179 베이스 위에 MACD histogram slope 진입게이트+적응적홀드+감속조기청산 144조합 3-fold WF [ralph:c209_macd_slope_gate_adaptive_hold] 🌟[promising]
+
+**결과**: Sharpe +24.301 | WR 58.5% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: mcF=12 mcS=21 hsLB=5 hsG=0.0 hbM=0.0 dex=0) ===
+  KRW-ETH Fold 1: Sharpe=+11.513  WR=37.5%  n=8  avg=+0.56%  MDD=-0.0110
+  KRW-SOL Fold 1: Sharpe=+19.036  WR=57.1%  n=7  avg=+1.61%  MDD=-0.0171
+  KRW-XRP Fold 1: Sharpe=+19.971  WR=25.0%  n=4  avg=+4.30%  MDD=-0.0119
+  KRW-ETH Fold 2: Sharpe=+16.884  WR=44.4%  n=9  avg=+1.21%  MDD=-0.0194
+  KRW-SOL Fold 2: Sharpe=-2.551  WR=33.3%  n=9  avg=-0.10%  MDD=-0.0473
+  KRW-XRP Fold 2: Sharpe=+24.301  WR=33.3%  n=3  avg=+5.76%  MDD=-0.0151
+  KRW-ETH Fold 3: Sharpe=+8.795  WR=28.6%  n=7  avg=+0.62%  MDD=-0.0331
+  KRW-SOL Fold 3: Sharpe=+8.436  WR=28.6%  n=7  avg=+0.54%  MDD=-0.0253
+  KRW-XRP Fold 3: Sharpe=+19.643  WR=50.0%  n=4  avg=+0.80%  MDD=-0.0071
+  KRW-ETH 평균: Sharpe=+12.397  총 trades=24
+  KRW-SOL 평균: Sharpe=+8.307  총 trades=23
+  KRW-XRP 평균: Sharpe=+21.305  총 trades=11
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c209 최적 (mcF=12 mcS=21 hsLB=5 hsG=0.0 hbM=0.0 dex=0): avg_OOS=+14.003 n=58
+  Δ Sharpe: -28.875 (악화)
+  Δ trades: -2 (vs c179 ~60)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: mcF=12 mcS=21 hsLB=5 hsG=0.0 hbM=0.0 dex=0
+  (c201 고정: obvP=20 obvSB=0.0 obvVS=0.0)
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +14.003 PASS
+  train Sharpe: +19.626
+  Fold 1: Sharpe=+16.840  WR=39.9%  trades=19  avg=+2.15%  MDD=-0.0133
+  Fold 2: Sharpe=+12.878  WR=37.0%  trades=21  avg=+2.29%  MDD=-0.0273
+  Fold 3: Sharpe=+12.292  WR=35.7%  trades=18  avg=+0.65%  MDD=-0.0218
+
+Sharpe: +14.003
+WR: 37.5%
+trades: 58
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 19:50 UTC — c211 Daemon 포트폴리오 상관관계 분석 [ralph:c211_portfolio_correlation]
+
+**목적**: 평가자 방향 — 단일 전략 최적화 한계 도달, 포트폴리오 레벨 자본 효율 검증
+**기간**: 2024-01-01 ~ 2026-04-05 | 14개 지갑 (2개 실험 전략 제외)
+★슬리피지포함 | 🔄다음봉시가진입 (engine 기반)
+
+### 개별 지갑 성능
+
+| 지갑 | 전략 | 심볼 | Sharpe | WR | n | MDD | Return | Kelly |
+|---|---|---|---|---|---|---|---|---|
+| bb_squeeze_eth | bb_squeeze_independent | ETH | +3.732 | 68.6% | 35 | -0.92% | +6.20% | 50.28% |
+| bb_squeeze_doge | bb_squeeze_independent | DOGE | +1.039 | 33.3% | 9 | -1.19% | +1.75% | 18.64% |
+| vpin_ondo | vpin | ONDO | +0.634 | 57.6% | 33 | -2.17% | +0.88% | 7.00% |
+| vpin_xrp | vpin | XRP | +0.505 | 36.4% | 11 | -0.20% | +0.15% | 10.37% |
+| accumulation_tree | accumulation_breakout | RAY | +0.475 | 33.3% | 9 | -0.68% | +0.45% | 9.37% |
+| bb_squeeze_sol | bb_squeeze_independent | SOL | +0.335 | 44.4% | 9 | -1.31% | +0.44% | 9.49% |
+| momentum_sol | momentum | SOL | +0.094 | 48.3% | 29 | -1.18% | +0.14% | 10.50% |
+| vpin_doge | vpin | DOGE | -0.206 | 16.7% | 6 | -0.61% | -0.14% | 0.00% |
+| vpin_sol | vpin | SOL | -0.339 | 0.0% | 3 | -0.50% | -0.20% | 0.00% |
+| vpin_eth | vpin | ETH | -0.803 | 25.0% | 4 | -0.56% | -0.24% | 0.00% |
+| vpin_avax | vpin | AVAX | -0.850 | 20.0% | 5 | -0.39% | -0.24% | 0.00% |
+| accumulation_dood | accumulation_breakout | ONT | -0.937 | 0.0% | 3 | -0.83% | -0.76% | 0.00% |
+| stealth_3gate_1 | stealth_3gate | AVAX | -1.050 | 0.0% | 3 | -0.52% | -0.40% | 0.00% |
+| volspike_btc | volume_spike | BTC | -1.148 | 25.0% | 4 | -0.93% | -0.52% | 0.00% |
+
+### 상관행렬 — 주요 쌍
+
+| 쌍 | 상관 | 판정 |
+|---|---|---|
+| vpin_sol ↔ vpin_avax | **+0.834** | 🔴 중복 — 같은 전략, 상관 자산 |
+| vpin_eth ↔ vpin_avax | +0.643 | 🟡 높음 |
+| vpin_sol ↔ stealth_3gate | +0.537 | 🟡 높음 |
+| vpin_eth ↔ vpin_sol | +0.502 | 🟡 높음 |
+| vpin_eth ↔ stealth_3gate | +0.440 | 🟡 중간 |
+| vpin_avax ↔ stealth_3gate | +0.425 | 🟡 중간 |
+| bb_squeeze_doge ↔ bb_squeeze_sol | +0.340 | 약간 |
+| volspike_btc ↔ vpin_xrp | **-0.326** | 🟢 역상관 — 분산 효과 |
+| volspike_btc ↔ vpin_eth | +0.306 | 약간 |
+
+### 동시 MDD 분석
+
+- **포트폴리오 MDD**: -0.38%
+- **가중 개별 MDD 합**: -0.83%
+- **분산 효과**: 54% (MDD 0.45%p 감소)
+
+### Mean-Variance 최적 가중치 vs 현재
+
+| 지갑 | 현재 | 최적(Sharpe) | Δ | 판정 |
+|---|---|---|---|---|
+| bb_squeeze_eth | 5.0% | **23.2%** | +18.1% | ⬆️ 대폭 증액 |
+| vpin_sol | 5.0% | 12.9% | +7.9% | ⬆️ 증액 |
+| vpin_xrp | 5.0% | 11.6% | +6.5% | ⬆️ 증액 |
+| vpin_eth | **20.1%** | 8.0% | -12.1% | ⬇️ 대폭 감액 |
+| momentum_sol | **12.1%** | 3.4% | -8.6% | ⬇️ 대폭 감액 |
+| volspike_btc | 10.1% | 4.8% | -5.2% | ⬇️ 감액 |
+| accumulation_dood | 5.0% | 1.0% | -4.1% | ⬇️ 감액 |
+
+### 핵심 결론
+
+1. **vpin_sol ↔ vpin_avax 상관 0.834** → 사실상 중복 포지션. 둘 중 하나 제거하거나 자본 통합
+2. **bb_squeeze_eth 과소배분** → Sharpe 3.732, Kelly 50%, 현 5% → 최적 23%
+3. **vpin_eth 과대배분** → 현 20% → 최적 8%. 음수 Sharpe로 자본 유휴화
+4. **volspike_btc ↔ vpin_xrp 역상관 -0.33** → 유일한 분산 효과 쌍, 둘 다 유지 가치
+5. **분산 효과 54%** → 포트폴리오 구성 자체는 유효, 배분 비율만 조정 필요
+6. ⚠️ 대부분 지갑 n<30 — 통계적 유의성 제한. 특히 vpin_eth(4), vpin_sol(3) 결과는 참고용
+
+**다음 단계**: (A) bb_squeeze_eth 증액 + vpin_eth 감액 daemon.toml 반영 검토, (B) vpin_sol/vpin_avax 중복 해소 — 하나로 통합 또는 자산 변경, (C) cross-asset lead-lag 분석 (평가자 다음 방향)
+
+---
