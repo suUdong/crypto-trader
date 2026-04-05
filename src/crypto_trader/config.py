@@ -98,6 +98,10 @@ class RiskConfig:
     hv_size_mult: float = 1.0
     trail_activate_atr_mult: float = 0.0
     trail_sl_atr_mult: float = 0.0
+    # Ratchet stop: lock gains as price moves in favor (ATR-based)
+    ratchet_be_trigger: float = 0.0  # breakeven after N×ATR gain
+    ratchet_lock_trigger: float = 0.0  # lock pct of peak gain after N×ATR
+    ratchet_lock_pct: float = 0.0  # fraction of peak gain to lock (0.9=90%)
 
 
 @dataclass(slots=True)

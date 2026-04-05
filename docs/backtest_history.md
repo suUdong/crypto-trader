@@ -15681,3 +15681,13 @@ Top 3 OOS (3-fold WF):
 **결론**: 분할익절은 전략 특성에 따라 효과가 다름 — donchian(추세추종)에서는 유효하나 vpin(주문흐름 기반)에서는 trailing stop이 이미 최적 청산을 달성. 래칫 스탑은 c216에서 확인된 +3.436 유지. vpin 개선은 래칫 src/ 구현으로 추진 가능.
 
 ---
+
+## 2026-04-05 — c213 래칫 스탑 src/ 구현 + vpin_eth daemon 반영
+
+**작업**: RiskManager에 ratchet_be_trigger/ratchet_lock_trigger/ratchet_lock_pct 파라미터 추가, vpin_eth_wallet daemon.toml 반영
+**근거**: c216 (+3.436 Sharpe) + c220 (스태킹 검증, 래칫만 유효) 2회 3-fold WF 검증 완료
+**파라미터**: beTr=0.5 (0.5×ATR 이상 수익 시 손익분기 이동), lkTr=1.5 (1.5×ATR 이상 시 90% 이익 잠금), lkPct=0.90
+**결과**: 코드 구현 + 7개 유닛 테스트 통과, mypy strict 통과. paper 검증 시작.
+**결론**: 배포 완료. 1주간 paper 결과 모니터링 후 live 전환 판단.
+
+---

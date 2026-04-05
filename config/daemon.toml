@@ -355,6 +355,10 @@ lv_sl_offset = -0.1
 # c168 ATR trailing stop (activate after 1.8×ATR profit, trail at 0.4×ATR)
 trail_activate_atr_mult = 1.8
 trail_sl_atr_mult = 0.4
+# c216/c220 ratchet stop (+3.436 Sharpe, 2회 검증)
+ratchet_be_trigger = 0.5
+ratchet_lock_trigger = 1.5
+ratchet_lock_pct = 0.90
 
 # vpin_sol_wallet: c165 vpin_multi 3-fold WF 검증 확정 (2026-04-05 사이클 170)
 # 근거: c165 3-fold avg OOS Sharpe +13.254 (SOL 전 fold 최안정)

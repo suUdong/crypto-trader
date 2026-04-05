@@ -421,6 +421,31 @@ class RiskManager:
         if watermark_gain >= 0.012 and breakeven_touched:
             return "breakeven_stop"
 
+        # Ratchet stop: progressive gain-locking via ATR thresholds
+        cfg = self._config
+        if (
+            cfg.ratchet_be_trigger > 0
+            and self._current_atr > 0
+            and position.entry_price > 0
+        ):
+            atr_pct = self._current_atr / position.entry_price
+            be_pct = cfg.ratchet_be_trigger * atr_pct
+            lock_pct = cfg.ratchet_lock_trigger * atr_pct
+            ratchet_floor: float | None = None
+            if cfg.ratchet_lock_trigger > 0 and watermark_gain >= lock_pct:
+                locked = watermark_gain * cfg.ratchet_lock_pct
+                if position.is_short:
+                    ratchet_floor = position.entry_price * (1.0 - locked)
+                else:
+                    ratchet_floor = position.entry_price * (1.0 + locked)
+            elif watermark_gain >= be_pct:
+                ratchet_floor = position.entry_price
+            if ratchet_floor is not None:
+                if position.is_short and price >= ratchet_floor:
+                    return "ratchet_stop"
+                if not position.is_short and price <= ratchet_floor:
+                    return "ratchet_stop"
+
         # Regime-adaptive ATR stops (separate TP/SL multipliers)
         cfg = self._config
         if cfg.atr_tp_multiplier > 0 and cfg.atr_sl_multiplier > 0 and self._current_atr > 0:

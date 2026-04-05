@@ -345,5 +345,84 @@ class TestRiskGridExpanded(unittest.TestCase):
         self.assertIsInstance(result["return_pct"], float)
 
 
+class TestRatchetStop(unittest.TestCase):
+    """Ratchet stop: breakeven at beTr×ATR, lock lkPct of peak gain at lkTr×ATR."""
+
+    def _rm(self) -> RiskManager:
+        cfg = RiskConfig(
+            stop_loss_pct=0.10,
+            take_profit_pct=0.50,
+            ratchet_be_trigger=0.5,
+            ratchet_lock_trigger=1.5,
+            ratchet_lock_pct=0.90,
+        )
+        rm = RiskManager(cfg)
+        rm.set_atr(2.0)  # ATR=2.0, entry=100 → atr_pct=2%
+        return rm
+
+    def test_ratchet_breakeven_triggers(self) -> None:
+        """After 0.5×ATR gain (1%), price drops to entry → ratchet_stop.
+        Watermark < 1.2% to avoid the fixed breakeven_stop firing first."""
+        rm = self._rm()
+        pos = _pos(entry_price=100.0, high_watermark=101.1)  # peaked 1.1% (>1% be_thr, <1.2%)
+        reason = rm.exit_reason(pos, price=99.9, holding_bars=0)
+        self.assertEqual(reason, "ratchet_stop")
+
+    def test_ratchet_breakeven_not_triggered_below_threshold(self) -> None:
+        """Gain < 0.5×ATR (< 1%) → no ratchet."""
+        rm = self._rm()
+        pos = _pos(entry_price=100.0, high_watermark=100.5)  # only 0.5% gain
+        reason = rm.exit_reason(pos, price=99.5, holding_bars=0)
+        self.assertNotEqual(reason, "ratchet_stop")
+
+    def test_ratchet_lock_triggers(self) -> None:
+        """After 1.5×ATR gain (3%), lock 90% of peak → floor at 100+2.7=102.7."""
+        rm = self._rm()
+        pos = _pos(entry_price=100.0, high_watermark=104.0)  # peaked 4%
+        # Floor = 100 * (1 + 0.04 * 0.90) = 103.6
+        reason = rm.exit_reason(pos, price=103.5, holding_bars=0)
+        self.assertEqual(reason, "ratchet_stop")
+
+    def test_ratchet_lock_no_trigger_above_floor(self) -> None:
+        """Price above lock floor → no exit."""
+        rm = self._rm()
+        pos = _pos(entry_price=100.0, high_watermark=104.0)
+        # Floor = 103.6, price 103.7 → no trigger
+        reason = rm.exit_reason(pos, price=103.7, holding_bars=0)
+        self.assertNotEqual(reason, "ratchet_stop")
+
+    def test_ratchet_disabled_when_zero(self) -> None:
+        """Ratchet params at 0 → no ratchet_stop."""
+        rm = RiskManager(RiskConfig(stop_loss_pct=0.10, take_profit_pct=0.50))
+        rm.set_atr(2.0)
+        pos = _pos(entry_price=100.0, high_watermark=105.0)
+        reason = rm.exit_reason(pos, price=99.0, holding_bars=0)
+        self.assertNotEqual(reason, "ratchet_stop")
+
+    def test_ratchet_short_breakeven(self) -> None:
+        """Short: after 0.5×ATR gain (>1%), price rises to entry → ratchet_stop.
+        Watermark gain 1.1% to stay below fixed breakeven_stop 1.2% threshold."""
+        rm = self._rm()
+        pos = Position(
+            symbol="KRW-ETH", quantity=1.0, entry_price=100.0,
+            entry_time=datetime(2025, 1, 1), entry_index=0,
+            high_watermark=98.9, side="short",  # 1.1% gain
+        )
+        reason = rm.exit_reason(pos, price=100.1, holding_bars=0)
+        self.assertEqual(reason, "ratchet_stop")
+
+    def test_ratchet_short_lock(self) -> None:
+        """Short: after 1.5×ATR gain (3%), lock 90%. Entry 100, peak 96 (4% gain).
+        Floor = 100 * (1 - 0.04*0.90) = 96.4. Price 96.5 → ratchet_stop."""
+        rm = self._rm()
+        pos = Position(
+            symbol="KRW-ETH", quantity=1.0, entry_price=100.0,
+            entry_time=datetime(2025, 1, 1), entry_index=0,
+            high_watermark=96.0, side="short",
+        )
+        reason = rm.exit_reason(pos, price=96.5, holding_bars=0)
+        self.assertEqual(reason, "ratchet_stop")
+
+
 if __name__ == "__main__":
     unittest.main()
