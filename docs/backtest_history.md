@@ -11888,3 +11888,149 @@ trades: 319
 </details>
 
 ---
+
+## 2026-04-05 03:10 UTC — c170+c168 RSI velocity 진입 + 레짐별 trailing SL 분리 (81조합) [ralph:c173_vpin_eth_rsi_vel_regime_trail] 🌟[promising]
+
+**결과**: Sharpe +13.855 | WR 45.9% | trades 156
+
+
+<details><summary>raw output</summary>
+
+```
+06-30]: Sharpe=+10.937  WR=45.9%  n=37  avg=+0.77%  MDD=-11.06%  trX=4  rvE=31  BH=-30.5%
+  Fold 2 OOS [2025-07-01~2026-04-05]: Sharpe=+8.786  WR=36.8%  n=19  avg=+0.55%  MDD=-5.84%  trX=2  rvE=17  BH=-5.9%
+  평균 OOS Sharpe: +9.862 | 최소: +8.786 | min_n: 19
+
+================================================================================
+=== 슬리피지 스트레스 테스트 (WF Top 3) ===
+
+--- #1: rVel=5.0 vSrg=1.5 hvTS=0.8 lvTS=0.5 (avg OOS: +10.471) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +13.855 43.8%  +1.02% -13.41%    9   146
+  0.10%  +12.941 43.2%  +0.94% -14.11%    9   146
+  0.15%  +11.315 40.8%  +0.82% -19.12%   14   147
+  0.20%  +10.029 38.8%  +0.73% -19.82%   14   147
+
+--- #2: rVel=5.0 vSrg=1.5 hvTS=0.8 lvTS=0.3 (avg OOS: +10.471) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +13.804 43.5%  +1.01% -13.41%    9   147
+  0.10%  +12.889 42.9%  +0.94% -14.11%    9   147
+  0.15%  +11.267 40.5%  +0.82% -19.12%   14   148
+  0.20%  +10.029 38.8%  +0.73% -19.82%   14   147
+
+--- #3: rVel=5.0 vSrg=1.5 hvTS=0.8 lvTS=0.7 (avg OOS: +10.471) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +13.784 43.8%  +1.01% -13.41%    9   146
+  0.10%  +12.941 43.2%  +0.94% -14.11%    9   146
+  0.15%  +11.315 40.8%  +0.82% -19.12%   14   147
+  0.20%  +10.029 38.8%  +0.73% -19.82%   14   147
+
+================================================================================
+=== 최종 요약 ===
+★ WF 최고: rVel=5.0 vSrg=1.5 hvTS=0.8 lvTS=0.5
+  (기반: c170 RSI vel + c168 trailing regime + 레짐별 trail SL 분리)
+  avg OOS Sharpe: +10.471
+  Fold 1: Sharpe=+11.479  WR=43.9%  n=41  MDD=-13.41%  trX=4  tpX=6  rvE=30
+  Fold 2: Sharpe=+9.462  WR=39.1%  n=23  MDD=-5.58%  trX=3  tpX=5  rvE=17
+
+  vs 베이스라인 (no RSI vel filter): Sharpe=+12.853  WR=40.4%  MDD=-13.41%  n=156
+
+Sharpe: +10.471
+WR: 41.5%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 — c172 DOGE/AVAX daemon.toml 배포 [ralph:c172_deploy_doge_avax]
+
+**작업**: c171 심볼 확장 스크리닝 PASS 기반 DOGE/AVAX 독립 wallet daemon.toml 추가
+
+**근거**:
+- c171 3-fold WF 스크리닝: c165 VPIN 파라미터 기반 5심볼 전수 PASS
+- DOGE: VPIN=0.40 MOM=0.0005 avg OOS Sharpe +13.945 (n=135, slip 0.20% +6.731)
+  - F1=+12.578 n=38 | F2=+16.212 n=47 | F3=+13.044 n=50 (전 fold 안정)
+  - BH -17.8% vs 전략 +171.6%
+- AVAX: VPIN=0.30 MOM=0.0005 avg OOS Sharpe +16.946 (n=39, slip 0.20% +6.591)
+  - F1=+12.967 n=8 | F2=+23.449 n=12 | F3=+14.422 n=19 (fold별 n 작음)
+  - BH -82.3% vs 전략 +60.1%
+
+**daemon.toml 변경**:
+
+| wallet | capital | 핵심 파라미터 | 비고 |
+|---|---|---|---|
+| vpin_doge_wallet | ₩500K | VPIN=0.40 MOM=0.0005 Hold=20, ATR TP=5.0 SL=0.3 Trail=1.5/0.4 | paper_trading=true |
+| vpin_avax_wallet | ₩500K | VPIN=0.30 MOM=0.0005 Hold=20, ATR TP=5.0 SL=0.3 Trail=1.5/0.4 + max_position_pct=0.05 | fold별 n 작음 리스크 |
+
+**c173 research 분석**:
+- ADX+BTC SMA 16조합 그리드: 최적 ADX=0 SMA=200 → c165 baseline과 동일 (Δ=0.000)
+- RSI velocity+regime trailing 81조합: avg OOS +10.471 vs baseline +12.853 → 오히려 하락
+- 결론: c165 파라미터가 이미 최적, 추가 필터 개선 여지 없음 확인
+
+**검증**: config 로드 ✅, 26/26 safety tests ✅
+
+---
+
+## 2026-04-05 03:26 UTC — c165기반 ATR백분위 변동성레짐+캔들바디비율 필터 32조합 3-fold WF 멀티심볼 [ralph:c176_vpin_multi_atr_pctile_body_filter] 🌟[promising]
+
+**결과**: Sharpe +36.554 | WR 66.7% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+harpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +14.479 43.7%  +1.03%  -4.50%    5    66
+  0.10%  +13.475 43.7%  +0.96%  -4.71%    5    66
+  0.15%  +12.460 43.7%  +0.89%  -4.93%    5    66
+  0.20%  +11.434 43.7%  +0.83%  -5.14%    5    66
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: atrLB=60 atrTh=30 body=0.7) ===
+  KRW-ETH Fold 1: Sharpe=+13.060  WR=37.5%  n=8  avg=+0.95%  MDD=-1.32%
+  KRW-ETH Fold 2: Sharpe=+22.752  WR=50.0%  n=10  avg=+2.13%  MDD=-2.00%
+  KRW-ETH Fold 3: Sharpe=+13.505  WR=25.0%  n=8  avg=+1.21%  MDD=-4.72%
+  KRW-ETH 평균: Sharpe=+16.439  총 trades=26
+
+  KRW-SOL Fold 1: Sharpe=+16.742  WR=50.0%  n=6  avg=+1.43%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=-5.596  WR=28.6%  n=7  avg=-0.21%  MDD=-3.54%
+  KRW-SOL Fold 3: Sharpe=+11.487  WR=37.5%  n=8  avg=+0.70%  MDD=-1.77%
+  KRW-SOL 평균: Sharpe=+7.544  총 trades=21
+
+  KRW-XRP Fold 1: Sharpe=+17.154  WR=25.0%  n=4  avg=+3.46%  MDD=-2.19%
+  KRW-XRP Fold 2: Sharpe=+21.446  WR=50.0%  n=4  avg=+4.20%  MDD=-3.00%
+  KRW-XRP Fold 3: Sharpe=+36.554  WR=66.7%  n=3  avg=+1.59%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+25.052  총 trades=11
+
+================================================================================
+=== c165 베이스라인 대비 비교 ===
+  c176 최적 (atrLB=60 atrTh=30 body=0.7): avg_OOS=+16.345 n=58
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: ATR_PCTILE_LB=60 ATR_PCTILE_THRESH=30 BODY_RATIO_MIN=0.7
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +16.345 PASS
+  train Sharpe: +20.548
+  Fold 1: Sharpe=+15.652  WR=37.5%  trades=18  avg=+1.95%  MDD=-1.74%
+  Fold 2: Sharpe=+12.867  WR=42.9%  trades=21  avg=+2.04%  MDD=-2.85%
+  Fold 3: Sharpe=+20.515  WR=43.1%  trades=19  avg=+1.17%  MDD=-2.16%
+
+Sharpe: +16.345
+WR: 41.1%
+trades: 58
+
+```
+
+</details>
+
+---

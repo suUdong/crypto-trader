@@ -435,6 +435,90 @@ trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 max_position_pct = 0.05
 
+# vpin_doge_wallet: c171 vpin_multi 심볼 확장 스크리닝 확정 (2026-04-05 사이클 172)
+# 근거: c165 파라미터 기반 3-fold WF avg OOS Sharpe +13.945 (n=135, 통계 충분)
+#   F1: +12.578 n=38 | F2: +16.212 n=47 | F3: +13.044 n=50 (전 fold 안정)
+#   슬리피지 0.20%: +6.731 (전 fold 통과, slip 내성 양호)
+#   BH -17.8% vs 전략 +171.6% (대폭 초과 수익)
+# 파라미터: VPIN=0.40 MOM=0.0005 Hold=20 CD=4 (c165 그리드 DOGE 최적)
+#   ATR fixed exit: TP=5.0 SL=0.3 Trail=1.5/0.4 (c165 고정 exit)
+[[wallets]]
+name = "vpin_doge_wallet"
+strategy = "vpin"
+initial_capital = 500_000.0
+paper_trading = true
+symbols = ["KRW-DOGE"]
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 8
+max_holding_bars = 20
+vpin_low_threshold = 0.40
+vpin_high_threshold = 0.55
+vpin_momentum_threshold = 0.0005
+vpin_rsi_ceiling = 65.0
+vpin_rsi_floor = 20.0
+rsi_overbought = 75.0
+bucket_count = 24
+ema_trend_period = 20
+ema_weight = 0.5
+adx_threshold = 15.0
+btc_stealth_gate = true
+active_regimes = ["bull", "sideways", "bear"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.008
+take_profit_pct = 0.07
+risk_per_trade_pct = 0.01
+partial_tp_pct = 0.5
+cooldown_bars = 4
+atr_stop_multiplier = 0.0
+atr_tp_multiplier = 5.0
+atr_sl_multiplier = 0.3
+trail_activate_atr_mult = 1.5
+trail_sl_atr_mult = 0.4
+
+# vpin_avax_wallet: c171 vpin_multi 심볼 확장 스크리닝 확정 (2026-04-05 사이클 172)
+# 근거: c165 파라미터 기반 3-fold WF avg OOS Sharpe +16.946 (n=39, >30 통과)
+#   F1: +12.967 n=8 | F2: +23.449 n=12 | F3: +14.422 n=19 (fold별 n 작음)
+#   슬리피지 0.20%: +6.591 (전 fold 통과)
+#   BH -82.3% vs 전략 +60.1% (BEAR 구간 대폭 초과 수익)
+# ⚠️ fold별 n 작음(8/12/19) — max_position_pct=0.05 (50% 제한)
+# 파라미터: VPIN=0.30 MOM=0.0005 Hold=20 CD=4 (c165 그리드 AVAX 최적)
+#   ATR fixed exit: TP=5.0 SL=0.3 Trail=1.5/0.4 (c165 고정 exit)
+[[wallets]]
+name = "vpin_avax_wallet"
+strategy = "vpin"
+initial_capital = 500_000.0
+paper_trading = true
+symbols = ["KRW-AVAX"]
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 8
+max_holding_bars = 20
+vpin_low_threshold = 0.30
+vpin_high_threshold = 0.55
+vpin_momentum_threshold = 0.0005
+vpin_rsi_ceiling = 65.0
+vpin_rsi_floor = 20.0
+rsi_overbought = 75.0
+bucket_count = 24
+ema_trend_period = 20
+ema_weight = 0.5
+adx_threshold = 15.0
+btc_stealth_gate = true
+active_regimes = ["bull", "sideways", "bear"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.008
+take_profit_pct = 0.07
+risk_per_trade_pct = 0.01
+partial_tp_pct = 0.5
+cooldown_bars = 4
+atr_stop_multiplier = 0.0
+atr_tp_multiplier = 5.0
+atr_sl_multiplier = 0.3
+trail_activate_atr_mult = 1.5
+trail_sl_atr_mult = 0.4
+max_position_pct = 0.05
+
 # === Capital Allocation Summary (P0 optimization rebalance, 2026-03-29) ===
 # Equity ₩5.7M — diversified across 3 wallets based on 90d backtest optimization
 #
