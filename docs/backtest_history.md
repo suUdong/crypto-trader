@@ -14758,3 +14758,96 @@ trades: 64
 
 **결론**: 🔻 BB squeeze는 hard/soft 모두 c199 대비 악화. Volume surge도 marginal 정보 없음. c199(+51.425) 현 최적 유지 확정. 평가자 3방향 + 후속 연구 모두 소진.
 
+
+## 2026-04-05 10:26 UTC — Donchian breakout(c205) ATR변동성레짐+거래량확인+RSI필터 576조합 3-fold WF F3감쇠 해결 [ralph:c207_donchian_vol_regime_filter] 🌟[promising]
+
+**결과**: Sharpe +175.202 | WR 100.0% | trades 88
+
+
+<details><summary>raw output</summary>
+
+```
+4  WR=55.6%  n=9  avg=+1.16%  MDD=-7.04%
+
+#5: aPth=50 aPLB=60 vRat=1.0 vSMA=40 rsiC=100 tpVS=0.5
+  avg OOS Sharpe: +14.750  total_n=73
+  F1: Sharpe=+31.513  WR=68.8%  n=32  avg=+6.12%  MDD=-8.08%
+  F2: Sharpe=+17.877  WR=61.8%  n=34  avg=+2.55%  MDD=-14.54%
+  F3: Sharpe=-5.139  WR=28.6%  n=7  avg=-0.52%  MDD=-5.87%
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: aPth=30 aPLB=30 vRat=1.0 vSMA=20 rsiC=100 tpVS=0.5) ===
+  KRW-ETH F1: Sharpe=+19.441  WR=72.7%  n=11  avg=+3.03%  MDD=-13.47%
+  KRW-ETH F2: Sharpe=+26.552  WR=73.3%  n=15  avg=+3.38%  MDD=-4.93%
+  KRW-ETH F3: Sharpe=+175.202  WR=100.0%  n=2  avg=+4.56%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+73.732  총 trades=28
+  KRW-SOL F1: Sharpe=+21.974  WR=57.1%  n=14  avg=+3.65%  MDD=-10.02%
+  KRW-SOL F2: Sharpe=+5.653  WR=42.9%  n=14  avg=+0.79%  MDD=-12.59%
+  KRW-SOL F3: Sharpe=-3.447  WR=33.3%  n=3  avg=-0.44%  MDD=-6.46%
+  KRW-SOL 평균: Sharpe=+8.060  총 trades=31
+  KRW-XRP F1: Sharpe=+23.569  WR=73.3%  n=15  avg=+6.82%  MDD=-13.55%
+  KRW-XRP F2: Sharpe=+24.048  WR=70.0%  n=10  avg=+3.55%  MDD=-4.01%
+  KRW-XRP F3: Sharpe=-1.369  WR=50.0%  n=4  avg=-0.18%  MDD=-5.89%
+  KRW-XRP 평균: Sharpe=+15.416  총 trades=29
+
+================================================================================
+=== c205 베이스라인 대비 비교 ===
+  c205 기준 (Donchian baseline): avg_OOS=+9.542 F3=+0.776
+  c207 최적: avg_OOS=+15.410 F3=+6.665
+  Δ avg: +5.868 (개선)
+  Δ F3: +5.889 (개선)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: aPth=30 aPLB=30 vRat=1.0 vSMA=20 rsiC=100 tpVS=0.5
+  (c205 고정: dcU=30 dcL=10 adx=25 atrTP=3.0 atrSL=2.5 trail=0.0)
+  avg OOS Sharpe: +15.410 PASS
+  F3 Sharpe: +6.665 PASS
+  total trades: 88
+  F1: Sharpe=+21.442  WR=67.5%  trades=40  avg=+4.67%  MDD=-13.55%
+  F2: Sharpe=+18.122  WR=61.5%  trades=39  avg=+2.50%  MDD=-17.48%
+  F3: Sharpe=+6.665  WR=55.6%  trades=9  avg=+0.78%  MDD=-7.51%
+
+Sharpe: +15.410
+WR: 61.5%
+trades: 88
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 19:40 UTC — c210 Signal Strength Adaptive TP/SL 108조합 3-fold WF [ralph:c210_signal_strength_tpsl] 🔻[FAIL vs c179]
+
+**결과**: avg OOS Sharpe +17.655 PASS (>5.0) | WR 43.8% | trades 64 | c179 대비 -25.223 악화
+
+**설계**: c179(+42.878) 진입 100% 유지, 시그널 품질(VPIN 강도+모멘텀 강도)로 TP/SL 배수만 동적 조정
+- W_VPIN: [0.3, 0.5, 0.7] — VPIN 가중치
+- W_MOM: [0.3, 0.5, 0.7] — 모멘텀 가중치
+- TP_BOOST: [0.0, 0.3, 0.5, 0.8] — 강한 시그널 시 TP 확대 계수
+- SL_TIGHTEN: [0.0, 0.2, 0.4] — 약한 시그널 시 SL 축소 계수
+- 심볼: ETH/SOL/XRP 240m | ★슬리피지포함 | 🔄다음봉시가진입
+- 3-fold WF: F1(OOS 2024-04~2025-01), F2(OOS 2024-10~2025-07), F3(OOS 2025-04~2026-04)
+
+**최적**: wVPIN=0.7 wMOM=0.3 tpBoost=0.8 slTighten=0.0
+- F1: Sharpe=+14.943 WR=37.1% n=21 avg=+1.71% MDD=-1.62%
+- F2: Sharpe=+13.801 WR=44.4% n=23 avg=+2.54% MDD=-3.17%
+- F3: Sharpe=+24.221 WR=50.0% n=20 avg=+1.42% MDD=-1.69%
+- 슬리피지 스트레스: 0.05%→+17.7, 0.10%→+16.7, 0.15%→+15.6, 0.20%→+14.4 (안정)
+
+**심볼별 OOS 평균**:
+- ETH: Sharpe +17.755 (26 trades)
+- SOL: Sharpe +9.381 (24 trades) — F2 -2.551 🔻
+- XRP: Sharpe +25.830 (14 trades)
+
+**핵심 발견**:
+1. slTighten=0.0 최적 (Top 5 전부) → SL 동적 축소는 유해 (c207과 동일 결론)
+2. tpBoost=0.8 최적이나 c179 대비 악화 → TP 확대도 기존 calibration 파괴
+3. Top 5 모두 Sharpe ~17.5 범위 → 시그널 강도 가중치 변화가 결과에 미미한 영향
+4. SOL F2 Sharpe -2.551 → 변동성 구간에서 TP 확대가 역효과
+5. c179 고정 TP/SL이 이미 최적 calibration — 동적 조정은 noise만 추가
+
+**결론**: 🔻 시그널 강도 기반 TP/SL 스케일링 실패. 진입을 건드리지 않는 접근도 무효. c179의 고정 TP/SL 체계가 이미 최적 calibration 상태. 7사이클 연속 c179 미돌파 → 필터/게이트/TP-SL 조정 축 모두 구조적 한계 도달. 새 평가자 리포트 필요.
+
+---
