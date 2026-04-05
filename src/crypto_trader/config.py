@@ -321,6 +321,25 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "btc_trend_pos_gate",
         "btc_trend_window",
     },
+    "bb_squeeze_independent": {
+        "squeeze_pctile_th",
+        "squeeze_lb",
+        "upper_ratio",
+        "adx_threshold",
+        "tp_atr",
+        "sl_atr",
+        "bb_period",
+        "bb_std",
+        "bw_pctile_lb",
+        "ema_period",
+        "atr_period",
+        "expansion_lb",
+        "trail_atr",
+        "min_profit_atr",
+        "max_hold",
+        "btc_sma_period",
+        "btc_stealth_gate",
+    },
 }
 
 # Fields allowed in strategy_overrides for ALL wallet strategies (not strategy-specific)
@@ -1128,6 +1147,7 @@ def _validate_config(
         "bollinger_mr",
         "etf_flow_admission",
         "stealth_3gate",
+        "bb_squeeze_independent",
     }
     for wc in config.wallets:
         if not wc.name.strip():

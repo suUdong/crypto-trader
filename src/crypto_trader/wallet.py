@@ -44,11 +44,12 @@ from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.momentum_pullback import MomentumPullbackStrategy
 from crypto_trader.strategy.obi import OBIStrategy
+from crypto_trader.strategy.bb_squeeze_independent import BBSqueezeIndependentStrategy
+from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
+from crypto_trader.strategy.stealth_3gate import Stealth3GateStrategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
 from crypto_trader.strategy.vpin import VPINStrategy
-from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
-from crypto_trader.strategy.stealth_3gate import Stealth3GateStrategy
 
 # --- Lab Mode Strategies ---
 from crypto_trader.strategy.btc_regime_rotation import BtcRegimeRotationStrategy
@@ -275,6 +276,26 @@ def create_strategy(
             cvd_slope_threshold=float(params.get("cvd_slope_threshold", 0.0)),
             btc_stealth_gate=bool(params.get("btc_stealth_gate", True)),
             min_confidence=float(params.get("min_confidence", 0.3)),
+        )
+    if strategy_type == "bb_squeeze_independent":
+        return BBSqueezeIndependentStrategy(
+            strategy_config,
+            squeeze_pctile_th=float(params.get("squeeze_pctile_th", 40.0)),
+            squeeze_lb=int(params.get("squeeze_lb", 15)),
+            upper_ratio=float(params.get("upper_ratio", 0.97)),
+            adx_threshold=float(params.get("adx_threshold", 25.0)),
+            tp_atr=float(params.get("tp_atr", 5.0)),
+            sl_atr=float(params.get("sl_atr", 2.0)),
+            bb_period=int(params.get("bb_period", 20)),
+            bb_std=float(params.get("bb_std", 2.0)),
+            bw_pctile_lb=int(params.get("bw_pctile_lb", 120)),
+            ema_period=int(params.get("ema_period", 20)),
+            atr_period=int(params.get("atr_period", 20)),
+            expansion_lb=int(params.get("expansion_lb", 4)),
+            trail_atr=float(params.get("trail_atr", 0.3)),
+            min_profit_atr=float(params.get("min_profit_atr", 1.5)),
+            max_hold=int(params.get("max_hold", 20)),
+            btc_sma_period=int(params.get("btc_sma_period", 200)),
         )
     return CompositeStrategy(strategy_config, regime_config)
 

@@ -680,6 +680,69 @@ partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 1.5
 
+# ── BB Squeeze Independent (cycle 182/185 validated) ──────────────
+# c182: avg OOS Sharpe +12.291, WR 60.9%, n=336, 3-fold WF PASS
+# c185: 729/729 (100%) adjacent combos Sharpe > 5 — ROBUST confirmed
+# Non-VPIN strategy for portfolio diversification. 240m timeframe.
+# Params: sqTh=40, sqLB=15, upR=0.97, adx=25, tp=5.0 ATR, sl=2.0 ATR
+
+[[wallets]]
+name = "bb_squeeze_eth_wallet"
+strategy = "bb_squeeze_independent"
+initial_capital = 500_000.0
+symbols = ["KRW-ETH"]
+[wallets.strategy_overrides]
+squeeze_pctile_th = 40.0
+squeeze_lb = 15
+upper_ratio = 0.97
+adx_threshold = 25.0
+tp_atr = 5.0
+sl_atr = 2.0
+max_hold = 20
+btc_stealth_gate = true
+[wallets.risk_overrides]
+stop_loss_pct = 0.04
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.02
+
+[[wallets]]
+name = "bb_squeeze_doge_wallet"
+strategy = "bb_squeeze_independent"
+initial_capital = 500_000.0
+symbols = ["KRW-DOGE"]
+[wallets.strategy_overrides]
+squeeze_pctile_th = 40.0
+squeeze_lb = 15
+upper_ratio = 0.97
+adx_threshold = 25.0
+tp_atr = 5.0
+sl_atr = 2.0
+max_hold = 20
+btc_stealth_gate = true
+[wallets.risk_overrides]
+stop_loss_pct = 0.04
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.02
+
+[[wallets]]
+name = "bb_squeeze_sol_wallet"
+strategy = "bb_squeeze_independent"
+initial_capital = 500_000.0
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+squeeze_pctile_th = 40.0
+squeeze_lb = 15
+upper_ratio = 0.97
+adx_threshold = 25.0
+tp_atr = 5.0
+sl_atr = 2.0
+max_hold = 20
+btc_stealth_gate = true
+[wallets.risk_overrides]
+stop_loss_pct = 0.04
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.02
+
 [credentials]
 upbit_access_key = ""
 upbit_secret_key = ""
