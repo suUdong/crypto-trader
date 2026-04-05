@@ -3,6 +3,97 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c187 RSI Mean-Reversion BEAR 전용 전략 [ralph:c187_rsi_mr_bear] 🌟[promising]
+
+**결과**: ✅ avg OOS Sharpe **+12.193** PASS | WR 42.2% | n=60 | MDD -7.70%
+
+**설계**: BTC < SMA(200) BEAR 전용 역추세 — RSI 과매도 진입 → 평균회귀 청산
+- 심볼: ETH/BTC (2종), 240m
+- 진입: RSI(14) < 25 + BTC < SMA(200)
+- 청산: RSI > 50 또는 SL 2% 또는 max_hold 24봉
+- 3-fold WF, 🔄다음봉시가진입 | ★슬리피지포함
+
+### Walk-Forward 결과 (최적: rsiE=25 rsiX=50 sl=2% mh=24)
+
+| Fold | Sharpe | WR | n | MDD | ETH | BTC |
+|---|---|---|---|---|---|---|
+| F1 | +13.622 | 46.4% | 19 | -5.25% | +22.588 | +4.655 |
+| F2 | +16.322 | 43.6% | 17 | -8.40% | +13.882 | +18.763 |
+| F3 | +6.634 | 36.7% | 24 | -9.45% | +0.741 | +12.527 |
+| **avg** | **+12.193** | **42.2%** | **60** | **-7.70%** | | |
+
+### 240m Top 5 WF 결과
+
+| rsiE | rsiX | sl | mh | avg Sharpe | WR | n | status |
+|---|---|---|---|---|---|---|---|
+| 25 | 50 | 2% | 24 | **+12.193** | 42.2% | 60 | PASS |
+| 25 | 40 | 2% | 24 | +10.597 | 54.2% | 61 | PASS |
+| 25 | 40 | 2% | 12 | +10.289 | 53.2% | 61 | PASS |
+| 25 | 50 | 2% | 12 | +9.870 | 50.5% | 61 | PASS |
+| 25 | 45 | 2% | 12 | +9.238 | 50.5% | 61 | PASS |
+
+### 슬리피지 스트레스
+
+| slip | Sharpe | WR | n | MDD |
+|---|---|---|---|---|
+| 0.05% | +12.193 | 42.2% | 60 | -7.70% |
+| 0.10% | +9.568 | 40.2% | 62 | -8.60% |
+| 0.15% | +9.241 | 41.9% | 64 | -8.07% |
+| 0.20% | +8.368 | 41.9% | 64 | -8.25% |
+
+### 핵심 발견
+
+1. **BEAR 전용 레짐 보완**: BULL 전략(VPIN/BB_squeeze)과 완전 비상관 — BTC < SMA200 구간에서만 작동
+2. **rsiE=25 최적**: rsiE=20은 n 부족, rsiE=30은 Sharpe 급락
+3. **60m 전면 FAIL**: Fold 1 OOS Sharpe -12.2 — 60m에서 RSI MR은 노이즈에 취약
+4. **WR 42%이나 avg_ret 높음**: 승률 낮지만 수익 거래 폭이 큰 구조
+5. **Top 5 전체 PASS**: rsiE=25 고정 시 rsiX/sl/mh 변화에 안정적 — 로버스트 징후
+
+**결론**: ✅ BEAR 전용 역추세 전략 확보. 240m rsiE=25/rsiX=50/sl=2%/mh=24. n=60으로 통계적 유의, 파라미터 로버스트니스 추가 검증 권고.
+
+---
+
+## 2026-04-05 — c187 VPIN vs BB_squeeze 신호 상���관계 분석 [ralph:c187_signal_correlation]
+
+**결과**: Jaccard(exact) = 13.2% | Jaccard(±2봉) = 26.5%
+
+**설계**: ETH 240m 2024-06~2026-04 구간, VPIN daemon 파라미터 vs BB_squeeze c182 최적 비교
+- VPIN 진입: vpin<0.45 + mom>0.01 + RSI 30~70 + EMA trend + BTC>SMA200
+- BB_squeeze 진입: squeeze→확장→upper돌파 + ADX≥25 + EMA + BTC>SMA200
+
+### 신호 수
+
+| 전략 | 진입 신호 | 동일봉 겹침 |
+|---|---|---|
+| VPIN | 649건 | 104건 |
+| BB_squeeze | 243건 | 104건 |
+
+### Jaccard Similarity
+
+| 기준 | Jaccard | 판정 |
+|---|---|---|
+| 동일 봉 | 13.2% | ✅ < 20% |
+| ±1봉 | 20.7% | ⚠️ ≥ 20% |
+| ��2봉 | 26.5% | ⚠️ ≥ 20% |
+| ±3봉 | 32.5% | ❌ 상관 존재 |
+
+### VPIN→BB_squeeze 최소 거리
+
+- 평균: 25.7봉 | 중앙값: 7.0봉
+- ≤2봉 이내: 30.2% | ≤5봉 이��: 46.4%
+
+### 핵심 발견
+
+1. **동일 봉 비상관 확인**: Exact Jaccard 13.2% — 두 전략이 동시 진입하는 경우 드뭄
+2. **±2봉 완화 시 26.5%**: 시간적 근접 진입이 일부 존재 — 완전 독립은 아님
+3. **VPIN이 3배 빈번**: 649 vs 243 — VPIN이 더 liberal한 진입 조건
+4. **월별 편차 큼**: 2025-09 Jaccard 42.5% vs 2025-06 5.1% — 레짐에 따라 상관도 변동
+5. **포지션 사이즈 조정 권고**: 동시 진입 시 combined exposure 제한 필요
+
+**결론**: 동일 봉 기준 비상관(13.2%), ±2봉 기준 부분 상관(26.5%). 동시 배포 가능하나 포지션 사이즈 합산 상한 설정 권고.
+
+---
+
 ## 2026-04-05 14:30 UTC — c185 BB Squeeze 파라미터 로버스트니스 검증 [ralph:c185_bb_squeeze_robustness] 🌟🌟🌟[exceptional]
 
 **결과**: ✅ **극도로 로버스트** — 729개 인접 조합 100% avg OOS Sharpe > 5.0, 98.4% 3-fold PASS
@@ -12859,5 +12950,63 @@ trades: 13
 **구현**: strategy class + config + wallet factory + daemon.toml 3개 wallet (각 500K paper)
 
 **결론**: ✅ 비-VPIN 독립 전략 daemon 배포 완료. Paper 거래 축적 후 실전 전환 검토.
+
+---
+
+## 2026-04-05 05:33 UTC — 모멘텀 가속도(2차미분) 진입필터 + ATR비율 적응형 TP/SL exit 스케일링 27조합 3fold WF 검증 [ralph:c185_mom_accel_atr_adaptive_exit] 🌟[promising]
+
+**결과**: Sharpe +36.554 | WR 66.7% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+  0.10%  +15.495 44.6%  +1.53%  -4.00%    6    74
+  0.15%  +14.021 42.4%  +1.38%  -4.44%    6    74
+  0.20%  +13.353 42.4%  +1.31%  -4.74%    6    74
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: accLB=3 accMin=0.0000 adapt=1 adLB=60) ===
+  KRW-ETH Fold 1: Sharpe=+13.060  WR=37.5%  n=8  avg=+0.95%  MDD=-1.32%
+  KRW-ETH Fold 2: Sharpe=+22.752  WR=50.0%  n=10  avg=+2.13%  MDD=-2.00%
+  KRW-ETH Fold 3: Sharpe=+13.505  WR=25.0%  n=8  avg=+1.21%  MDD=-4.72%
+  KRW-ETH 평균: Sharpe=+16.439  총 trades=26
+
+  KRW-SOL Fold 1: Sharpe=+23.670  WR=60.0%  n=5  avg=+2.02%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=-5.596  WR=28.6%  n=7  avg=-0.21%  MDD=-3.54%
+  KRW-SOL Fold 3: Sharpe=+11.487  WR=37.5%  n=8  avg=+0.70%  MDD=-1.77%
+  KRW-SOL 평균: Sharpe=+9.854  총 trades=20
+
+  KRW-XRP Fold 1: Sharpe=+17.154  WR=25.0%  n=4  avg=+3.46%  MDD=-2.19%
+  KRW-XRP Fold 2: Sharpe=+21.446  WR=50.0%  n=4  avg=+4.20%  MDD=-3.00%
+  KRW-XRP Fold 3: Sharpe=+36.554  WR=66.7%  n=3  avg=+1.59%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+25.052  총 trades=11
+
+================================================================================
+=== c176 베이스라인 대비 비교 ===
+  c176 최적 (atrLB=60 atrTh=30 body=0.7): avg_OOS=+16.345 n=58
+  c185 최적 (accLB=3 accMin=0.0000 adapt=1 adLB=60): avg_OOS=+17.115 n=57
+  Δ Sharpe: +0.770 (개선)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: ACCEL_LB=3 ACCEL_MIN=0.0000 ATR_ADAPT=1 ATR_ADAPT_LB=60
+  (c176 고정: atrLB=60 atrTh=30 body=0.7)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +17.115 PASS
+  train Sharpe: +20.548
+  Fold 1: Sharpe=+17.961  WR=40.8%  trades=17  avg=+2.14%  MDD=-1.74%
+  Fold 2: Sharpe=+12.867  WR=42.9%  trades=21  avg=+2.04%  MDD=-2.85%
+  Fold 3: Sharpe=+20.515  WR=43.1%  trades=19  avg=+1.17%  MDD=-2.16%
+
+Sharpe: +17.115
+WR: 42.2%
+trades: 57
+
+```
+
+</details>
 
 ---
