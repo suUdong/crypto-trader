@@ -13010,3 +13010,58 @@ trades: 57
 </details>
 
 ---
+
+## 2026-04-05 06:10 UTC — VPIN vs BB_squeeze 신호 상관관계 분석 [ralph:c183_correlation]
+
+**작업**: VPIN과 BB_squeeze_independent 진입 시점 겹침 분석 (ETH 240m, 2024-06~2026-04)
+
+**결과**:
+- VPIN 신호: 649건 | BB_squeeze 신호: 243건 | 동일 봉 겹침: 104건
+- **Exact Jaccard: 13.2%** (< 20% → 동일 봉 기준 비상관)
+- **Relaxed ±2봉 Jaccard: 26.5%** (≥ 20% → 시간적 근접성 존재)
+- VPIN→BB 최소 거리: 평균 25.7봉, 중앙값 7.0봉
+- ≤2봉 이내 겹침: 30.2% | ≤5봉 이내: 46.4%
+
+**결론**: 동일 봉 기준 비상관이지만 ±2봉 완화 시 26.5% 겹침. 완전 독립은 아니지만 유의미한 분산 효과 존재. **동시 진입 시 포지션 사이즈 50% 축소 권고**.
+
+---
+
+## 2026-04-05 06:10 UTC — c187 HA 추세확인 + Close Position 매수압 필터 27조합 3-fold [ralph:c187_ha_trend] ❌[fail]
+
+**작업**: c177 base + Heikin-Ashi 연속양봉 추세확인 + Close Position Ratio 매수압 필터
+
+**결과**: ❌ 유효 조합 0/27 — 두 필터 동시 적용 시 진입 과도하게 차단 (n=0)
+
+**결론**: HA + close position 동시 필터는 과적합. 단독 적용으로 재시도 가치 있으나 우선순위 낮음.
+
+---
+
+## 2026-04-05 06:10 UTC — c188 OBV slope + MACD histogram 이중모멘텀 18조합 3-fold [ralph:c188_obv_macd] ⚠️[regression]
+
+**작업**: c179 base + OBV EMA slope 볼륨유입 + MACD histogram 모멘텀가속 이중확인
+
+**결과**: OOS Sharpe +15.322 (c179 baseline +42.878 대비 **-27.6 악화**), WR 38.9%, n=27
+- 최적: obvE=30 mcF=16 mcSl=30 mcSg=9
+- 슬리피지 0.20%: +16.864
+- XRP 거래 0건 (필터 과도)
+
+**결론**: OBV+MACD 필터가 c179 대비 대폭 악화. 채택 불가.
+
+---
+
+## 2026-04-05 06:10 UTC — c187 RSI Mean-Reversion BEAR 전용 전략 240m [ralph:c187_rsi_mr_bear] 🌟[promising]
+
+**작업**: BTC BEAR 레짐(BTC < SMA200) 전용 역추세 전략 — RSI<25 진입, RSI>50 청산, SL 2%, max_hold 24봉
+
+**결과**: ★ **240m OOS Sharpe +12.193 PASS** | WR 42.2% | n=60 | MDD -7.70%
+- 60m: avg OOS +0.643 FAIL (Fold 1 대폭 손실)
+- 240m 최적: rsiE=25, rsiX=50, sl=2%, mh=24
+- 슬리피지 스트레스: 0.10% → +9.568, 0.20% → +8.368 (안정)
+- Fold별: F1 +13.622 | F2 +16.322 | F3 +6.634 (3-fold 전 PASS)
+- ETH: F1 +22.588 F2 +13.882 F3 +0.741 | BTC: F1 +4.655 F2 +18.763 F3 +12.527
+
+**의의**: BULL 전용 VPIN/BB_squeeze와 **레짐 보완적** 포트폴리오 구성 가능. BEAR 구간 수익원 확보.
+
+**결론**: ✅ 240m RSI MR BEAR 전략 유망. 다음 단계: (1) 인접 파라미터 로버스트니스 검증 (2) BH 대비 수익률 비교 (3) 전략 클래스 구현 → daemon paper wallet 배포 검토
+
+---
