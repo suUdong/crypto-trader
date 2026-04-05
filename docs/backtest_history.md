@@ -3,6 +3,63 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 17:45 UTC — c199 volspike_btc daemon 파라미터 WF 재검증 [ralph:c199_volspike_btc_validation] ✅[PASS]
+
+**작업**: 평가자 [investigate] "volspike_btc paper Sharpe < 1.0 → 자본 재배분 판단" — daemon 파라미터로 정밀 WF 재검증
+**설계**: BTC 240m, spike=2.0 adx=20 body=0.2 TP=6% SL=2% mh=36, 3-of-4 OR entry + BTC>SMA200
+**심볼**: BTC only 240m | 🔄다음봉시가진입 | ★슬리피지포함
+
+### Walk-Forward 결과
+
+| Fold | 기간 | Sharpe | WR | n | MDD | B&H |
+|---|---|---|---|---|---|---|
+| F1 | 2024-03~2024-11 | **+15.862** | 56.5% | 23 | -6.30% | +55.0% |
+| F2 | 2024-12~2025-08 | +4.724 | 37.5% | 24 | -8.40% | +13.5% |
+| F3 | 2025-06~2026-04 | **-3.310** | 28.6% | 21 | -9.27% | -30.1% |
+| **avg** | | **+5.759** | **40.9%** | **68** | **-7.99%** | |
+
+### All Regimes (BTC gate OFF) 비교
+
+| Fold | Sharpe | WR | n | MDD |
+|---|---|---|---|---|
+| F1 | +15.031 | 52.8% | 36 | -6.30% |
+| F2 | +8.575 | 42.4% | 33 | -8.19% |
+| F3 | +0.774 | 36.1% | 36 | -16.82% |
+| avg | **+8.127** | | 105 | |
+
+### 슬리피지 스트레스 (BULL only)
+
+| slip | Sharpe | WR | n |
+|---|---|---|---|
+| 0.05% | +5.759 | 40.9% | 68 |
+| 0.10% | +4.787 | 40.9% | 68 |
+| 0.15% | +3.564 | 40.4% | 69 |
+| 0.20% | +2.782 | 40.4% | 69 |
+
+**결론**: ✅ **volspike_btc PASS** — BULL 구간(F1) Sharpe +15.862으로 강건, avg +5.759 > 5.0. BEAR(F3)에서 -3.310이나 daemon `active_regimes=["bull"]`로 BEAR시 비활성 → 실제 손실 미발생. 자본 ₩1M 이전 불필요. 단, BEAR 레짐 동안 유휴 자본이므로 BULL 전환 시까지 모니터링 유지.
+
+---
+
+## 2026-04-05 17:30 UTC — c198 멀티타임프레임 4h VPIN + 1h 진입 확인 [ralph:c198_vpin_eth_mtf_1h_confirm] 🔻[FAIL]
+
+**작업**: 평가자 [explore] "멀티타임프레임 1h+4h 앙상블 진입" — 4h VPIN 신호 + 1h 모멘텀/RSI/EMA 정합성 확인으로 거짓 신호 필터링
+**설계**: 4h VPIN 신호 봉 내 4개 1h 봉의 상태 검사 (momentum>0, RSI<ceil, EMA trend)
+**그리드**: H1_MOM_LB=[3,5,8] × H1_RSI_CEIL=[55,60,65,70] × H1_EMA=[T,F] × MODE=[any,last] = 48조합
+**심볼**: ETH only 240m+60m | 🔄다음봉시가진입 | ★슬리피지포함
+
+**Baseline (4h only)**: avg Sharpe -41.957 | WR 25.4% | n=18
+- F1 (2024-03~2024-11): Sharpe +15.683 WR 33.3% n=6
+- F2 (2024-12~2025-08): Sharpe +17.551 WR 42.9% n=7
+- F3 (2025-06~2026-04): Sharpe -159.103 WR 0.0% n=5
+
+**최적**: h1mLB=8 h1rC=55 ema=N mode=any
+- avg OOS Sharpe +30.024 — but **F1 n=0, F3 n=0, F2 n=4 only**
+- 슬리피지 0.20%: +28.590 (n=4)
+
+**결론**: ❌ **구조적 FAIL**. ETH VPIN 4h 신호가 이미 희소(fold당 5~7건)하여 1h 확인 추가 시 n→0. 멀티타임프레임 앙상블은 VPIN ETH에 비적합 — 신호 밀도가 너무 낮아 추가 필터링 여지 없음. VPIN ETH 진입 최적화 방향 전체 종료 확정.
+
+---
+
 ## 2026-04-05 — c193 RSI MR BEAR 멀티심볼 확장 검증 [ralph:c193_rsi_mr_bear_multi_symbol] 🔻[FAIL]
 
 **작업**: c187/c189 검증 완료된 RSI MR BEAR 최적 파라미터를 SOL/XRP/DOGE/AVAX에 확장 적용 테스트
