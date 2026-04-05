@@ -412,6 +412,26 @@
         }
       ],
       "date": "2026-04-05"
+    },
+    {
+      "cycle": 215,
+      "strategy": "bb_squeeze_symbol_screen",
+      "symbol": "SOL/DOGE/XRP/LINK/AVAX individual",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-07-01~2025-04-30"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-02-01~2025-10-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-08-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
     }
   ]
 }
