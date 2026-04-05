@@ -164,6 +164,26 @@
                 }
             ],
             "date": "2026-04-05"
+        },
+        {
+            "cycle": 171,
+            "strategy": "vpin_symbol_expansion",
+            "symbol": "DOGE/AVAX/ADA/SUI/LINK screening",
+            "windows": [
+                {
+                    "name": "F1",
+                    "oos": "2024-04-01~2025-01-31"
+                },
+                {
+                    "name": "F2",
+                    "oos": "2024-10-01~2025-07-31"
+                },
+                {
+                    "name": "F3",
+                    "oos": "2025-04-01~2026-04-05"
+                }
+            ],
+            "date": "2026-04-05"
         }
     ]
 }
