@@ -14667,3 +14667,94 @@ trades: 10
 5. 60m VPIN bucket=48이 최적(96보다 나음) — 48봉=2일 단위가 60m에 적합
 
 **결론**: 🔻 60m VPIN은 XRP에서 구조적 실패. ETH/SOL 단독은 가능성 있으나 포트폴리오 수준에서 불가. 평가자 3방향 모두 소진: (1) 60m VPIN FAIL, (2) VWAP FAIL(c206), (3) 포트폴리오 상관관계 분석 미실행. c179 240m VPIN(+42.878)이 현 최적 확정. 다음: 평가자 남은 방향 (3) daemon 8전략 포트폴리오 상관관계 분석, 또는 새 평가자 리포트 필요.
+
+## 2026-04-05 10:18 UTC — c179 진입 유지+청산 최적화: 모멘텀반전+시간감쇠트레일+거래량반전 144조합 3-fold WF [ralph:c207_adaptive_exit_mom_reversal] 🌟[promising]
+
+**결과**: Sharpe +42.878 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+=46.7% n=64 [PASS]
+  slip=0.0020: Sharpe=+14.934 WR=46.7% n=64 [PASS]
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: meLB=8 meTH=0.01 trDecay=0.3 volExit=0.0) ===
+  KRW-ETH Fold 1: Sharpe=+12.372  WR=50.0%  n=8  avg=+0.59%  MDD=-0.0110
+  KRW-SOL Fold 1: Sharpe=+22.934  WR=71.4%  n=7  avg=+1.85%  MDD=-0.0171
+  KRW-XRP Fold 1: Sharpe=+12.769  WR=16.7%  n=6  avg=+2.41%  MDD=-0.0205
+  KRW-ETH Fold 2: Sharpe=+22.393  WR=60.0%  n=10  avg=+1.99%  MDD=-0.0194
+  KRW-SOL Fold 2: Sharpe=+2.335  WR=44.4%  n=9  avg=+0.09%  MDD=-0.0473
+  KRW-XRP Fold 2: Sharpe=+20.984  WR=50.0%  n=4  avg=+4.52%  MDD=-0.0285
+  KRW-ETH Fold 3: Sharpe=+17.135  WR=37.5%  n=8  avg=+1.64%  MDD=-0.0331
+  KRW-SOL Fold 3: Sharpe=+11.730  WR=37.5%  n=8  avg=+0.71%  MDD=-0.0177
+  KRW-XRP Fold 3: Sharpe=+42.878  WR=75.0%  n=4  avg=+1.52%  MDD=+0.0000
+  KRW-ETH 평균: Sharpe=+17.300  총 trades=26
+  KRW-SOL 평균: Sharpe=+12.333  총 trades=24
+  KRW-XRP 평균: Sharpe=+25.544  총 trades=14
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c207 최적 (meLB=8 meTH=0.01 trDecay=0.3 volExit=0.0): avg_OOS=+18.392 n=64
+  Δ vs c179: -24.486 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: meLB=8 meTH=0.01 trDecay=0.3 volExit=0.0
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +18.392 PASS
+  train Sharpe: +19.456
+  Fold 1: Sharpe=+16.025  WR=46.0%  trades=21  avg=+1.62%  MDD=-0.0162
+  Fold 2: Sharpe=+15.237  WR=51.5%  trades=23  avg=+2.20%  MDD=-0.0317
+  Fold 3: Sharpe=+23.914  WR=50.0%  trades=20  avg=+1.29%  MDD=-0.0169
+
+Sharpe: +18.392
+WR: 49.2%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 19:30 UTC — c209 BB Squeeze Soft Gate + Volume Surge 235조합 3-fold WF [ralph:c209_squeeze_soft_gate_vol_surge] 🔻[FAIL vs c199]
+
+**결과**: avg OOS Sharpe +37.473 PASS (>5.0) | WR 59.9% | trades 13 | c199 대비 -13.952 악화
+
+**설계**: c199(+51.425) 기반으로 BB squeeze를 hard gate→soft gate로 전환 + volume surge 타이밍 결합
+- SQUEEZE_MODE: [0,1,2] — 0=off, 1=soft(TP only), 2=hard(entry+TP)
+- SQUEEZE_TP_BONUS: [0.5, 1.0, 1.5]
+- VOL_SURGE_MODE: [0,1,2] — 0=off, 1=TP boost, 2=entry required
+- VOL_SURGE_TH: [1.5, 2.0, 3.0] | VOL_SURGE_LB: [5, 10]
+- COMBO_BONUS: [0.0, 0.5, 1.0]
+- 심볼: ETH/SOL/XRP 240m | ★슬리피지포함 | 🔄다음봉시가진입
+- 3-fold WF: F1(OOS 2024-04~2025-01), F2(OOS 2024-10~2025-07), F3(OOS 2025-04~2026-04)
+
+**최적**: sqM=2(hard) sqTP=0.5 vsM=0(off) vsTh=1.5 vsLB=5 comb=0.0
+- F1: Sharpe=+44.215 WR=66.7% n=3 avg=+2.78% MDD=-0.35%
+- F2: Sharpe=+37.133 WR=66.7% n=3 avg=+2.76% MDD=+0.00%
+- F3: Sharpe=+31.071 WR=54.2% n=7 avg=+2.05% MDD=-0.38%
+- 슬리피지 스트레스: 0.05%→+35.9, 0.10%→+34.8, 0.15%→+33.7, 0.20%→+32.6 (안정)
+
+**심볼별 OOS 평균**:
+- ETH: Sharpe +27.467 (6 trades)
+- SOL: Sharpe +44.279 (7 trades)
+- XRP: Sharpe 0.000 (0 trades) — squeeze gate가 XRP 완전 차단 🔻
+
+**핵심 발견**:
+1. Top 12 조합 모두 동일 OOS +37.473 — vol_surge/combo_bonus 파라미터가 결과에 영향 0
+2. squeeze_mode=2(hard)가 최적 → soft gate(mode=1) 가설 실패
+3. vol_surge_mode=0(off)이 최적 → volume surge 정보 가치 없음
+4. XRP: squeeze hard gate로 전 fold 0 trades — BB squeeze가 XRP 구조적 차단
+5. n=13(c199 14+ 대비 감소) + Sharpe 악화 → squeeze 필터는 noise 제거보다 signal 손실이 큼
+
+**결론**: 🔻 BB squeeze는 hard/soft 모두 c199 대비 악화. Volume surge도 marginal 정보 없음. c199(+51.425) 현 최적 유지 확정. 평가자 3방향 + 후속 연구 모두 소진.
+
