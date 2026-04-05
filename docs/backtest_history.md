@@ -14394,3 +14394,87 @@ trades: 0
 
 **결론**: ⚠️ Donchian 추세추종에 alpha 존재 (+9.542 > 5.0) 하나 F3(최근 4개월) 급격한 감쇠 (+0.776). 2025년 하반기 이후 추세추종 환경 악화 (변동성 축소 + 횡보장). daemon 배포 불가. 포트폴리오 다각화 후보로 보류.
 
+
+## 2026-04-05 09:40 UTC — CMF게이트+OBV추세기울기 이중필터 AND/OR 192조합 3-fold WF [ralph:cmf_gate_obv_trend] 🌟[promising]
+
+**결과**: Sharpe +27.797 | WR 62.3% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+===========================
+=== 심볼별 OOS 성능 분해 (Top 1: cmfG=0.05 obvSP=10 obvSL=5 obvSM=0.001 mode=OR tpB=1.0) ===
+  KRW-ETH Fold 1: Sharpe=+12.585  WR=37.5%  n=8  avg=+0.79%  MDD=-1.10%
+  KRW-SOL Fold 1: Sharpe=+18.963  WR=57.1%  n=7  avg=+1.44%  MDD=-1.71%
+  KRW-XRP Fold 1: Sharpe=+17.101  WR=20.0%  n=5  avg=+4.15%  MDD=-1.60%
+  KRW-ETH Fold 2: Sharpe=+22.924  WR=50.0%  n=10  avg=+2.30%  MDD=-1.94%
+  KRW-SOL Fold 2: Sharpe=-2.551  WR=33.3%  n=9  avg=-0.10%  MDD=-4.73%
+  KRW-XRP Fold 2: Sharpe=+24.868  WR=33.3%  n=3  avg=+7.16%  MDD=-1.51%
+  KRW-ETH Fold 3: Sharpe=+17.651  WR=37.5%  n=8  avg=+1.81%  MDD=-3.31%
+  KRW-SOL Fold 3: Sharpe=+1.891  WR=33.3%  n=6  avg=+0.06%  MDD=-1.51%
+  KRW-XRP Fold 3: Sharpe=+4.313  WR=33.3%  n=3  avg=+0.14%  MDD=-0.71%
+  KRW-ETH 평균: Sharpe=+17.720  총 trades=26
+  KRW-SOL 평균: Sharpe=+6.101  총 trades=22
+  KRW-XRP 평균: Sharpe=+15.427  총 trades=11
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c200 기준 (cmf+rsi_div bonus): avg_OOS=+17.674 n=64
+  c202 최적 (cmfG=0.05 obvSP=10 obvSL=5 obvSM=0.001 mode=OR tpB=1.0): avg_OOS=+13.083 n=59
+  Δ vs c179: -29.795 (악화)
+  Δ vs c200: -4.591 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: cmfG=0.05 obvSP=10 obvSL=5 obvSM=0.001 mode=OR tpB=1.0
+  (c200 고정: cmfP=10)
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +13.083 PASS
+  train Sharpe: +20.057
+  Fold 1: Sharpe=+16.216  WR=38.2%  trades=20  avg=+2.13%  MDD=-1.47%
+  Fold 2: Sharpe=+15.081  WR=38.9%  trades=22  avg=+3.12%  MDD=-2.73%
+  Fold 3: Sharpe=+7.951  WR=34.7%  trades=17  avg=+0.67%  MDD=-1.85%
+
+Sharpe: +13.083
+WR: 37.3%
+trades: 59
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 18:40 UTC — c206 VWAP Anchored Deviation 역추세 216조합 3-fold WF [ralph:c206_vwap_deviation_mr] 🔻[FAIL]
+
+**결과**: avg OOS Sharpe -2.325 | WR 52.4% | trades 259 | F3 -10.902
+
+**설계**: VWAP anchored deviation z-score 기반 역추세 — BB 대신 VWAP를 가격 앵커로 사용
+- VWAP: 일별/주별 앵커 리셋, 누적 typical_price×volume / volume
+- 편차 z-score: (close - VWAP)의 rolling σ 정규화
+- 진입: z-score <= -z_entry (과매도) + BTC > SMA200
+- 청산: z-score >= z_exit (VWAP 복귀) 또는 ATR SL 또는 max hold
+- 심볼: ETH/SOL/XRP 240m | ★슬리피지포함 | 🔄다음봉시가진입
+- 3-fold WF: F1(OOS 2024-04~2024-12), F2(OOS 2025-02~2025-09), F3(OOS 2025-10~2026-03)
+- 그리드: anchor(2) × z_entry(3) × z_exit(2) × atr_sl(3) × sigma_lb(3) × max_hold(2) = 216조합
+
+**최적**: anchor=daily z_entry=1.5 z_exit=0.0 atr_sl=2.0 sigma_lb=40 max_hold=15
+- F1: Sharpe=+2.680 WR=52.4% n=124 avg=+0.22%
+- F2: Sharpe=+1.248 WR=53.8% n=91 avg=+0.08%
+- F3: Sharpe=-10.902 WR=38.6% n=44 avg=-0.63%
+
+**심볼별 OOS 평균**:
+- ETH: Sharpe -5.151 (77 trades) — F3 -18.453 최악
+- SOL: Sharpe -1.367 (96 trades) — F3 -5.211
+- XRP: Sharpe -2.323 (86 trades) — F3 -12.945
+
+**결론**: 🔻 VWAP anchored deviation 240m에서 역추세 alpha 부재. F1/F2 marginal positive → F3(최근 6개월) catastrophic -10.9. 240m에서 일별 VWAP 리셋은 6봉/일로 VWAP 정보량 부족. 주별도 동일 패턴. VWAP 역추세는 더 짧은 타임프레임(60m, 15m)에서만 유효할 가능성. 평가자 방향 (2) VWAP 소진.
+
+---
