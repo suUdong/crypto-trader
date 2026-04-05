@@ -1,5 +1,5 @@
 {
-  "cycle": 212,
+  "cycle": 213,
   "done": [
     "stealth_sol_sweep",
     "truth_seeker_sweep",
@@ -11,16 +11,18 @@
     "btc_dip_recovery",
     "btc_dip_alt_entry",
     "new_strategy_hypothesis",
-    "vpin_eth_w2_fine",
+    "vpin_eth_w2_reopt",
     "momentum_sol_mdd",
-    "vpin_eth_vol_atr_adaptive",
-    "c152_vpin_eth_trailing_stop",
-    "c155_vpin_eth_btc_gate_vol",
-    "c157_vpin_eth_momentum_adaptive_trail",
-    "vpin_eth_atr_scaled_tpsl",
-    "c161_vpin_eth_atr_btc_gate_vol"
+    "cycle149_vpin_eth_regime_vol",
+    "cycle150_momentum_sol_regime_cooldown",
+    "cycle151_vpin_eth_atr_exit",
+    "cycle153_momentum_sol_atr_exit",
+    "vpin_eth_vol_regime_adaptive",
+    "cycle156_momentum_sol_atr_vol_filter",
+    "cycle158_vpin_eth_3tier_regime_hold",
+    "c162_momentum_sol_adx_vol_relax"
   ],
-  "last_run": "2026-04-04T23:55:38.494229+00:00",
+  "last_run": "2026-04-04T23:12:24.116932+00:00",
   "quality_log": [
     {
       "id": "vpin_eth_grid",
@@ -72,53 +74,67 @@
       "cycle": 29
     },
     {
-      "id": "vpin_eth_w2_fine",
+      "id": "vpin_eth_w2_reopt",
       "grade": "promising",
-      "sharpe": 8.337,
-      "reason": "Sharpe +8.337 — 유의미한 엣지 확인",
+      "sharpe": 11.128,
+      "reason": "Sharpe +11.128 — 유의미한 엣지 확인",
       "cycle": 205
     },
     {
-      "id": "vpin_eth_vol_atr_adaptive",
+      "id": "momentum_sol_mdd",
       "grade": "promising",
-      "sharpe": 10.882,
-      "reason": "Sharpe +10.882 — 유의미한 엣지 확인",
+      "sharpe": 17.315,
+      "reason": "Sharpe +17.315 — 유의미한 엣지 확인",
+      "cycle": 206
+    },
+    {
+      "id": "cycle149_vpin_eth_regime_vol",
+      "grade": "promising",
+      "sharpe": 19.378,
+      "reason": "Sharpe +19.378 — 유의미한 엣지 확인",
       "cycle": 207
     },
     {
-      "id": "c152_vpin_eth_trailing_stop",
+      "id": "cycle150_momentum_sol_regime_cooldown",
       "grade": "promising",
-      "sharpe": 11.208,
-      "reason": "Sharpe +11.208 — 유의미한 엣지 확인",
+      "sharpe": 10.546,
+      "reason": "Sharpe +10.546 — 유의미한 엣지 확인",
       "cycle": 208
     },
     {
-      "id": "c155_vpin_eth_btc_gate_vol",
+      "id": "cycle151_vpin_eth_atr_exit",
       "grade": "promising",
-      "sharpe": 21.45,
-      "reason": "Sharpe +21.450 — 유의미한 엣지 확인",
+      "sharpe": 14.285,
+      "reason": "Sharpe +14.285 — 유의미한 엣지 확인",
       "cycle": 209
     },
     {
-      "id": "c157_vpin_eth_momentum_adaptive_trail",
+      "id": "cycle153_momentum_sol_atr_exit",
       "grade": "promising",
-      "sharpe": 11.748,
-      "reason": "Sharpe +11.748 — 유의미한 엣지 확인",
+      "sharpe": 15.9,
+      "reason": "Sharpe +15.900 — 유의미한 엣지 확인",
       "cycle": 210
     },
     {
-      "id": "vpin_eth_atr_scaled_tpsl",
+      "id": "vpin_eth_vol_regime_adaptive",
       "grade": "promising",
-      "sharpe": 8.808,
-      "reason": "Sharpe +8.808 — 유의미한 엣지 확인",
+      "sharpe": 18.879,
+      "reason": "Sharpe +18.879 — 유의미한 엣지 확인",
       "cycle": 211
     },
     {
-      "id": "c161_vpin_eth_atr_btc_gate_vol",
-      "grade": "poor",
-      "sharpe": 16.209,
-      "reason": "거래 수 부족: 26 < 30",
+      "id": "cycle156_momentum_sol_atr_vol_filter",
+      "grade": "promising",
+      "sharpe": 24.861,
+      "reason": "Sharpe +24.861 — 유의미한 엣지 확인",
       "cycle": 212
+    },
+    {
+      "id": "c162_momentum_sol_adx_vol_relax",
+      "grade": "promising",
+      "sharpe": 11.413,
+      "reason": "ADX20+vol1.5 → avg OOS +11.413, n=37, 2026=6거래. 하지만 F2 n=15 경계값 — paper 검증 필요",
+      "cycle": 213
     }
   ],
   "interval_last_run": {
@@ -126,59 +142,80 @@
   },
   "dynamic_tasks": [
     {
-      "id": "vpin_eth_w2_fine",
+      "id": "vpin_eth_w2_reopt",
       "type": "backtest",
-      "desc": "vpin_eth W2 fine-grid 재탐색 (Sharpe≥5.0 목표, train/OOS walk-forward)",
-      "script": "backtest_cycle146_vpin_eth_w2_fine.py",
+      "desc": "vpin_eth W2 fine-grid 재탐색 + 2-fold walkforward (Sharpe≥5.0 목표)",
+      "script": "backtest_cycle146_vpin_eth_w2_reopt.py",
       "notify_on_significant": true
     },
     {
       "id": "momentum_sol_mdd",
       "type": "backtest",
-      "desc": "momentum_sol MDD/drawdown 정밀분석 + ETH/XRP/SUI 멀티심볼 검증",
-      "script": "backtest_cycle146_momentum_sol_mdd.py",
+      "desc": "momentum_sol MDD/연속손실/연도별 분해 — 2슬롯 확대 robustness 검증",
+      "script": "backtest_cycle147_momentum_sol_mdd.py",
       "notify_on_significant": true
     },
     {
-      "id": "vpin_eth_vol_atr_adaptive",
+      "id": "cycle149_vpin_eth_regime_vol",
       "type": "backtest",
-      "desc": "vpin_eth ATR적응형 SL/TP + 볼륨필터로 OOS Sharpe≥5.0 재탐색",
-      "script": "backtest_cycle149_vpin_eth_vol_atr.py",
+      "desc": "vpin_eth에 BTC 레짐 게이트+볼륨 필터 추가하여 WR/MDD 개선 탐색",
+      "script": "backtest_cycle149_vpin_eth_regime_vol.py",
       "notify_on_significant": true
     },
     {
-      "id": "c152_vpin_eth_trailing_stop",
+      "id": "cycle150_momentum_sol_regime_cooldown",
       "type": "backtest",
-      "desc": "vpin_eth BVC VPIN + 트레일링 스톱 + 손실 쿨다운으로 c148 OOS 4.668 초과 탐색",
-      "script": "backtest_cycle152_vpin_eth_trailing_stop.py",
+      "desc": "ADX-tight 기반 BTC 레짐필터+연속손실 쿨다운 복합조건 그리드탐색",
+      "script": "backtest_cycle150_momentum_sol_regime_cooldown.py",
       "notify_on_significant": true
     },
     {
-      "id": "c155_vpin_eth_btc_gate_vol",
+      "id": "cycle151_vpin_eth_atr_exit",
       "type": "backtest",
-      "desc": "vpin_eth c152 트레일링스톱 기반 BTC 레짐게이트+볼륨스파이크필터 추가 탐색",
-      "script": "backtest_cycle155_vpin_eth_btc_gate_vol.py",
+      "desc": "vpin_eth ATR적응형TP/SL + VPIN/RSI문턱완화로 트레이드수 확대 탐색",
+      "script": "backtest_cycle151_vpin_eth_atr_exit.py",
       "notify_on_significant": true
     },
     {
-      "id": "c157_vpin_eth_momentum_adaptive_trail",
+      "id": "cycle153_momentum_sol_atr_exit",
       "type": "backtest",
-      "desc": "vpin_eth 적응형 트레일링 — 진입 모멘텀 강도에 비례하여 trail_pct 동적 조절, c152 기준선 대비 OOS 개선 검증",
-      "script": "backtest_cycle157_vpin_eth_momentum_adaptive_trail.py",
+      "desc": "ATR동적청산+트레일링스톱으로 MDD/연속손실 안전기준 달성 탐색",
+      "script": "backtest_cycle153_momentum_sol_atr_exit.py",
       "notify_on_significant": true
     },
     {
-      "id": "vpin_eth_atr_scaled_tpsl",
+      "id": "vpin_eth_vol_regime_adaptive",
       "type": "backtest",
-      "desc": "vpin_eth ATR 배수 TP/SL/Trail 하이브리드 — 변동성 적응 청산으로 WR 개선 탐색",
-      "script": "backtest_cycle160_vpin_eth_atr_scaled_tpsl.py",
+      "desc": "변동성레짐별 적응형ATR배수 + EMA기울기 추세필터로 cycle151 Sharpe+10.7 돌파 탐색",
+      "script": "backtest_cycle154_vpin_eth_vol_regime_adaptive.py",
       "notify_on_significant": true
     },
     {
-      "id": "c161_vpin_eth_atr_btc_gate_vol",
+      "id": "cycle156_momentum_sol_atr_vol_filter",
       "type": "backtest",
-      "desc": "vpin_eth ATR스케일링 + BTC SMA레짐게이트 + 볼륨확인필터로 Fold2 안정화 탐색",
-      "script": "backtest_cycle161_vpin_eth_atr_btc_gate_vol.py",
+      "desc": "ATR변동성레짐필터로MDD14.49%consec3안전통과_OOS+14.805",
+      "script": "backtest_cycle156_momentum_sol_atr_vol_filter.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "cycle158_vpin_eth_3tier_regime_hold",
+      "type": "backtest",
+      "desc": "c154 2단계→3단계 변동성 레짐(low/mid/high) 세분화 + 레짐별 적응형 보유기간(high=짧게,low=길게) 탐색",
+      "script": "backtest_cycle158_vpin_eth_3tier_regime_hold.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "cycle159_regime_tier_dynamic",
+      "type": "backtest",
+      "desc": "momentum_sol ATR 3-tier 동적 TP/SL + ADX 상승 그래디언트 필터",
+      "script": "backtest_cycle159_momentum_sol_regime_tier_dynamic.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "c162_momentum_sol_adx_vol_relax",
+      "type": "backtest",
+      "desc": "momentum_sol ADX완화(20)+볼륨완화(1.5) 그리드 — 2026 n>0 확보, WF 4/72 통과",
+      "script": "backtest_cycle162_momentum_sol_adx_vol_relax.py",
       "notify_on_significant": true
     }
   ]
