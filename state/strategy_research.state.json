@@ -1,5 +1,5 @@
 {
-  "cycle": 30,
+  "cycle": 212,
   "done": [
     "stealth_sol_sweep",
     "truth_seeker_sweep",
@@ -10,9 +10,17 @@
     "strategy_tournament",
     "btc_dip_recovery",
     "btc_dip_alt_entry",
-    "new_strategy_hypothesis"
+    "new_strategy_hypothesis",
+    "vpin_eth_w2_fine",
+    "momentum_sol_mdd",
+    "vpin_eth_vol_atr_adaptive",
+    "c152_vpin_eth_trailing_stop",
+    "c155_vpin_eth_btc_gate_vol",
+    "c157_vpin_eth_momentum_adaptive_trail",
+    "vpin_eth_atr_scaled_tpsl",
+    "c161_vpin_eth_atr_btc_gate_vol"
   ],
-  "last_run": "2026-04-03T13:34:39.729006+00:00",
+  "last_run": "2026-04-04T23:55:38.494229+00:00",
   "quality_log": [
     {
       "id": "vpin_eth_grid",
@@ -62,8 +70,116 @@
       "sharpe": null,
       "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
       "cycle": 29
+    },
+    {
+      "id": "vpin_eth_w2_fine",
+      "grade": "promising",
+      "sharpe": 8.337,
+      "reason": "Sharpe +8.337 — 유의미한 엣지 확인",
+      "cycle": 205
+    },
+    {
+      "id": "vpin_eth_vol_atr_adaptive",
+      "grade": "promising",
+      "sharpe": 10.882,
+      "reason": "Sharpe +10.882 — 유의미한 엣지 확인",
+      "cycle": 207
+    },
+    {
+      "id": "c152_vpin_eth_trailing_stop",
+      "grade": "promising",
+      "sharpe": 11.208,
+      "reason": "Sharpe +11.208 — 유의미한 엣지 확인",
+      "cycle": 208
+    },
+    {
+      "id": "c155_vpin_eth_btc_gate_vol",
+      "grade": "promising",
+      "sharpe": 21.45,
+      "reason": "Sharpe +21.450 — 유의미한 엣지 확인",
+      "cycle": 209
+    },
+    {
+      "id": "c157_vpin_eth_momentum_adaptive_trail",
+      "grade": "promising",
+      "sharpe": 11.748,
+      "reason": "Sharpe +11.748 — 유의미한 엣지 확인",
+      "cycle": 210
+    },
+    {
+      "id": "vpin_eth_atr_scaled_tpsl",
+      "grade": "promising",
+      "sharpe": 8.808,
+      "reason": "Sharpe +8.808 — 유의미한 엣지 확인",
+      "cycle": 211
+    },
+    {
+      "id": "c161_vpin_eth_atr_btc_gate_vol",
+      "grade": "poor",
+      "sharpe": 16.209,
+      "reason": "거래 수 부족: 26 < 30",
+      "cycle": 212
     }
   ],
-  "interval_last_run": {},
-  "dynamic_tasks": []
+  "interval_last_run": {
+    "daily_quality_review": "2026-04-04T20:19:47.394420+00:00"
+  },
+  "dynamic_tasks": [
+    {
+      "id": "vpin_eth_w2_fine",
+      "type": "backtest",
+      "desc": "vpin_eth W2 fine-grid 재탐색 (Sharpe≥5.0 목표, train/OOS walk-forward)",
+      "script": "backtest_cycle146_vpin_eth_w2_fine.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "momentum_sol_mdd",
+      "type": "backtest",
+      "desc": "momentum_sol MDD/drawdown 정밀분석 + ETH/XRP/SUI 멀티심볼 검증",
+      "script": "backtest_cycle146_momentum_sol_mdd.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "vpin_eth_vol_atr_adaptive",
+      "type": "backtest",
+      "desc": "vpin_eth ATR적응형 SL/TP + 볼륨필터로 OOS Sharpe≥5.0 재탐색",
+      "script": "backtest_cycle149_vpin_eth_vol_atr.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "c152_vpin_eth_trailing_stop",
+      "type": "backtest",
+      "desc": "vpin_eth BVC VPIN + 트레일링 스톱 + 손실 쿨다운으로 c148 OOS 4.668 초과 탐색",
+      "script": "backtest_cycle152_vpin_eth_trailing_stop.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "c155_vpin_eth_btc_gate_vol",
+      "type": "backtest",
+      "desc": "vpin_eth c152 트레일링스톱 기반 BTC 레짐게이트+볼륨스파이크필터 추가 탐색",
+      "script": "backtest_cycle155_vpin_eth_btc_gate_vol.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "c157_vpin_eth_momentum_adaptive_trail",
+      "type": "backtest",
+      "desc": "vpin_eth 적응형 트레일링 — 진입 모멘텀 강도에 비례하여 trail_pct 동적 조절, c152 기준선 대비 OOS 개선 검증",
+      "script": "backtest_cycle157_vpin_eth_momentum_adaptive_trail.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "vpin_eth_atr_scaled_tpsl",
+      "type": "backtest",
+      "desc": "vpin_eth ATR 배수 TP/SL/Trail 하이브리드 — 변동성 적응 청산으로 WR 개선 탐색",
+      "script": "backtest_cycle160_vpin_eth_atr_scaled_tpsl.py",
+      "notify_on_significant": true
+    },
+    {
+      "id": "c161_vpin_eth_atr_btc_gate_vol",
+      "type": "backtest",
+      "desc": "vpin_eth ATR스케일링 + BTC SMA레짐게이트 + 볼륨확인필터로 Fold2 안정화 탐색",
+      "script": "backtest_cycle161_vpin_eth_atr_btc_gate_vol.py",
+      "notify_on_significant": true
+    }
+  ]
 }

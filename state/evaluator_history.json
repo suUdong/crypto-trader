@@ -6,10 +6,256 @@
     "min_interval_minutes": 30,
     "last_adjusted": null
   },
-  "evaluations": [],
+  "evaluations": [
+    {
+      "id": "eval-18949736",
+      "timestamp": "2026-04-04T00:50:50.714175+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 140,
+        "new_backtests_since_last": 21,
+        "cycles_since_last": 30,
+        "strategies_in_daemon": [
+          "vpin",
+          "momentum",
+          "accumulation_breakout",
+          "stealth_3gate",
+          "volume_spike",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "regime_specialist",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "deploy_ready",
+        "key_findings": [
+          "stealth_3gate TP=8%/SL=1.0% + btc_acc_min=1.2 조합으로 W2 Sharpe 11.204 달성 — 베이스라인(9.941) 대비 누적 +1.263 개선, 이미 daemon 반영 완료",
+          "W1(n=90) vs W2(n=508) Sharpe 괴리: 9.571 vs 11.204 (+1.633) — W2 방향이 우세하나 W1이 최근 레짐 변화를 선행 반영할 가능성 존재, 모니터링 필요",
+          "TP 단조감소 패턴 확인: 8%>10%>12%>15% — BEAR 레짐에서 단기 목표 집중 전략의 구조적 우위 입증, TP=6~7% 추가 탐색 여지",
+          "BTC_ACC_MIN=1.5는 W2 WR 26.5%(n=313)로 급락 — 임계값 과강화 시 신호 소진 경계(과적합 징후), 1.2가 최적 경계로 확인",
+          "momentum_sol(Sharpe 14.37), vpin_eth(Sharpe 7.46) — 백테스트 성과 우수하나 walk-forward + 실거래 스케일 검증 미완료로 daemon 미반영 상태, 잠재 수익 자산으로 대기 중",
+          "CVD slope 탐색 공간 완전 소진(사이클 136-137) — 양방향 + 코드 방식 모두 확인됨, 재탐색 불필요"
+        ],
+        "direction": "현재 stealth_3gate는 TP=8%/SL=1.0%+btc_acc_min=1.2로 daemon 배포 완료, W2 Sharpe 11.204 안정적. 다음 우선순위는 (1) TP=7%/6% 추가 탐색으로 BEAR 레짐 최적점 확정, (2) momentum_sol walk-forward 검증 후 daemon 반영 검토, (3) btc_acc_min=1.2+TP=8% 조건 하 신규 심볼 스캔으로 포트폴리오 확장. W1 Sharpe(9.571) < W2 Sharpe(11.204) 괴리를 실거래 모니터링으로 추적해야 함.",
+        "directives": [
+          {
+            "type": "explore",
+            "target": "stealth_3gate TP=7%/6%",
+            "reason": "TP 단조감소 패턴(8%>10%>12%>15%)이 명확해 더 낮은 값에서 추가 개선 가능성 있음. BEAR 레짐에서 짧은 이익 실현이 유리한 구조",
+            "suggested_action": "TP∈{5,6,7}% × SL∈{0.8,1.0,1.5}% 그리드 탐색, W2 Sharpe 11.204 초과 확인. n≥80 유지 조건 필수"
+          },
+          {
+            "type": "investigate",
+            "target": "momentum_sol (Sharpe 14.37)",
+            "reason": "백테스트 Sharpe 14.37로 현재 포트폴리오 최고 수준이나 walk-forward + 실거래 스케일 검증 미완료. 14.37은 과적합 의심 구간",
+            "suggested_action": "walk-forward 3-window 검증 수행, 각 창 Sharpe >5 확인. 슬리피지 0.05%→0.15% 스트레스 테스트로 실전 내성 측정 후 daemon 반영 결정"
+          },
+          {
+            "type": "explore",
+            "target": "신규 심볼 확장 (btc_acc_min=1.2 + TP=8% 기준)",
+            "reason": "stealth_3gate의 게이트 조건이 강화됐으므로(btc_acc_min=1.2) 동일 조건 하에서 알트 유니버스 재스캔 가능. 기존 스캔 결과는 구 파라미터 기준",
+            "suggested_action": "market_scan.state.json 기반 후보 심볼 재필터링, Sharpe >7 / WR >40% / n≥50 조건으로 신규 진입 후보 선별"
+          },
+          {
+            "type": "monitor",
+            "target": "stealth_3gate 실거래 vs 백테스트 괴리 (W1/W2 Sharpe 분기)",
+            "reason": "W1 Sharpe 9.571 vs W2 Sharpe 11.204 (+1.633 괴리) — W1이 최근 구간이므로 성과 하락 선행신호 가능성. 또한 BTC BEAR 레짐에서 실거래 슬리피지가 백테스트 대비 10~30% 성과 저하 요인",
+            "suggested_action": "2주 실거래 후 신호 수/WR/평균수익 로그 수집, W1 Sharpe 9.0 이하 지속 시 파라미터 재탐색 트리거"
+          },
+          {
+            "type": "avoid",
+            "target": "CVD slope 재탐색 (stealth_3gate)",
+            "reason": "사이클 136-137에서 양방향 + 코드 방식 모두 베이스라인 미달 확인. 탐색 공간 완전 소진",
+            "suggested_action": "CVD slope 관련 사이클 재실행 금지. alt_cvd_slope_max 파라미터는 비활성 유지"
+          },
+          {
+            "type": "deploy",
+            "target": "stealth_3gate (현 설정 유지)",
+            "reason": "TP=8%/SL=1.0%+btc_acc_min=1.2 조합 W2 Sharpe 11.204, WR 49.0%, n=508 — 통계적으로 충분하고 daemon 이미 반영됨",
+            "suggested_action": "현 daemon 설정 유지. 2주 관찰 후 live vs backtest 괴리 측정"
+          }
+        ],
+        "blockers": [
+          "W1 Sharpe(9.571) < W2 Sharpe(11.204) 괴리 원인 미확인 — 최근 레짐 변화(BTC 가속 하락) 또는 파라미터 과적합 가능성. 실거래 데이터 수집 전 확정 불가",
+          "momentum_sol Sharpe 14.37 — walk-forward 미완료, 실거래 스케일 검증 없음. daemon 반영 전 필수 검증 단계 미이행"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 **Ralph 사이클 140 평가 완료**\n\n✅ stealth_3gate TP=8%/SL=1.0% + btc_acc_min=1.2\n→ W2 Sharpe **11.204** (누적 +1.263 개선), daemon 반영 완료\n\n🔍 **다음 우선순위**\n1️⃣ TP=7%/6% 탐색 — 단조감소 패턴 지속 가능성\n2️⃣ momentum_sol walk-forward — Sharpe 14.37 검증 후 daemon 검토\n3️⃣ 신규 심볼 스캔 — 강화된 게이트 기준 재필터링\n\n⚠️ **모니터링 포인트**\nW1(9.571) vs W2(11.204) 괴리 — 실거래 2주 추적 필요\n\n🚫 CVD slope 재탐색 금지 — 탐색 공간 완전 소진"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-24e2aa4b",
+      "timestamp": "2026-04-04T21:06:47.763893+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 148,
+        "new_backtests_since_last": 3,
+        "cycles_since_last": 5,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "promising",
+        "key_findings": [
+          "vpin_eth 최신 백테스트(TP=4.5%/SL=0.8%) OOS 평균 Sharpe +7.861 — 현재 daemon TP=6%와 불일치, TP=4.5%로 업데이트 검토 필요",
+          "momentum_sol 2슬롯 확대 FAIL — 최대연속손실 6회(SAFE_MAX=3 초과), MDD -26.67%, 2026년 n=7 Sharpe -46.218로 최근 성과 급락. 1슬롯 유지 정당",
+          "momentum_sol ADX-tight 변형(adx 강화) OOS 평균 Sharpe +8.879 — W1-best(+5.326) 대비 +67% 우위, daemon 미반영 상태로 탐색 가치 높음",
+          "vpin_high 파라미터 0.58~0.70 전 구간 동일 결과 — 해당 범위에서 완전 무감도(flat plateau), 과적합 위험 낮으나 실질 자유도 1개 손실",
+          "stealth_3gate 14심볼 확장 후 W2 Sharpe 13.183(n=71, WR 59.2%) — 포트폴리오 최강 전략이나, 심볼 선택이 W2 기간 성과 기반(forward bias 잠재)",
+          "volspike_btc Sharpe 0.66(15거래/90일) — 6개 활성 전략 중 최약, 자본 100만원 묶임. bull 레짐 전용이므로 현재 유휴 자본",
+          "활성 6전략 중 all-regime은 vpin_eth 1개뿐 — BEAR 장기화 시 실질 가동 전략 1개, 포트폴리오 수익 집중 리스크"
+        ],
+        "direction": "즉각 조치: (1) vpin_eth daemon TP를 6%→4.5%로 업데이트 검토 — 최신 WF 최적이 TP=4.5%/SL=0.8%로 확인됨. (2) momentum_sol ADX-tight 변형(adx 강화)이 OOS +8.879로 현 W1-best(+5.326) 대비 압도적 — 별도 WF 검증 후 daemon 반영 우선순위. (3) BEAR 장기화 대비 all-regime 전략 추가 탐색 필수(BB bounce bear/sideways, stealth_3gate regime 확장).",
+        "directives": [
+          {
+            "type": "investigate",
+            "target": "vpin_eth daemon TP=6% vs 백테스트 최적 TP=4.5%",
+            "reason": "2026-04-04 WF 검증에서 TP=0.045/SL=0.008이 전체기간 Sharpe +7.508, OOS 평균 +7.861 달성. 현 daemon TP=0.06은 이전 그리드(04-03) 기준으로 구식",
+            "suggested_action": "TP=4.5% vs TP=6% 직접 비교 WF 실행, 유의미한 차이 확인 시 daemon.toml 업데이트"
+          },
+          {
+            "type": "explore",
+            "target": "momentum_sol ADX-tight 변형 (adx 강화)",
+            "reason": "OOS 평균 Sharpe +8.879로 전 변형 중 최고. W1=+14.343, W2=+3.415(n=22 — 통계 주의). 연속손실/MDD 미보고 → 별도 검증 필요",
+            "suggested_action": "ADX-tight 파라미터(adx_threshold 상향) 3-window WF + MDD/연속손실 분석. n≥30 확보 위해 OOS 윈도우 확장 검토"
+          },
+          {
+            "type": "explore",
+            "target": "BB bounce ADX<20 Bear/Sideways 전략",
+            "reason": "현재 BEAR에서 가동 가능한 전략이 vpin_eth 1개뿐. 유휴 자본(volspike_btc 100만, accumulation 100만) 활용 경로 필요",
+            "suggested_action": "bollinger_mr bear/sideways 레짐 전용 백테스트 — BTC/ETH 대상, 2022-2023 BEAR 구간 포함 WF 2-fold 검증"
+          },
+          {
+            "type": "monitor",
+            "target": "stealth_3gate 14심볼 확장 forward bias",
+            "reason": "심볼 선택이 W2 기간 성과 기반 — 사이클 143 주석에도 'paper 모드에서 forward 검증 필요' 명시. WR 59.2%가 실전에서 유지되는지 추적 필수",
+            "suggested_action": "paper trade 2주 이상 가동 후 실제 WR/Sharpe vs 백테스트 비교. WR<45% 또는 Sharpe<5.0 시 심볼 축소 트리거"
+          },
+          {
+            "type": "avoid",
+            "target": "momentum_sol 2슬롯 비중 확대",
+            "reason": "연속손실 6회(SAFE_MAX=3 초과), MDD -26.67%, 2025-2026 성과 급락(Sharpe +3.030 → -46.218). 사이클 147 결론과 동일: 6월+ 데이터 축적 전 확대 금지",
+            "suggested_action": "1슬롯 유지. 2026 H1 완료 후(n≥20) W3 재검증"
+          },
+          {
+            "type": "investigate",
+            "target": "volspike_btc 존속 여부",
+            "reason": "Sharpe 0.66, 15거래/90일 — 6전략 중 최약. bull 전용이므로 현재 완전 유휴. 자본 100만원이 기회비용으로 묶임",
+            "suggested_action": "volspike_btc를 비활성화하고 자본을 vpin_eth(all-regime)에 재배분하는 시나리오 vs 유지 시나리오 비교. bull 전환 시 reactivation 조건 명확화"
+          }
+        ],
+        "blockers": [
+          "vpin_eth daemon TP=6% vs 백테스트 최적 TP=4.5% 불일치 — 직접 비교 검증 전까지 현행 유지하되, 다음 ralph 사이클에서 해소 필요",
+          "momentum_sol ADX-tight OOS Fold2 n=22 — 통계적 불충분(n<30). 윈도우 확장 또는 추가 데이터 축적 후 재검증 필요",
+          "stealth_3gate 14심볼 forward bias 미검증 — paper 2주 이상 관찰 전까지 live 전환 금지"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 리포트 (사이클 148)\n\n✅ stealth_3gate: 14심볼 확장 W2 Sharpe 13.18 — 포트 최강, paper 검증 중\n✅ vpin_eth: OOS Sharpe +7.86 — daemon TP=6% vs 최적 TP=4.5% 불일치 발견\n⚠️ momentum_sol: 2슬롯 FAIL (연속손실6, MDD -26.7%) — 1슬롯 유지\n🔍 ADX-tight 변형 OOS +8.88 — 미탐색 최유망 방향\n📉 volspike_btc: Sharpe 0.66 최약 — 자본 재배분 검토\n🎯 다음 우선순위: (1) vpin_eth TP 비교검증 (2) ADX-tight WF (3) BB bounce bear전략"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-c6ee1f1f",
+      "timestamp": "2026-04-04T21:54:34.913899+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 153,
+        "new_backtests_since_last": 3,
+        "cycles_since_last": 5,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "promising",
+        "key_findings": [
+          "vpin_eth TP=7% daemon 배포 완료 — WF avg OOS +8.379(F1=+8.015 n=93, F2=+8.744 n=67) ✅ 통계 충분, 슬리피지 0.20%까지 TP=6% 대비 전 구간 우세. 포트폴리오 유일 all-regime 전략으로 현재 수익 엔진 역할 확정",
+          "momentum_sol SMA 단축 탐색 전면 실패 — SMA50~200 전체에서 2026=0거래, 근본 원인은 SOL ADX>30+볼륨 신호 부재. SMA200이 WF 최적(+14.069)이나 n=11~15(n<30 통계 불충분). BULL 전용 전략 확정, daemon 배포 불가",
+          "stealth_3gate TP=5%/SL=1.0% 15조합 전체 WF 통과 — 현행 유지 합리적이나 paper 모드 2주 미만으로 forward bias 검증 미완료. 14심볼 확장 후 실거래 WR 추적 필수",
+          "ATR 적응형 TP/SL(cycle 151 variant) avg OOS +10.714 vs 베이스라인 +10.040 — Δ+0.674 미미, n=70(WF), 슬리피지 0.20%에서 +9.694 유지. 유망하나 현행 고정 TP=7% 대비 복잡도 대비 이득 부족",
+          "트레일링 스톱(cycle 152 variant) WR 23% 극저, MDD -19.99%→-33.5%(슬리피지 0.20%) — 슬리피지 내성 최악, 0.10%→0.20% 낙차 Sharpe 9.5→5.0(-47%). 실전 부적합",
+          "BEAR 레짐 전용 전략 부재 지속 — 6개 활성 전략 중 all-regime은 vpin_eth 1개, 나머지 5개 모두 BULL 의존. volspike_btc(Sharpe 0.66) 100만원 유휴 자본"
+        ],
+        "direction": "vpin_eth TP=7% 배포 안정화 모니터링 2주 진행하면서, BEAR 레짐 전용 전략 확보가 최우선 과제. BB bounce Bear/Sideways 또는 mean-reversion 계열 탐색으로 vpin_eth 단일 의존도를 낮춰야 함. momentum_sol은 ADX 완화(30→25) + 볼륨 완화(1.5→1.0)로 2026 신호 포착 가능성을 탐색하되, n<30 블로커가 해소될 때까지 daemon 반영 금지. volspike_btc 자본 재배분 시나리오를 구체화해 유휴 자본 활용 경로를 마련할 것.",
+        "directives": [
+          {
+            "type": "explore",
+            "target": "BB bounce Bear/Sideways 전략 (ADX<20, BTC/ETH)",
+            "reason": "현재 모든 전략 BULL 의존 — BEAR 장기화 시 vpin_eth 단일 수익원. 3회 연속 평가에서 동일 방향 제안(사이클 140, 148, 153). 유휴 자본(volspike_btc 100만) 재배분 경로 필요",
+            "suggested_action": "bollinger_mr bear/sideways 레짐 전용 백테스트 — BTC/ETH 대상, 2022-2023 BEAR 구간 포함 WF 2-fold, ADX<20 + squeeze 필터, Sharpe>5.0/n≥30 기준"
+          },
+          {
+            "type": "explore",
+            "target": "momentum_sol ADX 완화(30→25) + 볼륨 완화(1.5→1.0)",
+            "reason": "SMA 단축 무효(cycle 153) — 근본 원인은 SOL 자체 신호 부재. 진입기준 완화로 2026 신호 포착 가능성 탐색. ADX 25는 cycle 150에서 consec=3 유일 통과 조건",
+            "suggested_action": "ADX∈{20,25} × vol_mult∈{1.0,1.5} × SMA200 고정 그리드, WF 2-fold + 슬리피지 스트레스. 2026 n>0 확보가 1차 목표"
+          },
+          {
+            "type": "monitor",
+            "target": "vpin_eth TP=7% daemon 실거래 성과",
+            "reason": "TP 6%→7% 전환 직후(2026-04-05) — 백테스트 Δ+0.754 개선이 실거래에서 재현되는지 2주 추적 필수. 2022년만 TP=6% 우세(-1.091)였으므로 레짐 전환 시 주의",
+            "suggested_action": "2주 paper trade 후 WR/avg수익/Sharpe 로그 수집. OOS F2(+8.744) 대비 실거래 Sharpe<5.0 지속 시 TP=6% 롤백 트리거"
+          },
+          {
+            "type": "investigate",
+            "target": "volspike_btc 존속 vs 자본 재배분",
+            "reason": "Sharpe 0.66, 15거래/90일 — 4회 연속 최약 전략. BULL 전용이므로 현재 완전 유휴. 100만원 기회비용이 vpin_eth(all-regime) 배분 시 즉시 수익 기여 가능",
+            "suggested_action": "시나리오 비교: (A) volspike_btc 비활성화 + 100만→vpin_eth 이동(총 300만), (B) BULL 전환 시 reactivation 조건(pre_bull≥0.9+BTC>SMA20) 명확화 후 유지. 기회비용 정량화"
+          },
+          {
+            "type": "avoid",
+            "target": "트레일링 스톱 기반 vpin_eth 변형",
+            "reason": "cycle 152 variant WR 23%, 슬리피지 0.10%→0.20% Sharpe 낙차 -47%(9.5→5.0). MDD -33.5%로 HARD_MAX 위반 근접. 고정 TP=7%가 구조적 우세",
+            "suggested_action": "trailing_stop 계열 vpin_eth 재탐색 금지. ATR 적응형은 Δ+0.674 미미 — 복잡도 대비 이득 부족으로 보류"
+          },
+          {
+            "type": "monitor",
+            "target": "stealth_3gate 14심볼 paper trade forward 검증",
+            "reason": "심볼 선택이 W2 기간 성과 기반(forward bias). WR 59.2%/Sharpe 13.183은 백테스트 상한 — 실전 재현 확률 낮음",
+            "suggested_action": "paper 2주 이상 가동 후 WR<45% 또는 Sharpe<5.0 시 심볼 7개로 축소. 현재 진행 중이므로 계속 관찰"
+          }
+        ],
+        "blockers": [
+          "BEAR 레짐 전용 전략 0개 — vpin_eth 단일 의존도 해소 전까지 포트폴리오 리스크 집중 지속",
+          "momentum_sol 전 SMA에서 2026=0거래 — BULL 전환 전까지 daemon 배포 불가, n<30 블로커 해소 불가",
+          "stealth_3gate 14심볼 forward bias 미검증 — paper 2주 관찰 완료 전 live 전환 금지",
+          "volspike_btc 100만원 유휴 — 존속/재배분 의사결정 미완료"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 **전략 평가 리포트 (사이클 153)**\n\n✅ vpin_eth TP=7% daemon 배포 완료\n→ WF avg OOS **+8.379**, 슬리피지 0.20%까지 TP=6% 대비 우세\n\n❌ momentum_sol SMA 단축 전면 실패\n→ SMA50~200 전체 2026=0거래, BULL 전용 확정\n\n⚠️ 트레일링 스톱 variant 부적합\n→ WR 23%, 슬리피지 낙차 -47% — 탐색 종료\n\n🎯 **다음 우선순위**\n1️⃣ BB bounce Bear/Sideways — BEAR 전용 전략 확보 (3회 연속 제안)\n2️⃣ momentum_sol ADX/볼륨 완화 — 2026 신호 포착 탐색\n3️⃣ volspike_btc 자본 재배분 의사결정\n\n📡 모니터링: vpin_eth TP=7% 실거래 2주 추적 + stealth_3gate 14심볼 forward 검증"
+      },
+      "adopted_by_ralph": null
+    }
+  ],
   "self_review": {
-    "total_evaluations": 0,
-    "actionable_rate": null,
+    "total_evaluations": 3,
+    "actionable_rate": 1.0,
     "last_threshold_adjustment": null
   }
 }

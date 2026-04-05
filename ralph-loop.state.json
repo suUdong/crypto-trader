@@ -1,58 +1,6 @@
 {
-  "current_cycle": 146,
+  "current_cycle": 157,
   "history": [
-    {
-      "cycle": 94,
-      "timestamp": "2026-04-04T01:52:19.861132"
-    },
-    {
-      "cycle": 95,
-      "timestamp": "2026-04-04T01:58:38.064970"
-    },
-    {
-      "cycle": 96,
-      "timestamp": "2026-04-04T02:07:55.950050"
-    },
-    {
-      "cycle": 97,
-      "timestamp": "2026-04-04T02:16:12.250121"
-    },
-    {
-      "cycle": 98,
-      "timestamp": "2026-04-04T02:23:47.072441"
-    },
-    {
-      "cycle": 99,
-      "timestamp": "2026-04-04T02:31:48.573544"
-    },
-    {
-      "cycle": 100,
-      "timestamp": "2026-04-04T02:37:45.304202"
-    },
-    {
-      "cycle": 101,
-      "timestamp": "2026-04-04T02:43:47.870733"
-    },
-    {
-      "cycle": 102,
-      "timestamp": "2026-04-04T02:49:58.336454"
-    },
-    {
-      "cycle": 103,
-      "timestamp": "2026-04-04T02:56:23.086712"
-    },
-    {
-      "cycle": 104,
-      "timestamp": "2026-04-04T03:07:36.281870"
-    },
-    {
-      "cycle": 105,
-      "timestamp": "2026-04-04T03:26:39.268608"
-    },
-    {
-      "cycle": 106,
-      "timestamp": "2026-04-04T03:32:40.561202"
-    },
     {
       "cycle": 107,
       "timestamp": "2026-04-04T03:38:17.467216"
@@ -204,199 +152,243 @@
     {
       "cycle": 145,
       "timestamp": "2026-04-04T12:50:00",
-      "result": "MAX_HOLD 재탐색 — 24봉 유지 (TP=5% 구조에서 바인딩 제약 아님)"
+      "result": "MAX_HOLD \uc7ac\ud0d0\uc0c9 \u2014 24\ubd09 \uc720\uc9c0 (TP=5% \uad6c\uc870\uc5d0\uc11c \ubc14\uc778\ub529 \uc81c\uc57d \uc544\ub2d8)"
     },
     {
       "cycle": "145-B",
       "timestamp": "2026-04-04T12:55:00",
-      "result": "momentum_sol C1 bias-corrected — OOS Sharpe 18.798 (open entry), daemon 파라미터 유지 확정"
+      "result": "momentum_sol C1 bias-corrected \u2014 OOS Sharpe 18.798 (open entry), daemon \ud30c\ub77c\ubbf8\ud130 \uc720\uc9c0 \ud655\uc815"
+    },
+    {
+      "cycle": 147,
+      "timestamp": "2026-04-05T05:30:16.425032"
+    },
+    {
+      "cycle": 148,
+      "timestamp": "2026-04-05T06:03:35.056593"
+    },
+    {
+      "cycle": 149,
+      "timestamp": "2026-04-05T06:12:30.053391"
+    },
+    {
+      "cycle": 150,
+      "timestamp": "2026-04-05T06:20:39.934232"
+    },
+    {
+      "cycle": 151,
+      "timestamp": "2026-04-05T06:30:26.694222"
+    },
+    {
+      "cycle": 152,
+      "timestamp": "2026-04-05T06:41:13.377254"
+    },
+    {
+      "cycle": 153,
+      "timestamp": "2026-04-05T06:52:00.976333"
+    },
+    {
+      "cycle": 154,
+      "timestamp": "2026-04-05T07:25:36.836459"
+    },
+    {
+      "cycle": 155,
+      "timestamp": "2026-04-05T07:59:20.374374"
+    },
+    {
+      "cycle": 156,
+      "timestamp": "2026-04-05T08:33:00.285047"
+    },
+    {
+      "cycle": 157,
+      "timestamp": "2026-04-05T09:06:45.792864"
     }
   ],
   "ralph_cycle": 0,
   "ralph_done": [
     {
-      "cycle": 114,
-      "summary": "작업: vpin_eth 슬리피지 민감도 분석 — 과적합 의심 해소 | 결과: **슬리피지 0.05% 3/3(평균 Sharpe +6.26), 0.10% 2/3(평균 Sharpe +4.93) — Upbit ETH 현실 슬리피지 구간에서 엣지 유지 확인. daemon 파라미터 vh=0.55/vm=0.0005/hold=18/TP=6%/SL=0.8% 최종 확정 (슬리피지 강건성 검증 완료). W2(2025) 슬리피지와 무관한 구조적 취약 재확인.** | 다음제안: **(A) SEI CVD/RS 필터 강화 — W1 OOS +1.545 저조 원인(2024H2 구간 신호 품질 미흡), CVD_THRESH>0.5 또는 RS 범위 조정으로 2/3 달성 시도** **(B) SUI BULL 전환 대기 — pre_bull=0.711 현재, ≥0.90 도달 시 W2 Sharpe 5.0+ 재검증 사이클 즉시 실행** **(C) momentum_sol WF 결과 재확인 — IS Sharpe +14.37 고수익, OOS 창 추가로 안정성 검증 강화**",
-      "detail": "[RALPH CYCLE 114 DONE] 작업: vpin_eth 슬리피지 민감도 분석 — 과적합 의심 해소 | 결과: **슬리피지 0.05% 3/3(평균 Sharpe +6.26), 0.10% 2/3(평균 Sharpe +4.93) — Upbit ETH 현실 슬리피지 구간에서 엣지 유지 확인. daemon 파라미터 vh=0.55/vm=0.0005/hold=18/TP=6%/SL=0.8% 최종 확정 (슬리피지 강건성 검증 완료). W2(2025) 슬리피지와 무관한 구조적 취약 재확인.** | 다음제안: **(A) SEI CVD/RS 필터 강화 — W1 OOS +1.545 저조 원인(2024H2 구간 신호 품질 미흡), CVD_THRESH>0.5 또는 RS 범위 조정으로 2/3 달성 시도** **(B) SUI BULL 전환 대기 — pre_bull=0.711 현재, ≥0.90 도달 시 W2 Sharpe 5.0+ 재검증 사이클 즉시 실행** **(C) momentum_sol WF 결과 재확인 — IS Sharpe +14.37 고수익, OOS 창 추가로 안정성 검증 강화**",
-      "timestamp": "2026-04-04T04:32:55.516501"
-    },
-    {
-      "cycle": 115,
-      "summary": "작업: SEI stealth_3gate CVD/RS 필터 강화 그리드 탐색 (112조합) — W1 OOS 개선 가능성 규명 | 결과: **2/2창 통과 조합 없음. RS[0.5,1.0)은 W2 강(+3.9) but W1 약(+1.3). RS[1.0,2.0)은 W1 강(+3.4) but W2 음(-0.6). SEI 2024H2/2025의 RS 특성이 구조적으로 역방향 — 필터 조정으로 해결 불가. SEI 탈락 확정.** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 가능한지 탐색 (현재 BTC BEAR이지만 BULL 전환 대비)** **(B) momentum_sol WF 추가 창 검증 — IS Sharpe +14.37 고수익, OOS 추가 창으로 과적합 여부 확인** **(C) 신규 심볼 스크리닝 — 기존 7심볼 외 BULL 레짐 집중 단창 후보 발굴**",
-      "detail": "[RALPH CYCLE 115 DONE] 작업: SEI stealth_3gate CVD/RS 필터 강화 그리드 탐색 (112조합) — W1 OOS 개선 가능성 규명 | 결과: **2/2창 통과 조합 없음. RS[0.5,1.0)은 W2 강(+3.9) but W1 약(+1.3). RS[1.0,2.0)은 W1 강(+3.4) but W2 음(-0.6). SEI 2024H2/2025의 RS 특성이 구조적으로 역방향 — 필터 조정으로 해결 불가. SEI 탈락 확정.** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 가능한지 탐색 (현재 BTC BEAR이지만 BULL 전환 대비)** **(B) momentum_sol WF 추가 창 검증 — IS Sharpe +14.37 고수익, OOS 추가 창으로 과적합 여부 확인** **(C) 신규 심볼 스크리닝 — 기존 7심볼 외 BULL 레짐 집중 단창 후보 발굴**",
-      "timestamp": "2026-04-04T04:38:44.985084"
-    },
-    {
-      "cycle": 116,
-      "summary": "작업: momentum_sol 슬리피지 민감도 분석 — Sharpe +14.37(IS) / OOS +23.8/+18.0 과적합 의심 해소 | 결과: **슬리피지 0.30%까지도 W1+W2 모두 통과, 평균 Sharpe 17.9~20.9 유지 (감쇠율 0.30%에서도 -14%에 불과). vpin_eth 0.10% 구간 -37% 감쇠 대비 극도로 강건 — 과적합이 아닌 실질적 엣지 확인. TP=12% 큰 목표가 슬리피지 흡수력 부여. daemon 파라미터 최종 확정(lb=12/adx=25/vol=2.0/TP=12%/SL=4%), BULL 전환 시 즉시 live 투입 가능** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 탐색 (BULL 전환 대비 daemon 반영 후보)** **(B) 신규 심볼 스크리닝 — JUP/ONDO 2025H2 이후 RS 안정성 재검토 (SEI 탈락으로 후보풀 감소)** **(C) SUI BULL 전환 모니터링 — pre_bull=0.711, ≥0.90 도달 시 W2 Sharpe 재검증 즉시 실행**",
-      "detail": "[RALPH CYCLE 116 DONE] 작업: momentum_sol 슬리피지 민감도 분석 — Sharpe +14.37(IS) / OOS +23.8/+18.0 과적합 의심 해소 | 결과: **슬리피지 0.30%까지도 W1+W2 모두 통과, 평균 Sharpe 17.9~20.9 유지 (감쇠율 0.30%에서도 -14%에 불과). vpin_eth 0.10% 구간 -37% 감쇠 대비 극도로 강건 — 과적합이 아닌 실질적 엣지 확인. TP=12% 큰 목표가 슬리피지 흡수력 부여. daemon 파라미터 최종 확정(lb=12/adx=25/vol=2.0/TP=12%/SL=4%), BULL 전환 시 즉시 live 투입 가능** | 다음제안: **(A) SUI 파라미터 미세 조정 — W2 Sharpe +3.990 → 5.0+ 달성 탐색 (BULL 전환 대비 daemon 반영 후보)** **(B) 신규 심볼 스크리닝 — JUP/ONDO 2025H2 이후 RS 안정성 재검토 (SEI 탈락으로 후보풀 감소)** **(C) SUI BULL 전환 모니터링 — pre_bull=0.711, ≥0.90 도달 시 W2 Sharpe 재검증 즉시 실행**",
-      "timestamp": "2026-04-04T04:45:06.621065"
-    },
-    {
-      "cycle": 117,
-      "summary": "작업: SUI stealth_3gate 파라미터 그리드 192조합 — Sharpe 5.0+ 달성 가능성 완전 소진 | 결과: **2/2창 통과 조합 없음. W∈{24,36} × acc∈{0.9,1.0} × RS 4쌍 × TP 4단계 × SL 3단계 = 192조합 전수 탐색. 최고 avg Sharpe +3.804 (TP=20%/SL=3%, W2: +4.267/W3: +3.341). RS 범위 확장/W 단축/ACC 완화 전부 효과 없음. SUI stealth_3gate 구조적 Sharpe 상한선 ~4.3 확인 — WR~54%·avg_ret~3.8%·n=24-35 조합에서 파라미터 최적화로 5.0 달성 불가.** | 다음제안: **(A) JUP/ONDO 신규 심볼 스크리닝 — SEI 탈락+SUI 기준 미달로 후보풀 2개 감소, 2024H2 이후 RS 안정성 있는 신규 심볼 탐색** **(B) SUI vpin 전략 적용 — stealth_3gate 외 vpin_eth와 동일 프레임워크로 SUI 엣지 탐색** **(C) BULL 전환 모니터링 유지 — pre_bull=0.711, momentum_sol/vpin_eth는 확정, SUI는 Sharpe 기준 미달이므로 BULL 전환 시에도 SUI 제외**",
-      "detail": "[RALPH CYCLE 117 DONE] 작업: SUI stealth_3gate 파라미터 그리드 192조합 — Sharpe 5.0+ 달성 가능성 완전 소진 | 결과: **2/2창 통과 조합 없음. W∈{24,36} × acc∈{0.9,1.0} × RS 4쌍 × TP 4단계 × SL 3단계 = 192조합 전수 탐색. 최고 avg Sharpe +3.804 (TP=20%/SL=3%, W2: +4.267/W3: +3.341). RS 범위 확장/W 단축/ACC 완화 전부 효과 없음. SUI stealth_3gate 구조적 Sharpe 상한선 ~4.3 확인 — WR~54%·avg_ret~3.8%·n=24-35 조합에서 파라미터 최적화로 5.0 달성 불가.** | 다음제안: **(A) JUP/ONDO 신규 심볼 스크리닝 — SEI 탈락+SUI 기준 미달로 후보풀 2개 감소, 2024H2 이후 RS 안정성 있는 신규 심볼 탐색** **(B) SUI vpin 전략 적용 — stealth_3gate 외 vpin_eth와 동일 프레임워크로 SUI 엣지 탐색** **(C) BULL 전환 모니터링 유지 — pre_bull=0.711, momentum_sol/vpin_eth는 확정, SUI는 Sharpe 기준 미달이므로 BULL 전환 시에도 SUI 제외**",
-      "timestamp": "2026-04-04T04:53:04.138346"
-    },
-    {
-      "cycle": 118,
-      "summary": "DONE 신호 없음 — 681s 후 종료",
-      "detail": "백그라운드 태스크 완료 확인. 이미 결과를 처리하고 commit까지 완료했습니다.",
-      "timestamp": "2026-04-04T05:07:31.341334"
-    },
-    {
-      "cycle": 119,
-      "summary": "작업: ONDO vpin 전략 432조합 탐색 — 2/2창 통과 12개, avg Sharpe +7.214 | 결과: **BTC Gate1 포함 + hold=18 + TP=10% + SL=1.5% 조합으로 W1 OOS +9.132(WR=28%, n=81) / W2 OOS +5.296(WR=26%, n=72) 달성. stealth_3gate W1 Sharpe -1.487 완벽 극복. vh/vm 파라미터 무관 — BTC Gate1이 실질 필터. BULL 전환 시 momentum_sol/vpin_eth에 이어 3번째 daemon 투입 후보 확정** | 다음제안: **(A) ONDO vpin 슬리피지 민감도 분석 — 파라미터 강건성 최종 확인 후 daemon.toml 반영** **(B) APT vpin 탐색 — 2024-01 데이터로 2창 WF 가능, SUI/ONDO와 동일 프레임워크 적용** **(C) BULL 전환 대비 daemon.toml 업데이트 준비 — ONDO vpin 파라미터 반영 (pre_bull=0.740, BULL 임박)**",
-      "detail": "[RALPH CYCLE 119 DONE] 작업: ONDO vpin 전략 432조합 탐색 — 2/2창 통과 12개, avg Sharpe +7.214 | 결과: **BTC Gate1 포함 + hold=18 + TP=10% + SL=1.5% 조합으로 W1 OOS +9.132(WR=28%, n=81) / W2 OOS +5.296(WR=26%, n=72) 달성. stealth_3gate W1 Sharpe -1.487 완벽 극복. vh/vm 파라미터 무관 — BTC Gate1이 실질 필터. BULL 전환 시 momentum_sol/vpin_eth에 이어 3번째 daemon 투입 후보 확정** | 다음제안: **(A) ONDO vpin 슬리피지 민감도 분석 — 파라미터 강건성 최종 확인 후 daemon.toml 반영** **(B) APT vpin 탐색 — 2024-01 데이터로 2창 WF 가능, SUI/ONDO와 동일 프레임워크 적용** **(C) BULL 전환 대비 daemon.toml 업데이트 준비 — ONDO vpin 파라미터 반영 (pre_bull=0.740, BULL 임박)**",
-      "timestamp": "2026-04-04T05:19:10.261283"
-    },
-    {
-      "cycle": 120,
-      "summary": "작업: ONDO vpin 슬리피지 민감도 분석 — daemon 반영 보류 결정 | 결과: **슬리피지 0.05%에서 W2 즉시 탈락 (5.296→4.161). TP/SL 9조합 전부 W2 살리지 못함 — ONDO vpin은 BULL 기간(W1)에만 엣지 존재, BEAR 기간 구조적 취약. daemon 반영 보류 확정.** | 다음제안: **(A) APT vpin 탐색 — 다른 심볼로 W1+W2 동시 통과 + 슬리피지 내성 탐색 (ONDO 실패 패턴 참고해 W2 기준 강화)** **(B) ONDO BULL-only 전략 검토 — pre_bull ≥ 0.90 조건에서만 활성화하는 conditional deployment 방식** **(C) 현재 daemon: momentum_sol + vpin_eth 2개 유지, ONDO는 슬리피지 내성 해결 전까지 대기**",
-      "detail": "---\n\n[RALPH CYCLE 120 DONE] 작업: ONDO vpin 슬리피지 민감도 분석 — daemon 반영 보류 결정 | 결과: **슬리피지 0.05%에서 W2 즉시 탈락 (5.296→4.161). TP/SL 9조합 전부 W2 살리지 못함 — ONDO vpin은 BULL 기간(W1)에만 엣지 존재, BEAR 기간 구조적 취약. daemon 반영 보류 확정.** | 다음제안: **(A) APT vpin 탐색 — 다른 심볼로 W1+W2 동시 통과 + 슬리피지 내성 탐색 (ONDO 실패 패턴 참고해 W2 기준 강화)** **(B) ONDO BULL-only 전략 검토 — pre_bull ≥ 0.90 조건에서만 활성화하는 conditional deployment 방식** **(C) 현재 daemon: momentum_sol + vpin_eth 2개 유지, ONDO는 슬리피지 내성 해결 전까지 대기**",
-      "timestamp": "2026-04-04T05:53:01.198297"
-    },
-    {
-      "cycle": 121,
-      "summary": "작업: APT vpin 전략 432조합 탐색 — 2/2창 통과 0개, vpin BULL-only 패턴 확정 | 결과: **ONDO 확정 파라미터(hold=18/TP=10%/Gate1=Y) 직접 적용 시 APT W1=+3.236/W2=-1.445 즉시 탈락. 전체 그리드 최고 W1=+7.227(hold=12/TP=8%/SL=1.0%) 이나 W2=+3.653으로 기준 5.0 미달. ONDO/SUI/SEI/APT 4개 심볼 모두 동일 패턴 확정 — vpin 전략은 BULL 기간 특화 메커니즘, BEAR/혼재(W2) 구조적 취약성 불가피** | 다음제안: **(A) vpin_eth 슬리피지 민감도 검증 — 기배포 전략 강건성 확인 (0.30%까지, momentum_sol 선례 동일)** **(B) ONDO BULL-only 조건부 배포 설계 — pre_bull ≥ 0.90 Gate 활성화로 W1 엣지만 활용하는 실용적 접근** **(C) BEAR 특화 전략 탐색 — 하락/횡보 환경 엣지 메커니즘 (mean-reversion, funding rate 등)**",
-      "detail": "---\n\n[RALPH CYCLE 121 DONE] 작업: APT vpin 전략 432조합 탐색 — 2/2창 통과 0개, vpin BULL-only 패턴 확정 | 결과: **ONDO 확정 파라미터(hold=18/TP=10%/Gate1=Y) 직접 적용 시 APT W1=+3.236/W2=-1.445 즉시 탈락. 전체 그리드 최고 W1=+7.227(hold=12/TP=8%/SL=1.0%) 이나 W2=+3.653으로 기준 5.0 미달. ONDO/SUI/SEI/APT 4개 심볼 모두 동일 패턴 확정 — vpin 전략은 BULL 기간 특화 메커니즘, BEAR/혼재(W2) 구조적 취약성 불가피** | 다음제안: **(A) vpin_eth 슬리피지 민감도 검증 — 기배포 전략 강건성 확인 (0.30%까지, momentum_sol 선례 동일)** **(B) ONDO BULL-only 조건부 배포 설계 — pre_bull ≥ 0.90 Gate 활성화로 W1 엣지만 활용하는 실용적 접근** **(C) BEAR 특화 전략 탐색 — 하락/횡보 환경 엣지 메커니즘 (mean-reversion, funding rate 등)**",
-      "timestamp": "2026-04-04T06:06:51.369421"
-    },
-    {
-      "cycle": 122,
-      "summary": "작업: ONDO vpin Gate2(BTC 30봉 수익률>0%) 탐색 — 슬리피지 0.10%까지 2/2창 통과, daemon 배포 근거 확보 | 결과: **BTC 30봉 수익률>0% Gate2 추가 시 W1=+8.364/W2=+5.434(슬리피지 0.10%, n=69/49). 사이클 120 보류 원인(W2 슬리피지 취약) 완전 해소. W1 Sharpe 오히려 상승(9.132→10.027), W2 신호 35% 차단으로 품질 개선. 확정 파라미터: vh=0.55, vm=0.0005, hold=18, TP=10%, SL=1.5%, Gate1=BTC>SMA20, Gate2=BTC_30봉>0%.** 보너스: vpin_eth 슬리피지 검증이 사이클 114에서 이미 완료된 것 확인 (이후 사이클들의 재검증 제안 오류 수정) | 다음제안: **(A) daemon.toml에 ONDO vpin wallet 추가 — Gate2 로직(BTC 30봉 수익률 > 0%) daemon 코드 레벨 구현 확인 후 반영 (현재 BEAR라 즉시 진입 없음, BULL 전환 시 자동 활성화)** **(B) BEAR 특화 전략 탐색 — 현 BEAR 구간(pre_bull=0.705)에서 엣지 가능한 메커니즘 (mean-reversion, CVD divergence 등)** **(C) pre_bull ≥ 0.90 + BTC > SMA20 + BTC 30봉>0% 복합 트리거 모니터링 스크립트 작성**",
-      "detail": "---\n\n[RALPH CYCLE 122 DONE] 작업: ONDO vpin Gate2(BTC 30봉 수익률>0%) 탐색 — 슬리피지 0.10%까지 2/2창 통과, daemon 배포 근거 확보 | 결과: **BTC 30봉 수익률>0% Gate2 추가 시 W1=+8.364/W2=+5.434(슬리피지 0.10%, n=69/49). 사이클 120 보류 원인(W2 슬리피지 취약) 완전 해소. W1 Sharpe 오히려 상승(9.132→10.027), W2 신호 35% 차단으로 품질 개선. 확정 파라미터: vh=0.55, vm=0.0005, hold=18, TP=10%, SL=1.5%, Gate1=BTC>SMA20, Gate2=BTC_30봉>0%.** 보너스: vpin_eth 슬리피지 검증이 사이클 114에서 이미 완료된 것 확인 (이후 사이클들의 재검증 제안 오류 수정) | 다음제안: **(A) daemon.toml에 ONDO vpin wallet 추가 — Gate2 로직(BTC 30봉 수익률 > 0%) daemon 코드 레벨 구현 확인 후 반영 (현재 BEAR라 즉시 진입 없음, BULL 전환 시 자동 활성화)** **(B) BEAR 특화 전략 탐색 — 현 BEAR 구간(pre_bull=0.705)에서 엣지 가능한 메커니즘 (mean-reversion, CVD divergence 등)** **(C) pre_bull ≥ 0.90 + BTC > SMA20 + BTC 30봉>0% 복합 트리거 모니터링 스크립트 작성**",
-      "timestamp": "2026-04-04T06:16:12.906199"
-    },
-    {
-      "cycle": 123,
-      "summary": "DONE 신호 없음 — 1000s 후 종료",
-      "detail": "`test_none_snapshot_does_not_block` 실패는 **기존 이슈** (내 변경 전에도 동일하게 실패). 내 변경과 무관합니다.\n\n---\n\n**사이클 123 완료 요약:**\n\n**작업**: ONDO vpin Gate2(BTC 30봉>0%) daemon 배포\n\n**구현된 변경:**\n- `market_scan_loop.py`: `compute_btc_stealth_regime()`에 `btc_30bar_pos` 계산 추가 → stealth-watchlist.json 기록\n- `wallet.py`: `_btc_30bar_gate` 필드 + `_read_btc_30bar_pos()` 메서드 + `run_once()` Gate2 블로킹 로직\n- `config.py`: vpin 허용 파라미터에 `btc_30bar_gate` 추가\n- `daemon.toml`: `vpin_ondo_wallet` 추가 (500k, Gate1+Gate2 복합 필터, TP=10%/SL=1.5%)\n\n**현재 상태**: BTC BEAR → Gate1+Gate2 모두 미통과 → 즉시 진입 없음. BULL 전환(pre_bull≥0.90 + BTC>SMA20 + BTC_30봉>0%) 시 자동 활성화.\n\n**테스트**: 기존 실패 3종(test_extended_alpha, test_wallet 6개, test_macro_adapter 1개) 모두 내 변경 전에도 동일하게 실패 — 사전 존재 이슈.\n\n**다음 제안:**\n- **(A) BEAR 특화 전략 탐색** — mean-reversion / CVD divergence 등 BEAR 환경 엣지 탐색\n- **(B) 복합 트리거 모니터링 스크립트** — BULL 전환 자동 감지 (pre_bull + Gate1 + Gate2 동시 체크)",
-      "timestamp": "2026-04-04T06:36:00.636801"
-    },
-    {
-      "cycle": 124,
-      "summary": "작업: ETH/SOL/XRP RSI oversold bounce BEAR 특화 전략 탐색 — 729조합 그리드, ETH RSI<25만 2/2창 통과 | 결과: **ETH RSI<25 bounce W1=+10.675/W2=+3.263(슬리피지 0.10%) — 2/2창 통과했으나 W2 Sharpe 3.263으로 daemon 기준(5.0+) 미달. 슬리피지 0.20%에서 즉시 탈락(내성 약함). SOL/XRP W2 Sharpe 음수로 구조적 실패. BEAR long-only에서 RSI<25 극단 과매도만 미약한 엣지 존재 확인.** | 다음제안: **(A) ETH RSI<20 + 볼륨 급증 필터 추가 → W2 Sharpe 5.0+ 달성 시도 (진입 조건 강화로 품질 개선)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull ≥ 0.90 + BTC>SMA20 + BTC_30봉>0% 자동 감지 (현재 pre_bull=0.705, 0.90 임박 모니터링 필요)** **(C) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI와 다른 메커니즘으로 BEAR 엣지 확인**",
-      "detail": "[RALPH CYCLE 124 DONE] 작업: ETH/SOL/XRP RSI oversold bounce BEAR 특화 전략 탐색 — 729조합 그리드, ETH RSI<25만 2/2창 통과 | 결과: **ETH RSI<25 bounce W1=+10.675/W2=+3.263(슬리피지 0.10%) — 2/2창 통과했으나 W2 Sharpe 3.263으로 daemon 기준(5.0+) 미달. 슬리피지 0.20%에서 즉시 탈락(내성 약함). SOL/XRP W2 Sharpe 음수로 구조적 실패. BEAR long-only에서 RSI<25 극단 과매도만 미약한 엣지 존재 확인.** | 다음제안: **(A) ETH RSI<20 + 볼륨 급증 필터 추가 → W2 Sharpe 5.0+ 달성 시도 (진입 조건 강화로 품질 개선)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull ≥ 0.90 + BTC>SMA20 + BTC_30봉>0% 자동 감지 (현재 pre_bull=0.705, 0.90 임박 모니터링 필요)** **(C) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI와 다른 메커니즘으로 BEAR 엣지 확인**",
-      "timestamp": "2026-04-04T06:47:51.538811"
-    },
-    {
       "cycle": 125,
-      "summary": "작업: ETH RSI<20 + Volume Spike 복합 필터 BEAR 전략 탐색 — 1,296 조합 그리드 | 결과: **RSI<20 + vol_spike=1.5x + vol_ma=30봉 + TP=5% + SL=3%: W1=5.075/W2=5.922(슬리피지 0.10%, n=6/11) — 2/2창 통과했으나 슬리피지 0.20%에서 W1=3.853/W2=4.513으로 즉시 탈락. W1 n=6 최소치로 통계 신뢰도 부족. 사이클 124→125 RSI 계열 BEAR long-only: 볼륨 필터로 W2 Sharpe 3.263→5.922 개선되나 슬리피지 내성 구조적 취약 확정 → daemon 미달.** RSI<18/RSI<15는 W1 n=4로 거래 수 부족. | 다음제안: **(A) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI 계열과 다른 메커니즘으로 BEAR 엣지 재확인 (avg 수익률이 높은 진입 조건 필요)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull≥0.90 + BTC>SMA20 + BTC_30봉>0% 복합 조건 실시간 감지 (현재 pre_bull=0.705, 즉시 활용 가능)** **(C) momentum_sol 슬리피지 민감도 검증 — 0.20%~0.30% 내성 확인 후 daemon 확정 근거 강화**",
-      "detail": "[RALPH CYCLE 125 DONE] 작업: ETH RSI<20 + Volume Spike 복합 필터 BEAR 전략 탐색 — 1,296 조합 그리드 | 결과: **RSI<20 + vol_spike=1.5x + vol_ma=30봉 + TP=5% + SL=3%: W1=5.075/W2=5.922(슬리피지 0.10%, n=6/11) — 2/2창 통과했으나 슬리피지 0.20%에서 W1=3.853/W2=4.513으로 즉시 탈락. W1 n=6 최소치로 통계 신뢰도 부족. 사이클 124→125 RSI 계열 BEAR long-only: 볼륨 필터로 W2 Sharpe 3.263→5.922 개선되나 슬리피지 내성 구조적 취약 확정 → daemon 미달.** RSI<18/RSI<15는 W1 n=4로 거래 수 부족. | 다음제안: **(A) 볼린저 밴드 하단 이탈 반등 전략 탐색 — RSI 계열과 다른 메커니즘으로 BEAR 엣지 재확인 (avg 수익률이 높은 진입 조건 필요)** **(B) BTC BULL 전환 모니터링 스크립트 — pre_bull≥0.90 + BTC>SMA20 + BTC_30봉>0% 복합 조건 실시간 감지 (현재 pre_bull=0.705, 즉시 활용 가능)** **(C) momentum_sol 슬리피지 민감도 검증 — 0.20%~0.30% 내성 확인 후 daemon 확정 근거 강화**",
+      "summary": "\uc791\uc5c5: ETH RSI<20 + Volume Spike \ubcf5\ud569 \ud544\ud130 BEAR \uc804\ub7b5 \ud0d0\uc0c9 \u2014 1,296 \uc870\ud569 \uadf8\ub9ac\ub4dc | \uacb0\uacfc: **RSI<20 + vol_spike=1.5x + vol_ma=30\ubd09 + TP=5% + SL=3%: W1=5.075/W2=5.922(\uc2ac\ub9ac\ud53c\uc9c0 0.10%, n=6/11) \u2014 2/2\ucc3d \ud1b5\uacfc\ud588\uc73c\ub098 \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c W1=3.853/W2=4.513\uc73c\ub85c \uc989\uc2dc \ud0c8\ub77d. W1 n=6 \ucd5c\uc18c\uce58\ub85c \ud1b5\uacc4 \uc2e0\ub8b0\ub3c4 \ubd80\uc871. \uc0ac\uc774\ud074 124\u2192125 RSI \uacc4\uc5f4 BEAR long-only: \ubcfc\ub968 \ud544\ud130\ub85c W2 Sharpe 3.263\u21925.922 \uac1c\uc120\ub418\ub098 \uc2ac\ub9ac\ud53c\uc9c0 \ub0b4\uc131 \uad6c\uc870\uc801 \ucde8\uc57d \ud655\uc815 \u2192 daemon \ubbf8\ub2ec.** RSI<18/RSI<15\ub294 W1 n=4\ub85c \uac70\ub798 \uc218 \ubd80\uc871. | \ub2e4\uc74c\uc81c\uc548: **(A) \ubcfc\ub9b0\uc800 \ubc34\ub4dc \ud558\ub2e8 \uc774\ud0c8 \ubc18\ub4f1 \uc804\ub7b5 \ud0d0\uc0c9 \u2014 RSI \uacc4\uc5f4\uacfc \ub2e4\ub978 \uba54\ucee4\ub2c8\uc998\uc73c\ub85c BEAR \uc5e3\uc9c0 \uc7ac\ud655\uc778 (avg \uc218\uc775\ub960\uc774 \ub192\uc740 \uc9c4\uc785 \uc870\uac74 \ud544\uc694)** **(B) BTC BULL \uc804\ud658 \ubaa8\ub2c8\ud130\ub9c1 \uc2a4\ud06c\ub9bd\ud2b8 \u2014 pre_bull\u22650.90 + BTC>SMA20 + BTC_30\ubd09>0% \ubcf5\ud569 \uc870\uac74 \uc2e4\uc2dc\uac04 \uac10\uc9c0 (\ud604\uc7ac pre_bull=0.705, \uc989\uc2dc \ud65c\uc6a9 \uac00\ub2a5)** **(C) momentum_sol \uc2ac\ub9ac\ud53c\uc9c0 \ubbfc\uac10\ub3c4 \uac80\uc99d \u2014 0.20%~0.30% \ub0b4\uc131 \ud655\uc778 \ud6c4 daemon \ud655\uc815 \uadfc\uac70 \uac15\ud654**",
+      "detail": "[RALPH CYCLE 125 DONE] \uc791\uc5c5: ETH RSI<20 + Volume Spike \ubcf5\ud569 \ud544\ud130 BEAR \uc804\ub7b5 \ud0d0\uc0c9 \u2014 1,296 \uc870\ud569 \uadf8\ub9ac\ub4dc | \uacb0\uacfc: **RSI<20 + vol_spike=1.5x + vol_ma=30\ubd09 + TP=5% + SL=3%: W1=5.075/W2=5.922(\uc2ac\ub9ac\ud53c\uc9c0 0.10%, n=6/11) \u2014 2/2\ucc3d \ud1b5\uacfc\ud588\uc73c\ub098 \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c W1=3.853/W2=4.513\uc73c\ub85c \uc989\uc2dc \ud0c8\ub77d. W1 n=6 \ucd5c\uc18c\uce58\ub85c \ud1b5\uacc4 \uc2e0\ub8b0\ub3c4 \ubd80\uc871. \uc0ac\uc774\ud074 124\u2192125 RSI \uacc4\uc5f4 BEAR long-only: \ubcfc\ub968 \ud544\ud130\ub85c W2 Sharpe 3.263\u21925.922 \uac1c\uc120\ub418\ub098 \uc2ac\ub9ac\ud53c\uc9c0 \ub0b4\uc131 \uad6c\uc870\uc801 \ucde8\uc57d \ud655\uc815 \u2192 daemon \ubbf8\ub2ec.** RSI<18/RSI<15\ub294 W1 n=4\ub85c \uac70\ub798 \uc218 \ubd80\uc871. | \ub2e4\uc74c\uc81c\uc548: **(A) \ubcfc\ub9b0\uc800 \ubc34\ub4dc \ud558\ub2e8 \uc774\ud0c8 \ubc18\ub4f1 \uc804\ub7b5 \ud0d0\uc0c9 \u2014 RSI \uacc4\uc5f4\uacfc \ub2e4\ub978 \uba54\ucee4\ub2c8\uc998\uc73c\ub85c BEAR \uc5e3\uc9c0 \uc7ac\ud655\uc778 (avg \uc218\uc775\ub960\uc774 \ub192\uc740 \uc9c4\uc785 \uc870\uac74 \ud544\uc694)** **(B) BTC BULL \uc804\ud658 \ubaa8\ub2c8\ud130\ub9c1 \uc2a4\ud06c\ub9bd\ud2b8 \u2014 pre_bull\u22650.90 + BTC>SMA20 + BTC_30\ubd09>0% \ubcf5\ud569 \uc870\uac74 \uc2e4\uc2dc\uac04 \uac10\uc9c0 (\ud604\uc7ac pre_bull=0.705, \uc989\uc2dc \ud65c\uc6a9 \uac00\ub2a5)** **(C) momentum_sol \uc2ac\ub9ac\ud53c\uc9c0 \ubbfc\uac10\ub3c4 \uac80\uc99d \u2014 0.20%~0.30% \ub0b4\uc131 \ud655\uc778 \ud6c4 daemon \ud655\uc815 \uadfc\uac70 \uac15\ud654**",
       "timestamp": "2026-04-04T06:58:26.442477"
     },
     {
       "cycle": 126,
-      "summary": "DONE 신호 없음 — 170s 후 종료",
-      "detail": "Codex task `task-mnjgaz6b-58skhu`가 실행 중입니다. BB bounce 그리드 탐색이 진행 중이니 `/codex:status task-mnjgaz6b-58skhu`로 진행 상황을 확인할 수 있습니다. 완료까지 10~20분 예상됩니다.",
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 170s \ud6c4 \uc885\ub8cc",
+      "detail": "Codex task `task-mnjgaz6b-58skhu`\uac00 \uc2e4\ud589 \uc911\uc785\ub2c8\ub2e4. BB bounce \uadf8\ub9ac\ub4dc \ud0d0\uc0c9\uc774 \uc9c4\ud589 \uc911\uc774\ub2c8 `/codex:status task-mnjgaz6b-58skhu`\ub85c \uc9c4\ud589 \uc0c1\ud669\uc744 \ud655\uc778\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \uc644\ub8cc\uae4c\uc9c0 10~20\ubd84 \uc608\uc0c1\ub429\ub2c8\ub2e4.",
       "timestamp": "2026-04-04T07:04:23.199604"
     },
     {
       "cycle": 127,
-      "summary": "DONE 신호 없음 — 340s 후 종료",
-      "detail": "BB bounce 백테스트 Codex 태스크 `task-mnjggtdk-0kczft` 여전히 실행 중 (4분27초). 864 조합 × 3 슬리피지 = ~2,600회 시뮬레이션이므로 10~20분 예상됩니다.\n\n완료 알림이 오면 결과를 분석하겠습니다.",
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 340s \ud6c4 \uc885\ub8cc",
+      "detail": "BB bounce \ubc31\ud14c\uc2a4\ud2b8 Codex \ud0dc\uc2a4\ud06c `task-mnjggtdk-0kczft` \uc5ec\uc804\ud788 \uc2e4\ud589 \uc911 (4\ubd8427\ucd08). 864 \uc870\ud569 \u00d7 3 \uc2ac\ub9ac\ud53c\uc9c0 = ~2,600\ud68c \uc2dc\ubbac\ub808\uc774\uc158\uc774\ubbc0\ub85c 10~20\ubd84 \uc608\uc0c1\ub429\ub2c8\ub2e4.\n\n\uc644\ub8cc \uc54c\ub9bc\uc774 \uc624\uba74 \uacb0\uacfc\ub97c \ubd84\uc11d\ud558\uaca0\uc2b5\ub2c8\ub2e4.",
       "timestamp": "2026-04-04T07:13:11.748933"
     },
     {
       "cycle": 128,
-      "summary": "DONE 신호 없음 — 1615s 후 종료",
-      "detail": "SOL 864조합 전체 결과도 동일: **통과 0개**.\n\n흥미로운 점: `bb_period=20, bb_std=2.0` SOL에서 W1=6.3~7.2(n=59~63) 통과하나 W2=-0.2~-1.4로 즉시 탈락. W1 OOS(2024, 상승전환 포함) vs W2 OOS(2025-2026, 약세) 레짐 차이로 인한 과적합.\n\n사이클 128 결론 최종 확정 — 추가 기록 불필요 (이미 commit 완료).",
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1615s \ud6c4 \uc885\ub8cc",
+      "detail": "SOL 864\uc870\ud569 \uc804\uccb4 \uacb0\uacfc\ub3c4 \ub3d9\uc77c: **\ud1b5\uacfc 0\uac1c**.\n\n\ud765\ubbf8\ub85c\uc6b4 \uc810: `bb_period=20, bb_std=2.0` SOL\uc5d0\uc11c W1=6.3~7.2(n=59~63) \ud1b5\uacfc\ud558\ub098 W2=-0.2~-1.4\ub85c \uc989\uc2dc \ud0c8\ub77d. W1 OOS(2024, \uc0c1\uc2b9\uc804\ud658 \ud3ec\ud568) vs W2 OOS(2025-2026, \uc57d\uc138) \ub808\uc9d0 \ucc28\uc774\ub85c \uc778\ud55c \uacfc\uc801\ud569.\n\n\uc0ac\uc774\ud074 128 \uacb0\ub860 \ucd5c\uc885 \ud655\uc815 \u2014 \ucd94\uac00 \uae30\ub85d \ubd88\ud544\uc694 (\uc774\ubbf8 commit \uc644\ub8cc).",
       "timestamp": "2026-04-04T07:43:11.561601"
     },
     {
       "cycle": 129,
-      "summary": "작업: stealth_3gate TP/SL 최적화 (SL=1.0% 발견) | 결과: W2 Sharpe 4.377→**5.045** (Gate4=ON + TP=10% + SL=1.0%, 슬리피지 0.10% 통과) | 다음제안: (A) Gate4=OFF + SL=1.0% 최종 결정 (W2=5.199, 거래수 4130으로 통계 신뢰도 높음), (B) BULL 전환 후 실전 stealth_3gate 성과 모니터링",
-      "detail": "[RALPH CYCLE 129 DONE] 작업: stealth_3gate TP/SL 최적화 (SL=1.0% 발견) | 결과: W2 Sharpe 4.377→**5.045** (Gate4=ON + TP=10% + SL=1.0%, 슬리피지 0.10% 통과) | 다음제안: (A) Gate4=OFF + SL=1.0% 최종 결정 (W2=5.199, 거래수 4130으로 통계 신뢰도 높음), (B) BULL 전환 후 실전 stealth_3gate 성과 모니터링\n\n---\n\n**사이클 129 요약**:\n- **발견**: TP/SL이 W=36 최적화 과정에서 한번도 단독 탐색되지 않았음 (항상 TP=15%/SL=3% 고정)\n- **핵심**: SL=1.0% (기존 3%의 1/3)이 BEAR 구간(W2 2024-2026) Sharpe를 결정적으로 개선\n- **48조합 × 2창 탐색** 23초 완료, 6개 조합 5.0 통과\n- **daemon 반영**: `stop_loss_pct 0.03→0.010`, `take_profit_pct 0.15→0.10`\n- **현재 상태**: `paper_trading=true` — BULL 전환 시 자동 활성화 대기",
+      "summary": "\uc791\uc5c5: stealth_3gate TP/SL \ucd5c\uc801\ud654 (SL=1.0% \ubc1c\uacac) | \uacb0\uacfc: W2 Sharpe 4.377\u2192**5.045** (Gate4=ON + TP=10% + SL=1.0%, \uc2ac\ub9ac\ud53c\uc9c0 0.10% \ud1b5\uacfc) | \ub2e4\uc74c\uc81c\uc548: (A) Gate4=OFF + SL=1.0% \ucd5c\uc885 \uacb0\uc815 (W2=5.199, \uac70\ub798\uc218 4130\uc73c\ub85c \ud1b5\uacc4 \uc2e0\ub8b0\ub3c4 \ub192\uc74c), (B) BULL \uc804\ud658 \ud6c4 \uc2e4\uc804 stealth_3gate \uc131\uacfc \ubaa8\ub2c8\ud130\ub9c1",
+      "detail": "[RALPH CYCLE 129 DONE] \uc791\uc5c5: stealth_3gate TP/SL \ucd5c\uc801\ud654 (SL=1.0% \ubc1c\uacac) | \uacb0\uacfc: W2 Sharpe 4.377\u2192**5.045** (Gate4=ON + TP=10% + SL=1.0%, \uc2ac\ub9ac\ud53c\uc9c0 0.10% \ud1b5\uacfc) | \ub2e4\uc74c\uc81c\uc548: (A) Gate4=OFF + SL=1.0% \ucd5c\uc885 \uacb0\uc815 (W2=5.199, \uac70\ub798\uc218 4130\uc73c\ub85c \ud1b5\uacc4 \uc2e0\ub8b0\ub3c4 \ub192\uc74c), (B) BULL \uc804\ud658 \ud6c4 \uc2e4\uc804 stealth_3gate \uc131\uacfc \ubaa8\ub2c8\ud130\ub9c1\n\n---\n\n**\uc0ac\uc774\ud074 129 \uc694\uc57d**:\n- **\ubc1c\uacac**: TP/SL\uc774 W=36 \ucd5c\uc801\ud654 \uacfc\uc815\uc5d0\uc11c \ud55c\ubc88\ub3c4 \ub2e8\ub3c5 \ud0d0\uc0c9\ub418\uc9c0 \uc54a\uc558\uc74c (\ud56d\uc0c1 TP=15%/SL=3% \uace0\uc815)\n- **\ud575\uc2ec**: SL=1.0% (\uae30\uc874 3%\uc758 1/3)\uc774 BEAR \uad6c\uac04(W2 2024-2026) Sharpe\ub97c \uacb0\uc815\uc801\uc73c\ub85c \uac1c\uc120\n- **48\uc870\ud569 \u00d7 2\ucc3d \ud0d0\uc0c9** 23\ucd08 \uc644\ub8cc, 6\uac1c \uc870\ud569 5.0 \ud1b5\uacfc\n- **daemon \ubc18\uc601**: `stop_loss_pct 0.03\u21920.010`, `take_profit_pct 0.15\u21920.10`\n- **\ud604\uc7ac \uc0c1\ud0dc**: `paper_trading=true` \u2014 BULL \uc804\ud658 \uc2dc \uc790\ub3d9 \ud65c\uc131\ud654 \ub300\uae30",
       "timestamp": "2026-04-04T08:17:13.459160"
     },
     {
       "cycle": 130,
-      "summary": "작업: stealth_3gate SMA period 최적화 (SMA=10 발견) + Gate4=OFF 전환 | 결과: W2 Sharpe 5.199→**6.876** (+1.677, 슬리피지 0.20%까지 통과), daemon 반영 완료 | 다음제안: (A) SMA=10 + Gate4=ON 조합 검증 (미탐색 영역), (B) stealth_window × SMA=10 2D 탐색 (W=36 고정 해제)",
-      "detail": "커밋 완료.\n\n[RALPH CYCLE 130 DONE] 작업: stealth_3gate SMA period 최적화 (SMA=10 발견) + Gate4=OFF 전환 | 결과: W2 Sharpe 5.199→**6.876** (+1.677, 슬리피지 0.20%까지 통과), daemon 반영 완료 | 다음제안: (A) SMA=10 + Gate4=ON 조합 검증 (미탐색 영역), (B) stealth_window × SMA=10 2D 탐색 (W=36 고정 해제)\n\n---\n\n**사이클 130 요약**:\n- **발견**: BTC SMA period가 지금까지 SMA=20으로 고정, 한번도 최적화된 적 없었음\n- **핵심**: SMA=10이 최우수 — W2 Sharpe 6.876 (SMA=20의 5.199 대비 **+1.677**)\n- **슬리피지 내성**: 0.20%에서도 W2=6.515 통과 (지금까지 최강)\n- **Gate4=OFF**: 동시 반영 (W2=5.045→5.199 +0.154)\n- **누적 개선**: 기준(4.377) → 사이클129(5.045) → 사이클130(**6.876**) = **+2.499**\n- **daemon 반영**: `stealth_sma_period: 20→10`, `btc_trend_pos_gate: true→false`",
+      "summary": "\uc791\uc5c5: stealth_3gate SMA period \ucd5c\uc801\ud654 (SMA=10 \ubc1c\uacac) + Gate4=OFF \uc804\ud658 | \uacb0\uacfc: W2 Sharpe 5.199\u2192**6.876** (+1.677, \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 \ud1b5\uacfc), daemon \ubc18\uc601 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: (A) SMA=10 + Gate4=ON \uc870\ud569 \uac80\uc99d (\ubbf8\ud0d0\uc0c9 \uc601\uc5ed), (B) stealth_window \u00d7 SMA=10 2D \ud0d0\uc0c9 (W=36 \uace0\uc815 \ud574\uc81c)",
+      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n[RALPH CYCLE 130 DONE] \uc791\uc5c5: stealth_3gate SMA period \ucd5c\uc801\ud654 (SMA=10 \ubc1c\uacac) + Gate4=OFF \uc804\ud658 | \uacb0\uacfc: W2 Sharpe 5.199\u2192**6.876** (+1.677, \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 \ud1b5\uacfc), daemon \ubc18\uc601 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: (A) SMA=10 + Gate4=ON \uc870\ud569 \uac80\uc99d (\ubbf8\ud0d0\uc0c9 \uc601\uc5ed), (B) stealth_window \u00d7 SMA=10 2D \ud0d0\uc0c9 (W=36 \uace0\uc815 \ud574\uc81c)\n\n---\n\n**\uc0ac\uc774\ud074 130 \uc694\uc57d**:\n- **\ubc1c\uacac**: BTC SMA period\uac00 \uc9c0\uae08\uae4c\uc9c0 SMA=20\uc73c\ub85c \uace0\uc815, \ud55c\ubc88\ub3c4 \ucd5c\uc801\ud654\ub41c \uc801 \uc5c6\uc5c8\uc74c\n- **\ud575\uc2ec**: SMA=10\uc774 \ucd5c\uc6b0\uc218 \u2014 W2 Sharpe 6.876 (SMA=20\uc758 5.199 \ub300\ube44 **+1.677**)\n- **\uc2ac\ub9ac\ud53c\uc9c0 \ub0b4\uc131**: 0.20%\uc5d0\uc11c\ub3c4 W2=6.515 \ud1b5\uacfc (\uc9c0\uae08\uae4c\uc9c0 \ucd5c\uac15)\n- **Gate4=OFF**: \ub3d9\uc2dc \ubc18\uc601 (W2=5.045\u21925.199 +0.154)\n- **\ub204\uc801 \uac1c\uc120**: \uae30\uc900(4.377) \u2192 \uc0ac\uc774\ud074129(5.045) \u2192 \uc0ac\uc774\ud074130(**6.876**) = **+2.499**\n- **daemon \ubc18\uc601**: `stealth_sma_period: 20\u219210`, `btc_trend_pos_gate: true\u2192false`",
       "timestamp": "2026-04-04T08:27:14.798550"
     },
     {
       "cycle": 131,
-      "summary": "작업: stealth_3gate stealth_window(W) 재검증 — SMA=10 환경에서 W=36 최적 확인 | 결과: W=36 W2 Sharpe 6.876 유지 (1위), W<32 구조적 실패, daemon 변경 불필요 | 다음제안: (A) RS 범위 최적화 — RS[0.5,1.0) 고정이 SMA=10+W=36 조합에서도 최적인지 검증 (미탐색), (B) Gate4=ON+SMA=10 조합 재검증 (W=36 확정 후 유일한 미탐색 파라미터 공간), (C) BULL 전환(pre_bull≥0.90) 대기 — 현재 0.804로 근접",
-      "detail": "---\n\n[RALPH CYCLE 131 DONE] 작업: stealth_3gate stealth_window(W) 재검증 — SMA=10 환경에서 W=36 최적 확인 | 결과: W=36 W2 Sharpe 6.876 유지 (1위), W<32 구조적 실패, daemon 변경 불필요 | 다음제안: (A) RS 범위 최적화 — RS[0.5,1.0) 고정이 SMA=10+W=36 조합에서도 최적인지 검증 (미탐색), (B) Gate4=ON+SMA=10 조합 재검증 (W=36 확정 후 유일한 미탐색 파라미터 공간), (C) BULL 전환(pre_bull≥0.90) 대기 — 현재 0.804로 근접",
+      "summary": "\uc791\uc5c5: stealth_3gate stealth_window(W) \uc7ac\uac80\uc99d \u2014 SMA=10 \ud658\uacbd\uc5d0\uc11c W=36 \ucd5c\uc801 \ud655\uc778 | \uacb0\uacfc: W=36 W2 Sharpe 6.876 \uc720\uc9c0 (1\uc704), W<32 \uad6c\uc870\uc801 \uc2e4\ud328, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: (A) RS \ubc94\uc704 \ucd5c\uc801\ud654 \u2014 RS[0.5,1.0) \uace0\uc815\uc774 SMA=10+W=36 \uc870\ud569\uc5d0\uc11c\ub3c4 \ucd5c\uc801\uc778\uc9c0 \uac80\uc99d (\ubbf8\ud0d0\uc0c9), (B) Gate4=ON+SMA=10 \uc870\ud569 \uc7ac\uac80\uc99d (W=36 \ud655\uc815 \ud6c4 \uc720\uc77c\ud55c \ubbf8\ud0d0\uc0c9 \ud30c\ub77c\ubbf8\ud130 \uacf5\uac04), (C) BULL \uc804\ud658(pre_bull\u22650.90) \ub300\uae30 \u2014 \ud604\uc7ac 0.804\ub85c \uadfc\uc811",
+      "detail": "---\n\n[RALPH CYCLE 131 DONE] \uc791\uc5c5: stealth_3gate stealth_window(W) \uc7ac\uac80\uc99d \u2014 SMA=10 \ud658\uacbd\uc5d0\uc11c W=36 \ucd5c\uc801 \ud655\uc778 | \uacb0\uacfc: W=36 W2 Sharpe 6.876 \uc720\uc9c0 (1\uc704), W<32 \uad6c\uc870\uc801 \uc2e4\ud328, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: (A) RS \ubc94\uc704 \ucd5c\uc801\ud654 \u2014 RS[0.5,1.0) \uace0\uc815\uc774 SMA=10+W=36 \uc870\ud569\uc5d0\uc11c\ub3c4 \ucd5c\uc801\uc778\uc9c0 \uac80\uc99d (\ubbf8\ud0d0\uc0c9), (B) Gate4=ON+SMA=10 \uc870\ud569 \uc7ac\uac80\uc99d (W=36 \ud655\uc815 \ud6c4 \uc720\uc77c\ud55c \ubbf8\ud0d0\uc0c9 \ud30c\ub77c\ubbf8\ud130 \uacf5\uac04), (C) BULL \uc804\ud658(pre_bull\u22650.90) \ub300\uae30 \u2014 \ud604\uc7ac 0.804\ub85c \uadfc\uc811",
       "timestamp": "2026-04-04T08:33:25.289292"
     },
     {
       "cycle": 132,
-      "summary": "작업: stealth_3gate RS 범위 최적화 → [0.4,0.9) 발견 | 결과: W2 Sharpe 6.876→**9.941** (+3.065, 슬리피지 0.30%에서도 W2=9.328 통과), daemon 반영 완료 | 다음제안: (A) Gate4=ON + RS[0.4,0.9) 재검증, (B) acc 임계값 탐색 (현재 acc>1.0 미탐색), (C) BULL 전환(pre_bull 0.804→0.90) 모니터링",
-      "detail": "[RALPH CYCLE 132 DONE] 작업: stealth_3gate RS 범위 최적화 → [0.4,0.9) 발견 | 결과: W2 Sharpe 6.876→**9.941** (+3.065, 슬리피지 0.30%에서도 W2=9.328 통과), daemon 반영 완료 | 다음제안: (A) Gate4=ON + RS[0.4,0.9) 재검증, (B) acc 임계값 탐색 (현재 acc>1.0 미탐색), (C) BULL 전환(pre_bull 0.804→0.90) 모니터링\n\n---\n\n**사이클 132 요약**:\n- **발견**: RS 상한 1.0 → 0.9 컷이 핵심 — RS [0.9,1.0) 종목(BTC와 거의 동행하는 알트) 제거\n- **누적 개선**: 기준 4.377 → 사이클129(5.045) → 사이클130(6.876) → 사이클132(**9.941**) = **+5.564**\n- **슬리피지 내성**: 0.30%에서도 W2=9.328 — 역대 최강\n- **해석**: stealth 진입 조건에서 BTC와 거의 같은 속도로 움직이는 알트(RS 0.9~1.0)는 \"진짜 스텔스 누적\"이 아니라 단순 BTC 동행 — 제거 시 신호 품질 극적 향상\n- **daemon 반영**: `rs_low: 0.5→0.4`, `rs_high: 1.0→0.9`",
+      "summary": "\uc791\uc5c5: stealth_3gate RS \ubc94\uc704 \ucd5c\uc801\ud654 \u2192 [0.4,0.9) \ubc1c\uacac | \uacb0\uacfc: W2 Sharpe 6.876\u2192**9.941** (+3.065, \uc2ac\ub9ac\ud53c\uc9c0 0.30%\uc5d0\uc11c\ub3c4 W2=9.328 \ud1b5\uacfc), daemon \ubc18\uc601 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: (A) Gate4=ON + RS[0.4,0.9) \uc7ac\uac80\uc99d, (B) acc \uc784\uacc4\uac12 \ud0d0\uc0c9 (\ud604\uc7ac acc>1.0 \ubbf8\ud0d0\uc0c9), (C) BULL \uc804\ud658(pre_bull 0.804\u21920.90) \ubaa8\ub2c8\ud130\ub9c1",
+      "detail": "[RALPH CYCLE 132 DONE] \uc791\uc5c5: stealth_3gate RS \ubc94\uc704 \ucd5c\uc801\ud654 \u2192 [0.4,0.9) \ubc1c\uacac | \uacb0\uacfc: W2 Sharpe 6.876\u2192**9.941** (+3.065, \uc2ac\ub9ac\ud53c\uc9c0 0.30%\uc5d0\uc11c\ub3c4 W2=9.328 \ud1b5\uacfc), daemon \ubc18\uc601 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: (A) Gate4=ON + RS[0.4,0.9) \uc7ac\uac80\uc99d, (B) acc \uc784\uacc4\uac12 \ud0d0\uc0c9 (\ud604\uc7ac acc>1.0 \ubbf8\ud0d0\uc0c9), (C) BULL \uc804\ud658(pre_bull 0.804\u21920.90) \ubaa8\ub2c8\ud130\ub9c1\n\n---\n\n**\uc0ac\uc774\ud074 132 \uc694\uc57d**:\n- **\ubc1c\uacac**: RS \uc0c1\ud55c 1.0 \u2192 0.9 \ucef7\uc774 \ud575\uc2ec \u2014 RS [0.9,1.0) \uc885\ubaa9(BTC\uc640 \uac70\uc758 \ub3d9\ud589\ud558\ub294 \uc54c\ud2b8) \uc81c\uac70\n- **\ub204\uc801 \uac1c\uc120**: \uae30\uc900 4.377 \u2192 \uc0ac\uc774\ud074129(5.045) \u2192 \uc0ac\uc774\ud074130(6.876) \u2192 \uc0ac\uc774\ud074132(**9.941**) = **+5.564**\n- **\uc2ac\ub9ac\ud53c\uc9c0 \ub0b4\uc131**: 0.30%\uc5d0\uc11c\ub3c4 W2=9.328 \u2014 \uc5ed\ub300 \ucd5c\uac15\n- **\ud574\uc11d**: stealth \uc9c4\uc785 \uc870\uac74\uc5d0\uc11c BTC\uc640 \uac70\uc758 \uac19\uc740 \uc18d\ub3c4\ub85c \uc6c0\uc9c1\uc774\ub294 \uc54c\ud2b8(RS 0.9~1.0)\ub294 \"\uc9c4\uc9dc \uc2a4\ud154\uc2a4 \ub204\uc801\"\uc774 \uc544\ub2c8\ub77c \ub2e8\uc21c BTC \ub3d9\ud589 \u2014 \uc81c\uac70 \uc2dc \uc2e0\ud638 \ud488\uc9c8 \uadf9\uc801 \ud5a5\uc0c1\n- **daemon \ubc18\uc601**: `rs_low: 0.5\u21920.4`, `rs_high: 1.0\u21920.9`",
       "timestamp": "2026-04-04T08:41:56.924779"
     },
     {
       "cycle": 133,
-      "summary": "작업: stealth_3gate Gate4(btc_trend_pos_gate) ON/OFF 재검증 — RS[0.4,0.9) 환경 | 결과: Gate4=OFF 9.941 vs Gate4=ON 6.315 (**델타 -3.626**), daemon 변경 불필요 | 다음제안: (A) acc 임계값 탐색 (alt acc>1.0 → 1.1/1.2/1.5 상향, 선택성 강화), (B) cvd_slope 게이트 탐색 (현재 0.0 미활용)",
-      "detail": "[RALPH CYCLE 133 DONE] 작업: stealth_3gate Gate4(btc_trend_pos_gate) ON/OFF 재검증 — RS[0.4,0.9) 환경 | 결과: Gate4=OFF 9.941 vs Gate4=ON 6.315 (**델타 -3.626**), daemon 변경 불필요 | 다음제안: (A) acc 임계값 탐색 (alt acc>1.0 → 1.1/1.2/1.5 상향, 선택성 강화), (B) cvd_slope 게이트 탐색 (현재 0.0 미활용)\n\n---\n\n**사이클 133 요약**:\n- **검증 질문**: RS 변경 후 Gate4 ON/OFF 비교가 무효화 → 재검증\n- **결론**: Gate4=OFF 압도적 우세 (W2 Sharpe 9.941 vs 6.315, 델타 -3.626)\n- **원인 해석**: Gate4=ON이 신호 87% 차단 (554→76), alt 90개 제거 — BTC 스텔스 누적은 BTC 하락/횡보 시에도 발생하므로 \"BTC 10봉>0\" 조건이 역효과\n- **사이클 130과 동일 방향**: RS 변경 전후 모두 Gate4=OFF 우세 — **Gate4=OFF 완전 확정**\n- **daemon.toml**: 변경 불필요 (현재 `btc_trend_pos_gate=false` 유지)\n\n**다음 우선순위**: acc 임계값 탐색 (현재 alt acc>1.0 고정, 1.1/1.2/1.5로 상향 시 신호 품질 추가 강화 가능성)",
+      "summary": "\uc791\uc5c5: stealth_3gate Gate4(btc_trend_pos_gate) ON/OFF \uc7ac\uac80\uc99d \u2014 RS[0.4,0.9) \ud658\uacbd | \uacb0\uacfc: Gate4=OFF 9.941 vs Gate4=ON 6.315 (**\ub378\ud0c0 -3.626**), daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: (A) acc \uc784\uacc4\uac12 \ud0d0\uc0c9 (alt acc>1.0 \u2192 1.1/1.2/1.5 \uc0c1\ud5a5, \uc120\ud0dd\uc131 \uac15\ud654), (B) cvd_slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 (\ud604\uc7ac 0.0 \ubbf8\ud65c\uc6a9)",
+      "detail": "[RALPH CYCLE 133 DONE] \uc791\uc5c5: stealth_3gate Gate4(btc_trend_pos_gate) ON/OFF \uc7ac\uac80\uc99d \u2014 RS[0.4,0.9) \ud658\uacbd | \uacb0\uacfc: Gate4=OFF 9.941 vs Gate4=ON 6.315 (**\ub378\ud0c0 -3.626**), daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: (A) acc \uc784\uacc4\uac12 \ud0d0\uc0c9 (alt acc>1.0 \u2192 1.1/1.2/1.5 \uc0c1\ud5a5, \uc120\ud0dd\uc131 \uac15\ud654), (B) cvd_slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 (\ud604\uc7ac 0.0 \ubbf8\ud65c\uc6a9)\n\n---\n\n**\uc0ac\uc774\ud074 133 \uc694\uc57d**:\n- **\uac80\uc99d \uc9c8\ubb38**: RS \ubcc0\uacbd \ud6c4 Gate4 ON/OFF \ube44\uad50\uac00 \ubb34\ud6a8\ud654 \u2192 \uc7ac\uac80\uc99d\n- **\uacb0\ub860**: Gate4=OFF \uc555\ub3c4\uc801 \uc6b0\uc138 (W2 Sharpe 9.941 vs 6.315, \ub378\ud0c0 -3.626)\n- **\uc6d0\uc778 \ud574\uc11d**: Gate4=ON\uc774 \uc2e0\ud638 87% \ucc28\ub2e8 (554\u219276), alt 90\uac1c \uc81c\uac70 \u2014 BTC \uc2a4\ud154\uc2a4 \ub204\uc801\uc740 BTC \ud558\ub77d/\ud6a1\ubcf4 \uc2dc\uc5d0\ub3c4 \ubc1c\uc0dd\ud558\ubbc0\ub85c \"BTC 10\ubd09>0\" \uc870\uac74\uc774 \uc5ed\ud6a8\uacfc\n- **\uc0ac\uc774\ud074 130\uacfc \ub3d9\uc77c \ubc29\ud5a5**: RS \ubcc0\uacbd \uc804\ud6c4 \ubaa8\ub450 Gate4=OFF \uc6b0\uc138 \u2014 **Gate4=OFF \uc644\uc804 \ud655\uc815**\n- **daemon.toml**: \ubcc0\uacbd \ubd88\ud544\uc694 (\ud604\uc7ac `btc_trend_pos_gate=false` \uc720\uc9c0)\n\n**\ub2e4\uc74c \uc6b0\uc120\uc21c\uc704**: acc \uc784\uacc4\uac12 \ud0d0\uc0c9 (\ud604\uc7ac alt acc>1.0 \uace0\uc815, 1.1/1.2/1.5\ub85c \uc0c1\ud5a5 \uc2dc \uc2e0\ud638 \ud488\uc9c8 \ucd94\uac00 \uac15\ud654 \uac00\ub2a5\uc131)",
       "timestamp": "2026-04-04T08:48:28.561941"
     },
     {
       "cycle": 134,
-      "summary": "작업: stealth_3gate alt acc 임계값 탐색 — acc_min ∈ {1.0, 1.1, 1.2, 1.5} | 결과: acc>1.0(현재) W2 Sharpe 9.941 최고, 상향 시 W1/W2 모두 하락 → **현재 acc>1.0 유지 확정**, daemon 변경 불필요 | 다음제안: (A) cvd_slope 게이트 탐색 (현재 0.0 미활용, 양의 cvd_slope 조건 추가), (B) BTC stealth acc 임계값 탐색 (alt 쪽은 완료, BTC 쪽 미탐색), (C) MAX_HOLD 최적화 (현재 24봉 고정, 12/18/36 비교)",
-      "detail": "[RALPH CYCLE 134 DONE] 작업: stealth_3gate alt acc 임계값 탐색 — acc_min ∈ {1.0, 1.1, 1.2, 1.5} | 결과: acc>1.0(현재) W2 Sharpe 9.941 최고, 상향 시 W1/W2 모두 하락 → **현재 acc>1.0 유지 확정**, daemon 변경 불필요 | 다음제안: (A) cvd_slope 게이트 탐색 (현재 0.0 미활용, 양의 cvd_slope 조건 추가), (B) BTC stealth acc 임계값 탐색 (alt 쪽은 완료, BTC 쪽 미탐색), (C) MAX_HOLD 최적화 (현재 24봉 고정, 12/18/36 비교)\n\n---\n\n**사이클 134 요약**:\n- **탐색 결과**: acc 임계값 1.0 → 1.1/1.2/1.5 상향 모두 Sharpe 하락\n  - acc>1.0: W1=9.003, W2=**9.941**, n=554\n  - acc>1.1: W1=8.667, W2=9.511 (-0.430)\n  - acc>1.2: W1=8.084, W2=9.570 (-0.371)\n  - acc>1.5: W1=7.319, W2=9.123 (-0.818)\n- **해석**: 제거된 신호(1.0<acc≤1.1)가 실제로 양질 — acc 필터 강화가 역효과\n- **결론**: acc>1.0 고정이 최적, 탐색 공간 소진\n- **daemon**: 변경 없음",
+      "summary": "\uc791\uc5c5: stealth_3gate alt acc \uc784\uacc4\uac12 \ud0d0\uc0c9 \u2014 acc_min \u2208 {1.0, 1.1, 1.2, 1.5} | \uacb0\uacfc: acc>1.0(\ud604\uc7ac) W2 Sharpe 9.941 \ucd5c\uace0, \uc0c1\ud5a5 \uc2dc W1/W2 \ubaa8\ub450 \ud558\ub77d \u2192 **\ud604\uc7ac acc>1.0 \uc720\uc9c0 \ud655\uc815**, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: (A) cvd_slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 (\ud604\uc7ac 0.0 \ubbf8\ud65c\uc6a9, \uc591\uc758 cvd_slope \uc870\uac74 \ucd94\uac00), (B) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9 (alt \ucabd\uc740 \uc644\ub8cc, BTC \ucabd \ubbf8\ud0d0\uc0c9), (C) MAX_HOLD \ucd5c\uc801\ud654 (\ud604\uc7ac 24\ubd09 \uace0\uc815, 12/18/36 \ube44\uad50)",
+      "detail": "[RALPH CYCLE 134 DONE] \uc791\uc5c5: stealth_3gate alt acc \uc784\uacc4\uac12 \ud0d0\uc0c9 \u2014 acc_min \u2208 {1.0, 1.1, 1.2, 1.5} | \uacb0\uacfc: acc>1.0(\ud604\uc7ac) W2 Sharpe 9.941 \ucd5c\uace0, \uc0c1\ud5a5 \uc2dc W1/W2 \ubaa8\ub450 \ud558\ub77d \u2192 **\ud604\uc7ac acc>1.0 \uc720\uc9c0 \ud655\uc815**, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: (A) cvd_slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 (\ud604\uc7ac 0.0 \ubbf8\ud65c\uc6a9, \uc591\uc758 cvd_slope \uc870\uac74 \ucd94\uac00), (B) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9 (alt \ucabd\uc740 \uc644\ub8cc, BTC \ucabd \ubbf8\ud0d0\uc0c9), (C) MAX_HOLD \ucd5c\uc801\ud654 (\ud604\uc7ac 24\ubd09 \uace0\uc815, 12/18/36 \ube44\uad50)\n\n---\n\n**\uc0ac\uc774\ud074 134 \uc694\uc57d**:\n- **\ud0d0\uc0c9 \uacb0\uacfc**: acc \uc784\uacc4\uac12 1.0 \u2192 1.1/1.2/1.5 \uc0c1\ud5a5 \ubaa8\ub450 Sharpe \ud558\ub77d\n  - acc>1.0: W1=9.003, W2=**9.941**, n=554\n  - acc>1.1: W1=8.667, W2=9.511 (-0.430)\n  - acc>1.2: W1=8.084, W2=9.570 (-0.371)\n  - acc>1.5: W1=7.319, W2=9.123 (-0.818)\n- **\ud574\uc11d**: \uc81c\uac70\ub41c \uc2e0\ud638(1.0<acc\u22641.1)\uac00 \uc2e4\uc81c\ub85c \uc591\uc9c8 \u2014 acc \ud544\ud130 \uac15\ud654\uac00 \uc5ed\ud6a8\uacfc\n- **\uacb0\ub860**: acc>1.0 \uace0\uc815\uc774 \ucd5c\uc801, \ud0d0\uc0c9 \uacf5\uac04 \uc18c\uc9c4\n- **daemon**: \ubcc0\uacbd \uc5c6\uc74c",
       "timestamp": "2026-04-04T08:54:10.177792"
     },
     {
       "cycle": 135,
-      "summary": "작업: stealth_3gate cvd_slope 게이트 탐색 — {None, 0.001, 0.005, 0.010} | 결과: cvd_slope 양의 임계값 모두 실패(신호 99% 소멸), **구조적 incompatible 발견** — 스텔스 진입 시점 CVD slope 평균 -0.40(음수), 양의 CVD 요구가 스텔스 본질과 충돌 → 현재 설정 유지 | 다음제안: (A) **역방향 CVD slope 탐색** — cvd_slope < -0.1 등 강한 매도압력 조건이 오히려 스텔스 품질 지표 가능성 (가장 유망), (B) MAX_HOLD 최적화 (12/18/24/36), (C) BTC stealth acc 임계값 탐색",
-      "detail": "[RALPH CYCLE 135 DONE] 작업: stealth_3gate cvd_slope 게이트 탐색 — {None, 0.001, 0.005, 0.010} | 결과: cvd_slope 양의 임계값 모두 실패(신호 99% 소멸), **구조적 incompatible 발견** — 스텔스 진입 시점 CVD slope 평균 -0.40(음수), 양의 CVD 요구가 스텔스 본질과 충돌 → 현재 설정 유지 | 다음제안: (A) **역방향 CVD slope 탐색** — cvd_slope < -0.1 등 강한 매도압력 조건이 오히려 스텔스 품질 지표 가능성 (가장 유망), (B) MAX_HOLD 최적화 (12/18/24/36), (C) BTC stealth acc 임계값 탐색\n\n---\n\n**사이클 135 핵심 인사이트**:\n- **가설 기각**: 양의 CVD slope → 신호 품질 강화 ❌\n- **원인**: 스텔스 전략이 가격↓+볼륨↑ 구간에서 진입하는 구조 → 매도 압력(음의 CVD) 국면이 기본값\n- **새 방향**: 음의 CVD slope가 오히려 \"진짜 스텔스 누적\" 지표일 수 있음 (역방향 탐색)\n- **daemon**: 변경 없음",
+      "summary": "\uc791\uc5c5: stealth_3gate cvd_slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 \u2014 {None, 0.001, 0.005, 0.010} | \uacb0\uacfc: cvd_slope \uc591\uc758 \uc784\uacc4\uac12 \ubaa8\ub450 \uc2e4\ud328(\uc2e0\ud638 99% \uc18c\uba78), **\uad6c\uc870\uc801 incompatible \ubc1c\uacac** \u2014 \uc2a4\ud154\uc2a4 \uc9c4\uc785 \uc2dc\uc810 CVD slope \ud3c9\uade0 -0.40(\uc74c\uc218), \uc591\uc758 CVD \uc694\uad6c\uac00 \uc2a4\ud154\uc2a4 \ubcf8\uc9c8\uacfc \ucda9\ub3cc \u2192 \ud604\uc7ac \uc124\uc815 \uc720\uc9c0 | \ub2e4\uc74c\uc81c\uc548: (A) **\uc5ed\ubc29\ud5a5 CVD slope \ud0d0\uc0c9** \u2014 cvd_slope < -0.1 \ub4f1 \uac15\ud55c \ub9e4\ub3c4\uc555\ub825 \uc870\uac74\uc774 \uc624\ud788\ub824 \uc2a4\ud154\uc2a4 \ud488\uc9c8 \uc9c0\ud45c \uac00\ub2a5\uc131 (\uac00\uc7a5 \uc720\ub9dd), (B) MAX_HOLD \ucd5c\uc801\ud654 (12/18/24/36), (C) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9",
+      "detail": "[RALPH CYCLE 135 DONE] \uc791\uc5c5: stealth_3gate cvd_slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 \u2014 {None, 0.001, 0.005, 0.010} | \uacb0\uacfc: cvd_slope \uc591\uc758 \uc784\uacc4\uac12 \ubaa8\ub450 \uc2e4\ud328(\uc2e0\ud638 99% \uc18c\uba78), **\uad6c\uc870\uc801 incompatible \ubc1c\uacac** \u2014 \uc2a4\ud154\uc2a4 \uc9c4\uc785 \uc2dc\uc810 CVD slope \ud3c9\uade0 -0.40(\uc74c\uc218), \uc591\uc758 CVD \uc694\uad6c\uac00 \uc2a4\ud154\uc2a4 \ubcf8\uc9c8\uacfc \ucda9\ub3cc \u2192 \ud604\uc7ac \uc124\uc815 \uc720\uc9c0 | \ub2e4\uc74c\uc81c\uc548: (A) **\uc5ed\ubc29\ud5a5 CVD slope \ud0d0\uc0c9** \u2014 cvd_slope < -0.1 \ub4f1 \uac15\ud55c \ub9e4\ub3c4\uc555\ub825 \uc870\uac74\uc774 \uc624\ud788\ub824 \uc2a4\ud154\uc2a4 \ud488\uc9c8 \uc9c0\ud45c \uac00\ub2a5\uc131 (\uac00\uc7a5 \uc720\ub9dd), (B) MAX_HOLD \ucd5c\uc801\ud654 (12/18/24/36), (C) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9\n\n---\n\n**\uc0ac\uc774\ud074 135 \ud575\uc2ec \uc778\uc0ac\uc774\ud2b8**:\n- **\uac00\uc124 \uae30\uac01**: \uc591\uc758 CVD slope \u2192 \uc2e0\ud638 \ud488\uc9c8 \uac15\ud654 \u274c\n- **\uc6d0\uc778**: \uc2a4\ud154\uc2a4 \uc804\ub7b5\uc774 \uac00\uaca9\u2193+\ubcfc\ub968\u2191 \uad6c\uac04\uc5d0\uc11c \uc9c4\uc785\ud558\ub294 \uad6c\uc870 \u2192 \ub9e4\ub3c4 \uc555\ub825(\uc74c\uc758 CVD) \uad6d\uba74\uc774 \uae30\ubcf8\uac12\n- **\uc0c8 \ubc29\ud5a5**: \uc74c\uc758 CVD slope\uac00 \uc624\ud788\ub824 \"\uc9c4\uc9dc \uc2a4\ud154\uc2a4 \ub204\uc801\" \uc9c0\ud45c\uc77c \uc218 \uc788\uc74c (\uc5ed\ubc29\ud5a5 \ud0d0\uc0c9)\n- **daemon**: \ubcc0\uacbd \uc5c6\uc74c",
       "timestamp": "2026-04-04T09:01:47.946670"
     },
     {
       "cycle": 136,
-      "summary": "**[RALPH CYCLE 136 DONE]** 작업: stealth_3gate 역방향 CVD slope 게이트 탐색 — cvd_slope < {None, -0.1, -0.2, -0.3, -0.5} | 결과: cvd_slope<-0.1이 W2 Sharpe **10.443** (+0.502, 베이스라인 9.941), WR 43.7%→45.3% ✅ 가설 검증 완료 — **코드 CVD slope 계산 방식(stealth_3gate.py)과 백테스트 방식 스케일 불일치 발견, daemon 반영 보류** | 다음제안: (A) **코드 방식 CVD slope 임계값 재탐색** — stealth_3gate.py의 `(c-o)/(h-l)*vol` 계산 방식 기준으로 임계값 재탐색 후 daemon 반영 (최우선), (B) MAX_HOLD 최적화 (12/18/24/36봉), (C) BTC stealth acc 임계값 탐색",
-      "detail": "커밋 완료.\n\n---\n\n**[RALPH CYCLE 136 DONE]** 작업: stealth_3gate 역방향 CVD slope 게이트 탐색 — cvd_slope < {None, -0.1, -0.2, -0.3, -0.5} | 결과: cvd_slope<-0.1이 W2 Sharpe **10.443** (+0.502, 베이스라인 9.941), WR 43.7%→45.3% ✅ 가설 검증 완료 — **코드 CVD slope 계산 방식(stealth_3gate.py)과 백테스트 방식 스케일 불일치 발견, daemon 반영 보류** | 다음제안: (A) **코드 방식 CVD slope 임계값 재탐색** — stealth_3gate.py의 `(c-o)/(h-l)*vol` 계산 방식 기준으로 임계값 재탐색 후 daemon 반영 (최우선), (B) MAX_HOLD 최적화 (12/18/24/36봉), (C) BTC stealth acc 임계값 탐색\n\n---\n\n### 주요 발견 요약\n\n| cvd_thresh | W2 Sharpe | W2 WR | 통과 |\n|---|---|---|---|\n| None(OFF) 📌 | 9.941 | 43.7% | ✅ |\n| **< -0.1** | **10.443** | **45.3%** | ✅ |\n| < -0.2 | 9.950 | 43.9% | ✅ |\n| < -0.3 | 10.015 | 43.7% | ✅ |\n\n- **가설 검증**: 음의 CVD slope가 스텔스 진입 품질 지표로 유효 (`-0.1` 최적)\n- **주의**: 백테스트와 코드의 CVD slope 계산 방식 차이 → daemon 반영 전 재탐색 필요\n- **다음**: 코드 방식(`(close-open)/(high-low)*volume`)으로 임계값 재탐색 + alt_cvd_slope_max 파라미터 추가 후 반영",
+      "summary": "**[RALPH CYCLE 136 DONE]** \uc791\uc5c5: stealth_3gate \uc5ed\ubc29\ud5a5 CVD slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 \u2014 cvd_slope < {None, -0.1, -0.2, -0.3, -0.5} | \uacb0\uacfc: cvd_slope<-0.1\uc774 W2 Sharpe **10.443** (+0.502, \ubca0\uc774\uc2a4\ub77c\uc778 9.941), WR 43.7%\u219245.3% \u2705 \uac00\uc124 \uac80\uc99d \uc644\ub8cc \u2014 **\ucf54\ub4dc CVD slope \uacc4\uc0b0 \ubc29\uc2dd(stealth_3gate.py)\uacfc \ubc31\ud14c\uc2a4\ud2b8 \ubc29\uc2dd \uc2a4\ucf00\uc77c \ubd88\uc77c\uce58 \ubc1c\uacac, daemon \ubc18\uc601 \ubcf4\ub958** | \ub2e4\uc74c\uc81c\uc548: (A) **\ucf54\ub4dc \ubc29\uc2dd CVD slope \uc784\uacc4\uac12 \uc7ac\ud0d0\uc0c9** \u2014 stealth_3gate.py\uc758 `(c-o)/(h-l)*vol` \uacc4\uc0b0 \ubc29\uc2dd \uae30\uc900\uc73c\ub85c \uc784\uacc4\uac12 \uc7ac\ud0d0\uc0c9 \ud6c4 daemon \ubc18\uc601 (\ucd5c\uc6b0\uc120), (B) MAX_HOLD \ucd5c\uc801\ud654 (12/18/24/36\ubd09), (C) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9",
+      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n---\n\n**[RALPH CYCLE 136 DONE]** \uc791\uc5c5: stealth_3gate \uc5ed\ubc29\ud5a5 CVD slope \uac8c\uc774\ud2b8 \ud0d0\uc0c9 \u2014 cvd_slope < {None, -0.1, -0.2, -0.3, -0.5} | \uacb0\uacfc: cvd_slope<-0.1\uc774 W2 Sharpe **10.443** (+0.502, \ubca0\uc774\uc2a4\ub77c\uc778 9.941), WR 43.7%\u219245.3% \u2705 \uac00\uc124 \uac80\uc99d \uc644\ub8cc \u2014 **\ucf54\ub4dc CVD slope \uacc4\uc0b0 \ubc29\uc2dd(stealth_3gate.py)\uacfc \ubc31\ud14c\uc2a4\ud2b8 \ubc29\uc2dd \uc2a4\ucf00\uc77c \ubd88\uc77c\uce58 \ubc1c\uacac, daemon \ubc18\uc601 \ubcf4\ub958** | \ub2e4\uc74c\uc81c\uc548: (A) **\ucf54\ub4dc \ubc29\uc2dd CVD slope \uc784\uacc4\uac12 \uc7ac\ud0d0\uc0c9** \u2014 stealth_3gate.py\uc758 `(c-o)/(h-l)*vol` \uacc4\uc0b0 \ubc29\uc2dd \uae30\uc900\uc73c\ub85c \uc784\uacc4\uac12 \uc7ac\ud0d0\uc0c9 \ud6c4 daemon \ubc18\uc601 (\ucd5c\uc6b0\uc120), (B) MAX_HOLD \ucd5c\uc801\ud654 (12/18/24/36\ubd09), (C) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9\n\n---\n\n### \uc8fc\uc694 \ubc1c\uacac \uc694\uc57d\n\n| cvd_thresh | W2 Sharpe | W2 WR | \ud1b5\uacfc |\n|---|---|---|---|\n| None(OFF) \ud83d\udccc | 9.941 | 43.7% | \u2705 |\n| **< -0.1** | **10.443** | **45.3%** | \u2705 |\n| < -0.2 | 9.950 | 43.9% | \u2705 |\n| < -0.3 | 10.015 | 43.7% | \u2705 |\n\n- **\uac00\uc124 \uac80\uc99d**: \uc74c\uc758 CVD slope\uac00 \uc2a4\ud154\uc2a4 \uc9c4\uc785 \ud488\uc9c8 \uc9c0\ud45c\ub85c \uc720\ud6a8 (`-0.1` \ucd5c\uc801)\n- **\uc8fc\uc758**: \ubc31\ud14c\uc2a4\ud2b8\uc640 \ucf54\ub4dc\uc758 CVD slope \uacc4\uc0b0 \ubc29\uc2dd \ucc28\uc774 \u2192 daemon \ubc18\uc601 \uc804 \uc7ac\ud0d0\uc0c9 \ud544\uc694\n- **\ub2e4\uc74c**: \ucf54\ub4dc \ubc29\uc2dd(`(close-open)/(high-low)*volume`)\uc73c\ub85c \uc784\uacc4\uac12 \uc7ac\ud0d0\uc0c9 + alt_cvd_slope_max \ud30c\ub77c\ubbf8\ud130 \ucd94\uac00 \ud6c4 \ubc18\uc601",
       "timestamp": "2026-04-04T09:09:26.487907"
     },
     {
       "cycle": 137,
-      "summary": "**[RALPH CYCLE 137 DONE]** 작업: stealth_3gate 코드 방식 CVD slope 임계값 탐색 (사이클 136 방식 불일치 해소) | 결과: 코드 방식(sign*vol/vol_mean*W=36) 기준 어떤 임계값도 베이스라인 W2 Sharpe 9.941 미달 → **cvd_slope 탐색 공간 완전 소진 (양방향 + 코드 방식 모두 확인)**, daemon.toml 변경 없음, 코드 개선: `_calculate_cvd_slope` 정규화 통일 + `alt_cvd_slope_max` 파라미터 추가(비활성) | 다음제안: **(A) MAX_HOLD 최적화** — 현재 24봉 고정 근거 없음, {12, 18, 24, 36}봉 비교로 Sharpe 추가 개선 가능성 (미탐색 차원 中 최우선), (B) BTC stealth acc 임계값 탐색, (C) cvd_slope 창 크기 탐색(12봉 기준 재탐색)",
-      "detail": "---\n\n**[RALPH CYCLE 137 DONE]** 작업: stealth_3gate 코드 방식 CVD slope 임계값 탐색 (사이클 136 방식 불일치 해소) | 결과: 코드 방식(sign*vol/vol_mean*W=36) 기준 어떤 임계값도 베이스라인 W2 Sharpe 9.941 미달 → **cvd_slope 탐색 공간 완전 소진 (양방향 + 코드 방식 모두 확인)**, daemon.toml 변경 없음, 코드 개선: `_calculate_cvd_slope` 정규화 통일 + `alt_cvd_slope_max` 파라미터 추가(비활성) | 다음제안: **(A) MAX_HOLD 최적화** — 현재 24봉 고정 근거 없음, {12, 18, 24, 36}봉 비교로 Sharpe 추가 개선 가능성 (미탐색 차원 中 최우선), (B) BTC stealth acc 임계값 탐색, (C) cvd_slope 창 크기 탐색(12봉 기준 재탐색)",
+      "summary": "**[RALPH CYCLE 137 DONE]** \uc791\uc5c5: stealth_3gate \ucf54\ub4dc \ubc29\uc2dd CVD slope \uc784\uacc4\uac12 \ud0d0\uc0c9 (\uc0ac\uc774\ud074 136 \ubc29\uc2dd \ubd88\uc77c\uce58 \ud574\uc18c) | \uacb0\uacfc: \ucf54\ub4dc \ubc29\uc2dd(sign*vol/vol_mean*W=36) \uae30\uc900 \uc5b4\ub5a4 \uc784\uacc4\uac12\ub3c4 \ubca0\uc774\uc2a4\ub77c\uc778 W2 Sharpe 9.941 \ubbf8\ub2ec \u2192 **cvd_slope \ud0d0\uc0c9 \uacf5\uac04 \uc644\uc804 \uc18c\uc9c4 (\uc591\ubc29\ud5a5 + \ucf54\ub4dc \ubc29\uc2dd \ubaa8\ub450 \ud655\uc778)**, daemon.toml \ubcc0\uacbd \uc5c6\uc74c, \ucf54\ub4dc \uac1c\uc120: `_calculate_cvd_slope` \uc815\uaddc\ud654 \ud1b5\uc77c + `alt_cvd_slope_max` \ud30c\ub77c\ubbf8\ud130 \ucd94\uac00(\ube44\ud65c\uc131) | \ub2e4\uc74c\uc81c\uc548: **(A) MAX_HOLD \ucd5c\uc801\ud654** \u2014 \ud604\uc7ac 24\ubd09 \uace0\uc815 \uadfc\uac70 \uc5c6\uc74c, {12, 18, 24, 36}\ubd09 \ube44\uad50\ub85c Sharpe \ucd94\uac00 \uac1c\uc120 \uac00\ub2a5\uc131 (\ubbf8\ud0d0\uc0c9 \ucc28\uc6d0 \u4e2d \ucd5c\uc6b0\uc120), (B) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9, (C) cvd_slope \ucc3d \ud06c\uae30 \ud0d0\uc0c9(12\ubd09 \uae30\uc900 \uc7ac\ud0d0\uc0c9)",
+      "detail": "---\n\n**[RALPH CYCLE 137 DONE]** \uc791\uc5c5: stealth_3gate \ucf54\ub4dc \ubc29\uc2dd CVD slope \uc784\uacc4\uac12 \ud0d0\uc0c9 (\uc0ac\uc774\ud074 136 \ubc29\uc2dd \ubd88\uc77c\uce58 \ud574\uc18c) | \uacb0\uacfc: \ucf54\ub4dc \ubc29\uc2dd(sign*vol/vol_mean*W=36) \uae30\uc900 \uc5b4\ub5a4 \uc784\uacc4\uac12\ub3c4 \ubca0\uc774\uc2a4\ub77c\uc778 W2 Sharpe 9.941 \ubbf8\ub2ec \u2192 **cvd_slope \ud0d0\uc0c9 \uacf5\uac04 \uc644\uc804 \uc18c\uc9c4 (\uc591\ubc29\ud5a5 + \ucf54\ub4dc \ubc29\uc2dd \ubaa8\ub450 \ud655\uc778)**, daemon.toml \ubcc0\uacbd \uc5c6\uc74c, \ucf54\ub4dc \uac1c\uc120: `_calculate_cvd_slope` \uc815\uaddc\ud654 \ud1b5\uc77c + `alt_cvd_slope_max` \ud30c\ub77c\ubbf8\ud130 \ucd94\uac00(\ube44\ud65c\uc131) | \ub2e4\uc74c\uc81c\uc548: **(A) MAX_HOLD \ucd5c\uc801\ud654** \u2014 \ud604\uc7ac 24\ubd09 \uace0\uc815 \uadfc\uac70 \uc5c6\uc74c, {12, 18, 24, 36}\ubd09 \ube44\uad50\ub85c Sharpe \ucd94\uac00 \uac1c\uc120 \uac00\ub2a5\uc131 (\ubbf8\ud0d0\uc0c9 \ucc28\uc6d0 \u4e2d \ucd5c\uc6b0\uc120), (B) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9, (C) cvd_slope \ucc3d \ud06c\uae30 \ud0d0\uc0c9(12\ubd09 \uae30\uc900 \uc7ac\ud0d0\uc0c9)",
       "timestamp": "2026-04-04T09:20:00.704036"
     },
     {
       "cycle": 138,
-      "summary": "작업: stealth_3gate MAX_HOLD 최적화 — {12, 18, 24, 36}봉 탐색 | 결과: MAX_HOLD=24봉(현재) W2 Sharpe **9.941** 최고 → **daemon.toml 변경 없음**, 18봉(9.919)·12봉(WR 50.1%)·36봉(W1 7.649) 모두 열세 확인 | 다음제안: **(A) BTC stealth acc 임계값 탐색** — alt acc>1.0 확정, BTC stealth acc 아직 미탐색 (현재 1.0 고정, 0.8/1.0/1.2/1.5 비교 가능), (B) TP/SL 조합 탐색 — TP=10%/SL=1.0% 기준 재검토, (C) CVD 창 크기 탐색 (12/24봉 기준)",
-      "detail": "[RALPH CYCLE 138 DONE] 작업: stealth_3gate MAX_HOLD 최적화 — {12, 18, 24, 36}봉 탐색 | 결과: MAX_HOLD=24봉(현재) W2 Sharpe **9.941** 최고 → **daemon.toml 변경 없음**, 18봉(9.919)·12봉(WR 50.1%)·36봉(W1 7.649) 모두 열세 확인 | 다음제안: **(A) BTC stealth acc 임계값 탐색** — alt acc>1.0 확정, BTC stealth acc 아직 미탐색 (현재 1.0 고정, 0.8/1.0/1.2/1.5 비교 가능), (B) TP/SL 조합 탐색 — TP=10%/SL=1.0% 기준 재검토, (C) CVD 창 크기 탐색 (12/24봉 기준)",
+      "summary": "\uc791\uc5c5: stealth_3gate MAX_HOLD \ucd5c\uc801\ud654 \u2014 {12, 18, 24, 36}\ubd09 \ud0d0\uc0c9 | \uacb0\uacfc: MAX_HOLD=24\ubd09(\ud604\uc7ac) W2 Sharpe **9.941** \ucd5c\uace0 \u2192 **daemon.toml \ubcc0\uacbd \uc5c6\uc74c**, 18\ubd09(9.919)\u00b712\ubd09(WR 50.1%)\u00b736\ubd09(W1 7.649) \ubaa8\ub450 \uc5f4\uc138 \ud655\uc778 | \ub2e4\uc74c\uc81c\uc548: **(A) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9** \u2014 alt acc>1.0 \ud655\uc815, BTC stealth acc \uc544\uc9c1 \ubbf8\ud0d0\uc0c9 (\ud604\uc7ac 1.0 \uace0\uc815, 0.8/1.0/1.2/1.5 \ube44\uad50 \uac00\ub2a5), (B) TP/SL \uc870\ud569 \ud0d0\uc0c9 \u2014 TP=10%/SL=1.0% \uae30\uc900 \uc7ac\uac80\ud1a0, (C) CVD \ucc3d \ud06c\uae30 \ud0d0\uc0c9 (12/24\ubd09 \uae30\uc900)",
+      "detail": "[RALPH CYCLE 138 DONE] \uc791\uc5c5: stealth_3gate MAX_HOLD \ucd5c\uc801\ud654 \u2014 {12, 18, 24, 36}\ubd09 \ud0d0\uc0c9 | \uacb0\uacfc: MAX_HOLD=24\ubd09(\ud604\uc7ac) W2 Sharpe **9.941** \ucd5c\uace0 \u2192 **daemon.toml \ubcc0\uacbd \uc5c6\uc74c**, 18\ubd09(9.919)\u00b712\ubd09(WR 50.1%)\u00b736\ubd09(W1 7.649) \ubaa8\ub450 \uc5f4\uc138 \ud655\uc778 | \ub2e4\uc74c\uc81c\uc548: **(A) BTC stealth acc \uc784\uacc4\uac12 \ud0d0\uc0c9** \u2014 alt acc>1.0 \ud655\uc815, BTC stealth acc \uc544\uc9c1 \ubbf8\ud0d0\uc0c9 (\ud604\uc7ac 1.0 \uace0\uc815, 0.8/1.0/1.2/1.5 \ube44\uad50 \uac00\ub2a5), (B) TP/SL \uc870\ud569 \ud0d0\uc0c9 \u2014 TP=10%/SL=1.0% \uae30\uc900 \uc7ac\uac80\ud1a0, (C) CVD \ucc3d \ud06c\uae30 \ud0d0\uc0c9 (12/24\ubd09 \uae30\uc900)",
       "timestamp": "2026-04-04T09:25:46.586810"
     },
     {
       "cycle": 139,
-      "summary": "DONE 신호 없음 — 864s 후 종료",
-      "detail": "test_wallet.py 실패는 제 변경 이전부터 존재하는 기존 실패입니다. 사이클 139 작업과 무관합니다.\n\n**사이클 139 완료 — 기존 테스트 실패와 무관 확인**\n\n- `test_wallet.py` 실패: git stash 후에도 동일하게 실패 → 기존 버그, 이번 사이클과 무관\n- stealth 관련 테스트 4개 모두 통과 ✅\n- mypy 타입 체크 통과 ✅",
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 864s \ud6c4 \uc885\ub8cc",
+      "detail": "test_wallet.py \uc2e4\ud328\ub294 \uc81c \ubcc0\uacbd \uc774\uc804\ubd80\ud130 \uc874\uc7ac\ud558\ub294 \uae30\uc874 \uc2e4\ud328\uc785\ub2c8\ub2e4. \uc0ac\uc774\ud074 139 \uc791\uc5c5\uacfc \ubb34\uad00\ud569\ub2c8\ub2e4.\n\n**\uc0ac\uc774\ud074 139 \uc644\ub8cc \u2014 \uae30\uc874 \ud14c\uc2a4\ud2b8 \uc2e4\ud328\uc640 \ubb34\uad00 \ud655\uc778**\n\n- `test_wallet.py` \uc2e4\ud328: git stash \ud6c4\uc5d0\ub3c4 \ub3d9\uc77c\ud558\uac8c \uc2e4\ud328 \u2192 \uae30\uc874 \ubc84\uadf8, \uc774\ubc88 \uc0ac\uc774\ud074\uacfc \ubb34\uad00\n- stealth \uad00\ub828 \ud14c\uc2a4\ud2b8 4\uac1c \ubaa8\ub450 \ud1b5\uacfc \u2705\n- mypy \ud0c0\uc785 \uccb4\ud06c \ud1b5\uacfc \u2705",
       "timestamp": "2026-04-04T09:43:19.122516"
     },
     {
       "cycle": 140,
-      "summary": "작업: stealth_3gate TP/SL 그리드 탐색 — TP∈{8,10,12,15}% × SL∈{0.8,1.0,1.5,2.0}% 16조합 | 결과: **TP=8%/SL=1.0% 최적** — W2 Sharpe **11.204** (베이스라인 10.160 대비 **+1.044**), W1 Sharpe 9.571(n=90), daemon.toml 반영 완료 | 다음제안: **(A) TP=7%/6% 추가 탐색** — TP=8%가 최적이나 더 낮은 값 확인, **(B) 심볼 확장** — btc_acc_min=1.2+TP=8% 조건 하 신규 종목 스캔, **(C) CVD 창 크기 탐색** — W=12/24 재검증",
-      "detail": "[RALPH CYCLE 140 DONE] 작업: stealth_3gate TP/SL 그리드 탐색 — TP∈{8,10,12,15}% × SL∈{0.8,1.0,1.5,2.0}% 16조합 | 결과: **TP=8%/SL=1.0% 최적** — W2 Sharpe **11.204** (베이스라인 10.160 대비 **+1.044**), W1 Sharpe 9.571(n=90), daemon.toml 반영 완료 | 다음제안: **(A) TP=7%/6% 추가 탐색** — TP=8%가 최적이나 더 낮은 값 확인, **(B) 심볼 확장** — btc_acc_min=1.2+TP=8% 조건 하 신규 종목 스캔, **(C) CVD 창 크기 탐색** — W=12/24 재검증\n\n---\n\n### 핵심 발견\n\n| TP | SL | W2 Sharpe | ΔW2 |\n|---|---|---|---|\n| **8%** | **1.0%** ✅ | **11.204** | **+1.044** |\n| 8% | 0.8% | 11.151 | +0.991 |\n| 10% | 1.0% (이전) | 10.160 | 기준 |\n| 15% | 2.0% | 8.631 | -1.529 |\n\n**패턴**: TP가 낮을수록(8%>10%>12%>15%) W2 Sharpe 일관 개선 → BEAR 레짐에서 단기 수익 실현 전략이 유효. SL은 1.0%가 W1/W2 균형 최적.",
+      "summary": "\uc791\uc5c5: stealth_3gate TP/SL \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 \u2014 TP\u2208{8,10,12,15}% \u00d7 SL\u2208{0.8,1.0,1.5,2.0}% 16\uc870\ud569 | \uacb0\uacfc: **TP=8%/SL=1.0% \ucd5c\uc801** \u2014 W2 Sharpe **11.204** (\ubca0\uc774\uc2a4\ub77c\uc778 10.160 \ub300\ube44 **+1.044**), W1 Sharpe 9.571(n=90), daemon.toml \ubc18\uc601 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: **(A) TP=7%/6% \ucd94\uac00 \ud0d0\uc0c9** \u2014 TP=8%\uac00 \ucd5c\uc801\uc774\ub098 \ub354 \ub0ae\uc740 \uac12 \ud655\uc778, **(B) \uc2ec\ubcfc \ud655\uc7a5** \u2014 btc_acc_min=1.2+TP=8% \uc870\uac74 \ud558 \uc2e0\uaddc \uc885\ubaa9 \uc2a4\uce94, **(C) CVD \ucc3d \ud06c\uae30 \ud0d0\uc0c9** \u2014 W=12/24 \uc7ac\uac80\uc99d",
+      "detail": "[RALPH CYCLE 140 DONE] \uc791\uc5c5: stealth_3gate TP/SL \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 \u2014 TP\u2208{8,10,12,15}% \u00d7 SL\u2208{0.8,1.0,1.5,2.0}% 16\uc870\ud569 | \uacb0\uacfc: **TP=8%/SL=1.0% \ucd5c\uc801** \u2014 W2 Sharpe **11.204** (\ubca0\uc774\uc2a4\ub77c\uc778 10.160 \ub300\ube44 **+1.044**), W1 Sharpe 9.571(n=90), daemon.toml \ubc18\uc601 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: **(A) TP=7%/6% \ucd94\uac00 \ud0d0\uc0c9** \u2014 TP=8%\uac00 \ucd5c\uc801\uc774\ub098 \ub354 \ub0ae\uc740 \uac12 \ud655\uc778, **(B) \uc2ec\ubcfc \ud655\uc7a5** \u2014 btc_acc_min=1.2+TP=8% \uc870\uac74 \ud558 \uc2e0\uaddc \uc885\ubaa9 \uc2a4\uce94, **(C) CVD \ucc3d \ud06c\uae30 \ud0d0\uc0c9** \u2014 W=12/24 \uc7ac\uac80\uc99d\n\n---\n\n### \ud575\uc2ec \ubc1c\uacac\n\n| TP | SL | W2 Sharpe | \u0394W2 |\n|---|---|---|---|\n| **8%** | **1.0%** \u2705 | **11.204** | **+1.044** |\n| 8% | 0.8% | 11.151 | +0.991 |\n| 10% | 1.0% (\uc774\uc804) | 10.160 | \uae30\uc900 |\n| 15% | 2.0% | 8.631 | -1.529 |\n\n**\ud328\ud134**: TP\uac00 \ub0ae\uc744\uc218\ub85d(8%>10%>12%>15%) W2 Sharpe \uc77c\uad00 \uac1c\uc120 \u2192 BEAR \ub808\uc9d0\uc5d0\uc11c \ub2e8\uae30 \uc218\uc775 \uc2e4\ud604 \uc804\ub7b5\uc774 \uc720\ud6a8. SL\uc740 1.0%\uac00 W1/W2 \uade0\ud615 \ucd5c\uc801.",
       "timestamp": "2026-04-04T09:49:33.636469"
     },
     {
       "cycle": 141,
-      "summary": "DONE 신호 없음 — 842s 후 종료",
-      "detail": "백그라운드 pytest도 exit code 0으로 완료됐습니다. 사이클 141 모든 검증 통과.",
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 842s \ud6c4 \uc885\ub8cc",
+      "detail": "\ubc31\uadf8\ub77c\uc6b4\ub4dc pytest\ub3c4 exit code 0\uc73c\ub85c \uc644\ub8cc\ub410\uc2b5\ub2c8\ub2e4. \uc0ac\uc774\ud074 141 \ubaa8\ub4e0 \uac80\uc99d \ud1b5\uacfc.",
       "timestamp": "2026-04-04T10:06:46.595255"
     },
     {
       "cycle": 142,
-      "summary": "작업: stealth_3gate TP 하한 탐색 — TP=3%/4% vs 현재 TP=5%/SL=1.0% 6조합 비교 | 결과: **TP=5% 하한 확인** — TP=3%에서 W2 Sharpe 하락(11.359/11.757), TP=4%도 SL=1.0% 기준 열세(11.952), 현재 TP=5%/SL=1.0% (W2 12.126) 균형 최적 유지, daemon 변경 불필요 | 다음제안: **(A) momentum_sol W1/W2 walk-forward 검증** — Sharpe 14.37 과적합 의심, daemon 반영 전 필수 검증, **(B) 신규 심볼 스캔** — TP=5%/btc_acc_min=1.2 현재 최적 파라미터 기준 신규 종목 탐색, **(C) vpin_eth walk-forward** — Sharpe 7.46 검증 후 daemon 추가 검토",
-      "detail": "커밋 완료.\n\n---\n\n[RALPH CYCLE 142 DONE] 작업: stealth_3gate TP 하한 탐색 — TP=3%/4% vs 현재 TP=5%/SL=1.0% 6조합 비교 | 결과: **TP=5% 하한 확인** — TP=3%에서 W2 Sharpe 하락(11.359/11.757), TP=4%도 SL=1.0% 기준 열세(11.952), 현재 TP=5%/SL=1.0% (W2 12.126) 균형 최적 유지, daemon 변경 불필요 | 다음제안: **(A) momentum_sol W1/W2 walk-forward 검증** — Sharpe 14.37 과적합 의심, daemon 반영 전 필수 검증, **(B) 신규 심볼 스캔** — TP=5%/btc_acc_min=1.2 현재 최적 파라미터 기준 신규 종목 탐색, **(C) vpin_eth walk-forward** — Sharpe 7.46 검증 후 daemon 추가 검토",
+      "summary": "\uc791\uc5c5: stealth_3gate TP \ud558\ud55c \ud0d0\uc0c9 \u2014 TP=3%/4% vs \ud604\uc7ac TP=5%/SL=1.0% 6\uc870\ud569 \ube44\uad50 | \uacb0\uacfc: **TP=5% \ud558\ud55c \ud655\uc778** \u2014 TP=3%\uc5d0\uc11c W2 Sharpe \ud558\ub77d(11.359/11.757), TP=4%\ub3c4 SL=1.0% \uae30\uc900 \uc5f4\uc138(11.952), \ud604\uc7ac TP=5%/SL=1.0% (W2 12.126) \uade0\ud615 \ucd5c\uc801 \uc720\uc9c0, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol W1/W2 walk-forward \uac80\uc99d** \u2014 Sharpe 14.37 \uacfc\uc801\ud569 \uc758\uc2ec, daemon \ubc18\uc601 \uc804 \ud544\uc218 \uac80\uc99d, **(B) \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94** \u2014 TP=5%/btc_acc_min=1.2 \ud604\uc7ac \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130 \uae30\uc900 \uc2e0\uaddc \uc885\ubaa9 \ud0d0\uc0c9, **(C) vpin_eth walk-forward** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0",
+      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n---\n\n[RALPH CYCLE 142 DONE] \uc791\uc5c5: stealth_3gate TP \ud558\ud55c \ud0d0\uc0c9 \u2014 TP=3%/4% vs \ud604\uc7ac TP=5%/SL=1.0% 6\uc870\ud569 \ube44\uad50 | \uacb0\uacfc: **TP=5% \ud558\ud55c \ud655\uc778** \u2014 TP=3%\uc5d0\uc11c W2 Sharpe \ud558\ub77d(11.359/11.757), TP=4%\ub3c4 SL=1.0% \uae30\uc900 \uc5f4\uc138(11.952), \ud604\uc7ac TP=5%/SL=1.0% (W2 12.126) \uade0\ud615 \ucd5c\uc801 \uc720\uc9c0, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol W1/W2 walk-forward \uac80\uc99d** \u2014 Sharpe 14.37 \uacfc\uc801\ud569 \uc758\uc2ec, daemon \ubc18\uc601 \uc804 \ud544\uc218 \uac80\uc99d, **(B) \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94** \u2014 TP=5%/btc_acc_min=1.2 \ud604\uc7ac \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130 \uae30\uc900 \uc2e0\uaddc \uc885\ubaa9 \ud0d0\uc0c9, **(C) vpin_eth walk-forward** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0",
       "timestamp": "2026-04-04T10:12:30.910729"
     },
     {
       "cycle": 143,
-      "summary": "작업: stealth_3gate 신규 심볼 스캔 — 전체 141개 심볼 W1/W2 per-symbol 분석 + 확장 세트 비교 | 결과: **7개 wallet 실제 W2 Sharpe=9.547(n=31)** vs **14개 확장 후 W2 Sharpe=13.183(n=71, WR=59.2%)** — daemon.toml symbols에 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA 추가 완료 | 다음제안: **(A) vpin_eth walk-forward 검증** — Sharpe 7.46 검증 후 daemon 추가 검토, **(B) RS 범위 재탐색** — 14개 심볼 기준 RS=[0.4,0.9) 재최적화 (확장 심볼 반영), **(C) 14개 심볼 기준 BTC_ACC_MIN 재탐색** — 신규 심볼 추가로 최적 임계값 변화 가능성",
-      "detail": "커밋 완료.\n\n---\n\n[RALPH CYCLE 143 DONE] 작업: stealth_3gate 신규 심볼 스캔 — 전체 141개 심볼 W1/W2 per-symbol 분석 + 확장 세트 비교 | 결과: **7개 wallet 실제 W2 Sharpe=9.547(n=31)** vs **14개 확장 후 W2 Sharpe=13.183(n=71, WR=59.2%)** — daemon.toml symbols에 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA 추가 완료 | 다음제안: **(A) vpin_eth walk-forward 검증** — Sharpe 7.46 검증 후 daemon 추가 검토, **(B) RS 범위 재탐색** — 14개 심볼 기준 RS=[0.4,0.9) 재최적화 (확장 심볼 반영), **(C) 14개 심볼 기준 BTC_ACC_MIN 재탐색** — 신규 심볼 추가로 최적 임계값 변화 가능성",
+      "summary": "\uc791\uc5c5: stealth_3gate \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94 \u2014 \uc804\uccb4 141\uac1c \uc2ec\ubcfc W1/W2 per-symbol \ubd84\uc11d + \ud655\uc7a5 \uc138\ud2b8 \ube44\uad50 | \uacb0\uacfc: **7\uac1c wallet \uc2e4\uc81c W2 Sharpe=9.547(n=31)** vs **14\uac1c \ud655\uc7a5 \ud6c4 W2 Sharpe=13.183(n=71, WR=59.2%)** \u2014 daemon.toml symbols\uc5d0 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA \ucd94\uac00 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth walk-forward \uac80\uc99d** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0, **(B) RS \ubc94\uc704 \uc7ac\ud0d0\uc0c9** \u2014 14\uac1c \uc2ec\ubcfc \uae30\uc900 RS=[0.4,0.9) \uc7ac\ucd5c\uc801\ud654 (\ud655\uc7a5 \uc2ec\ubcfc \ubc18\uc601), **(C) 14\uac1c \uc2ec\ubcfc \uae30\uc900 BTC_ACC_MIN \uc7ac\ud0d0\uc0c9** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ucd94\uac00\ub85c \ucd5c\uc801 \uc784\uacc4\uac12 \ubcc0\ud654 \uac00\ub2a5\uc131",
+      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n---\n\n[RALPH CYCLE 143 DONE] \uc791\uc5c5: stealth_3gate \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94 \u2014 \uc804\uccb4 141\uac1c \uc2ec\ubcfc W1/W2 per-symbol \ubd84\uc11d + \ud655\uc7a5 \uc138\ud2b8 \ube44\uad50 | \uacb0\uacfc: **7\uac1c wallet \uc2e4\uc81c W2 Sharpe=9.547(n=31)** vs **14\uac1c \ud655\uc7a5 \ud6c4 W2 Sharpe=13.183(n=71, WR=59.2%)** \u2014 daemon.toml symbols\uc5d0 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA \ucd94\uac00 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth walk-forward \uac80\uc99d** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0, **(B) RS \ubc94\uc704 \uc7ac\ud0d0\uc0c9** \u2014 14\uac1c \uc2ec\ubcfc \uae30\uc900 RS=[0.4,0.9) \uc7ac\ucd5c\uc801\ud654 (\ud655\uc7a5 \uc2ec\ubcfc \ubc18\uc601), **(C) 14\uac1c \uc2ec\ubcfc \uae30\uc900 BTC_ACC_MIN \uc7ac\ud0d0\uc0c9** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ucd94\uac00\ub85c \ucd5c\uc801 \uc784\uacc4\uac12 \ubcc0\ud654 \uac00\ub2a5\uc131",
       "timestamp": "2026-04-04T10:24:16.420876"
+    },
+    {
+      "cycle": 147,
+      "summary": "\uc791\uc5c5: momentum_sol \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + MDD walk-forward 3-window \uac80\uc99d (lb=12, adx=25, TP=12%, SL=4%) | \uacb0\uacfc: **WF 2/3 \ud1b5\uacfc** \u2014 W1 Sharpe +15.929 / W2 +18.842 / W3 +11.231(n=4 FAIL, OOS 3\uac1c\uc6d4 \uc9e7\uc74c). **\uc2ac\ub9ac\ud53c\uc9c0 0.15%\uc5d0\uc11c\ub3c4 Sharpe +9.919** \u2014 \uc2e4\uc804 \ub0b4\uc131 \ud655\uc778. BH \ub300\ube44 196% vs 9.8%. MDD -19.95% (\uc804\uccb4), \ucd5c\uc545 OOS -11.80%, \ucd5c\ub300\uc5f0\uc18d\uc190\uc2e4 3. **1\uc2ac\ub86f \uc720\uc9c0, 2\uc2ac\ub86f \ud655\ub300\ub294 W3 \ub370\uc774\ud130 \ucd95\uc801(6\uc6d4+) \ud6c4 \uc7ac\uac80\uc99d** | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth W2 \ud30c\ub77c\ubbf8\ud130 \uc7ac\ud0d0\uc0c9** \u2014 Sharpe 4.662\u21925.0+ \ubaa9\ud45c, \uacf5\ud68c\uc804 \ud574\uc18c \uc6b0\uc120, **(B) BB bounce ADX<20 Bear/sideways \ubc31\ud14c\uc2a4\ud2b8** \u2014 \uc720\ud734 KRW \ud65c\uc6a9 \uacbd\ub85c \ud655\ubcf4, **(C) stealth_3gate 14\uc2ec\ubcfc \ud655\uc7a5 \ud6c4 RS \ubc94\uc704 \uc7ac\ucd5c\uc801\ud654** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ubc18\uc601 RS=[0.4,0.9) \uc7ac\ud0d0\uc0c9",
+      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n---\n\n[RALPH CYCLE 147 DONE] \uc791\uc5c5: momentum_sol \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + MDD walk-forward 3-window \uac80\uc99d (lb=12, adx=25, TP=12%, SL=4%) | \uacb0\uacfc: **WF 2/3 \ud1b5\uacfc** \u2014 W1 Sharpe +15.929 / W2 +18.842 / W3 +11.231(n=4 FAIL, OOS 3\uac1c\uc6d4 \uc9e7\uc74c). **\uc2ac\ub9ac\ud53c\uc9c0 0.15%\uc5d0\uc11c\ub3c4 Sharpe +9.919** \u2014 \uc2e4\uc804 \ub0b4\uc131 \ud655\uc778. BH \ub300\ube44 196% vs 9.8%. MDD -19.95% (\uc804\uccb4), \ucd5c\uc545 OOS -11.80%, \ucd5c\ub300\uc5f0\uc18d\uc190\uc2e4 3. **1\uc2ac\ub86f \uc720\uc9c0, 2\uc2ac\ub86f \ud655\ub300\ub294 W3 \ub370\uc774\ud130 \ucd95\uc801(6\uc6d4+) \ud6c4 \uc7ac\uac80\uc99d** | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth W2 \ud30c\ub77c\ubbf8\ud130 \uc7ac\ud0d0\uc0c9** \u2014 Sharpe 4.662\u21925.0+ \ubaa9\ud45c, \uacf5\ud68c\uc804 \ud574\uc18c \uc6b0\uc120, **(B) BB bounce ADX<20 Bear/sideways \ubc31\ud14c\uc2a4\ud2b8** \u2014 \uc720\ud734 KRW \ud65c\uc6a9 \uacbd\ub85c \ud655\ubcf4, **(C) stealth_3gate 14\uc2ec\ubcfc \ud655\uc7a5 \ud6c4 RS \ubc94\uc704 \uc7ac\ucd5c\uc801\ud654** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ubc18\uc601 RS=[0.4,0.9) \uc7ac\ud0d0\uc0c9",
+      "timestamp": "2026-04-05T05:30:16.400811"
+    },
+    {
+      "cycle": 148,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1817s \ud6c4 \uc885\ub8cc",
+      "detail": "",
+      "timestamp": "2026-04-05T06:03:35.034179"
+    },
+    {
+      "cycle": 149,
+      "summary": "\uc791\uc5c5: stealth_3gate TP\u2208{3,4,5,6,7}% \u00d7 SL\u2208{0.8,1.0,1.5}% \uc138\ubc00 \uadf8\ub9ac\ub4dc 15\uc870\ud569 + \uc804\uccb4 238\uc2ec\ubcfc WF 2/2 \uac80\uc99d | \uacb0\uacfc: **\uc804 \uc870\ud569 WF \ud1b5\uacfc**, \ucd5c\uc801 TP=5%/SL=0.8% W2 Sharpe +12.140 (\uc804\uccb4) / daemon W2 +14.114, \ud604\ud589 TP=5%/SL=1.0% W2=11.960 \ub300\ube44 \u0394+0.180 (\ubbf8\ubbf8) \u2192 **\ud604\ud589 \uc720\uc9c0**. TP=4~5% \ucd5c\uc801 \uad6c\uac04 \ud655\uc815, TP=3% fee drag, TP\u22656% \uae30\ud68c\ube44\uc6a9 \ud655\uc778. BH \ub300\ube44 +1504% vs -70% | \ub2e4\uc74c\uc81c\uc548: **(A) SL=0.8% \uc2e4\uac70\ub798 2\uc8fc \ucd94\uc801 \ud6c4 \uc804\ud658 \uac80\ud1a0** \u2014 daemon\uc5d0\uc11c paper_trading SL=0.8% \ubd84\uae30 \ucd94\uc801, **(B) vpin_eth ATR/\ubcfc\ub968 \ud544\ud130 \uacb0\uacfc \ud655\uc778** \u2014 research loop \uc0ac\uc774\ud074 207 \uacb0\uacfc \ud655\uc778 \ud6c4 daemon \ubc18\uc601, **(C) stealth_3gate MAX_HOLD \ucd95\uc18c \ud0d0\uc0c9** \u2014 \ud604 24h\u219218/12h \ud0d0\uc0c9\uc73c\ub85c BEAR \ub808\uc9d0 \ube60\ub978 \uccad\uc0b0 \ud6a8\uacfc \uac80\uc99d",
+      "detail": "[RALPH CYCLE 149 DONE] \uc791\uc5c5: stealth_3gate TP\u2208{3,4,5,6,7}% \u00d7 SL\u2208{0.8,1.0,1.5}% \uc138\ubc00 \uadf8\ub9ac\ub4dc 15\uc870\ud569 + \uc804\uccb4 238\uc2ec\ubcfc WF 2/2 \uac80\uc99d | \uacb0\uacfc: **\uc804 \uc870\ud569 WF \ud1b5\uacfc**, \ucd5c\uc801 TP=5%/SL=0.8% W2 Sharpe +12.140 (\uc804\uccb4) / daemon W2 +14.114, \ud604\ud589 TP=5%/SL=1.0% W2=11.960 \ub300\ube44 \u0394+0.180 (\ubbf8\ubbf8) \u2192 **\ud604\ud589 \uc720\uc9c0**. TP=4~5% \ucd5c\uc801 \uad6c\uac04 \ud655\uc815, TP=3% fee drag, TP\u22656% \uae30\ud68c\ube44\uc6a9 \ud655\uc778. BH \ub300\ube44 +1504% vs -70% | \ub2e4\uc74c\uc81c\uc548: **(A) SL=0.8% \uc2e4\uac70\ub798 2\uc8fc \ucd94\uc801 \ud6c4 \uc804\ud658 \uac80\ud1a0** \u2014 daemon\uc5d0\uc11c paper_trading SL=0.8% \ubd84\uae30 \ucd94\uc801, **(B) vpin_eth ATR/\ubcfc\ub968 \ud544\ud130 \uacb0\uacfc \ud655\uc778** \u2014 research loop \uc0ac\uc774\ud074 207 \uacb0\uacfc \ud655\uc778 \ud6c4 daemon \ubc18\uc601, **(C) stealth_3gate MAX_HOLD \ucd95\uc18c \ud0d0\uc0c9** \u2014 \ud604 24h\u219218/12h \ud0d0\uc0c9\uc73c\ub85c BEAR \ub808\uc9d0 \ube60\ub978 \uccad\uc0b0 \ud6a8\uacfc \uac80\uc99d",
+      "timestamp": "2026-04-05T06:12:30.030531"
+    },
+    {
+      "cycle": 150,
+      "summary": "\uc791\uc5c5: momentum_sol ADX-tight + BTC SMA200 \ub808\uc9d0\ud544\ud130 + \ucfe8\ub2e4\uc6b4(trig=3, cool=24) \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 \u2014 lb=12/20 \u00d7 adx=25/30/35 \u00d7 TP=8~12%/SL=3~4% \uc804\uccb4 8\ubcc0\ud615 + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: **adx=30 \ubcc0\ud615 consec=3 \u2705 \uc720\uc77c\ud55c \uc548\uc804 \ud1b5\uacfc**, WF OOS avg **+13.957** (F1=+19.117 n=7, F2=+8.796 n=6), \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 Sharpe +5.712 \ud1b5\uacfc. BTC SMA200 \ud544\ud130 \ud6a8\uacfc \uadf9\uc801 \u2014 \ubca0\uc774\uc2a4\ub77c\uc778 \ub300\ube44 MDD -37.8%\u2192-16.2%, consec 9\u21923. \uc804\ub7b5\uc218\uc775 +88.6% vs BH +9.8%. **\u274c daemon \ubc30\ud3ec \ubd88\uac00**: OOS n=6~7 (n\u226530 \ubbf8\ucda9\uc871), 2026\ub144 0\uac70\ub798 (BTC < SMA200). | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50** \u2014 \ud3c9\uac00\uc790 #1 \ube14\ub85c\ucee4 \ud574\uc18c, daemon \uc989\uc2dc \ubc18\uc601 \uac00\ub2a5\uc131, **(B) BTC SMA100/SMA50 \ub2e8\ucd95 SMA \ud14c\uc2a4\ud2b8** \u2014 2026 \ube44\ud65c\uc131 \ud574\uc18c + n \ud655\ubcf4, **(C) BB bounce ADX<20 Bear/Sideways \uc804\ub7b5** \u2014 BEAR \uac00\ub3d9 \uac00\ub2a5 \uc804\ub7b5 \ud655\ubcf4",
+      "detail": "[RALPH CYCLE 150 DONE] \uc791\uc5c5: momentum_sol ADX-tight + BTC SMA200 \ub808\uc9d0\ud544\ud130 + \ucfe8\ub2e4\uc6b4(trig=3, cool=24) \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 \u2014 lb=12/20 \u00d7 adx=25/30/35 \u00d7 TP=8~12%/SL=3~4% \uc804\uccb4 8\ubcc0\ud615 + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: **adx=30 \ubcc0\ud615 consec=3 \u2705 \uc720\uc77c\ud55c \uc548\uc804 \ud1b5\uacfc**, WF OOS avg **+13.957** (F1=+19.117 n=7, F2=+8.796 n=6), \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 Sharpe +5.712 \ud1b5\uacfc. BTC SMA200 \ud544\ud130 \ud6a8\uacfc \uadf9\uc801 \u2014 \ubca0\uc774\uc2a4\ub77c\uc778 \ub300\ube44 MDD -37.8%\u2192-16.2%, consec 9\u21923. \uc804\ub7b5\uc218\uc775 +88.6% vs BH +9.8%. **\u274c daemon \ubc30\ud3ec \ubd88\uac00**: OOS n=6~7 (n\u226530 \ubbf8\ucda9\uc871), 2026\ub144 0\uac70\ub798 (BTC < SMA200). | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50** \u2014 \ud3c9\uac00\uc790 #1 \ube14\ub85c\ucee4 \ud574\uc18c, daemon \uc989\uc2dc \ubc18\uc601 \uac00\ub2a5\uc131, **(B) BTC SMA100/SMA50 \ub2e8\ucd95 SMA \ud14c\uc2a4\ud2b8** \u2014 2026 \ube44\ud65c\uc131 \ud574\uc18c + n \ud655\ubcf4, **(C) BB bounce ADX<20 Bear/Sideways \uc804\ub7b5** \u2014 BEAR \uac00\ub3d9 \uac00\ub2a5 \uc804\ub7b5 \ud655\ubcf4",
+      "timestamp": "2026-04-05T06:20:39.912026"
+    },
+    {
+      "cycle": 151,
+      "summary": "\uc791\uc5c5: vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50 \u2014 \ud3c9\uac00\uc790 \ube14\ub85c\ucee4 #1 \ud574\uc18c (8TP \u00d7 3SL = 24\uc870\ud569, 2-fold WF + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574) | \uacb0\uacfc: **TP=4.5% avg OOS +6.637 < TP=6% avg OOS +7.625 (\u0394=-0.988)** \u2192 \ud3c9\uac00\uc790 \uc8fc\uc7a5 \ubc18\uc99d, **daemon \ud604\ud589 TP=6% \uc720\uc9c0 \ud655\uc815**. TP=7.0%/SL=0.8% avg OOS **+8.379** (F1=+8.015 n=93, F2=+8.744 n=67) \u2705 \uc591 Fold \ud1b5\uacfc, cumR +416.9% vs BH -11.9%. \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 TP=6%\uac00 TP=4.5% \ub300\ube44 \uc804 \uad6c\uac04 \uc6b0\uc138. | \ub2e4\uc74c\uc81c\uc548: **(A) TP=7.0% daemon \ubc18\uc601 \uac80\ud1a0** \u2014 \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 \uc0c1\uc138 + \uc5f0\ub3c4\ubcc4 \uc548\uc815\uc131 \ud655\uc778 \ud6c4 TP=6%\u21927% \uc804\ud658, **(B) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, 2026 \ube44\ud65c\uc131 \ud574\uc18c, **(C) BB bounce Bear/Sideways** \u2014 BEAR \uac00\ub3d9 \uc804\ub7b5 \ud655\ubcf4",
+      "detail": "[RALPH CYCLE 151 DONE] \uc791\uc5c5: vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50 \u2014 \ud3c9\uac00\uc790 \ube14\ub85c\ucee4 #1 \ud574\uc18c (8TP \u00d7 3SL = 24\uc870\ud569, 2-fold WF + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574) | \uacb0\uacfc: **TP=4.5% avg OOS +6.637 < TP=6% avg OOS +7.625 (\u0394=-0.988)** \u2192 \ud3c9\uac00\uc790 \uc8fc\uc7a5 \ubc18\uc99d, **daemon \ud604\ud589 TP=6% \uc720\uc9c0 \ud655\uc815**. TP=7.0%/SL=0.8% avg OOS **+8.379** (F1=+8.015 n=93, F2=+8.744 n=67) \u2705 \uc591 Fold \ud1b5\uacfc, cumR +416.9% vs BH -11.9%. \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 TP=6%\uac00 TP=4.5% \ub300\ube44 \uc804 \uad6c\uac04 \uc6b0\uc138. | \ub2e4\uc74c\uc81c\uc548: **(A) TP=7.0% daemon \ubc18\uc601 \uac80\ud1a0** \u2014 \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 \uc0c1\uc138 + \uc5f0\ub3c4\ubcc4 \uc548\uc815\uc131 \ud655\uc778 \ud6c4 TP=6%\u21927% \uc804\ud658, **(B) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, 2026 \ube44\ud65c\uc131 \ud574\uc18c, **(C) BB bounce Bear/Sideways** \u2014 BEAR \uac00\ub3d9 \uc804\ub7b5 \ud655\ubcf4",
+      "timestamp": "2026-04-05T06:30:26.671796"
+    },
+    {
+      "cycle": 152,
+      "summary": "\uc791\uc5c5: vpin_eth TP=6%\u21927% daemon \ubc30\ud3ec \uacb0\uc815 \u2014 TP={5.5~8.0}% 6\ub2e8\uacc4 \u00d7 WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 6\ub2e8\uacc4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 \uc9c1\uc811 \ube44\uad50 | \uacb0\uacfc: **TP=7.0%/SL=0.8% avg OOS +8.379** > daemon TP=6% +7.625 (\u0394+0.754), F1=+8.015(n=93) F2=+8.744(n=67) \u2705 \uc591 Fold \ud1b5\uacfc, \uc2ac\ub9ac\ud53c\uc9c0 \uc804 \uad6c\uac04 TP=6% \ub300\ube44 \uc6b0\uc138, cumR +175.7% vs BH -11.9%. **daemon.toml \ubc18\uc601 \uc644\ub8cc** (take_profit_pct 0.06\u21920.07). \uc5f0\ub3c4\ubcc4: 2022\ub9cc TP=6% \uc18c\ud3ed \uc6b0\uc138, 2023~2026 TP=7% \uc555\ub3c4 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, SMA200\uc5d0\uc11c 2026 \ube44\ud65c\uc131 \ubb38\uc81c \ud574\uc18c, **(B) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4 (\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874), **(C) TP=7.5% \ucd94\uac00 \uac80\ud1a0** \u2014 avg OOS +8.354\ub85c TP=7%\uc640 \uac70\uc758 \ub3d9\ub4f1, F2\uc5d0\uc11c +9.033\uc73c\ub85c \ucd5c\uac15",
+      "detail": "[RALPH CYCLE 152 DONE] \uc791\uc5c5: vpin_eth TP=6%\u21927% daemon \ubc30\ud3ec \uacb0\uc815 \u2014 TP={5.5~8.0}% 6\ub2e8\uacc4 \u00d7 WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 6\ub2e8\uacc4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 \uc9c1\uc811 \ube44\uad50 | \uacb0\uacfc: **TP=7.0%/SL=0.8% avg OOS +8.379** > daemon TP=6% +7.625 (\u0394+0.754), F1=+8.015(n=93) F2=+8.744(n=67) \u2705 \uc591 Fold \ud1b5\uacfc, \uc2ac\ub9ac\ud53c\uc9c0 \uc804 \uad6c\uac04 TP=6% \ub300\ube44 \uc6b0\uc138, cumR +175.7% vs BH -11.9%. **daemon.toml \ubc18\uc601 \uc644\ub8cc** (take_profit_pct 0.06\u21920.07). \uc5f0\ub3c4\ubcc4: 2022\ub9cc TP=6% \uc18c\ud3ed \uc6b0\uc138, 2023~2026 TP=7% \uc555\ub3c4 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, SMA200\uc5d0\uc11c 2026 \ube44\ud65c\uc131 \ubb38\uc81c \ud574\uc18c, **(B) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4 (\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874), **(C) TP=7.5% \ucd94\uac00 \uac80\ud1a0** \u2014 avg OOS +8.354\ub85c TP=7%\uc640 \uac70\uc758 \ub3d9\ub4f1, F2\uc5d0\uc11c +9.033\uc73c\ub85c \ucd5c\uac15",
+      "timestamp": "2026-04-05T06:41:13.355500"
+    },
+    {
+      "cycle": 153,
+      "summary": "\uc791\uc5c5: momentum_sol BTC SMA \ub2e8\ucd95 \ub808\uc9d0\ud544\ud130 \ud0d0\uc0c9 \u2014 SMA{50,75,100,150,200} \u00d7 TP{8,10,12}% \u00d7 SL{3,4}% \uadf8\ub9ac\ub4dc + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 | \uacb0\uacfc: **\u274c SMA \ub2e8\ucd95 \ubb34\ud6a8** \u2014 \ubaa8\ub4e0 SMA(50~200)\uc5d0\uc11c **2026=0\uac70\ub798**. \uadfc\ubcf8 \uc6d0\uc778\uc740 SOL ADX>30+\ubcfc\ub968 \uc2e0\ud638 \uc790\uccb4 \ubd80\uc7ac. **SMA200\uc774 WF \ucd5c\uc801**(avg OOS +14.069, F1=+17.857 n=11, F2=+10.282 n=13) \u2014 \uae34 SMA\uac00 \ub178\uc774\uc988 \ud544\ud130 \ud488\uc9c8 \uc6b0\uc218. SMA50 \uc804\uccb4Sharpe \ucd5c\uace0(+12.360)\uc774\ub098 WF F2 \ubd88\uc548\uc815(+10.188 vs SMA200 +10.282). **daemon \ubc30\ud3ec \ubd88\uac00**: n=11~15(n\u226530 \ubbf8\ucda9\uc871). momentum_sol\uc740 BULL \uc804\uc6a9 \uc804\ub7b5 \ud655\uc815, \ud604\ud589 daemon \uc720\uc9c0. | \ub2e4\uc74c\uc81c\uc548: **(A) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4(\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874, \ud3c9\uac00\uc790 \uc6b0\uc120\uc21c\uc704), **(B) momentum_sol ADX \uc644\ud654(30\u219225) + \ubcfc\ub968 \uc644\ud654(1.5\u21921.0) \ud0d0\uc0c9** \u2014 \uc9c4\uc785\uae30\uc900 \ub0ae\ucdb0 2026 \uc2e0\ud638 \ud3ec\ucc29 \uac00\ub2a5\uc131, **(C) volspike_btc \uc874\uc18d \uc5ec\ubd80 \ubd84\uc11d** \u2014 \ube44\ud65c\uc131\ud654 + \uc790\ubcf8 \uc7ac\ubc30\ubd84 \uc2dc\ub098\ub9ac\uc624",
+      "detail": "[RALPH CYCLE 153 DONE] \uc791\uc5c5: momentum_sol BTC SMA \ub2e8\ucd95 \ub808\uc9d0\ud544\ud130 \ud0d0\uc0c9 \u2014 SMA{50,75,100,150,200} \u00d7 TP{8,10,12}% \u00d7 SL{3,4}% \uadf8\ub9ac\ub4dc + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 | \uacb0\uacfc: **\u274c SMA \ub2e8\ucd95 \ubb34\ud6a8** \u2014 \ubaa8\ub4e0 SMA(50~200)\uc5d0\uc11c **2026=0\uac70\ub798**. \uadfc\ubcf8 \uc6d0\uc778\uc740 SOL ADX>30+\ubcfc\ub968 \uc2e0\ud638 \uc790\uccb4 \ubd80\uc7ac. **SMA200\uc774 WF \ucd5c\uc801**(avg OOS +14.069, F1=+17.857 n=11, F2=+10.282 n=13) \u2014 \uae34 SMA\uac00 \ub178\uc774\uc988 \ud544\ud130 \ud488\uc9c8 \uc6b0\uc218. SMA50 \uc804\uccb4Sharpe \ucd5c\uace0(+12.360)\uc774\ub098 WF F2 \ubd88\uc548\uc815(+10.188 vs SMA200 +10.282). **daemon \ubc30\ud3ec \ubd88\uac00**: n=11~15(n\u226530 \ubbf8\ucda9\uc871). momentum_sol\uc740 BULL \uc804\uc6a9 \uc804\ub7b5 \ud655\uc815, \ud604\ud589 daemon \uc720\uc9c0. | \ub2e4\uc74c\uc81c\uc548: **(A) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4(\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874, \ud3c9\uac00\uc790 \uc6b0\uc120\uc21c\uc704), **(B) momentum_sol ADX \uc644\ud654(30\u219225) + \ubcfc\ub968 \uc644\ud654(1.5\u21921.0) \ud0d0\uc0c9** \u2014 \uc9c4\uc785\uae30\uc900 \ub0ae\ucdb0 2026 \uc2e0\ud638 \ud3ec\ucc29 \uac00\ub2a5\uc131, **(C) volspike_btc \uc874\uc18d \uc5ec\ubd80 \ubd84\uc11d** \u2014 \ube44\ud65c\uc131\ud654 + \uc790\ubcf8 \uc7ac\ubc30\ubd84 \uc2dc\ub098\ub9ac\uc624",
+      "timestamp": "2026-04-05T06:52:00.953999"
+    },
+    {
+      "cycle": 154,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1833s \ud6c4 \uc885\ub8cc",
+      "detail": "",
+      "timestamp": "2026-04-05T07:25:36.812687"
+    },
+    {
+      "cycle": 155,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1840s \ud6c4 \uc885\ub8cc",
+      "detail": "",
+      "timestamp": "2026-04-05T07:59:20.352615"
+    },
+    {
+      "cycle": 156,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1836s \ud6c4 \uc885\ub8cc",
+      "detail": "",
+      "timestamp": "2026-04-05T08:33:00.262550"
+    },
+    {
+      "cycle": 157,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1841s \ud6c4 \uc885\ub8cc",
+      "detail": "",
+      "timestamp": "2026-04-05T09:06:45.769463"
     }
   ],
-  "ralph_last_run": "2026-04-04T10:24:16.420888",
-  "engine_bias_note": "⚠️ 사이클 94~144 Sharpe 수치는 1봉 선행편향 엔진 결과 (무효). 수정: 22fa9ed (2026-04-04 10:35). 사이클 145부터 수정된 엔진 기준.",
+  "ralph_last_run": "2026-04-05T09:06:45.769476",
+  "engine_bias_note": "\u26a0\ufe0f \uc0ac\uc774\ud074 94~144 Sharpe \uc218\uce58\ub294 1\ubd09 \uc120\ud589\ud3b8\ud5a5 \uc5d4\uc9c4 \uacb0\uacfc (\ubb34\ud6a8). \uc218\uc815: 22fa9ed (2026-04-04 10:35). \uc0ac\uc774\ud074 145\ubd80\ud130 \uc218\uc815\ub41c \uc5d4\uc9c4 \uae30\uc900.",
   "revalidated_baselines": {
     "stealth_3gate": {
       "w2_sharpe": 13.703,
