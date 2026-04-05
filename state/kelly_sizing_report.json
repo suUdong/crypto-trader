@@ -1,0 +1,107 @@
+{
+  "generated_at": "2026-04-04",
+  "cycle": "c211",
+  "description": "half-Kelly 포지션 사이징 포트폴리오 시뮬레이션",
+  "params": {
+    "initial_capital": 10000000,
+    "n_trades": 100,
+    "n_simulations": 1000,
+    "fixed_fraction": 0.05
+  },
+  "kelly_fractions": {
+    "vpin_eth": {
+      "label": "vpin_eth (c168)",
+      "wr": 0.55,
+      "avg_ret": 0.018,
+      "b_ratio": 2.0,
+      "kelly": 0.325,
+      "half_kelly": 0.1625
+    },
+    "vpin_sol": {
+      "label": "vpin_sol (c165)",
+      "wr": 0.56,
+      "avg_ret": 0.017,
+      "b_ratio": 2.0,
+      "kelly": 0.34,
+      "half_kelly": 0.17
+    },
+    "bb_squeeze_eth": {
+      "label": "bb_squeeze_eth (c185)",
+      "wr": 0.61,
+      "avg_ret": 0.015,
+      "b_ratio": 2.0,
+      "kelly": 0.415,
+      "half_kelly": 0.2075
+    },
+    "vpin_doge": {
+      "label": "vpin_doge (c171)",
+      "wr": 0.55,
+      "avg_ret": 0.016,
+      "b_ratio": 2.0,
+      "kelly": 0.325,
+      "half_kelly": 0.1625
+    },
+    "vpin_avax": {
+      "label": "vpin_avax (c171)",
+      "wr": 0.6,
+      "avg_ret": 0.02,
+      "b_ratio": 2.0,
+      "kelly": 0.4,
+      "half_kelly": 0.2
+    },
+    "bb_squeeze_doge": {
+      "label": "bb_squeeze_doge (c185)",
+      "wr": 0.61,
+      "avg_ret": 0.015,
+      "b_ratio": 2.0,
+      "kelly": 0.415,
+      "half_kelly": 0.2075
+    }
+  },
+  "simulation_results": {
+    "fixed": {
+      "label": "현재 고정(5%)",
+      "mean_cagr": 0.08847011737044295,
+      "median_cagr": 0.08830462592857158,
+      "mean_mdd": 0.0011100475090530283,
+      "p95_mdd": 0.0018011837718367452,
+      "mean_sharpe": 11.579448503075207,
+      "bankruptcy_rate": 0.0,
+      "p5_final": 10747149.0555856,
+      "p50_final": 10883046.259285714,
+      "p95_final": 11020459.306753721
+    },
+    "half_kelly": {
+      "label": "Half-Kelly",
+      "mean_cagr": 0.3622691177515905,
+      "median_cagr": 0.3613154792540477,
+      "mean_mdd": 0.003831375775716805,
+      "p95_mdd": 0.006247517511897694,
+      "mean_sharpe": 11.961852559177215,
+      "bankruptcy_rate": 0.0,
+      "p5_final": 13026634.217027798,
+      "p50_final": 13613154.792540478,
+      "p95_final": 14228308.454608332
+    },
+    "full_kelly": {
+      "label": "Full-Kelly",
+      "mean_cagr": 0.8540216541990503,
+      "median_cagr": 0.8502839496355656,
+      "mean_mdd": 0.007658709942708835,
+      "p95_mdd": 0.012477874925639492,
+      "mean_sharpe": 11.965317305563223,
+      "bankruptcy_rate": 0.0,
+      "p5_final": 16944562.239494454,
+      "p50_final": 18502839.496355657,
+      "p95_final": 20206615.98538927
+    }
+  },
+  "recommendation": {
+    "avg_half_kelly_pct": 18.5,
+    "min_half_kelly_pct": 16.25,
+    "max_half_kelly_pct": 20.75,
+    "cagr_delta_vs_fixed": 27.38,
+    "mdd_delta_vs_fixed": 0.27,
+    "verdict": "Half-Kelly 검토 권고 — CAGR 개선, MDD 증가 모니터링 필요"
+  }
+}
