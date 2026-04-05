@@ -7,6 +7,8 @@ crypto-trader 상태 대시보드 (Rich 버전)
   python scripts/status.py --watch  # 30초마다 자동 갱신
 """
 import json
+import re
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -20,6 +22,16 @@ from rich.text import Text
 from rich import box
 
 console = Console()
+
+# ── 모니터링 대상 프로세스 ────────────────────────────────────────────────────
+
+PROCESSES = [
+    {"name": "daemon",        "pattern": "run-multi.*daemon.toml",     "state": None},
+    {"name": "ralph",         "pattern": "crypto_ralph.sh",            "state": "ralph-loop.state.json"},
+    {"name": "research_loop", "pattern": "strategy_research_loop.py",  "state": "state/strategy_research.state.json"},
+    {"name": "evaluator",     "pattern": "strategy_evaluator_loop.py", "state": None},
+    {"name": "market_scan",   "pattern": "market_scan_loop.py",        "state": "state/market_scan.state.json"},
+]
 
 
 # ── 유틸 ──────────────────────────────────────────────────────────────────────
@@ -73,6 +85,48 @@ def pct_text(val: float) -> Text:
 def alpha_text(val: float) -> Text:
     color = "bold green" if val >= 1.5 else ("yellow" if val >= 1.0 else "dim")
     return Text(f"{val:+.3f}", style=color)
+
+
+def find_procs(pattern: str) -> list[dict]:
+    """pgrep -af 패턴으로 PID 조회. 여러 개면 중복 감지."""
+    try:
+        r = subprocess.run(
+            ["pgrep", "-af", pattern],
+            capture_output=True, text=True, timeout=5,
+        )
+        if r.returncode != 0:
+            return []
+        results = []
+        for line in r.stdout.strip().splitlines():
+            parts = line.split(None, 1)
+            if parts:
+                results.append({"pid": int(parts[0])})
+        return results
+    except Exception:
+        return []
+
+
+def proc_uptime(pid: int) -> tuple[str, str]:
+    """PID의 elapsed time + CPU%를 ps로 조회."""
+    try:
+        r = subprocess.run(
+            ["ps", "-o", "etimes=,pcpu=", "-p", str(pid)],
+            capture_output=True, text=True, timeout=5,
+        )
+        if r.returncode != 0:
+            return "?", "?"
+        parts = r.stdout.strip().split()
+        if len(parts) >= 2:
+            secs = int(parts[0])
+            cpu = parts[1]
+            if secs < 60:      elapsed = f"{secs}초"
+            elif secs < 3600:  elapsed = f"{secs // 60}분"
+            elif secs < 86400: elapsed = f"{secs // 3600}시간"
+            else:              elapsed = f"{secs // 86400}일"
+            return elapsed, f"{cpu}%"
+        return "?", "?"
+    except Exception:
+        return "?", "?"
 
 
 # ── 섹션별 렌더러 ──────────────────────────────────────────────────────────────
@@ -280,7 +334,8 @@ def render_prebull() -> Panel:
     sw = load_json("artifacts/stealth-watchlist.json")
     wl_coins = sw.get("stealth_coins", [])
     if wl_coins:
-        t.add_row(Text("Watchlist", style="dim"), Text(", ".join(wl_coins[:6]), style="cyan"), Text(""), Text(""))
+        names = [c if isinstance(c, str) else c.get("symbol", "?") for c in wl_coins[:6]]
+        t.add_row(Text("Watchlist", style="dim"), Text(", ".join(names), style="cyan"), Text(""), Text(""))
 
     title = f"[bold cyan]🧭 Pre-Bull Signal[/]  [dim]Cycle {cycle} | {ago}[/]"
     return Panel(t, title=title, border_style="yellow", padding=(0, 1))
@@ -321,6 +376,178 @@ def render_calibration() -> Panel:
     return Panel(content, title="[bold cyan]🧬 Alpha Calibration[/]", border_style="magenta", padding=(0, 1))
 
 
+def render_systems() -> Panel:
+    tbl = Table(box=box.SIMPLE_HEAD, show_edge=False, padding=(0, 1))
+    tbl.add_column("프로세스", style="cyan", no_wrap=True, min_width=16)
+    tbl.add_column("PID", justify="right", style="dim", min_width=8)
+    tbl.add_column("Uptime", justify="right", min_width=6)
+    tbl.add_column("CPU", justify="right", min_width=5)
+    tbl.add_column("상태", min_width=6)
+    tbl.add_column("상세", style="dim", min_width=20)
+
+    for proc in PROCESSES:
+        matches = find_procs(proc["pattern"])
+        if not matches:
+            tbl.add_row(
+                proc["name"], "-", "-", "-",
+                Text("🔴 중단", style="bold red"), "",
+            )
+            continue
+
+        if len(matches) > 1:
+            pids = ",".join(str(m["pid"]) for m in matches)
+            tbl.add_row(
+                proc["name"], pids, "-", "-",
+                Text("⚠️  중복", style="bold yellow"),
+                f"{len(matches)}개 실행 중",
+            )
+            continue
+
+        pid = matches[0]["pid"]
+        elapsed, cpu = proc_uptime(pid)
+
+        # state 파일에서 추가 정보
+        detail = ""
+        if proc["state"]:
+            st = load_json(proc["state"])
+            cycle = st.get("cycle", st.get("current_cycle"))
+            if cycle is not None:
+                detail += f"cycle:{cycle}"
+            last = st.get("last_run") or st.get("last_change_ts")
+            if last:
+                detail += f"  {time_ago(last)}"
+
+        # ralph hang 감지: 로그에서 "Claude 실행 중" + 30분 경과
+        status_icon = Text("🟢", style="bold green")
+        if proc["name"] == "ralph":
+            ralph_lines = last_lines("logs/crypto_ralph.log", 3)
+            if ralph_lines and "Claude 실행 중" in ralph_lines[-1]:
+                m = re.search(
+                    r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]',
+                    ralph_lines[-1],
+                )
+                if m:
+                    log_ts = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+                    mins = (datetime.now() - log_ts).total_seconds() / 60
+                    if mins > 30:
+                        status_icon = Text("🔴 hang", style="bold red")
+                        detail = f"{int(mins)}분 무응답"
+                    else:
+                        status_icon = Text("🟡 실행중", style="yellow")
+                        detail = f"Claude {int(mins)}분째"
+
+        # evaluator 대기 상태 감지
+        if proc["name"] == "evaluator":
+            ev_lines = last_lines("logs/strategy_evaluator.log", 3)
+            if ev_lines and "준비 미달" in ev_lines[-1]:
+                em = re.search(r'cycles=(\d+)/(\d+)', ev_lines[-1])
+                if em:
+                    status_icon = Text("🟡 대기", style="yellow")
+                    detail = f"cycles:{em.group(1)}/{em.group(2)}"
+
+        tbl.add_row(proc["name"], str(pid), elapsed, cpu, status_icon, detail)
+
+    return Panel(
+        tbl,
+        title="[bold cyan]🖥  시스템 프로세스[/]",
+        border_style="green",
+        padding=(0, 1),
+    )
+
+
+def render_regime() -> Panel:
+    t = Table.grid(padding=(0, 2))
+    t.add_column()
+    t.add_column()
+    t.add_column()
+    t.add_column()
+
+    # daemon 로그에서 마지막 regime 라인 파싱
+    regime = "?"
+    confidence = "?"
+    macro = "?"
+    daemon_lines = last_lines("logs/daemon.log", 50)
+    for line in reversed(daemon_lines):
+        m = re.search(r'market_regime=(\w+)', line)
+        if m:
+            regime = m.group(1)
+            c = re.search(r'confidence=(\d+%)', line)
+            if c:
+                confidence = c.group(1)
+            mr = re.search(r'Macro regime=(\w+)', line)
+            if mr:
+                macro = mr.group(1)
+            break
+
+    regime_color = {
+        "bull": "bold green", "sideways": "yellow", "bear": "bold red",
+    }.get(regime, "dim")
+
+    # market_scan에서 pre_bull_score
+    ms = load_json("state/market_scan.state.json")
+    pre_bull = ms.get("pre_bull_score", ms.get("pre_bull_score_adj"))
+    btc_regime = ms.get("btc_regime", "?")
+
+    t.add_row(
+        Text("Market Regime", style="dim"),
+        Text(regime.upper(), style=regime_color),
+        Text(f"confidence: {confidence}", style="dim"),
+        Text(f"macro: {macro}", style="dim"),
+    )
+
+    if pre_bull is not None:
+        pb_color = (
+            "bold green" if pre_bull >= 0.8
+            else ("yellow" if pre_bull >= 0.5 else "bold red")
+        )
+        t.add_row(
+            Text("Pre-Bull", style="dim"),
+            Text(f"{pre_bull:+.3f}", style=pb_color),
+            Text(f"BTC: {btc_regime}", style="dim"),
+            Text(""),
+        )
+
+    # daemon.toml에서 지갑별 active_regimes 게이트 상태
+    blocked = 0
+    active: list[str] = []
+    try:
+        import tomllib
+        with open("config/daemon.toml", "rb") as f_toml:
+            cfg = tomllib.load(f_toml)
+        for w in cfg.get("wallets", []):
+            name = w.get("name", "?")
+            so = w.get("strategy_overrides", {})
+            ar = so.get("active_regimes", ["bull"])
+            if regime in ar or regime == "?":
+                active.append(name.replace("_wallet", ""))
+            else:
+                blocked += 1
+    except Exception:
+        pass
+
+    total = blocked + len(active)
+    if total > 0:
+        active_names = ", ".join(active[:4])
+        if len(active) > 4:
+            active_names += f" +{len(active) - 4}"
+        t.add_row(
+            Text("Gate", style="dim"),
+            Text(
+                f"차단 {blocked}/{total}",
+                style="bold red" if blocked > 0 else "green",
+            ),
+            Text(f"활성: {active_names}", style="dim green"),
+            Text(""),
+        )
+
+    return Panel(
+        t,
+        title="[bold cyan]🌡  Market Regime[/]",
+        border_style="yellow",
+        padding=(0, 1),
+    )
+
+
 def render_logs() -> Panel:
     lab_lines    = last_lines("logs/market_scan.log", 4)
     daemon_lines = last_lines("artifacts/daemon.log", 4)
@@ -356,6 +583,11 @@ def draw() -> None:
     console.print()
     console.rule(f"[bold cyan]CRYPTO TRADER  LIVE STATUS[/]  [dim]{now_kst}[/]")
     console.print()
+
+    # 시스템 상태 (최상단)
+    console.print(Columns(
+        [render_systems(), render_regime()], equal=True, expand=True,
+    ))
 
     console.print(render_portfolio())
     console.print(render_wallets())
