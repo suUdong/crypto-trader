@@ -1,377 +1,397 @@
 {
-    "_comment": "Walk-Forward OOS \uc708\ub3c4\uc6b0 \uc0ac\uc6a9 \uc774\ub825. \ub3d9\uc77c \uc708\ub3c4\uc6b0 \ubc18\ubcf5 \uc0ac\uc6a9 \ubc29\uc9c0\uc6a9. \uc0c8 WF \uac80\uc99d \uc2dc \uc5ec\uae30 \uae30\ub85d.",
-    "used_windows": [
+  "_comment": "Walk-Forward OOS 윈도우 사용 이력. 동일 윈도우 반복 사용 방지용. 새 WF 검증 시 여기 기록.",
+  "used_windows": [
+    {
+      "cycle": 147,
+      "strategy": "momentum_sol",
+      "symbol": "KRW-SOL",
+      "windows": [
         {
-            "cycle": 147,
-            "strategy": "momentum_sol",
-            "symbol": "KRW-SOL",
-            "windows": [
-                {
-                    "name": "W1",
-                    "oos": "2024-01-01~2024-12-31"
-                },
-                {
-                    "name": "W2",
-                    "oos": "2025-01-01~2025-12-31"
-                },
-                {
-                    "name": "W3",
-                    "oos": "2026-01-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
+          "name": "W1",
+          "oos": "2024-01-01~2024-12-31"
         },
         {
-            "cycle": 151,
-            "strategy": "vpin_eth",
-            "symbol": "KRW-ETH",
-            "windows": [
-                {
-                    "name": "W1",
-                    "oos": "2024-07-01~2025-06-30"
-                },
-                {
-                    "name": "W2",
-                    "oos": "2025-07-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
+          "name": "W2",
+          "oos": "2025-01-01~2025-12-31"
         },
         {
-            "cycle": 153,
-            "strategy": "momentum_sol",
-            "symbol": "KRW-SOL",
-            "windows": [
-                {
-                    "name": "W1",
-                    "oos": "2024-04-01~2025-03-31"
-                },
-                {
-                    "name": "W2",
-                    "oos": "2025-04-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 162,
-            "strategy": "momentum_sol",
-            "symbol": "KRW-SOL",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-04-01~2025-03-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2025-07-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 164,
-            "strategy": "momentum_sol",
-            "symbol": "KRW-SOL",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-07-01~2025-06-30"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2025-10-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": "162(c162)",
-            "strategy": "vpin_eth",
-            "symbol": "KRW-ETH",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-01-01~2024-12-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2025-01-01~2025-12-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2026-01-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 164,
-            "strategy": "regime_switch_bear_defense",
-            "symbol": "ETH/SOL/XRP/AVAX basket",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-01-01~2024-12-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2025-01-01~2025-12-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2026-01-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 165,
-            "strategy": "vpin_eth_trailing_regime_hold",
-            "symbol": "KRW-ETH",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-01-01~2024-09-30"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2025-01-01~2025-09-30"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-10-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 174,
-            "strategy": "vpin_multi_regime_trail",
-            "symbol": "ETH/SOL/XRP basket",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-04-01~2025-01-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-10-01~2025-07-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-04-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 171,
-            "strategy": "vpin_symbol_expansion",
-            "symbol": "DOGE/AVAX/ADA/SUI/LINK screening",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-04-01~2025-01-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-10-01~2025-07-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-04-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 182,
-            "strategy": "bb_squeeze_independent",
-            "symbol": "ETH/SOL/XRP/DOGE/AVAX basket",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-06-01~2025-03-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-12-01~2025-09-30"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-06-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 189,
-            "strategy": "rsi_mr_bear",
-            "symbol": "ETH/BTC",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-06-01~2025-03-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-12-01~2025-09-30"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-06-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 192,
-            "strategy": "vpin_multi_vol_mom_gate_5fold",
-            "symbol": "ETH/SOL/XRP basket",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2023-07-01~2024-01-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-02-01~2024-08-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2024-09-01~2025-03-31"
-                },
-                {
-                    "name": "F4",
-                    "oos": "2025-04-01~2025-10-31"
-                },
-                {
-                    "name": "F5",
-                    "oos": "2025-11-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 195,
-            "strategy": "vpin_multi_keltner_breakout",
-            "symbol": "ETH/SOL/XRP",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-04-01~2025-01-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-10-01~2025-07-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-04-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 196,
-            "strategy": "vpin_multi_mom_accel_vol_imbalance",
-            "symbol": "ETH/SOL/XRP",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-04-01~2025-01-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-10-01~2025-07-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-04-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 197,
-            "strategy": "vpin_eth_60m_minimal",
-            "symbol": "KRW-ETH",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-04-01~2025-01-31"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-10-01~2025-07-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-04-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 198,
-            "strategy": "vpin_eth_mtf_1h_confirm",
-            "symbol": "KRW-ETH",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-03-01~2024-11-30"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-12-01~2025-08-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-06-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 199,
-            "strategy": "volspike_btc_validation",
-            "symbol": "KRW-BTC",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-03-01~2024-11-30"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-12-01~2025-08-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-06-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
-        },
-        {
-            "cycle": 200,
-            "strategy": "funding_rate_contrarian",
-            "symbol": "KRW-ETH/KRW-SOL",
-            "windows": [
-                {
-                    "name": "F1",
-                    "oos": "2024-03-01~2024-11-30"
-                },
-                {
-                    "name": "F2",
-                    "oos": "2024-12-01~2025-08-31"
-                },
-                {
-                    "name": "F3",
-                    "oos": "2025-06-01~2026-04-05"
-                }
-            ],
-            "date": "2026-04-05"
+          "name": "W3",
+          "oos": "2026-01-01~2026-04-05"
         }
-    ]
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 151,
+      "strategy": "vpin_eth",
+      "symbol": "KRW-ETH",
+      "windows": [
+        {
+          "name": "W1",
+          "oos": "2024-07-01~2025-06-30"
+        },
+        {
+          "name": "W2",
+          "oos": "2025-07-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 153,
+      "strategy": "momentum_sol",
+      "symbol": "KRW-SOL",
+      "windows": [
+        {
+          "name": "W1",
+          "oos": "2024-04-01~2025-03-31"
+        },
+        {
+          "name": "W2",
+          "oos": "2025-04-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 162,
+      "strategy": "momentum_sol",
+      "symbol": "KRW-SOL",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-04-01~2025-03-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-07-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 164,
+      "strategy": "momentum_sol",
+      "symbol": "KRW-SOL",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-07-01~2025-06-30"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-10-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": "162(c162)",
+      "strategy": "vpin_eth",
+      "symbol": "KRW-ETH",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-01-01~2024-12-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-01-01~2025-12-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2026-01-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 164,
+      "strategy": "regime_switch_bear_defense",
+      "symbol": "ETH/SOL/XRP/AVAX basket",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-01-01~2024-12-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-01-01~2025-12-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2026-01-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 165,
+      "strategy": "vpin_eth_trailing_regime_hold",
+      "symbol": "KRW-ETH",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-01-01~2024-09-30"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-01-01~2025-09-30"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-10-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 174,
+      "strategy": "vpin_multi_regime_trail",
+      "symbol": "ETH/SOL/XRP basket",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-04-01~2025-01-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-10-01~2025-07-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-04-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 171,
+      "strategy": "vpin_symbol_expansion",
+      "symbol": "DOGE/AVAX/ADA/SUI/LINK screening",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-04-01~2025-01-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-10-01~2025-07-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-04-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 182,
+      "strategy": "bb_squeeze_independent",
+      "symbol": "ETH/SOL/XRP/DOGE/AVAX basket",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-06-01~2025-03-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-12-01~2025-09-30"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-06-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 189,
+      "strategy": "rsi_mr_bear",
+      "symbol": "ETH/BTC",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-06-01~2025-03-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-12-01~2025-09-30"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-06-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 192,
+      "strategy": "vpin_multi_vol_mom_gate_5fold",
+      "symbol": "ETH/SOL/XRP basket",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2023-07-01~2024-01-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-02-01~2024-08-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2024-09-01~2025-03-31"
+        },
+        {
+          "name": "F4",
+          "oos": "2025-04-01~2025-10-31"
+        },
+        {
+          "name": "F5",
+          "oos": "2025-11-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 195,
+      "strategy": "vpin_multi_keltner_breakout",
+      "symbol": "ETH/SOL/XRP",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-04-01~2025-01-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-10-01~2025-07-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-04-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 196,
+      "strategy": "vpin_multi_mom_accel_vol_imbalance",
+      "symbol": "ETH/SOL/XRP",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-04-01~2025-01-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-10-01~2025-07-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-04-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 197,
+      "strategy": "vpin_eth_60m_minimal",
+      "symbol": "KRW-ETH",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-04-01~2025-01-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-10-01~2025-07-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-04-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 198,
+      "strategy": "vpin_eth_mtf_1h_confirm",
+      "symbol": "KRW-ETH",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-03-01~2024-11-30"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-12-01~2025-08-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-06-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 199,
+      "strategy": "volspike_btc_validation",
+      "symbol": "KRW-BTC",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-03-01~2024-11-30"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-12-01~2025-08-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-06-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 200,
+      "strategy": "funding_rate_contrarian",
+      "symbol": "KRW-ETH/KRW-SOL",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-03-01~2024-11-30"
+        },
+        {
+          "name": "F2",
+          "oos": "2024-12-01~2025-08-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-06-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
+    },
+    {
+      "cycle": 205,
+      "strategy": "donchian_breakout",
+      "symbol": "ETH/SOL/XRP",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-05-01~2025-02-28"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-03-01~2025-11-30"
+        },
+        {
+          "name": "F3",
+          "oos": "2025-12-01~2026-03-31"
+        }
+      ],
+      "date": "2026-04-05"
+    }
+  ]
 }
