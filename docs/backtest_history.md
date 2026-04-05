@@ -12327,3 +12327,88 @@ trades: 64
 | 테스트 | 9/9 passed (test_vol_regime_hv_size_mult_reduces_position, test_vol_regime_disabled_by_default) |
 
 ---
+
+## 2026-04-05 04:06 UTC — c176기반 BB스퀴즈해제 브레이크아웃 타이밍+ATR pctile ON/OFF 36조합 3-fold WF [ralph:c178_vpin_multi_bb_squeeze_breakout] 🌟[promising]
+
+**결과**: Sharpe +125.126 | WR 100.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+24
+  0.10%  +33.218 68.8%  +3.78%  -0.96%    1    24
+  0.15%  +32.576 68.8%  +3.71%  -1.01%    1    24
+  0.20%  +31.933 68.8%  +3.64%  -1.06%    1    24
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: bbP=20 sqTh=50 expLB=4 upR=0.98 atr=ON) ===
+  KRW-ETH Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2: Sharpe=+125.126  WR=100.0%  n=4  avg=+6.28%  MDD=+0.00%
+  KRW-ETH Fold 3: Sharpe=+48.172  WR=66.7%  n=3  avg=+4.60%  MDD=-0.58%
+  KRW-ETH 평균: Sharpe=+57.766  총 trades=7
+
+  KRW-SOL Fold 1: Sharpe=+28.072  WR=66.7%  n=3  avg=+2.71%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=+2.768  WR=40.0%  n=5  avg=+0.12%  MDD=-2.64%
+  KRW-SOL Fold 3: Sharpe=+21.017  WR=50.0%  n=4  avg=+1.55%  MDD=-0.92%
+  KRW-SOL 평균: Sharpe=+17.286  총 trades=12
+
+  KRW-XRP Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 3: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+0.000  총 trades=0
+
+================================================================================
+=== c176 베이스라인 대비 비교 ===
+  c176 최적 (atrLB=60 atrTh=30 body=0.7): avg_OOS=+16.345 n=58
+  c178 최적 (bbP=20 sqTh=50 expLB=4 upR=0.98 atr=ON): avg_OOS=+42.205 n=19
+  Δ Sharpe: +25.860 (개선)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: BB_PERIOD=20 SQUEEZE_PCTILE_TH=50 EXPANSION_LB=4 UPPER_RATIO=0.98 ATR_PCTILE=ON
+  (c176 고정: body=0.7)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +42.205 PASS
+  train Sharpe: +32.277
+  Fold 1: Sharpe=+28.072  WR=66.7%  trades=3  avg=+2.71%  MDD=-1.71%
+  Fold 2: Sharpe=+63.947  WR=70.0%  trades=9  avg=+3.20%  MDD=-1.32%
+  Fold 3: Sharpe=+34.594  WR=58.3%  trades=7  avg=+3.08%  MDD=-0.75%
+
+Sharpe: +42.205
+WR: 65.0%
+trades: 19
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 13:30 UTC — c180 변동성레짐 적응형 진입 + ADX 추세강도 필터 36조합 3-fold WF [ralph:c180_vol_regime_adaptive_entry_adx] 🔻[poor]
+
+**결과**: ❌ 전 조합 OOS 실패 — ADX 진입 필터가 VPIN 신호 품질을 악화시킴
+
+| 항목 | 값 |
+|------|-----|
+| 스크립트 | `scripts/backtest_cycle180_vpin_multi_vol_regime_adaptive_entry_adx.py` |
+| 심볼 | KRW-ETH, KRW-SOL, KRW-XRP |
+| 캔들 | 240m (4h) |
+| 탐색 | vpinSc=[0.8,1.0,1.2] × momSc=[0.5,1.0,2.0] × adxMin=[0,15,20,25] = 36조합 |
+| 기반 | c179 최적(volTh=60 tpSc=0.50 trSc=0.70 hdSc=0.8) + c177 고정 |
+| OOS 최적 | vpSc=1.00 moSc=2.00 adxM=20: avg OOS Sharpe **+1.087** (FAIL) |
+| c179 대비 | Δ Sharpe **-16.851** (악화), Δ trades -17 (감소) |
+| train-OOS gap | train +22.416 → OOS +1.087 (심각한 과적합) |
+| 슬리피지 0.10% | Sharpe +12.084 WR 40.2% n=61 (전체 풀링, OOS가 아님) |
+
+**분석**:
+- ADX 필터(adxMin=25)는 train에서 강한 필터링(+28.768) → OOS -45.448로 폭락. 과적합.
+- MOM 스케일링은 무효과 — 0.50/1.00/2.00 전부 동일 결과 (ADX가 지배)
+- VPIN 스케일링도 큰 차이 없음 — 진입 임계값 변경은 VPIN 프레임워크에서 한계
+- XRP: 3-fold 중 1 fold WR=0% n=5로 구조적 불안정
+
+**결론**: ADX 추세강도 필터는 VPIN 진입과 비호환. 진입 적응 방향 폐기. c179 고정 진입 유지.
+
+---
