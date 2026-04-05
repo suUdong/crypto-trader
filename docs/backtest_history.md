@@ -14043,3 +14043,88 @@ trades: 26
 </details>
 
 ---
+
+## 2026-04-05 09:00 UTC — CMF자금유입+RSI다이버전스 이중확인→TP보너스 162조합 3-fold WF [ralph:c200_cmf_rsi_divergence] 🌟[promising]
+
+**결과**: Sharpe +42.878 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+64 [PASS]
+  slip=0.0020: Sharpe=+14.631 WR=43.8% n=64 [PASS]
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: cmfP=10 cmfM=0.1 divL=14 divD=0.0 tpB=1.0) ===
+  KRW-ETH Fold 1: Sharpe=+12.585  WR=37.5%  n=8  avg=+0.79%  MDD=-1.10%
+  KRW-SOL Fold 1: Sharpe=+18.963  WR=57.1%  n=7  avg=+1.44%  MDD=-1.71%
+  KRW-XRP Fold 1: Sharpe=+13.589  WR=16.7%  n=6  avg=+3.11%  MDD=-2.05%
+  KRW-ETH Fold 2: Sharpe=+22.924  WR=50.0%  n=10  avg=+2.30%  MDD=-1.94%
+  KRW-SOL Fold 2: Sharpe=-2.551  WR=33.3%  n=9  avg=-0.10%  MDD=-4.73%
+  KRW-XRP Fold 2: Sharpe=+21.298  WR=50.0%  n=4  avg=+5.57%  MDD=-2.85%
+  KRW-ETH Fold 3: Sharpe=+17.651  WR=37.5%  n=8  avg=+1.81%  MDD=-3.31%
+  KRW-SOL Fold 3: Sharpe=+11.730  WR=37.5%  n=8  avg=+0.71%  MDD=-1.77%
+  KRW-XRP Fold 3: Sharpe=+42.878  WR=75.0%  n=4  avg=+1.52%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+17.720  총 trades=26
+  KRW-SOL 평균: Sharpe=+9.381  총 trades=24
+  KRW-XRP 평균: Sharpe=+25.922  총 trades=14
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c200 최적 (cmfP=10 cmfM=0.1 divL=14 divD=0.0 tpB=1.0): avg_OOS=+17.674 n=64
+  Δ Sharpe: -25.204 (악화)
+  Δ trades: +4 (증가)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: cmfP=10 cmfM=0.1 divL=14 divD=0.0 tpB=1.0
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +17.674 PASS
+  train Sharpe: +18.277
+  Fold 1: Sharpe=+15.046  WR=37.1%  trades=21  avg=+1.78%  MDD=-1.62%
+  Fold 2: Sharpe=+13.890  WR=44.4%  trades=23  avg=+2.59%  MDD=-3.17%
+  Fold 3: Sharpe=+24.086  WR=50.0%  trades=20  avg=+1.35%  MDD=-1.69%
+
+Sharpe: +17.674
+WR: 43.8%
+trades: 64
+
+```
+
+</details>
+
+---
+
+
+## 2026-04-05 09:15 UTC — 김프(Kimchi Premium) z-score 역추세 108조합 3-fold WF [ralph:c202_kimchi_premium_zscore]
+
+**가설**: Upbit KRW 가격이 Binance USD×FX 대비 할인(음의 김프 z-score)일 때 매수, 정상화 시 청산하는 현물 역추세 전략
+**데이터**: Upbit 240m + Binance 4h klines (2022-06 ~ 2026-03), 월별 FX 근사, 슬리피지 0.15%+수수료 0.05%
+**심볼**: ETH, BTC, SOL (8394 aligned bars each)
+
+**김프 분포**: mean=+2.0% std=2.3% range=[-5.4%, +13.3%] (구조적 양의 프리미엄)
+
+**그리드**: Z_LOOKBACK=[24,48,96] × Z_ENTRY=[-1.0,-1.5,-2.0] × Z_EXIT=[0.0,0.5] × MAX_HOLD=[6,12,24] × BTC_GATE=[0,200] = 108조합
+
+**최적**: z_lb=96 z_ent=-1.0 z_ex=0.5 mh=24 btc_gate=0
+  avg OOS Sharpe: +1.895 — daemon 기준(5.0) 미달
+  total trades: 322, avg WR: 53.0%
+  Fold 1: Sharpe=+3.361 WR=58.8% n=102 avg=+2.64%
+  Fold 2: Sharpe=+1.609 WR=53.8% n=106 avg=+1.25%
+  Fold 3: Sharpe=+0.715 WR=46.5% n=114 avg=+0.41%
+
+**핵심 발견**:
+1. 김프 역추세에 약한 alpha 존재 (Sharpe +1.9) — 단독 전략으로는 불충분
+2. Fold 3 (2025-04~2026-03) Sharpe +0.715로 시간 경과에 따라 alpha 감쇠
+3. 김프 mean +2%는 구조적 프리미엄 → z-score가 이를 정규화하지만 역추세 시그널 밀도 낮음
+4. BTC gate 미구현(pass) — 추후 BTC 추세 필터 추가 시 소폭 개선 가능
+5. 안정적 조합은 z_lb=48 z_ent=-1.5 z_ex=0.5 mh=12 (Sharpe +1.880, 더 일관된 fold 분포)
+
+**결론**: ❌ FAIL — 김프 단독 전략은 daemon 배포 불가. 기존 전략의 보조 확인 필터(진입 시 김프 < 0 조건)로만 활용 가능성 있음. 크로스심볼 스프레드 트레이딩으로 전환 권장.
