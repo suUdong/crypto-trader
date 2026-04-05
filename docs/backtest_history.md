@@ -3,6 +3,32 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c193 RSI MR BEAR 멀티심볼 확장 검증 [ralph:c193_rsi_mr_bear_multi_symbol] 🔻[FAIL]
+
+**작업**: c187/c189 검증 완료된 RSI MR BEAR 최적 파라미터를 SOL/XRP/DOGE/AVAX에 확장 적용 테스트
+
+**결과**: ❌ **전 심볼 FAIL** — RSI MR BEAR 엣지는 ETH/BTC 특화, 알트코인 확장 불가
+
+**스크립트**: `scripts/backtest_cycle193_rsi_mr_bear_multi_symbol.py`
+**기간**: 2022-05 ~ 2026-03 | **캔들**: 240m | 3-fold expanding WF
+**그리드**: rsiE=[22,25,28] × rsiX=[45,50,55] × sl=[1.5,2.0,2.5]% = 27조합 (mh=24 고정)
+🔄다음봉시가진입 | ★슬리피지포함
+
+### 심볼별 최적 결과
+
+| 심볼 | rsiE | rsiX | sl% | avg Sharpe | n | status |
+|---|---|---|---|---|---|---|
+| KRW-SOL | 25 | 45 | 1.5 | +0.931 | 30 | FAIL |
+| KRW-XRP | 28 | 45 | 2.5 | +0.472 | 42 | FAIL |
+| KRW-DOGE | 28 | 50 | 1.5 | +0.554 | 55 | FAIL |
+| KRW-AVAX | 22 | 50 | 1.5 | +1.218 | 19 | FAIL (n<30) |
+
+**분석**: SL 피격률 극심(SOL 77%, DOGE 82%) — 알트코인 BEAR 변동성 >> ETH/BTC. 전 심볼 Sharpe < 2.0.
+
+**결론**: RSI MR BEAR는 **ETH/BTC 전용** 확정. 약체 슬롯 교체는 BB squeeze 등 다른 방향 탐색 필요.
+
+---
+
 ## 2026-04-05 — c189 RSI MR BEAR 인접 파라미터 로버스트니스 + daemon 배포 [ralph:c189_rsi_mr_bear_robust] ✅[ROBUST+DEPLOY]
 
 **작업**: c187 최적(rsiE=25, rsiX=50, sl=2%, mh=24) 인접 225조합 로버스트니스 검증
@@ -13507,6 +13533,63 @@ trades: 33
 Sharpe: +22.980
 WR: 72.2%
 trades: 20
+```
+
+</details>
+
+---
+
+## 2026-04-05 06:40 UTC — 기존지표 연속형 Q-score로 TP/Hold/SL 그라데이션 스케일링 (c191 이진분류 개선) [ralph:c192_entry_quality_score_adaptive] 🌟[promising]
+
+**결과**: Sharpe +43.928 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+WR=43.8% n=64 [PASS]
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: wV=0.5 wR=0.2 wM=0.2 wVol=0.2 tpSR=1.5 hdSM=3 slTM=0.1) ===
+  KRW-ETH Fold 1: Sharpe=+13.671  WR=50.0%  n=8  avg=+0.79%  MDD=-1.04%
+  KRW-SOL Fold 1: Sharpe=+20.238  WR=57.1%  n=7  avg=+1.52%  MDD=-1.60%
+  KRW-XRP Fold 1: Sharpe=+13.282  WR=16.7%  n=6  avg=+2.66%  MDD=-1.92%
+  KRW-ETH Fold 2: Sharpe=+23.425  WR=60.0%  n=10  avg=+2.34%  MDD=-1.82%
+  KRW-SOL Fold 2: Sharpe=-0.561  WR=33.3%  n=9  avg=-0.02%  MDD=-4.45%
+  KRW-XRP Fold 2: Sharpe=+21.369  WR=50.0%  n=4  avg=+4.88%  MDD=-2.67%
+  KRW-ETH Fold 3: Sharpe=+18.002  WR=37.5%  n=8  avg=+1.90%  MDD=-3.11%
+  KRW-SOL Fold 3: Sharpe=+12.388  WR=37.5%  n=8  avg=+0.74%  MDD=-1.66%
+  KRW-XRP Fold 3: Sharpe=+43.928  WR=75.0%  n=4  avg=+1.53%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+18.366  총 trades=26
+  KRW-SOL 평균: Sharpe=+10.688  총 trades=24
+  KRW-XRP 평균: Sharpe=+26.193  총 trades=14
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c192 최적 (wV=0.5 wR=0.2 wM=0.2 wVol=0.2 tpSR=1.5 hdSM=3 slTM=0.1): avg_OOS=+18.416 n=64
+  Δ Sharpe: -24.462 (악화)
+  Δ trades: +4 (증가)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: wV=0.5 wR=0.2 wM=0.2 wVol=0.2 tpSR=1.5 hdSM=3 slTM=0.1
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +18.416 PASS
+  train Sharpe: +18.805
+  Fold 1: Sharpe=+15.730  WR=41.3%  trades=21  avg=+1.66%  MDD=-1.52%
+  Fold 2: Sharpe=+14.744  WR=47.8%  trades=23  avg=+2.40%  MDD=-2.98%
+  Fold 3: Sharpe=+24.773  WR=50.0%  trades=20  avg=+1.39%  MDD=-1.59%
+
+Sharpe: +18.416
+WR: 46.3%
+trades: 64
+
 ```
 
 </details>
