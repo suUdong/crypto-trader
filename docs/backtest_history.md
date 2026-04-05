@@ -10660,3 +10660,212 @@ IS Top: ETH rsi_os=35 rsi_ex=65 adx=20 rsiP=7 btcG=Y → Sharpe +12.209 n=23
 </details>
 
 ---
+
+## 2026-04-05 00:50 UTC — BTC SMA 레짐게이트 + 모멘텀 적응형 트레일링 결합 (c155+c157 merge, 볼륨필터 제외로 거래수 보존) [ralph:c162_vpin_eth_btc_gate_adaptive_trail] 🌟[promising]
+
+**결과**: Sharpe +14.324 | WR 32.3% | trades 48
+
+
+<details><summary>raw output</summary>
+
+```
+WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +11.275 30.9%  +1.10% -15.78%   12   110
+  0.10%  +10.300 27.7%  +1.00% -17.38%   14   112
+  0.15%   +8.913 26.5%  +0.85% -18.98%   14   113
+  0.20%   +7.918 24.8%  +0.75% -20.58%   14   113
+
+--- #2: vl=0.3 vm=0.0007 hold=24 BTC=200 bTr=0.015 mSc=0.015 minP=0.02 SL=0.006 cool=6 (avg OOS: +7.011) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +11.247 30.9%  +1.10% -15.78%   12   110
+  0.10%  +10.278 27.7%  +0.99% -17.38%   14   112
+  0.15%   +8.896 26.5%  +0.84% -18.98%   14   113
+  0.20%   +7.841 24.8%  +0.74% -21.23%   14   113
+
+--- #3: vl=0.3 vm=0.0007 hold=18 BTC=200 bTr=0.015 mSc=0.015 minP=0.015 SL=0.004 cool=6 (avg OOS: +3.943) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +11.481 29.4%  +0.83% -10.50%   12   119
+  0.10%  +10.429 28.1%  +0.75% -12.10%   14   121
+  0.15%   +8.870 26.8%  +0.62% -13.70%   14   123
+  0.20%   +7.289 24.2%  +0.51% -16.88%   14   124
+
+================================================================================
+=== c157 기준선 (BTC gate 없음) vs c162 (BTC gate + adaptive trail) OOS 비교 ===
+  [c157 기준] Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  [c157 기준] Fold 2: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  [c162 최적] Fold 1: Sharpe=+8.919  WR=32.3%  n=31  avg=+1.01%  MDD=-9.04%
+  [c162 최적] Fold 2: Sharpe=+5.103  WR=17.6%  n=17  avg=+0.28%  MDD=-6.58%
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: vl=0.3 vm=0.0007 hold=24 BTC_SMA=200 bTr=0.015 mSc=0.015 minP=0.015 SL=0.006 cool=6
+  avg OOS Sharpe: +7.011 PASS >=5.0
+  train Sharpe: +14.324
+  Fold 1: Sharpe=+8.919  WR=32.3%  trades=31  avg=+1.01%  MDD=-9.04%
+  Fold 2: Sharpe=+5.103  WR=17.6%  trades=17  avg=+0.28%  MDD=-6.58%
+
+Sharpe: +7.011
+WR: 25.0%
+trades: 48
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 00:53 UTC — EMA게이트(200/150/100)+ADX_grad_lowvol완화(6→3→0)+SOL강모멘텀오버라이드로 2026거래확보+Sharpe유지 탐색 [ralph:cycle165_momentum_sol_ema_gate_adx_relax] 🌟[promising]
+
+**결과**: Sharpe +49.323 | WR 92.3% | trades 85
+
+
+<details><summary>raw output</summary>
+
+```
+ades=83  ovrN=0
+  #10 gate=ema200 gLv=0 ovr=False  Sharpe=+14.263  WR=65.9%  MDD=-14.95%✅  consec=4❌  trades=85  ovrN=0
+
+=== Phase 3b: 안전 조합 (MDD<15% AND consec≤3) — 4개 ===
+  #1 gate=sma200 gLv=6 ovr=False  Sharpe=+18.147  WR=71.7%  MDD=-13.65%  consec=3  trades=60  ovrN=0
+  #2 gate=ema200 gLv=6 ovr=False  Sharpe=+17.105  WR=71.0%  MDD=-13.65%  consec=3  trades=62  ovrN=0
+  #3 gate=ema150 gLv=6 ovr=False  Sharpe=+15.056  WR=69.2%  MDD=-13.65%  consec=3  trades=65  ovrN=0
+  #4 gate=ema100 gLv=6 ovr=False  Sharpe=+14.489  WR=69.1%  MDD=-13.65%  consec=3  trades=68  ovrN=0
+
+=== Phase 4: 연도별 성과 분해 ===
+  파라미터: gate=sma200 gLv=6 ovr=False
+  2022: Sharpe=+2.465  WR=57.1%  MDD=-8.68%  consec=2  trades=7  btcB=856  adxF=138  ovrN=0
+  2023: Sharpe=+13.663  WR=64.3%  MDD=-8.15%  consec=2  trades=14  btcB=680  adxF=311  ovrN=0
+  2024: Sharpe=+27.562  WR=78.9%  MDD=-7.29%  consec=2  trades=19  btcB=659  adxF=332  ovrN=0
+  2025: Sharpe=+15.761  WR=69.2%  MDD=-3.97%  consec=1  trades=13  btcB=1093  adxF=272  ovrN=0
+  2026: Sharpe=  nan  WR=0.0%  MDD=+0.00%  consec=0  trades=0  btcB=208  adxF=59  ovrN=0
+
+=== Phase 5: Walkforward OOS 검증 (Top-3) ===
+  sma200_gLv6_ovrFalse Fold 1: Sharpe=+49.323  WR=92.3%  MDD=-4.40%✅  consec=1✅  trades=13  ovrN=0
+  sma200_gLv6_ovrFalse Fold 2: Sharpe=+16.579  WR=66.7%  MDD=-3.98%✅  consec=1✅  trades=9  ovrN=0
+  → sma200_gLv6_ovrFalse 평균 OOS Sharpe: +32.951
+  ema200_gLv6_ovrFalse Fold 1: Sharpe=+36.339  WR=86.7%  MDD=-4.40%✅  consec=1✅  trades=15  ovrN=0
+  ema200_gLv6_ovrFalse Fold 2: Sharpe=+13.512  WR=66.7%  MDD=-3.98%✅  consec=1✅  trades=9  ovrN=0
+  → ema200_gLv6_ovrFalse 평균 OOS Sharpe: +24.926
+  ema150_gLv6_ovrFalse Fold 1: Sharpe=+36.709  WR=87.5%  MDD=-4.61%✅  consec=1✅  trades=16  ovrN=0
+  ema150_gLv6_ovrFalse Fold 2: Sharpe=+16.460  WR=66.7%  MDD=-3.98%✅  consec=1✅  trades=9  ovrN=0
+  → ema150_gLv6_ovrFalse 평균 OOS Sharpe: +26.585
+
+=== 안전성 요약 ===
+  연속손실 ≤ 3: ✅ PASS (실제: 3)
+  MDD < 15%: ✅ PASS (실제: -13.65%)
+
+Sharpe: +18.147
+WR: 71.7%
+trades: 60
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 01:08 UTC — 진입 RSI 수준으로 ATR TP/Trail 동적 스케일링 (과매도 깊을수록 넓은 TP, BTC gate 포함) [ralph:c163_vpin_eth_rsi_scaled_atr_exit] 🌟[promising]
+
+**결과**: Sharpe +12.039 | WR 39.4% | trades 50
+
+
+<details><summary>raw output</summary>
+
+```
+g OOS: +8.837) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +11.036 33.1%  +0.64% -12.28%   10   124
+  0.10%   +9.636 32.5%  +0.55% -13.51%   10   126
+  0.15%   +7.933 31.8%  +0.44% -14.71%   10   132
+  0.20%   +5.556 28.9%  +0.30% -15.90%   10   128
+
+--- #2: BTC=200 TP=4.0+2.0 SL=0.4 Tr=0.5+0.0 mP=1.5 (avg OOS: +8.837) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +10.894 32.5%  +0.63% -12.28%   10   123
+  0.10%   +9.501 32.0%  +0.55% -13.51%   10   125
+  0.15%   +7.806 31.3%  +0.44% -14.71%   10   131
+  0.20%   +5.503 28.9%  +0.30% -15.90%   10   128
+
+--- #3: BTC=200 TP=4.0+1.0 SL=0.4 Tr=0.3+0.2 mP=1.5 (avg OOS: +8.694) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +10.932 33.1%  +0.62% -12.28%   10   124
+  0.10%   +9.460 32.5%  +0.53% -13.51%   10   126
+  0.15%   +7.757 31.8%  +0.42% -14.71%   10   132
+  0.20%   +5.312 28.9%  +0.28% -15.90%   10   128
+
+================================================================================
+=== c160 고정 ATR vs c163 RSI 동적 ATR OOS 비교 ===
+  [c160 고정] Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  [c160 고정] Fold 2: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  [c163 최적] Fold 1: Sharpe=+12.039  WR=39.4%  n=33  avg=+0.71%  MDD=-8.48%
+  [c163 최적] Fold 2: Sharpe=+5.635  WR=23.5%  n=17  avg=+0.32%  MDD=-6.37%
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: BTC_SMA=200 TP_base=4.0 TP_bonus=2.0 SL=0.4 Trail_base=0.3 Trail_bonus=0.2 minP=1.5
+  (고정: VPIN_LOW=0.3 MOM=0.0007 ATR=20 hold=24 cool=6)
+  avg OOS Sharpe: +8.837 PASS >=5.0
+  train Sharpe: +12.011
+  Fold 1: Sharpe=+12.039  WR=39.4%  trades=33  avg=+0.71%  MDD=-8.48%
+  Fold 2: Sharpe=+5.635  WR=23.5%  trades=17  avg=+0.32%  MDD=-6.37%
+
+Sharpe: +8.837
+WR: 31.5%
+trades: 50
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 10:05 UTC — RSI Mean-Reversion 횡보장 전용 60m [ralph:c161_rsi_mr_60m] 🔻[poor]
+
+**결과**: 0/20 WF 통과 — 60m에서도 OOS n 부족 (F1=5, F2=8, 기준 n≥15 미달)
+
+**설계**: BTC<SMA200 (BEAR 레짐) + RSI 과매도 반등 + ADX<ceil, 60m TF, ETH/BTC 대상
+- c160(4h) n<10/fold 실패 → 60m으로 4배 빈도 확보 시도
+- c160 발견 반영: rsi_period=[7,10,14] 그리드 추가
+
+<details><summary>raw output</summary>
+
+```
+그리드: rsi_os∈[20,25,30,35] × rsi_ex∈[50,55,65] × rsi_p∈[7,10,14]
+  × ADX∈[15,20,25,30] × vol∈[0.0,1.2] × TP∈[2%,3%,4%,5%]
+  × SL∈[1.5%,2%,3%] × hold∈[12,24,36] × SMA∈[200]
+  = 10368조합 × 2심볼 = 20736 총, 슬리피지 0.10%
+
+IS(2022-2024): 684/20736 Sharpe>0 & n≥20 통과
+  Top IS 전부 ETH rsiP=10 rsi_os=30 adx=25 vol=1.2 n=21
+
+WF 2-fold OOS:
+  F1(2024): n=5 → n≥15 미달
+  F2(2025-2026): n=8 → n≥15 미달
+
+부분통과 최선 (avg OOS > 0, 20개):
+  #1 ETH rsiP=10 rsi_os=30 rsi_ex=65 adx=25 tp=4% sl=2% mh=12
+     → avg OOS +23.400 (F1 +39.694 n=5, F2 +7.107 n=8)
+  #2 ETH rsiP=10 rsi_os=30 rsi_ex=55 adx=25 tp=3% sl=2% mh=36
+     → avg OOS +21.548 (F1 +40.404 n=5, F2 +2.692 n=8)
+
+발견:
+  1) 60m에서도 BEAR 레짐(BTC<SMA200) 기간이 짧아 OOS n=5~8 한계
+  2) IS n=21로 4h(n=7~23) 대비 소폭 개선이나 OOS 분할 시 각 fold n<10
+  3) rsi_period=10이 IS에서 우세 (c160의 7 우위와 다름 — TF 의존적)
+  4) vol_mult=1.2 필터가 n 추가 제약 (vol=0.0 시 IS n 더 많음)
+  5) F2(2025-2026) Sharpe 음수 빈발 — 최근 BEAR 구간 MR 엣지 소실 확인
+
+결론: RSI MR BEAR 전략은 60m/4h 모두 구조적 n 부족으로 폐기.
+  BEAR 레짐 자체의 지속 기간이 짧아 MR 진입 기회 근본 부족.
+  다른 접근 필요: stablecoin 전환 타이밍 또는 ADX-only 횡보 필터(BTC gate 제거).
+```
+
+</details>
+
+---
