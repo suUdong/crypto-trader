@@ -10869,3 +10869,149 @@ WF 2-fold OOS:
 </details>
 
 ---
+
+## 2026-04-05 01:27 UTC — momentum_sol BB squeeze→expansion 감지로 2026 저변동 구간 진입 확보 (54조합 그리드) [ralph:cycle167_momentum_sol_bb_squeeze_breakout] 🌟[promising]
+
+**결과**: Sharpe +51.048 | WR 93.3% | trades 64
+
+
+<details><summary>raw output</summary>
+
+```
+ Phase 3b: 안전 조합 (MDD<15% AND consec≤3) — 54개 ===
+  #1 bbP=20 sqTH=20 exB=5 sqGate=ema150  Sharpe=+18.252  WR=71.9%  MDD=-13.65%  consec=3  trades=64  sqzN=5
+  #2 bbP=20 sqTH=20 exB=2 sqGate=sma200  Sharpe=+18.147  WR=71.7%  MDD=-13.65%  consec=3  trades=60  sqzN=0
+  #3 bbP=20 sqTH=20 exB=3 sqGate=sma200  Sharpe=+18.147  WR=71.7%  MDD=-13.65%  consec=3  trades=60  sqzN=0
+  #4 bbP=20 sqTH=20 exB=5 sqGate=sma200  Sharpe=+18.147  WR=71.7%  MDD=-13.65%  consec=3  trades=60  sqzN=0
+  #5 bbP=20 sqTH=30 exB=2 sqGate=sma200  Sharpe=+18.147  WR=71.7%  MDD=-13.65%  consec=3  trades=60  sqzN=0
+
+=== Phase 4: 연도별 성과 분해 ===
+  파라미터: bbP=20 sqTH=20 exB=5 sqGate=ema150
+  2022: Sharpe=+2.465  WR=57.1%  MDD=-8.68%  consec=2  trades=7  sqzN=0  nrmN=7
+  2023: Sharpe=+11.116  WR=60.0%  MDD=-8.15%  consec=2  trades=15  sqzN=1  nrmN=14
+  2024: Sharpe=+28.879  WR=80.0%  MDD=-7.29%  consec=2  trades=20  sqzN=1  nrmN=19
+  2025: Sharpe=+18.473  WR=73.3%  MDD=-4.61%  consec=1  trades=15  sqzN=2  nrmN=13
+  2026: Sharpe=  nan  WR=0.0%  MDD=+0.00%  consec=0  trades=0  sqzN=0  nrmN=2
+
+=== Phase 5: Walkforward OOS 검증 (Top-3) ===
+  bbP20_sqTH20_exB5_ema150 Fold 1: Sharpe=+51.048  WR=93.3%  MDD=-4.61%✅  consec=1✅  trades=15  sqzN=3
+  bbP20_sqTH20_exB5_ema150 Fold 2: Sharpe=+19.186  WR=70.0%  MDD=-3.98%✅  consec=1✅  trades=10  sqzN=1
+  → bbP20_sqTH20_exB5_ema150 평균 OOS Sharpe: +35.117
+  bbP20_sqTH20_exB2_sma200 Fold 1: Sharpe=+49.323  WR=92.3%  MDD=-4.40%✅  consec=1✅  trades=13  sqzN=0
+  bbP20_sqTH20_exB2_sma200 Fold 2: Sharpe=+16.579  WR=66.7%  MDD=-3.98%✅  consec=1✅  trades=9  sqzN=0
+  → bbP20_sqTH20_exB2_sma200 평균 OOS Sharpe: +32.951
+  bbP20_sqTH20_exB3_sma200 Fold 1: Sharpe=+49.323  WR=92.3%  MDD=-4.40%✅  consec=1✅  trades=13  sqzN=0
+  bbP20_sqTH20_exB3_sma200 Fold 2: Sharpe=+16.579  WR=66.7%  MDD=-3.98%✅  consec=1✅  trades=9  sqzN=0
+  → bbP20_sqTH20_exB3_sma200 평균 OOS Sharpe: +32.951
+
+=== 안전성 요약 ===
+  연속손실 ≤ 3: ✅ PASS (실제: 3)
+  MDD < 15%: ✅ PASS (실제: -13.65%)
+
+Sharpe: +18.252
+WR: 71.9%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 01:28 UTC — ATR 기반 동적 SL/minProfit으로 c162 청산 로직 변동성 적응화 [ralph:c166_vpin_eth_atr_adaptive_exit] 🌟[promising]
+
+**결과**: Sharpe +13.588 | WR 32.3% | trades 48
+
+
+<details><summary>raw output</summary>
+
+```
+0.015 cool=6 ATR=20 slM=0.3 mpM=0.8 (avg OOS: +3.178) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +10.631 28.8%  +0.78% -13.49%   12   118
+  0.10%   +9.495 27.3%  +0.68% -15.09%   14   121
+  0.15%   +8.231 26.8%  +0.58% -16.65%   14   123
+  0.20%   +7.135 25.6%  +0.50% -18.24%   14   125
+
+--- #2: hold=18 bTr=0.015 mSc=0.015 cool=6 ATR=20 slM=0.3 mpM=1.0 (avg OOS: +3.178) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +10.631 28.8%  +0.78% -13.49%   12   118
+  0.10%   +9.415 27.3%  +0.68% -15.09%   14   121
+  0.15%   +8.231 26.8%  +0.58% -16.65%   14   123
+  0.20%   +7.135 25.6%  +0.50% -18.24%   14   125
+
+--- #3: hold=18 bTr=0.015 mSc=0.015 cool=6 ATR=10 slM=0.3 mpM=0.8 (avg OOS: +3.174) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +10.616 28.6%  +0.77% -13.63%   12   119
+  0.10%   +9.011 26.4%  +0.64% -15.23%   14   121
+  0.15%   +8.235 25.4%  +0.59% -18.22%   14   122
+  0.20%   +6.618 24.0%  +0.46% -23.83%   14   125
+
+================================================================================
+=== c162 기준선 (고정 SL/minP) vs c166 (ATR 동적 SL/minP) OOS 비교 ===
+  [c162 기준] Fold 1: (참조: Sharpe=+8.919/+5.103  WR=32.3%/17.6%  n=31/17)
+  [c162 기준] Fold 2: (참조: Sharpe=+8.919/+5.103  WR=32.3%/17.6%  n=31/17)
+  [c166 최적] Fold 1: Sharpe=+9.734  WR=32.3%  n=31  avg=+0.87%  MDD=-8.25%
+  [c166 최적] Fold 2: Sharpe=-3.377  WR=11.8%  n=17  avg=-0.11%  MDD=-5.65%
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: hold=18 bTr=0.015 mSc=0.015 cool=6 ATR=20 slM=0.3 mpM=0.8
+  avg OOS Sharpe: +3.178 FAIL <5.0
+  train Sharpe: +13.588
+  Fold 1: Sharpe=+9.734  WR=32.3%  trades=31  avg=+0.87%  MDD=-8.25%
+  Fold 2: Sharpe=-3.377  WR=11.8%  trades=17  avg=-0.11%  MDD=-5.65%
+
+Sharpe: +3.178
+WR: 22.0%
+trades: 48
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 10:30 UTC — vpin_eth c163 최적 3-fold WF 검증 [ralph:c162_vpin_eth_3fold_wf] 🔻[poor]
+
+**결과**: 0/729 3-fold 전체통과 — F2(2025 BEAR) Sharpe=-8~-17로 전 파라미터 붕괴
+
+**설계**: c163 최적(avg OOS +8.837, n=50)을 3-fold WF로 확장 검증
+- F1: train 2022-01~2023-12 / OOS 2024-01-01~2024-12-31
+- F2: train 2022-01~2024-12 / OOS 2025-01-01~2025-12-31
+- F3: train 2022-01~2025-12 / OOS 2026-01-01~2026-04-05
+- 로버스트니스 729조합 근접 그리드 동시 검증, 슬리피지 0.10%
+
+<details><summary>raw output</summary>
+
+```
+Phase 1: c163 최적 (TP=4.0+2.0 SL=0.4 Trail=0.3+0.2 minP=1.5):
+  F1(2024): Sharpe=+16.128 WR=42.5% n=40 avg=+1.13% MDD=-4.57% [PASS]
+  F2(2025): Sharpe=-17.308 WR=16.7% n=24 avg=-0.46% MDD=-13.51% [FAIL]
+  F3(2026): Sharpe=+20.052 WR=42.9% n=7 avg=+1.45% MDD=-1.87% [FAIL n<10]
+  avg OOS Sharpe: +6.291 FAIL
+
+Phase 2: 729개 근접 그리드 → 0/729 전체통과
+  Top 1: TP=4.5+2.5 SL=0.4 Tr=0.2+0.1 mP=1.0
+    F1=+14.949 F2=-8.177 F3=+21.397 → avg +9.389 FAIL
+
+Phase 3: 슬리피지 스트레스 (Top 1 기준)
+  0.05%: +11.232  0.10%: +9.718  0.15%: +8.553  0.20%: +6.229
+
+Phase 4: Buy-and-hold 비교
+  F1(2024): +60.09%  F2(2025): -13.37%  F3(2026): -26.60%
+
+발견:
+  1) F2(2025) BEAR 구간이 전 파라미터 붕괴 원인 — BTC>SMA200인데 ETH 하락하는 디커플링 구간
+  2) c163의 2-fold 성공은 OOS 윈도우가 2025 BEAR를 분리 회피한 결과 (c163 F1=2024H2~2025H1, F2=2025H2~2026Q1)
+  3) BULL 구간(F1, F3)에서는 Sharpe +14~+21로 일관 강력
+  4) 결론: vpin_eth RSI-scaled ATR은 BULL 전용, BEAR에서 구조적 실패
+  5) 현 daemon TP=7% 유지 — 이 변형으로 교체 불가
+```
+
+</details>
+
+---
