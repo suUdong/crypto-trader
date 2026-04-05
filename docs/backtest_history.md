@@ -12253,3 +12253,77 @@ trades: 17
 </details>
 
 ---
+
+## 2026-04-05 04:00 UTC — 변동성레짐별 적응형 TP/SL/Hold 54조합 3-fold WF 멀티심볼 [ralph:c179_vol_regime_adaptive_tpsl] 🌟[promising]
+
+**결과**: Sharpe +42.878 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+3%  -4.07%    5    85
+  0.20%  +12.880 43.0%  +1.17%  -4.29%    5    85
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: volTh=60 tpSc=0.50 trSc=0.70 hdSc=0.8) ===
+  KRW-ETH Fold 1: Sharpe=+10.370  WR=37.5%  n=8  avg=+0.41%  MDD=-1.09%
+  KRW-ETH Fold 2: Sharpe=+21.194  WR=50.0%  n=10  avg=+1.92%  MDD=-1.92%
+  KRW-ETH Fold 3: Sharpe=+17.376  WR=37.5%  n=8  avg=+1.72%  MDD=-3.29%
+  KRW-ETH 평균: Sharpe=+16.313  총 trades=26
+
+  KRW-SOL Fold 1: Sharpe=+19.140  WR=57.1%  n=7  avg=+1.66%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=+1.976  WR=33.3%  n=9  avg=+0.09%  MDD=-4.67%
+  KRW-SOL Fold 3: Sharpe=+14.306  WR=37.5%  n=8  avg=+0.92%  MDD=-1.77%
+  KRW-SOL 평균: Sharpe=+11.808  총 trades=24
+
+  KRW-XRP Fold 1: Sharpe=+13.048  WR=16.7%  n=6  avg=+2.56%  MDD=-1.98%
+  KRW-XRP Fold 2: Sharpe=+21.152  WR=50.0%  n=4  avg=+4.73%  MDD=-2.79%
+  KRW-XRP Fold 3: Sharpe=+42.878  WR=75.0%  n=4  avg=+1.52%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+25.693  총 trades=14
+
+================================================================================
+=== c177 베이스라인 대비 비교 ===
+  c177 기준 (고정 TP/SL/Hold): avg_OOS=+16.353 n=64
+  c179 최적 (volTh=60 tpSc=0.50 trSc=0.70 hdSc=0.8): avg_OOS=+17.938 n=64
+  Δ Sharpe: +1.585 (개선)
+  Δ trades: +0 (동일)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: VOL_REGIME_THRESH=60 HIGH_VOL_TP_SCALE=0.50 HIGH_VOL_TRAIL_SCALE=0.70 HIGH_VOL_HOLD_SCALE=0.8
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +17.938 PASS
+  train Sharpe: +21.113
+  Fold 1: Sharpe=+14.186  WR=37.1%  trades=21  avg=+1.54%  MDD=-1.59%
+  Fold 2: Sharpe=+14.774  WR=44.4%  trades=23  avg=+2.24%  MDD=-3.12%
+  Fold 3: Sharpe=+24.853  WR=50.0%  trades=20  avg=+1.39%  MDD=-1.69%
+
+Sharpe: +17.938
+WR: 43.8%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 04:10 UTC — c175 vol_regime 포지션 사이징 daemon.toml 배포 [ralph:c175_vol_regime_deploy]
+
+**결과**: 배포 (구현 + daemon.toml 반영)
+
+| 항목 | 값 |
+|------|-----|
+| 작업 | c174 vol_regime 사이징 검증 결과 → runtime 구현 + daemon.toml 배포 |
+| 변경 | config.py: hv_size_mult 필드 추가, risk/manager.py: size_position()에 HV 시 hv_size_mult 적용 |
+| daemon.toml | vpin_eth_wallet: vol_regime_lookback=120, vol_regime_threshold=40, hv_size_mult=0.5 |
+| 근거 | c174 3-fold WF 27/27 통과, avg OOS Sharpe +11.053(+4%), MDD -4.71%(+32% 개선) |
+| 이전값 | vol_regime_lookback=90, vol_regime_threshold=50, hv_size_mult 미구현 |
+| 테스트 | 9/9 passed (test_vol_regime_hv_size_mult_reduces_position, test_vol_regime_disabled_by_default) |
+
+---

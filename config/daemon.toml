@@ -342,8 +342,10 @@ atr_stop_multiplier = 0.0
 # c168 regime-adaptive ATR TP/SL (BASE + regime offset)
 atr_tp_multiplier = 3.0
 atr_sl_multiplier = 0.5
-vol_regime_lookback = 90
-vol_regime_threshold = 50
+# c174 vol_regime 사이징 (3-fold WF 27/27 통과, MDD -4.71% +32% 개선)
+vol_regime_lookback = 120
+vol_regime_threshold = 40
+hv_size_mult = 0.5
 hv_hold_bars = 24
 lv_hold_bars = 12
 hv_tp_offset = 1.0

@@ -95,6 +95,7 @@ class RiskConfig:
     hv_sl_offset: float = 0.0
     lv_tp_offset: float = 0.0
     lv_sl_offset: float = 0.0
+    hv_size_mult: float = 1.0
     trail_activate_atr_mult: float = 0.0
     trail_sl_atr_mult: float = 0.0
 

@@ -110,3 +110,35 @@ class RiskManagerTests(unittest.TestCase):
         )
         self.assertEqual(manager.exit_reason(position, 97.0), "stop_loss")
         self.assertEqual(manager.exit_reason(position, 104.0), "take_profit")
+
+    def test_vol_regime_hv_size_mult_reduces_position(self) -> None:
+        cfg = RiskConfig(
+            risk_per_trade_pct=0.001,
+            stop_loss_pct=0.02,
+            max_position_pct=1.0,
+            vol_regime_lookback=10,
+            vol_regime_threshold=70,
+            hv_size_mult=0.5,
+        )
+        manager = RiskManager(cfg)
+        # Directly test: when is_high_vol=False, full size; when True, half size
+        normal_qty = manager.size_position(equity=10_000.0, price=100.0)
+        self.assertGreater(normal_qty, 0.0)
+        self.assertFalse(manager.is_high_vol)
+
+        # Force high vol state
+        manager._is_high_vol = True
+        hv_qty = manager.size_position(equity=10_000.0, price=100.0)
+        self.assertGreater(hv_qty, 0.0)
+        self.assertAlmostEqual(hv_qty / normal_qty, 0.5, places=2)
+
+    def test_vol_regime_disabled_by_default(self) -> None:
+        """hv_size_mult=1.0 (default) should not change sizing."""
+        cfg = RiskConfig(
+            risk_per_trade_pct=0.001, stop_loss_pct=0.02, max_position_pct=1.0,
+        )
+        manager = RiskManager(cfg)
+        normal_qty = manager.size_position(equity=10_000.0, price=100.0)
+        manager._is_high_vol = True
+        hv_qty = manager.size_position(equity=10_000.0, price=100.0)
+        self.assertAlmostEqual(hv_qty, normal_qty, places=6)
