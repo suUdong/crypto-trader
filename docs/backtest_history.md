@@ -14478,3 +14478,44 @@ trades: 59
 **결론**: 🔻 VWAP anchored deviation 240m에서 역추세 alpha 부재. F1/F2 marginal positive → F3(최근 6개월) catastrophic -10.9. 240m에서 일별 VWAP 리셋은 6봉/일로 VWAP 정보량 부족. 주별도 동일 패턴. VWAP 역추세는 더 짧은 타임프레임(60m, 15m)에서만 유효할 가능성. 평가자 방향 (2) VWAP 소진.
 
 ---
+
+---
+
+## 2026-04-05 18:50 UTC — c207 적응형 청산: 모멘텀반전 + 시간감쇠 트레일 144조합 3-fold WF [ralph:c207_adaptive_exit_mom_reversal] 🔻[c179 대비 악화]
+
+**결과**: avg OOS Sharpe +18.392 | WR 49.2% | trades 64 | c179 대비 -24.486
+
+**설계**: c179 진입 100% 동일, 청산만 최적화 — 진입필터 소진 → 방향 전환
+- 가설: c179 승률 37% → 이익 시 빨리 키우고 손실 시 빨리 끊으면 Sharpe 개선
+- 추가 청산 조건 3종:
+  A) 모멘텀 반전 청산: 단기 mom(lb봉) < -threshold 시 이익 중 조기 탈출
+  B) 시간감쇠 트레일: hold↑ → trail_dist ×= (1 - decay × progress) (수익 보호)
+  C) 거래량 반전 청산: volume > vol_sma × mult AND 음봉 시 이익 중 탈출
+- 심볼: ETH/SOL/XRP 240m | ★슬리피지포함 | 🔄다음봉시가진입
+- 3-fold WF: F1(OOS 2024-04~2025-01), F2(OOS 2024-10~2025-07), F3(OOS 2025-04~2026-04)
+- 그리드: MOM_EXIT_LB(3) × MOM_EXIT_TH(4) × TRAIL_DECAY(4) × VOL_EXIT_MULT(3) = 144조합
+
+**최적**: meLB=8 meTH=0.01 trDecay=0.3 volExit=0.0
+- F1: Sharpe=+16.025 WR=46.0% n=21 avg=+1.62% MDD=-1.62%
+- F2: Sharpe=+15.237 WR=51.5% n=23 avg=+2.20% MDD=-3.17%
+- F3: Sharpe=+23.914 WR=50.0% n=20 avg=+1.29% MDD=-1.69%
+- 슬리피지 스트레스: 0.05%→+18.4, 0.10%→+17.4, 0.15%→+16.0, 0.20%→+14.9 (모두 PASS)
+
+**심볼별 OOS 평균**:
+- ETH: Sharpe +17.300 (26 trades) — 안정적
+- SOL: Sharpe +12.333 (24 trades) — F2 +2.3 약세
+- XRP: Sharpe +25.544 (14 trades) — F3 +42.9 극소 n=4
+
+**c179 대비 비교**:
+- c179: avg OOS Sharpe +42.878, WR 37%, n=~60
+- c207: avg OOS Sharpe +18.392, WR 49.2%, n=64
+- Δ: -24.486 악화
+
+**핵심 발견**:
+1. 모멘텀 반전 청산이 WR 37%→49%로 개선 (+12%p)
+2. 그러나 평균 수익률 축소 (이익 중 조기 탈출이 big winner를 잘라냄)
+3. 거래량 반전(volExit) 최적은 0.0(OFF) — 효과 없음
+4. 시간감쇠 트레일(0.3) 미미한 개선 — trDecay=0.0과 거의 동일 결과
+5. c179의 높은 Sharpe는 낮은 WR+높은 avg return(fat tail 포착)에 의존 → 조기 청산은 이 구조를 파괴
+
+**결론**: 🔻 청산 최적화는 c179 alpha 구조(저빈도 고수익)와 구조적으로 상충. 모멘텀 반전이 WR 개선하나 fat tail 수익을 잘라 전체 Sharpe 악화. 진입/청산 모두 c179 최적 확인. 남은 방향: (1) 60m 타임프레임 c179 VPIN 재검증, (2) daemon 8전략 포트폴리오 상관관계 분석.
