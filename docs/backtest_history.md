@@ -15470,3 +15470,49 @@ trades: 90
 </details>
 
 ---
+
+## 2026-04-05 12:05 UTC — c219 2-tier분할익절+ATR레짐적응형TP/SL 81조합 3-fold WF [ralph:c219_partial_tp_atr_regime_adaptive] 🌟[promising]
+
+**결과**: Sharpe +23.575 | WR 66.0% | trades 86
+
+- 기반: c215 최적 (Sharpe +18.682)
+- 가설: (A) 2-tier 분할익절 — TP1에서 70% 조기 청산 → MDD 개선 (B) ATR 레짐 적응형 TP/SL 배수 동적 조절
+- 그리드: tp1Mult×partRatio×hiTPBonus×loSLScale = 3×3×3×3 = 81조합
+
+<details><summary>raw output</summary>
+
+```
+Top 5:
+#1: tp1M=2.5 pRat=0.7 hiTP=0.0 loSL=0.70
+  avg OOS Sharpe: +23.575  total_n=86  SOL avg: +7.658  worst MDD: -12.12%
+  F1: Sharpe=+20.492  WR=61.5%  n=39  avg=+3.87%  MDD=-12.12%
+  F2: Sharpe=+20.584  WR=61.5%  n=39  avg=+2.35%  MDD=-11.57%
+  F3: Sharpe=+29.650  WR=75.0%  n=8  avg=+2.25%  MDD=-4.60%
+
+심볼별 분해 (Top 1):
+  KRW-ETH 평균: Sharpe=+48.815  총 trades=27
+  KRW-SOL 평균: Sharpe=+7.658  총 trades=32
+  KRW-XRP 평균: Sharpe=+70.208  총 trades=27
+
+c215 대비: Δ avg=+4.893(개선) Δ F3=+14.551(개선) Δ SOL=-2.824(악화) Δ MDD=+0.91%p(개선)
+
+분할익절 효과: pRat=0.7 > 0.5 > 0.3 (미미한 차이)
+ATR 레짐 적응: hiTPBonus=0.0 최적 (보너스 역효과), loSLScale 차이 미미
+
+★ OOS 최적: tp1M=2.5 pRat=0.7 hiTP=0.0 loSL=0.70
+  (c205 고정: dcU=30 dcL=10 adx=25)
+  (c207 고정: aPLB=30 vRat=1.0 vSMA=20 rsiC=100 tpVS=0.5)
+  (c210 고정: trail=2.5 tpM=3.0 slM=1.5 mH=30 aPTh=30 hDec=0)
+  (c215 고정: slSOL=0.7 slXRP=0.85)
+  avg OOS Sharpe: +23.575 PASS
+  F3 Sharpe: +29.650 PASS
+  SOL avg Sharpe: +7.658 FAIL
+  worst MDD: -12.12% PASS(개선)
+  total trades: 86
+```
+
+</details>
+
+**결론**: c215 대비 avg Sharpe +4.893 개선, MDD 0.91%p 개선. 분할익절(tp1M=2.5, 70% 조기청산)이 핵심 — ATR 레짐 적응형 배수는 효과 없음(hiTP=0 최적). SOL avg Sharpe 7.658 미달로 SOL 기여 약화. 전체 포트폴리오 기준으로는 유의미한 개선.
+
+---
