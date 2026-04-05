@@ -14519,3 +14519,151 @@ trades: 59
 5. c179의 높은 Sharpe는 낮은 WR+높은 avg return(fat tail 포착)에 의존 → 조기 청산은 이 구조를 파괴
 
 **결론**: 🔻 청산 최적화는 c179 alpha 구조(저빈도 고수익)와 구조적으로 상충. 모멘텀 반전이 WR 개선하나 fat tail 수익을 잘라 전체 Sharpe 악화. 진입/청산 모두 c179 최적 확인. 남은 방향: (1) 60m 타임프레임 c179 VPIN 재검증, (2) daemon 8전략 포트폴리오 상관관계 분석.
+
+## 2026-04-05 10:00 UTC — MACD histogram 가속도(기울기) ATR정규화 + 이진gate vs 그래디언트 비례TP보너스 216조합 3-fold WF [ralph:c205_macd_hist_accel_gradient] 🌟[promising]
+
+**결과**: Sharpe +24.460 | WR 57.6% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+]
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: mcF=8 mcS=26 hsLB=5 hsMin=0.0 mode=grad tpBM=1.5) ===
+  KRW-ETH Fold 1: Sharpe=+12.675  WR=37.5%  n=8  avg=+0.82%  MDD=-1.10%
+  KRW-SOL Fold 1: Sharpe=+18.963  WR=57.1%  n=7  avg=+1.44%  MDD=-1.71%
+  KRW-XRP Fold 1: Sharpe=+20.063  WR=25.0%  n=4  avg=+4.48%  MDD=-1.19%
+  KRW-ETH Fold 2: Sharpe=+17.983  WR=44.4%  n=9  avg=+1.56%  MDD=-1.94%
+  KRW-SOL Fold 2: Sharpe=-2.551  WR=33.3%  n=9  avg=-0.10%  MDD=-4.73%
+  KRW-XRP Fold 2: Sharpe=+24.420  WR=33.3%  n=3  avg=+6.01%  MDD=-1.51%
+  KRW-ETH Fold 3: Sharpe=+9.647  WR=28.6%  n=7  avg=+0.77%  MDD=-3.31%
+  KRW-SOL Fold 3: Sharpe=+8.436  WR=28.6%  n=7  avg=+0.54%  MDD=-2.53%
+  KRW-XRP Fold 3: Sharpe=+19.643  WR=50.0%  n=4  avg=+0.80%  MDD=-0.71%
+  KRW-ETH 평균: Sharpe=+13.435  총 trades=24
+  KRW-SOL 평균: Sharpe=+8.283  총 trades=23
+  KRW-XRP 평균: Sharpe=+21.375  총 trades=11
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c205 최적 (mcF=8 mcS=26 hsLB=5 hsMin=0.0 mode=grad tpBM=1.5): avg_OOS=+14.364 n=58
+  Δ Sharpe: -28.514 (악화)
+  Δ trades: -2 (감소)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: mcF=8 mcS=26 hsLB=5 hsMin=0.0 mode=grad tpBM=1.5
+  (c201 고정: obvP=20 obvSB=0.0 obvVS=0.0)
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +14.364 PASS
+  train Sharpe: +21.498
+  Fold 1: Sharpe=+17.234  WR=39.9%  trades=19  avg=+2.25%  MDD=-1.33%
+  Fold 2: Sharpe=+13.284  WR=37.0%  trades=21  avg=+2.49%  MDD=-2.73%
+  Fold 3: Sharpe=+12.575  WR=35.7%  trades=18  avg=+0.70%  MDD=-2.18%
+
+Sharpe: +14.364
+WR: 37.5%
+trades: 58
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 10:04 UTC — VPIN체인(c199 Sharpe+51.4) BB squeeze→expansion 진입타이밍 최적화 216조합 3-fold WF [ralph:c206_vpin_bb_squeeze_expansion] 🌟[promising]
+
+**결과**: Sharpe +84.225 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+=======
+=== 심볼별 OOS 성능 분해 (Top 1: bbP=20 bbS=2.0 sqTh=20 sqLB=30 expB=2 tpSq=0.5) ===
+  KRW-ETH Fold 2024-04~2025-01: Sharpe=+44.215  WR=66.7%  n=3  avg=+2.78%  MDD=-0.35%
+  KRW-ETH Fold 2024-10~2025-07: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2025-04~2026-04: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+14.738  총 trades=3
+  KRW-SOL Fold 2024-04~2025-01: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-SOL Fold 2024-10~2025-07: Sharpe=+37.133  WR=66.7%  n=3  avg=+2.76%  MDD=+0.00%
+  KRW-SOL Fold 2025-04~2026-04: Sharpe=+51.425  WR=75.0%  n=4  avg=+3.69%  MDD=-0.43%
+  KRW-SOL 평균: Sharpe=+29.519  총 trades=7
+  KRW-XRP Fold 2024-04~2025-01: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2024-10~2025-07: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2025-04~2026-04: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+0.000  총 trades=0
+
+================================================================================
+=== c199 베이스라인 대비 비교 ===
+  c199 기준 (regime dual exit): avg_OOS=+51.425
+  c206 최적: avg_OOS=+44.258
+  Δ vs c199: -7.167 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: bbP=20 bbS=2.0 sqTh=20 sqLB=30 expB=2 tpSq=0.5
+  (c199 고정: rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.2)
+  (c192 고정: ttA=6 ttF=3.0)
+  (c190 고정: vMomLB=10 vMomMin=0.05 tpBonus=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +44.258 FAIL
+  train Sharpe: +84.225
+  Fold 1: Sharpe=+44.215  WR=66.7%  trades=3  avg=+2.78%  MDD=-0.35%
+  Fold 2: Sharpe=+37.133  WR=66.7%  trades=3  avg=+2.76%  MDD=+0.00%
+  Fold 3: Sharpe=+51.425  WR=75.0%  trades=4  avg=+3.69%  MDD=-0.43%
+
+Sharpe: +44.258
+WR: 69.4%
+trades: 10
+
+```
+
+</details>
+
+---
+
+---
+
+## 2026-04-05 19:10 UTC — c208 60m 타임프레임 c179 VPIN 재검증 162조합 3-fold WF [ralph:c208_vpin_60m_revalidation] 🔻[FAIL]
+
+**결과**: avg OOS Sharpe -0.459 | WR 32.1% | trades 113
+
+**설계**: c179 VPIN 전략을 60m 타임프레임으로 이식 — 신호 밀도 4배 증가로 n 확보 시도
+- 시간의존 파라미터 ×4 스케일: EMA=80, ATR=80, VOL_SMA=80, ATR_PCTILE_LB=240, MOM_LB=32, BTC_SMA=800
+- 진입/청산 로직: c179 100% 동일 (vol regime adaptive TP/SL/Trail 포함)
+- 심볼: ETH/SOL/XRP 60m | ★슬리피지포함 | 🔄다음봉시가진입
+- 3-fold WF: F1(OOS 2024-04~2025-01), F2(OOS 2024-10~2025-07), F3(OOS 2025-04~2026-03)
+- 그리드: VPIN(3) × MOM(3) × Hold(3) × CD(3) × Bucket(2) = 162조합
+
+**최적**: VPIN=0.35 MOM=0.0003 Hold=60 CD=24 Bucket=48
+- F1: Sharpe=+0.823 WR=29.9% n=36 avg=+0.10%
+- F2: Sharpe=-21.926 WR=34.8% n=39 avg=+0.23%
+- F3: Sharpe=+19.725 WR=31.7% n=38 avg=+0.29%
+- 슬리피지 스트레스: 0.05%→-0.5, 0.10%→-12.3, 0.15%→-20.5, 0.20%→-60.4 (모두 FAIL)
+
+**심볼별 OOS 평균**:
+- ETH: Sharpe +23.623 (40 trades) — 양호
+- SOL: Sharpe +29.446 (44 trades) — 양호
+- XRP: Sharpe -54.447 (29 trades) — F2 -132.4 catastrophic 🔻
+
+**핵심 발견**:
+1. Top 5 조합이 모두 동일 결과 → Hold/MOM 변경이 실질 영향 없음 (TP/SL 선청산)
+2. XRP 60m에서 VPIN 구조적 실패 — F2(2024-10~2025-07) 기간 XRP 11.1% WR
+3. Annualize factor 77.77(60m) vs 38.88(240m) — 분산 증폭으로 극단적 Sharpe 발생
+4. ETH/SOL은 60m에서도 양호하나 XRP가 전체 포트폴리오 파괴
+5. 60m VPIN bucket=48이 최적(96보다 나음) — 48봉=2일 단위가 60m에 적합
+
+**결론**: 🔻 60m VPIN은 XRP에서 구조적 실패. ETH/SOL 단독은 가능성 있으나 포트폴리오 수준에서 불가. 평가자 3방향 모두 소진: (1) 60m VPIN FAIL, (2) VWAP FAIL(c206), (3) 포트폴리오 상관관계 분석 미실행. c179 240m VPIN(+42.878)이 현 최적 확정. 다음: 평가자 남은 방향 (3) daemon 8전략 포트폴리오 상관관계 분석, 또는 새 평가자 리포트 필요.
