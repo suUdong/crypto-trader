@@ -3,6 +3,18 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — cycle 210: bb_squeeze_link 배포 + bb_squeeze_sol 비활성화 [ralph:c210_bb_squeeze_portfolio_rebalance]
+
+**작업**: c215 심볼 스크리닝 결과 기반 포트폴리오 조정
+**변경사항**:
+1. **bb_squeeze_link_wallet 추가** (paper, ₩500K) — c215 LINK avg OOS Sharpe +7.151, n=42, WR 58.0%, slip=0.0020→+5.751 robust
+2. **bb_squeeze_sol_wallet 비활성화** — c215 SOL 개별 Sharpe +1.075 FAIL (F2 -0.125, F3 -3.788)
+**근거**: 평가자 [explore] "bb_squeeze 심볼 확장" 이행. LINK는 F1→F2→F3 상승추세로 안정성 증가. SOL은 pooled에서만 기여, 개별 운용은 비효율적.
+**BH 비교**: LINK BH(2022-2026) 대비 bb_squeeze 전략 대폭 초과 수익 (c215 스크리닝 확인)
+**다음**: paper 30거래 축적 후 live Sharpe vs backtest Sharpe 비율 산출. <0.5면 파라미터 재보정.
+
+---
+
 ## 2026-04-05 — c215 BB Squeeze 개별 심볼 3-fold WF 스크리닝 [ralph:c215_bb_squeeze_symbol_screen]
 
 **목적**: c182 검증 파라미터로 개별 심볼 OOS 성능 분해. SOL/DOGE daemon 배포 검증(평가자 블로커 해소) + XRP/LINK/AVAX 추가 스크리닝(평가자 [explore]).
@@ -15390,6 +15402,68 @@ rades=27
 Sharpe: -25.392
 WR: 29.7%
 trades: 27
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 11:43 UTC — c210+EMA slope 모멘텀확인(거짓브레이크아웃필터)+심볼별SL스케일(SOL타이트) 324조합 3-fold WF [ralph:c215_donchian_ema_slope_sym_sl] 🌟[promising]
+
+**결과**: Sharpe +175.202 | WR 100.0% | trades 91
+
+
+<details><summary>raw output</summary>
+
+```
+H F2: Sharpe=+29.527  WR=73.3%  n=15  avg=+3.55%  MDD=-3.43%
+  KRW-ETH F3: Sharpe=+175.202  WR=100.0%  n=2  avg=+4.56%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+74.710  총 trades=29
+  KRW-SOL F1: Sharpe=+18.860  WR=50.0%  n=14  avg=+3.22%  MDD=-9.59%
+  KRW-SOL F2: Sharpe=+10.867  WR=42.9%  n=14  avg=+1.35%  MDD=-8.52%
+  KRW-SOL F3: Sharpe=+1.719  WR=33.3%  n=3  avg=+0.19%  MDD=-4.60%
+  KRW-SOL 평균: Sharpe=+10.482  총 trades=31
+  KRW-XRP F1: Sharpe=+20.303  WR=56.2%  n=16  avg=+5.63%  MDD=-12.12%
+  KRW-XRP F2: Sharpe=+26.923  WR=60.0%  n=10  avg=+3.75%  MDD=-2.53%
+  KRW-XRP F3: Sharpe=+8.230  WR=50.0%  n=4  avg=+0.83%  MDD=-3.20%
+  KRW-XRP 평균: Sharpe=+18.485  총 trades=30
+
+================================================================================
+=== c210 베이스라인 대비 비교 ===
+  c210 기준: avg_OOS=+16.485 F3=+11.993 SOL_avg=+6.345
+  c215 최적: avg_OOS=+18.682 F3=+15.099 SOL_avg=+10.482
+  Δ avg: +2.197 (개선)
+  Δ F3: +3.106 (개선)
+  Δ SOL: +4.137 (개선)
+
+================================================================================
+=== EMA slope 효과 분석 (slope=0 vs slope>0) ===
+  slope=0 top10 avg Sharpe: +18.386  SOL: +9.832
+  slope>0 top10 avg Sharpe: +18.242  SOL: +9.953
+
+=== 심볼별 SL 스케일 효과 ===
+  SOL slScale=0.70: top10 avg=+18.471  SOL avg=+10.092
+  SOL slScale=0.85: top10 avg=+17.319  SOL avg=+8.031
+  SOL slScale=1.00: top10 avg=+16.794  SOL avg=+6.650
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: emaP=10 sLB=5 slPct=0.5 slSOL=0.70 slXRP=0.85
+  (c205 고정: dcU=30 dcL=10 adx=25)
+  (c207 고정: aPLB=30 vRat=1.0 vSMA=20 rsiC=100 tpVS=0.5)
+  (c210 고정: trail=2.5 tpM=3.0 slM=1.5 mH=30 aPTh=30 hDec=0)
+  avg OOS Sharpe: +18.682 PASS
+  F3 Sharpe: +15.099 PASS
+  SOL avg Sharpe: +10.482 PASS
+  total trades: 90
+  F1: Sharpe=+18.731  WR=57.1%  trades=42  avg=+3.85%  MDD=-13.03%
+  F2: Sharpe=+22.216  WR=59.0%  trades=39  avg=+2.81%  MDD=-9.27%
+  F3: Sharpe=+15.099  WR=55.6%  trades=9  avg=+1.45%  MDD=-4.60%
+
+Sharpe: +18.682
+WR: 57.2%
+trades: 90
 
 ```
 

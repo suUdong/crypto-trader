@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-04-05 11:50 UTC — bb_squeeze 포트폴리오 리밸런스 (cycle 210)
+
+- **추가**: `bb_squeeze_link_wallet` (paper, ₩500K, KRW-LINK)
+  - 근거: c215 3-fold WF Sharpe +7.151, n=42, WR 58.0%, 슬리피지 robust
+- **비활성화**: `bb_squeeze_sol_wallet` (KRW-SOL)
+  - 근거: c215 개별 Sharpe +1.075 FAIL, F2/F3 마이너스
+
+---
+
 ## 2026-04-03 03:13 UTC — 심볼 교체: accumulation_dood_wallet
 
 - 트리거: `cycle=69 alpha=2.752`
@@ -586,6 +595,126 @@
 
 - 트리거: `cycle=111 alpha=1.518`
 - 변경: `KRW-G` → `KRW-SAFE`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 00:15 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=113 alpha=1.353`
+- 변경: `KRW-GAS` → `KRW-TAO`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 00:15 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=113 alpha=1.353`
+- 변경: `KRW-SAFE` → `KRW-ORBS`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 01:17 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=114 alpha=2.132`
+- 변경: `KRW-TAO` → `KRW-RAY`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 01:17 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=114 alpha=2.132`
+- 변경: `KRW-ORBS` → `KRW-CPOOL`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 02:19 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=115 alpha=2.554`
+- 변경: `KRW-RAY` → `KRW-ONG`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 02:19 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=115 alpha=2.554`
+- 변경: `KRW-CPOOL` → `KRW-RAY`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 06:29 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=119 alpha=2.004`
+- 변경: `KRW-ONG` → `KRW-RAY`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 06:29 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=119 alpha=2.004`
+- 변경: `KRW-RAY` → `KRW-G`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 07:32 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=120 alpha=1.810`
+- 변경: `KRW-G` → `KRW-JST`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 08:36 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=121 alpha=1.836`
+- 변경: `KRW-RAY` → `KRW-GAS`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 08:36 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=121 alpha=1.836`
+- 변경: `KRW-JST` → `KRW-CELO`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 09:40 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=122 alpha=3.012`
+- 변경: `KRW-GAS` → `KRW-ONT`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 09:40 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=122 alpha=3.012`
+- 변경: `KRW-CELO` → `KRW-RAY`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 11:48 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `cycle=124 alpha=1.554`
+- 변경: `KRW-ONT` → `KRW-CELO`
+- ✅ daemon 재시작됨
+
+---
+
+## 2026-04-05 11:48 UTC — 심볼 교체: accumulation_tree_wallet
+
+- 트리거: `cycle=124 alpha=1.554`
+- 변경: `KRW-RAY` → `KRW-TAO`
 - ✅ daemon 재시작됨
 
 ---

@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-ONT"]
+symbols = ["KRW-CELO"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -141,7 +141,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-RAY"]
+symbols = ["KRW-TAO"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -725,11 +725,38 @@ stop_loss_pct = 0.04
 take_profit_pct = 0.15
 risk_per_trade_pct = 0.02
 
+# DISABLED 2026-04-05 cycle 210: bb_squeeze_sol — 개별 3-fold WF Sharpe +1.075 FAIL (F2/F3 마이너스)
+# c215 스크리닝 결과: SOL 개별 OOS 불안정, pooled 기여만 가능. LINK로 교체.
+# [[wallets]]
+# name = "bb_squeeze_sol_wallet"
+# strategy = "bb_squeeze_independent"
+# initial_capital = 500_000.0
+# symbols = ["KRW-SOL"]
+# [wallets.strategy_overrides]
+# squeeze_pctile_th = 40.0
+# squeeze_lb = 15
+# upper_ratio = 0.97
+# adx_threshold = 25.0
+# tp_atr = 5.0
+# sl_atr = 2.0
+# max_hold = 20
+# btc_stealth_gate = true
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.04
+# take_profit_pct = 0.15
+# risk_per_trade_pct = 0.02
+
+# bb_squeeze_link_wallet: c215 개별 심볼 3-fold WF 스크리닝 확정 (2026-04-05 cycle 210)
+# 근거: avg OOS Sharpe +7.151 PASS (n=42, WR 58.0%)
+#   F1: -1.400 | F2: +6.656 | F3: +16.196 (상승추세)
+#   슬리피지 stress: slip=0.0010 → +6.415, slip=0.0020 → +5.751 (robust)
+#   c182 동일 파라미터 적용. paper 30거래 축적 후 live 검토.
 [[wallets]]
-name = "bb_squeeze_sol_wallet"
+name = "bb_squeeze_link_wallet"
 strategy = "bb_squeeze_independent"
 initial_capital = 500_000.0
-symbols = ["KRW-SOL"]
+paper_trading = true
+symbols = ["KRW-LINK"]
 [wallets.strategy_overrides]
 squeeze_pctile_th = 40.0
 squeeze_lb = 15
