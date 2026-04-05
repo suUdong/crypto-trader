@@ -184,6 +184,26 @@
                 }
             ],
             "date": "2026-04-05"
+        },
+        {
+            "cycle": 182,
+            "strategy": "bb_squeeze_independent",
+            "symbol": "ETH/SOL/XRP/DOGE/AVAX basket",
+            "windows": [
+                {
+                    "name": "F1",
+                    "oos": "2024-06-01~2025-03-31"
+                },
+                {
+                    "name": "F2",
+                    "oos": "2024-12-01~2025-09-30"
+                },
+                {
+                    "name": "F3",
+                    "oos": "2025-06-01~2026-04-05"
+                }
+            ],
+            "date": "2026-04-05"
         }
     ]
 }
