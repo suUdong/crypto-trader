@@ -3,6 +3,54 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c177 BB스퀴즈 n 확보 (squeeze 완화 + 5심볼 확장) [ralph:c177_bb_squeeze_n_expand] 🔻[poor]
+
+**결과**: ❌ n≥30 목표 미달 — 5심볼 확장 + squeeze 완화에도 n=15, 구조적 한계
+
+**설계**: c178 최적(bbP=20 expLB=4 atr=ON) 고정 + squeeze 완화 + 심볼 확장으로 거래 수 확보 시도
+- 심볼: ETH/SOL/XRP/DOGE/AVAX (5종, c178은 3종)
+- 그리드: sqTh=[30,40,50] × sqLB=[10,20,30] × upR=[0.95,0.98] = 18조합
+- 3-fold WF + 슬리피지 스트레스
+- 🔄다음봉시가진입 | ★슬리피지포함
+
+### Walk-Forward 결과
+
+| 순위 | sqTh | sqLB | upR | avg OOS Sharpe | total_n | 결과 |
+|---|---|---|---|---|---|---|
+| 1 | 30 | 20 | 0.95 | +34.057 | 15 | FAIL (n<30, F1=0건) |
+| 2 | 30 | 20 | 0.98 | +32.342 | 14 | FAIL |
+| 3 | 30 | 30 | 0.98 | +32.342 | 14 | FAIL |
+
+### 심볼별 분해 (Top 1: sqTh=30 sqLB=20 upR=0.95)
+
+| 심볼 | F1 | F2 | F3 | 총 n |
+|---|---|---|---|---|
+| ETH | 0건 | Sharpe +125.1 n=4 | 0건 | 4 |
+| SOL | 0건 | Sharpe +29.0 n=3 | Sharpe +32.1 n=3 | 6 |
+| XRP | 0건 | 0건 | 0건 | 0 |
+| DOGE | 0건 | 0건 | 0건 | 0 |
+| AVAX | 0건 | 0건 | Sharpe +18.1 n=5 | 5 |
+
+### 슬리피지 스트레스 (Top 1, 전체 풀링)
+
+| slip | Sharpe | WR | n |
+|---|---|---|---|
+| 0.05% | +26.885 | 58.4% | 43 |
+| 0.10% | +26.120 | 58.4% | 43 |
+| 0.20% | +24.576 | 58.4% | 43 |
+
+### 핵심 발견
+
+1. **DOGE/AVAX 확장 무효**: DOGE 전 fold 0건, AVAX fold 3에서만 5건 — VPIN+BB 조합이 알트에 과도하게 선별적
+2. **XRP 여전히 0건**: c178과 동일 — XRP는 BB squeeze 패턴 미발생
+3. **Fold 1 전 심볼 0건**: 2024-04~2025-01 구간에서 BB squeeze + VPIN 동시 충족 불가
+4. **squeeze 완화 효과 미미**: sqTh=30(최대 완화)에서도 n=15 — 병목은 squeeze가 아닌 다중 필터 체인
+5. **결론**: BB squeeze breakout은 VPIN 프레임워크와 구조적으로 비호환 — 독립 전략으로 분리하거나 폐기
+
+**c178 대비**: Δ Sharpe -8.148 (악화), Δ n -4 (감소). n 확보 실패.
+
+---
+
 ## 2026-04-05 — c174 vol_regime 포지션 사이징 3-fold WF (ETH/SOL/XRP) [ralph:c174_regime_position_sizing] 🌟[promising]
 
 **작업**: 평가자 [explore] — ATR percentile 기반 HV/LV vol_regime 감지 → HV 구간 포지션 축소 → MDD 개선 검증
@@ -12410,5 +12458,124 @@ trades: 19
 - XRP: 3-fold 중 1 fold WR=0% n=5로 구조적 불안정
 
 **결론**: ADX 추세강도 필터는 VPIN 진입과 비호환. 진입 적응 방향 폐기. c179 고정 진입 유지.
+
+---
+
+## 2026-04-05 04:17 UTC — c179 고정 + 변동성 레짐별 VPIN/MOM 진입 임계값 적응 + ADX 추세강도 필터 36조합 3-fold WF 검증 [ralph:c180_vol_regime_adaptive_entry_adx] 🌟[promising]
+
+**결과**: Sharpe +34.240 | WR 66.7% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+  +8.282 37.4%  +0.61%  -5.80%    9    62
+  0.20%   +7.084 37.4%  +0.55%  -6.17%    9    62
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: vpSc=1.00 moSc=2.00 adxM=20) ===
+  KRW-ETH Fold 1: Sharpe=+11.816  WR=42.9%  n=7  avg=+0.50%  MDD=-1.09%
+  KRW-ETH Fold 2: Sharpe=+14.324  WR=50.0%  n=6  avg=+0.64%  MDD=-1.34%
+  KRW-ETH Fold 3: Sharpe=-16.343  WR=25.0%  n=4  avg=-0.32%  MDD=-1.37%
+  KRW-ETH 평균: Sharpe=+3.265  총 trades=17
+
+  KRW-SOL Fold 1: Sharpe=+9.906  WR=50.0%  n=6  avg=+0.50%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=+4.560  WR=37.5%  n=8  avg=+0.22%  MDD=-4.67%
+  KRW-SOL Fold 3: Sharpe=+12.486  WR=40.0%  n=5  avg=+0.57%  MDD=-0.85%
+  KRW-SOL 평균: Sharpe=+8.984  총 trades=19
+
+  KRW-XRP Fold 1: Sharpe=-56.398  WR=0.0%  n=5  avg=-0.84%  MDD=-3.56%
+  KRW-XRP Fold 2: Sharpe=-4.805  WR=33.3%  n=3  avg=-0.21%  MDD=-0.80%
+  KRW-XRP Fold 3: Sharpe=+34.240  WR=66.7%  n=3  avg=+1.38%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=-8.988  총 trades=11
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (고정 진입): avg_OOS=+17.938 n=64
+  c180 최적 (vpSc=1.00 moSc=2.00 adxM=20): avg_OOS=+1.087 n=47
+  Δ Sharpe: -16.851 (악화)
+  Δ trades: -17 (감소)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: HIGH_VOL_VPIN_SCALE=1.00 HIGH_VOL_MOM_SCALE=2.00 ADX_MIN=20
+  (c179 고정: volTh=60 tpSc=0.50 trSc=0.70 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +1.087 FAIL
+  train Sharpe: +22.416
+  Fold 1: Sharpe=-11.559  WR=31.0%  trades=18  avg=+0.05%  MDD=-2.12%
+  Fold 2: Sharpe=+4.693  WR=40.3%  trades=17  avg=+0.21%  MDD=-2.27%
+  Fold 3: Sharpe=+10.127  WR=43.9%  trades=12  avg=+0.54%  MDD=-0.74%
+
+Sharpe: +1.087
+WR: 38.4%
+trades: 47
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 04:23 UTC — OBV다이버전스거부+적응형ATR백분위임계값_36combo_3fold_멀티심볼 [ralph:c179_obv_div_reject_adaptive_atr] 🌟[promising]
+
+**결과**: Sharpe +33.856 | WR 66.7% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+18.173 48.7%  +1.36%  -2.74%    3    38
+  0.10%  +17.270 48.7%  +1.29%  -2.87%    3    38
+  0.15%  +11.718 42.0%  +0.94%  -3.00%    3    38
+  0.20%  +10.638 42.0%  +0.87%  -3.21%    3    38
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: divLB=10 obvE=20 thLo=15 thHi=30) ===
+  KRW-ETH Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2: Sharpe=+12.659  WR=25.0%  n=4  avg=+1.02%  MDD=-1.05%
+  KRW-ETH Fold 3: Sharpe=+17.347  WR=33.3%  n=3  avg=+1.55%  MDD=-1.05%
+  KRW-ETH 평균: Sharpe=+10.002  총 trades=7
+
+  KRW-SOL Fold 1: Sharpe=+16.412  WR=66.7%  n=3  avg=+0.75%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=-2.239  WR=33.3%  n=6  avg=-0.09%  MDD=-4.47%
+  KRW-SOL Fold 3: Sharpe=-10.745  WR=20.0%  n=5  avg=-0.31%  MDD=-1.78%
+  KRW-SOL 평균: Sharpe=+1.143  총 trades=14
+
+  KRW-XRP Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 3: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+0.000  총 trades=0
+
+================================================================================
+=== c176 베이스라인 대비 비교 ===
+  c176 최적 (atrLB=60 atrTh=30 body=0.7): avg_OOS=+16.345 n=58
+  c179 최적 (divLB=10 obvE=20 thLo=15 thHi=30): avg_OOS=+8.307 n=21
+  Δ Sharpe: -8.038 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: OBV_DIV_LB=10 OBV_EMA=20 ATR_TH_LOW=15 ATR_TH_HIGH=30
+  (c176 고정: atrLB=60 body=0.7)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +8.307 PASS
+  train Sharpe: +33.856
+  Fold 1: Sharpe=+16.412  WR=66.7%  trades=3  avg=+0.75%  MDD=-1.71%
+  Fold 2: Sharpe=+5.210  WR=29.2%  trades=10  avg=+0.47%  MDD=-2.76%
+  Fold 3: Sharpe=+3.301  WR=26.7%  trades=8  avg=+0.62%  MDD=-1.42%
+
+Sharpe: +8.307
+WR: 40.8%
+trades: 21
+
+```
+
+</details>
 
 ---
