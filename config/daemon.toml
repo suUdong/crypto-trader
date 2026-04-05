@@ -354,6 +354,87 @@ lv_sl_offset = -0.1
 trail_activate_atr_mult = 1.8
 trail_sl_atr_mult = 0.4
 
+# vpin_sol_wallet: c165 vpin_multi 3-fold WF 검증 확정 (2026-04-05 사이클 170)
+# 근거: c165 3-fold avg OOS Sharpe +13.254 (SOL 전 fold 최안정)
+#   F1(BULL): +14.093, F2(혼재): +13.686, F3(BEAR): +12.134
+#   슬리피지 0.20%: +7.271 (전 fold 통과)
+#   c169 검증: regime-adaptive exit 대비 고정 exit가 SOL에서 우월 확인
+# 파라미터: c165 최적 VPIN=0.35 MOM=0.0007 Hold=20 CD=4
+#   ATR fixed exit: TP=5.0 SL=0.3 Trail=1.5/0.4 (RSI-dynamic 중간값)
+[[wallets]]
+name = "vpin_sol_wallet"
+strategy = "vpin"
+initial_capital = 500_000.0
+paper_trading = true
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 8
+max_holding_bars = 20
+vpin_low_threshold = 0.35
+vpin_high_threshold = 0.55
+vpin_momentum_threshold = 0.0007
+vpin_rsi_ceiling = 65.0
+vpin_rsi_floor = 20.0
+rsi_overbought = 75.0
+bucket_count = 24
+ema_trend_period = 20
+ema_weight = 0.5
+adx_threshold = 15.0
+btc_stealth_gate = true
+active_regimes = ["bull", "sideways", "bear"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.008
+take_profit_pct = 0.07
+risk_per_trade_pct = 0.01
+partial_tp_pct = 0.5
+cooldown_bars = 4
+atr_stop_multiplier = 0.0
+atr_tp_multiplier = 5.0
+atr_sl_multiplier = 0.3
+trail_activate_atr_mult = 1.5
+trail_sl_atr_mult = 0.4
+
+# vpin_xrp_wallet: c165 vpin_multi 3-fold WF 검증 (2026-04-05 사이클 170)
+# 근거: c165 3-fold avg OOS Sharpe +8.707 (XRP 안정)
+#   F1: +8.143, F2: +10.853, F3: +9.177
+#   ⚠️ n=27 per fold — 통계적 경계. 초기 포지션 50% 제한 (max_position_pct=0.05)
+#   paper 30거래 축적 후 live 전환 검토
+[[wallets]]
+name = "vpin_xrp_wallet"
+strategy = "vpin"
+initial_capital = 500_000.0
+paper_trading = true
+symbols = ["KRW-XRP"]
+[wallets.strategy_overrides]
+rsi_period = 14
+momentum_lookback = 8
+max_holding_bars = 20
+vpin_low_threshold = 0.35
+vpin_high_threshold = 0.55
+vpin_momentum_threshold = 0.0007
+vpin_rsi_ceiling = 65.0
+vpin_rsi_floor = 20.0
+rsi_overbought = 75.0
+bucket_count = 24
+ema_trend_period = 20
+ema_weight = 0.5
+adx_threshold = 15.0
+btc_stealth_gate = true
+active_regimes = ["bull", "sideways", "bear"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.008
+take_profit_pct = 0.07
+risk_per_trade_pct = 0.01
+partial_tp_pct = 0.5
+cooldown_bars = 4
+atr_stop_multiplier = 0.0
+atr_tp_multiplier = 5.0
+atr_sl_multiplier = 0.3
+trail_activate_atr_mult = 1.5
+trail_sl_atr_mult = 0.4
+max_position_pct = 0.05
+
 # === Capital Allocation Summary (P0 optimization rebalance, 2026-03-29) ===
 # Equity ₩5.7M — diversified across 3 wallets based on 90d backtest optimization
 #

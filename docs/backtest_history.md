@@ -3,6 +3,37 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c170 SOL/XRP 독립 wallet daemon.toml 배포 [ralph:c170_deploy_sol_xrp]
+
+**작업**: 평가자 [deploy] 최우선 과제 — c165 vpin_multi 3-fold WF 검증 기반 SOL/XRP 독립 wallet 추가
+
+**근거**:
+- c165 3-fold WF 검증: avg OOS Sharpe +11.290 (멀티심볼 풀링), 36조합 그리드 최적 VPIN=0.35 MOM=0.0007 Hold=20 CD=4
+- c169 검증: c168 regime-adaptive exit는 ETH 특화, SOL/XRP는 c165 고정 exit가 최적
+- SOL: F1 +14.093 / F2 +13.686 / F3 +12.134 → avg +13.254 (전 fold 최안정)
+- XRP: F1 +8.143 / F2 +10.853 / F3 +9.177 → avg +8.707 (안정, but n=27/fold)
+
+**daemon.toml 변경**:
+
+| wallet | capital | 핵심 파라미터 | 비고 |
+|---|---|---|---|
+| vpin_sol_wallet | ₩500K | VPIN=0.35 MOM=0.0007 Hold=20, ATR TP=5.0 SL=0.3 Trail=1.5/0.4 | paper_trading=true |
+| vpin_xrp_wallet | ₩500K | 동일 + max_position_pct=0.05 (50% 제한) | n=27 리스크 감안 |
+
+**c165 → daemon 파라미터 매핑** (RSI-dynamic → fixed 근사):
+- TP_BASE_ATR=4.0 + TP_BONUS_ATR=2.0 × avg_rsi_ratio(0.5) → atr_tp_multiplier=5.0
+- SL_BASE_ATR=0.4 - SL_BONUS_ATR=0.2 × avg_rsi_ratio(0.5) → atr_sl_multiplier=0.3
+- MIN_PROFIT_ATR=1.5 → trail_activate_atr_mult=1.5
+- TRAIL_BASE_ATR=0.3 + TRAIL_BONUS_ATR=0.2 × (1-0.5) → trail_sl_atr_mult=0.4
+- BTC>SMA200 gate → btc_stealth_gate=true (production equivalent)
+- vol_regime 미사용 (c165 고정 exit — c168 regime-adaptive와 분리)
+
+**검증**: config 로드 ✅, 48/48 safety tests ✅, 382/382 코드 테스트 ✅
+
+**다음 단계**: paper trade 30거래 축적 → live Sharpe / backtest Sharpe 비율 분석 (< 0.5이면 재보정, < 0.3이면 중단)
+
+---
+
 ## 2026-04-05 — c166 vpin_eth RSI vel+vol surge 3-fold WF (BEAR 포함) [ralph:c166_vpin_eth_rsi_vel_vol_3fold] 🔻[poor]
 
 **결과**: ❌ RSI velocity + volume surge 필터 BEAR fold 전면 붕괴 — 추가 필터 무효, c168 베이스라인이 이미 최적
@@ -11641,5 +11672,126 @@ trades: 319
 **B&H 대비**: F3에서 SOL -32.4% XRP -34.9% 하락 구간에서도 전략 Sharpe +9.119 유지
 
 **결론**: c168 regime-adaptive exit는 ETH 특화 효과. 멀티심볼에서는 c165 고정 exit(TP=4.0+2.0 RSI 동적) 대비 marginal 또는 소폭 하락. **BEAR fold(F3)에서만 Δ+0.435 개선**으로, regime-adaptive exit의 BEAR 방어 효과는 확인되었으나 BULL/중립 구간에서의 손실이 상쇄. SOL이 전 fold에서 가장 안정적 (avg Sharpe +13.3). **멀티심볼 daemon 확장 시 c165 고정 exit 유지, ETH만 c168 regime exit 적용이 최적 조합.**
+
+---
+
+## 2026-04-05 02:51 UTC — c166 F2/F3 BEAR 붕괴 방어: BTC 드로다운 게이트(고점 대비 X% 초과시 진입 금지) + ETH/BTC 상대강도 필터(ETH 약세시 차단) 108조합 3-fold WF [ralph:c167_vpin_eth_bear_defense_dd_rs] 🌟[promising]
+
+**결과**: Sharpe +118.832 | WR 100.0% | trades 128
+
+
+<details><summary>raw output</summary>
+
+```
+ 52.5%  +1.73%  -3.95%    5    40
+  0.10%  +20.767 52.5%  +1.66%  -4.20%    5    40
+  0.15%  +19.812 52.5%  +1.58%  -4.45%    5    40
+  0.20%  +19.003 52.5%  +1.51%  -4.70%    5    40
+
+--- #2: ddLB=90 ddMx=0.05 rsLB=30 rsMn=0.01 (avg OOS: +44.371, total_n: 19) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +23.729 53.8%  +1.81%  -3.21%    4    39
+  0.10%  +22.858 53.8%  +1.74%  -3.41%    4    39
+  0.15%  +21.980 53.8%  +1.66%  -3.61%    4    39
+  0.20%  +21.096 53.8%  +1.59%  -3.81%    4    39
+
+--- #3: ddLB=90 ddMx=0.10 rsLB=30 rsMn=0.01 (avg OOS: +43.642, total_n: 24) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +22.566 51.1%  +1.94%  -4.06%    5    47
+  0.10%  +21.816 51.1%  +1.87%  -4.41%    5    47
+  0.15%  +21.061 51.1%  +1.81%  -4.76%    5    47
+  0.20%  +20.488 51.1%  +1.77%  -5.11%    5    47
+
+--- #4: ddLB=90 ddMx=0.05 rsLB=30 rsMn=0.02 (avg OOS: +39.449, total_n: 13) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +26.109 57.1%  +2.11%  -2.95%    2    28
+  0.10%  +25.278 57.1%  +2.04%  -3.05%    2    28
+  0.15%  +24.443 57.1%  +1.97%  -3.33%    2    28
+  0.20%  +23.605 57.1%  +1.90%  -3.63%    2    28
+
+================================================================================
+=== 최종 요약 ===
+★ WF 최고: ddLB=90 ddMx=0.05 rsLB=20 rsMn=0.01
+  (기반: c166 + BTC 드로다운 게이트 + ETH/BTC 상대강도)
+  avg OOS Sharpe: +46.790
+  F1 (BULL): Sharpe=+115.995  WR=100.0%  n=5  avg=+4.61%  MDD=+0.00%  ddF=711  rsF=1099
+  F2 (2025 혼재): Sharpe=+14.223  WR=50.0%  n=12  avg=+1.05%  MDD=-2.95%  ddF=467  rsF=970
+  F3 (★BEAR): Sharpe=+10.152  WR=40.0%  n=5  avg=+0.50%  MDD=-1.40%  ddF=615  rsF=706
+
+  vs c166 베이스라인: Sharpe=+16.161  WR=44.5%  MDD=-13.02%  n=128
+  vs c166 F1: Sharpe=+19.880  WR=50.0%  n=10
+
+  total_n: 22 → ✅ n≥20
+
+Sharpe: +46.790
+WR: 63.3%
+trades: 22
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 02:53 UTC — c165+c167 기반 ATR z-score 급락탈출 overlay (108조합 그리드) [ralph:c172_momentum_sol_atr_zscore_rapid_exit] 🌟[promising]
+
+**결과**: Sharpe +26.241 | WR 77.8% | trades 81
+
+
+<details><summary>raw output</summary>
+
+```
+5 sqTP=1.0 trTi=1.0 ---
+  Fold 1 OOS [2024-07-01~2025-06-30]: Sharpe=+22.963  WR=72.2%  n=18  avg=+2.16%  MDD=-8.60%  zsX=5  BH=+0.2%
+  Fold 2 OOS [2025-07-01~2026-04-01]: Sharpe=+14.753  WR=60.0%  n=10  avg=+1.58%  MDD=-4.02%  zsX=1  BH=-40.0%
+  평균 OOS Sharpe: +18.858 | 최소: +14.753
+
+================================================================================
+=== 슬리피지 스트레스 테스트 (WF Top 3) ===
+
+--- #1: zsLB=120 zsTH=2.0 sqTP=1.0 trTi=1.0 (avg OOS: +20.497) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +12.241 64.5%  +1.37% -17.87%    4    76
+  0.10%  +11.736 64.5%  +1.31% -18.07%    4    76
+  0.15%  +11.116 64.5%  +1.24% -18.26%    4    76
+  0.20%  +11.279 63.2%  +1.28% -18.78%    4    76
+
+--- #2: zsLB=120 zsTH=2.0 sqTP=1.0 trTi=1.5 (avg OOS: +20.497) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +12.241 64.5%  +1.37% -17.87%    4    76
+  0.10%  +11.736 64.5%  +1.31% -18.07%    4    76
+  0.15%  +11.116 64.5%  +1.24% -18.26%    4    76
+  0.20%  +11.279 63.2%  +1.28% -18.78%    4    76
+
+--- #3: zsLB=120 zsTH=2.0 sqTP=1.0 trTi=2.0 (avg OOS: +20.497) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +12.118 64.5%  +1.35% -18.83%    4    76
+  0.10%  +11.605 64.5%  +1.29% -19.47%    4    76
+  0.15%  +10.976 64.5%  +1.22% -20.11%    4    76
+  0.20%  +11.136 63.2%  +1.26% -20.82%    4    76
+
+================================================================================
+=== 최종 요약 ===
+★ WF 최고: zsLB=120 zsTH=2.0 sqTP=1.0 trTi=1.0
+  (기반: c165 EMA gate + c167 BB squeeze + ATR z-score exit)
+  avg OOS Sharpe: +20.497
+  Fold 1: Sharpe=+26.241  WR=77.8%  n=18  MDD=-8.60%  zsX=3  trX=4
+  Fold 2: Sharpe=+14.753  WR=60.0%  n=10  MDD=-4.02%  zsX=1  trX=1
+
+  vs 베이스라인 (no z-score): Sharpe=+8.512  WR=58.4%  MDD=-32.64%  n=77
+
+Sharpe: +20.497
+WR: 68.9%
+trades: 28
+
+```
+
+</details>
 
 ---
