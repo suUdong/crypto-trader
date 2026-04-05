@@ -13726,3 +13726,65 @@ trades: 64
 **결론**: ❌ VPIN multi exit 최적화 라인 **포화 확정**. c192(ttA=6, ttF=3.0, aTPS=0.5)가 exit 메커니즘의 구조적 상한선. 추가 exit 파라미터 탐색 무의미 — 진입 메커니즘 또는 전혀 다른 전략 방향으로 전환 필요.
 
 ---
+
+## 2026-04-05 16:47 UTC — c195 Keltner Channel 돌파 진입게이트 36조합 3-fold WF [ralph:c195_keltner_breakout] ⚠️[neutral]
+
+**결과**: Sharpe +20.475 | WR 53.6% | trades 26 | c179 대비 Δ=-22.403
+
+**설계**: c179 base + Keltner Channel (EMA ± ATR×mult) 상단 돌파 진입 게이트
+**그리드**: KC_ATR_MULT=[1.0,1.5,2.0] × KC_ATR_PERIOD=[14,20] × KC_SQUEEZE_PCTILE=[0,30,50] × KC_CONFIRM_BARS=[1,2] = 36조합
+**심볼**: ETH/SOL/XRP 240m | 🔄다음봉시가진입 | ★슬리피지포함
+
+**최적**: kcM=1.0 kcP=14 sq=0 cb=1
+- F1: Sharpe +24.412 WR 63.3% n=8
+- F2: Sharpe +19.169 WR 60.0% n=10
+- F3: Sharpe +17.845 WR 37.5% n=8
+- 슬리피지 0.20%: +17.426 (PASS)
+- **XRP 전 fold n=0** — Keltner 게이트가 XRP 신호를 완전 차단
+
+**결론**: ❌ c179 대비 악화. Keltner 돌파 게이트가 진입을 과도 필터링 (n=26 유지, Sharpe -22.4). 240m 진입 게이트 추가 방향 효과 없음.
+
+---
+
+## 2026-04-05 16:47 UTC — c196 Momentum Acceleration + Volume Imbalance 진입 강화 36조합 3-fold WF [ralph:c196_mom_accel_vol_imbalance] ⚠️[neutral]
+
+**결과**: Sharpe +17.271 | WR 43.8% | trades 64 | c179 대비 Δ=-25.607
+
+**설계**: c179 base + 모멘텀 가속도(2차미분) + 매수볼륨비율 게이트
+**그리드**: MOM_ACCEL_LB=[3,5,8] × MOM_ACCEL_MIN=[0.0,0.0003] × BUY_IMBAL_LB=[6,12] × BUY_IMBAL_MIN=[0.50,0.55,0.60] = 36조합
+**심볼**: ETH/SOL/XRP 240m | 🔄다음봉시가진입 | ★슬리피지포함
+
+**최적**: maLB=3 maMin=0.0 biLB=6 biMin=0.5
+- **양 게이트 모두 비활성(maMin=0.0, biMin=0.5) 상태가 최적** → 게이트 추가 시 악화
+- F1: Sharpe +14.439 WR 37.1% n=21
+- F2: Sharpe +13.459 WR 44.4% n=23
+- F3: Sharpe +23.914 WR 50.0% n=20
+- 슬리피지 0.20%: +14.052 (PASS)
+
+**결론**: ❌ 모멘텀 가속 / 볼륨 매수비율 게이트 무효. 최적 = 게이트 OFF (c179 동일). 240m VPIN 진입 필터 추가 방향 구조적 한계 확인.
+
+---
+
+## 2026-04-05 16:55 UTC — c197 VPIN ETH 60m 최소필터 (n≥60 확보 목표) [ralph:c197_vpin_eth_60m_minimal] 🔻[poor]
+
+**결과**: Sharpe -13.340 | WR 15.1% | trades 248 | **CATASTROPHIC FAIL**
+
+**설계**: 평가자 지시 "VPIN ETH 60m 타임프레임으로 n≥60 확보" 실행
+핵심 4개 필터만 (VPIN + momentum + RSI range + BTC>SMA200 + price>EMA + vol>SMA)
+**그리드**: VPIN_BUCKETS=[24,48,96] × VPIN_THRESH=[0.30,0.35,0.40] × MOM_LB=[4,8,12] × MAX_HOLD=[20,40,60] = 81조합
+**심볼**: ETH only 60m | 🔄다음봉시가진입 | ★슬리피지포함
+
+**최적**: vB=48 vT=0.35 mL=12 mH=40
+- F1: Sharpe -29.691 WR 9.0% n=67 (BH -1.8%)
+- F2: Sharpe -9.244 WR 15.7% n=89 (BH +48.8%)
+- F3: Sharpe -1.086 WR 20.7% n=92 (BH +16.7%)
+- n=248 (≥60 달성) but 전 fold 음수 Sharpe
+- 슬리피지 stress: 전부 FAIL
+
+**핵심 발견**: **VPIN alpha는 240m(4h) 타임프레임에 구조적으로 귀속됨**. 60m에서는:
+1. BVC-VPIN이 1시간 단위 노이즈에 의한 거짓 불균형 과다 생성
+2. 모멘텀 신호가 4h 대비 잡음비 열악 (WR 15% = 랜덤 이하)
+3. 필터 최소화로도 개선 불가 — 문제는 필터가 아닌 타임프레임 자체
+→ VPIN을 60m/1h로 이식하는 모든 시도 중단 권고. 4h 단일 TF가 VPIN의 최적 해상도.
+
+---

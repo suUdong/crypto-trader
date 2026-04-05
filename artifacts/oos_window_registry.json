@@ -252,6 +252,66 @@
                 }
             ],
             "date": "2026-04-05"
+        },
+        {
+            "cycle": 195,
+            "strategy": "vpin_multi_keltner_breakout",
+            "symbol": "ETH/SOL/XRP",
+            "windows": [
+                {
+                    "name": "F1",
+                    "oos": "2024-04-01~2025-01-31"
+                },
+                {
+                    "name": "F2",
+                    "oos": "2024-10-01~2025-07-31"
+                },
+                {
+                    "name": "F3",
+                    "oos": "2025-04-01~2026-04-05"
+                }
+            ],
+            "date": "2026-04-05"
+        },
+        {
+            "cycle": 196,
+            "strategy": "vpin_multi_mom_accel_vol_imbalance",
+            "symbol": "ETH/SOL/XRP",
+            "windows": [
+                {
+                    "name": "F1",
+                    "oos": "2024-04-01~2025-01-31"
+                },
+                {
+                    "name": "F2",
+                    "oos": "2024-10-01~2025-07-31"
+                },
+                {
+                    "name": "F3",
+                    "oos": "2025-04-01~2026-04-05"
+                }
+            ],
+            "date": "2026-04-05"
+        },
+        {
+            "cycle": 197,
+            "strategy": "vpin_eth_60m_minimal",
+            "symbol": "KRW-ETH",
+            "windows": [
+                {
+                    "name": "F1",
+                    "oos": "2024-04-01~2025-01-31"
+                },
+                {
+                    "name": "F2",
+                    "oos": "2024-10-01~2025-07-31"
+                },
+                {
+                    "name": "F3",
+                    "oos": "2025-04-01~2026-04-05"
+                }
+            ],
+            "date": "2026-04-05"
         }
     ]
 }
