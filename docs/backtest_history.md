@@ -13595,3 +13595,134 @@ trades: 64
 </details>
 
 ---
+
+## 2026-04-05 06:41 UTC — c190베이스+시간감쇠트레일(보유N바후축소)+ATR레짐TP스케일링(고변동성TP확대) 27조합 3-fold WF [ralph:c192_time_decay_trail_atr_tp_scale] 🌟[promising]
+
+**결과**: Sharpe +47.314 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+18.799 52.0%  +1.17%  -2.34%    4    40
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: ttA=6 ttF=3.0 aTPS=0.5) ===
+  KRW-ETH Fold 1: Sharpe=+32.539  WR=75.0%  n=4  avg=+1.96%  MDD=-0.61%
+  KRW-ETH Fold 2: Sharpe=+28.479  WR=75.0%  n=4  avg=+2.46%  MDD=-0.93%
+  KRW-ETH Fold 3: Sharpe=+25.004  WR=50.0%  n=4  avg=+2.29%  MDD=-1.51%
+  KRW-ETH 평균: Sharpe=+28.674  총 trades=12
+
+  KRW-SOL Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-SOL Fold 2: Sharpe=+39.493  WR=75.0%  n=4  avg=+2.62%  MDD=-0.93%
+  KRW-SOL Fold 3: Sharpe=+47.314  WR=75.0%  n=4  avg=+3.59%  MDD=-0.85%
+  KRW-SOL 평균: Sharpe=+28.936  총 trades=8
+
+  KRW-XRP Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2: Sharpe=+4.312  WR=33.3%  n=3  avg=+0.15%  MDD=-0.68%
+  KRW-XRP Fold 3: Sharpe=+36.309  WR=66.7%  n=3  avg=+1.40%  MDD=-0.68%
+  KRW-XRP 평균: Sharpe=+13.540  총 trades=6
+
+================================================================================
+=== c190 베이스라인 대비 비교 ===
+  c190 최적 (vLB=10 vMin=0.05 tpB=1.0): avg_OOS=+29.342 n=26
+  c192 최적 (ttA=6 ttF=3.0 aTPS=0.5): avg_OOS=+30.947 n=26
+  Δ Sharpe: +1.605 (개선)
+  Δ trades: +0 (동일)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: TRAIL_TIGHTEN_AFTER=6 TRAIL_TIGHTEN_FACTOR=3.0 ATR_TP_SCALE_HI=0.5
+  (c190 고정: VOL_MOM_LB=10 VOL_MOM_MIN=0.05 TP_SLOPE_BONUS=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +30.947 PASS
+  train Sharpe: +18.221
+  Fold 1: Sharpe=+32.539  WR=75.0%  trades=4  avg=+1.96%  MDD=-0.61%
+  Fold 2: Sharpe=+24.095  WR=61.1%  trades=11  avg=+1.74%  MDD=-0.85%
+  Fold 3: Sharpe=+36.209  WR=63.9%  trades=11  avg=+2.42%  MDD=-1.01%
+
+Sharpe: +30.947
+WR: 66.7%
+trades: 26
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 06:58 UTC — Q-score를 exit수정 대신 진입게이트로 사용 + SOL 심볼별 적응형 임계값 (c179 exit 100% 유지) [ralph:c193_qscore_entry_gate] 🌟[promising]
+
+**결과**: Sharpe +42.878 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+20: Sharpe=+14.052 WR=43.8% n=64 [PASS]
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: wV=0.3 wR=0.3 wM=0.2 wVol=0.1 qMin=0.2 qSolB=0.0) ===
+  KRW-ETH Fold 1: Sharpe=+11.513  WR=37.5%  n=8  avg=+0.56%  MDD=-1.10%
+  KRW-SOL Fold 1: Sharpe=+19.036  WR=57.1%  n=7  avg=+1.61%  MDD=-1.71%
+  KRW-XRP Fold 1: Sharpe=+12.769  WR=16.7%  n=6  avg=+2.41%  MDD=-2.05%
+  KRW-ETH Fold 2: Sharpe=+21.945  WR=50.0%  n=10  avg=+1.96%  MDD=-1.94%
+  KRW-SOL Fold 2: Sharpe=-2.551  WR=33.3%  n=9  avg=-0.10%  MDD=-4.73%
+  KRW-XRP Fold 2: Sharpe=+20.984  WR=50.0%  n=4  avg=+4.52%  MDD=-2.85%
+  KRW-ETH Fold 3: Sharpe=+17.135  WR=37.5%  n=8  avg=+1.64%  MDD=-3.31%
+  KRW-SOL Fold 3: Sharpe=+11.730  WR=37.5%  n=8  avg=+0.71%  MDD=-1.77%
+  KRW-XRP Fold 3: Sharpe=+42.878  WR=75.0%  n=4  avg=+1.52%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+16.864  총 trades=26
+  KRW-SOL 평균: Sharpe=+9.405  총 trades=24
+  KRW-XRP 평균: Sharpe=+25.544  총 trades=14
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c193 최적 (wV=0.3 wR=0.3 wM=0.2 wVol=0.1 qMin=0.2 qSolB=0.0): avg_OOS=+17.271 n=64
+  Δ Sharpe: -25.607 (악화)
+  Δ trades: +4 (증가)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: wV=0.3 wR=0.3 wM=0.2 wVol=0.1 qMin=0.2 qSolB=0.0
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +17.271 PASS
+  train Sharpe: +19.289
+  Fold 1: Sharpe=+14.439  WR=37.1%  trades=21  avg=+1.52%  MDD=-1.62%
+  Fold 2: Sharpe=+13.459  WR=44.4%  trades=23  avg=+2.13%  MDD=-3.17%
+  Fold 3: Sharpe=+23.914  WR=50.0%  trades=20  avg=+1.29%  MDD=-1.69%
+
+Sharpe: +17.271
+WR: 43.8%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 07:15 UTC — c194 3단계 점진적 트레일 감쇠 + 모멘텀 지속시 홀드 연장 27조합 3-fold WF [ralph:c194_graduated_trail_hold_extend] ⚠️[neutral]
+
+**작업**: c192 base (Sharpe +30.947) + 3단계 트레일 (base→/3.0→/FACTOR2) + 모멘텀 양수시 MAX_HOLD 연장
+**탐색**: ts2A∈{10,12,14} × ts2F∈{4,5,6} × hEB∈{0,4,8} = 27 combos
+
+**결과**: avg OOS Sharpe +30.947 (= c192 baseline, **Δ=0.000**)
+- **27/27 전 조합이 c192와 동일 결과** — 3단계 트레일, 홀드 연장 모두 OOS에서 발동 없음
+- 원인: 기존 trail tighten (6바 후 /3.0)에서 이미 청산 완료 → stage2, hold extend 도달 거래 없음
+- 슬리피지 0.20%: +18.799 (안정)
+
+**결론**: ❌ VPIN multi exit 최적화 라인 **포화 확정**. c192(ttA=6, ttF=3.0, aTPS=0.5)가 exit 메커니즘의 구조적 상한선. 추가 exit 파라미터 탐색 무의미 — 진입 메커니즘 또는 전혀 다른 전략 방향으로 전환 필요.
+
+---
