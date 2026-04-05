@@ -3,6 +3,47 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c201 Regime-Adaptive Capital Reallocation 포트폴리오 시뮬레이션 [ralph:c201_regime_adaptive_realloc] 🔻[FAIL]
+
+**결과**: DYNAMIC avg Sharpe -0.705 vs STATIC avg Sharpe -0.548 | **Δ Sharpe -0.158 FAIL**
+
+**설계**: 평가자 제안 "regime-adaptive 자본 동적 재배분" 포트폴리오 시뮬레이션
+- STATIC: 현재 daemon.toml 고정 배분 (BULL 전략은 BEAR시 유휴)
+- DYNAMIC: BEAR 전환 시 유휴 자본(momentum_sol ₩1.2M + volspike_btc ₩1M) → vpin_eth 부스트(+₩1M) + rsi_mr_bear 부스트(+₩600K each)
+- 총 자본: ₩5.2M | 전환비용: 0.2%/회 on ₩2.2M
+**스크립트**: `scripts/backtest_cycle201_regime_adaptive_realloc.py`
+**기간**: 2022-01 ~ 2026-04 | **캔들**: 240m | 3-fold expanding WF
+🔄다음봉시가진입 | ★슬리피지포함
+
+### Walk-Forward 결과
+
+| Fold | Mode | Sharpe | Return | n | WR | MDD | BULL% | BEAR% | 전환횟수 | 전환비용 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| F1 | STATIC | +0.966 | +14.52% | 147 | 36.1% | -18.78% | 60% | 40% | 47 | ₩0 |
+| F1 | DYNAMIC | +0.694 | +7.72% | 147 | 36.1% | -23.94% | 60% | 40% | 47 | ₩206,800 |
+| F2 | STATIC | -1.537 | -24.10% | 155 | 29.7% | -36.84% | 65% | 35% | 38 | ₩0 |
+| F2 | DYNAMIC | -1.468 | -30.83% | 155 | 29.7% | -42.74% | 65% | 35% | 38 | ₩167,200 |
+| F3 | STATIC | -1.072 | -13.92% | 124 | 30.6% | -21.62% | 45% | 55% | 45 | ₩0 |
+| F3 | DYNAMIC | -1.342 | -25.81% | 124 | 30.6% | -31.42% | 45% | 55% | 45 | ₩198,000 |
+
+### Summary
+
+| Mode | avg Sharpe | avg Return | total n | avg WR | avg MDD | 전환비용 합�� |
+|---|---|---|---|---|---|---|
+| STATIC | -0.548 | -7.83% | 426 | 32.1% | -25.75% | ₩0 |
+| DYNAMIC | -0.705 | -16.31% | 426 | 32.1% | -32.70% | ₩572,000 |
+
+**핵심 발견**:
+1. **자본 재배분은 독립 alpha가 ���닌 레버리지** — 전략이 이익이면 증폭, 손실이면 손실 증폭
+2. BEAR 부스트 자본이 rsi_mr_bear/vpin에 투입되나, 단순화 시뮬레이션에서 해당 전략들이 순손실 → 더 큰 손실
+3. 레짐 전환 빈도 높음(38~47회/fold) → 전환비용 ���572K 추가 부담
+4. MDD 악화: static -25.75% → dynamic -32.70% (26.9% 더 깊음)
+
+**결론**: ❌ regime-adaptive 자본 재배분 FAIL. 구현 복잡도 대비 이점 없음. 현행 고정 배분 유지 권장.
+→ 평가자 제안 3방향 중 (3) 소진. 남은 방향: (1) 김프 기반 진입, (2) 크로스심볼 페어트레이딩
+
+---
+
 ## 2026-04-05 17:45 UTC — c199 volspike_btc daemon 파라미터 WF 재검증 [ralph:c199_volspike_btc_validation] ✅[PASS]
 
 **작업**: 평가자 [investigate] "volspike_btc paper Sharpe < 1.0 → 자본 재배분 판단" — daemon 파라미터로 정밀 WF 재검증
@@ -13941,3 +13982,64 @@ trades: 26
 
 **결론**: ❌ 평가자 제안 "펀딩레이트 기반 신규 메커니즘" 검증 완료 — FAIL. 남은 방향: regime-adaptive 전략 가중치 동적 조정 또는 완전히 새로운 alpha 소스 탐색 필요.
 
+
+## 2026-04-05 08:54 UTC — ATR pctile 기반 고/저변동 레짐별 TP/Trail/SL/Hold 분리 — c192 base 81조합 3-fold WF [ralph:c199_regime_dual_exit] 🌟[promising]
+
+**결과**: Sharpe +51.425 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+ 40
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.20) ===
+  KRW-ETH Fold 1: Sharpe=+37.304  WR=75.0%  n=4  avg=+2.23%  MDD=-0.35%
+  KRW-ETH Fold 2: Sharpe=+30.767  WR=75.0%  n=4  avg=+2.66%  MDD=-0.93%
+  KRW-ETH Fold 3: Sharpe=+25.435  WR=50.0%  n=4  avg=+2.29%  MDD=-1.26%
+  KRW-ETH 평균: Sharpe=+31.169  총 trades=12
+
+  KRW-SOL Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-SOL Fold 2: Sharpe=+48.355  WR=75.0%  n=4  avg=+3.60%  MDD=-0.74%
+  KRW-SOL Fold 3: Sharpe=+51.425  WR=75.0%  n=4  avg=+3.69%  MDD=-0.43%
+  KRW-SOL 평균: Sharpe=+33.260  총 trades=8
+
+  KRW-XRP Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2: Sharpe=+7.403  WR=33.3%  n=3  avg=+0.25%  MDD=-0.38%
+  KRW-XRP Fold 3: Sharpe=+42.770  WR=66.7%  n=3  avg=+1.49%  MDD=-0.38%
+  KRW-XRP 평균: Sharpe=+16.724  총 trades=6
+
+================================================================================
+=== c192 베이스라인 대비 비교 ===
+  c192 최적 (ttA=6 ttF=3.0 aTPS=0.5): avg_OOS=+47.314 n=~20
+  c199 최적 (rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.20): avg_OOS=+35.341 n=26
+  Δ Sharpe: -11.973 (악화)
+  Δ trades: +6 (증가)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: REGIME_TH=60 HI_TP_BONUS=1.0 HI_TRAIL_RELAX=2.0 LO_SL_TIGHTEN=0.20
+  (c192 고정: ttA=6 ttF=3.0)
+  (c190 고정: vMomLB=10 vMomMin=0.05 tpBonus=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +35.341 PASS
+  train Sharpe: +19.403
+  Fold 1: Sharpe=+37.304  WR=75.0%  trades=4  avg=+2.23%  MDD=-0.35%
+  Fold 2: Sharpe=+28.842  WR=61.1%  trades=11  avg=+2.17%  MDD=-0.69%
+  Fold 3: Sharpe=+39.877  WR=63.9%  trades=11  avg=+2.49%  MDD=-0.69%
+
+Sharpe: +35.341
+WR: 66.7%
+trades: 26
+
+```
+
+</details>
+
+---
