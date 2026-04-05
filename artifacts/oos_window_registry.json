@@ -104,6 +104,26 @@
         }
       ],
       "date": "2026-04-05"
+    },
+    {
+      "cycle": 164,
+      "strategy": "regime_switch_bear_defense",
+      "symbol": "ETH/SOL/XRP/AVAX basket",
+      "windows": [
+        {
+          "name": "F1",
+          "oos": "2024-01-01~2024-12-31"
+        },
+        {
+          "name": "F2",
+          "oos": "2025-01-01~2025-12-31"
+        },
+        {
+          "name": "F3",
+          "oos": "2026-01-01~2026-04-05"
+        }
+      ],
+      "date": "2026-04-05"
     }
   ]
 }
