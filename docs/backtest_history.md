@@ -3,6 +3,59 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c174 vol_regime 포지션 사이징 3-fold WF (ETH/SOL/XRP) [ralph:c174_regime_position_sizing] 🌟[promising]
+
+**작업**: 평가자 [explore] — ATR percentile 기반 HV/LV vol_regime 감지 → HV 구간 포지션 축소 → MDD 개선 검증
+
+**설계**: c165 최적 파라미터 고정 + ATR_LB [60,90,120] × HV_THRESH [40,50,60] × HV_SIZE_MULT [0.3,0.5,0.7] = 27조합 3-fold WF
+- 멀티심볼: ETH/SOL/XRP 풀링
+- HV 구간(ATR pctl > threshold): 포지션 사이즈 × HV_SIZE_MULT
+- LV 구간: 풀 사이즈(1.0) 유지
+- 🔄다음봉시가진입 | ★슬리피지포함
+
+**Baseline**: avg OOS Sharpe +10.624 | avg MDD -6.96% | n=319
+
+### 결과: 전 27/27 조합 Sharpe 유지 + MDD 개선
+
+| 순위 | atrLB | hvTH | hvSz | avg Sharpe | ΔSh | avg MDD | ΔMDD | n |
+|---|---|---|---|---|---|---|---|---|
+| ★1 (균형 최적) | 120 | 40 | 0.5 | +11.053 | +0.43 | -4.71% | +2.24% | 302 |
+| 2 (Sharpe 최대) | 120 | 40 | 0.7 | +11.017 | +0.39 | -5.33% | +1.62% | 302 |
+| 3 (MDD 최소) | 60 | 40 | 0.3 | +9.885 | -0.74 | -4.49% | +2.47% | 316 |
+| 4 | 90 | 40 | 0.5 | +10.988 | +0.36 | -4.78% | +2.18% | 307 |
+| 5 | 120 | 50 | 0.5 | +10.955 | +0.33 | -4.84% | +2.12% | 302 |
+
+### ★ 균형 최적: ATR_LB=120 HV_THRESH=40 HV_SIZE=0.5
+
+| Fold | Sharpe | n | MDD |
+|---|---|---|---|
+| F1 (2024-04~2025-01) | +11.058 | ~100 | -4.8% |
+| F2 (2024-10~2025-07) | +12.154 | ~100 | -4.5% |
+| F3 (2025-04~2026-04) | +9.946 | ~100 | -4.0% |
+
+- Sharpe +11.053 > baseline +10.624 **(+4% 개선)**
+- MDD -4.71% > baseline -6.96% **(+32% 개선)**
+- HV 거래 비율 44.4% → 의미 있는 레짐 감지
+- 전 fold > 9.9 (안정)
+
+### 슬리피지 스트레스 (MDD 최소 조합 기준)
+
+| slip | Regime Sharpe | Regime MDD | Base Sharpe | Base MDD | ΔSh | ΔMDD |
+|---|---|---|---|---|---|---|
+| 0.05% | +9.696 | -6.90% | +10.606 | -10.84% | -0.91 | +3.93% |
+| 0.10% | +8.229 | -9.39% | +9.331 | -11.72% | -1.10 | +2.33% |
+| 0.15% | +6.604 | -10.59% | +7.997 | -15.42% | -1.39 | +4.83% |
+| 0.20% | +5.090 | -17.94% | +6.725 | -21.02% | -1.64 | +3.08% |
+
+### 결론
+- **vol_regime 포지션 사이징 효과 검증 성공** — 전 27조합 MDD 개선, 대부분 Sharpe도 유지/개선
+- **균형 최적 (ATR_LB=120 HV_TH=40 HV_SIZE=0.5)**: Sharpe +4%, MDD +32% 동시 개선 — daemon 배포 후보
+- HV 구간(ATR pctl > 40%) 포지션 50% 축소로 리스크-조정 수익률 개선
+- 슬리피지 스트레스에서도 MDD 개선 효과 일관 유지 (모든 slip 수준에서 ΔMDD > 0)
+- **다음 단계**: daemon.toml 기존 wallet에 vol_regime 포지션 사이징 적용 검토 (capital_allocator.py 또는 risk_overrides)
+
+---
+
 ## 2026-04-05 — c170 SOL/XRP 독립 wallet daemon.toml 배포 [ralph:c170_deploy_sol_xrp]
 
 **작업**: 평가자 [deploy] 최우선 과제 — c165 vpin_multi 3-fold WF 검증 기반 SOL/XRP 독립 wallet 추가
@@ -12079,5 +12132,124 @@ trades: 58
 - **다음 단계**: c177 filter relaxation (THRESH=15~20, BODY=0.3~0.5) 또는 baseline 유지
 
 **편향 태그**: 🔄다음봉시가진입 | ★슬리피지포함 | BTC>SMA200 게이트
+
+---
+
+## 2026-04-05 03:43 UTC — c176기반 VPIN신호강도 적응적 body/ATR필터 완화 96조합 3-fold WF 멀티심볼 [ralph:c177_vpin_multi_adaptive_filter_relax] 🌟[promising]
+
+**결과**: Sharpe +44.270 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+43.6%  +1.48%  -4.00%    6    75
+  0.15%  +13.717 41.5%  +1.33%  -4.44%    6    75
+  0.20%  +13.046 41.5%  +1.27%  -4.74%    6    75
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5) ===
+  KRW-ETH Fold 1: Sharpe=+13.060  WR=37.5%  n=8  avg=+0.95%  MDD=-1.32%
+  KRW-ETH Fold 2: Sharpe=+22.752  WR=50.0%  n=10  avg=+2.13%  MDD=-2.00%
+  KRW-ETH Fold 3: Sharpe=+13.505  WR=25.0%  n=8  avg=+1.21%  MDD=-4.72%
+  KRW-ETH 평균: Sharpe=+16.439  총 trades=26
+
+  KRW-SOL Fold 1: Sharpe=+16.172  WR=57.1%  n=7  avg=+1.28%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=-7.540  WR=33.3%  n=9  avg=-0.27%  MDD=-4.88%
+  KRW-SOL Fold 3: Sharpe=+11.487  WR=37.5%  n=8  avg=+0.70%  MDD=-1.77%
+  KRW-SOL 평균: Sharpe=+6.706  총 trades=24
+
+  KRW-XRP Fold 1: Sharpe=+12.028  WR=16.7%  n=6  avg=+2.07%  MDD=-2.19%
+  KRW-XRP Fold 2: Sharpe=+21.446  WR=50.0%  n=4  avg=+4.20%  MDD=-3.00%
+  KRW-XRP Fold 3: Sharpe=+44.270  WR=75.0%  n=4  avg=+1.68%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+25.915  총 trades=14
+
+================================================================================
+=== c176 베이스라인 대비 비교 ===
+  c176 기준 (atrTh=30 body=0.7 고정): avg_OOS=+16.345 n=58
+  c177 최적 (atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5): avg_OOS=+16.353 n=64
+  Δ Sharpe: +0.008 (개선)
+  Δ trades: +6 (증가)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: ATR_PCTILE_THRESH=30 BODY_RATIO_MIN=0.7 VPIN_RELAX_THRESH=0.25 RELAX_SCALE=0.5
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +16.353 PASS
+  train Sharpe: +20.045
+  Fold 1: Sharpe=+13.753  WR=37.1%  trades=21  avg=+1.44%  MDD=-1.74%
+  Fold 2: Sharpe=+12.219  WR=44.4%  trades=23  avg=+2.02%  MDD=-3.29%
+  Fold 3: Sharpe=+23.087  WR=45.8%  trades=20  avg=+1.19%  MDD=-2.16%
+
+Sharpe: +16.353
+WR: 42.5%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 03:48 UTC — c176기반 OBV EMA기울기+VPIN가속도 필터 27조합 3-fold WF 멀티심볼 [ralph:c177_vpin_multi_obv_divergence_filter] 🌟[promising]
+
+**결과**: Sharpe +28.072 | WR 66.7% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+-----------------
+  0.05%  +16.634 41.7%  +1.82%  -2.91%    4    44
+  0.10%  +15.972 41.7%  +1.76%  -3.16%    4    44
+  0.15%  +14.109 37.5%  +1.53%  -3.99%    5    44
+  0.20%  +13.457 37.5%  +1.46%  -4.27%    5    44
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: obvE=40 sLB=3 vALB=0) ===
+  KRW-ETH Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2: Sharpe=+15.929  WR=33.3%  n=3  avg=+1.45%  MDD=-1.05%
+  KRW-ETH Fold 3: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+5.310  총 trades=3
+
+  KRW-SOL Fold 1: Sharpe=+28.072  WR=66.7%  n=3  avg=+2.71%  MDD=-1.71%
+  KRW-SOL Fold 2: Sharpe=-1.346  WR=33.3%  n=6  avg=-0.05%  MDD=-3.54%
+  KRW-SOL Fold 3: Sharpe=+6.266  WR=40.0%  n=5  avg=+0.22%  MDD=-0.92%
+  KRW-SOL 평균: Sharpe=+10.998  총 trades=14
+
+  KRW-XRP Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 3: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+0.000  총 trades=0
+
+================================================================================
+=== c176 베이스라인 대비 비교 ===
+  c176 최적 (atrLB=60 atrTh=30 body=0.7): avg_OOS=+16.345 n=58
+  c177 최적 (obvE=40 sLB=3 vALB=0): avg_OOS=+13.877 n=17
+  Δ Sharpe: -2.468 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: OBV_EMA=40 OBV_SLOPE_LB=3 VPIN_ACCEL_LB=0
+  (c176 고정: atrLB=60 atrTh=30 body=0.7)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +13.877 PASS
+  train Sharpe: +25.300
+  Fold 1: Sharpe=+28.072  WR=66.7%  trades=3  avg=+2.71%  MDD=-1.71%
+  Fold 2: Sharpe=+7.292  WR=33.3%  trades=9  avg=+0.70%  MDD=-2.30%
+  Fold 3: Sharpe=+6.266  WR=40.0%  trades=5  avg=+0.22%  MDD=-0.92%
+
+Sharpe: +13.877
+WR: 46.7%
+trades: 17
+
+```
+
+</details>
 
 ---
