@@ -11528,3 +11528,86 @@ trades: 25
 **다음**: (1) 평가자 [explore] "하락 속도 기반 동적 헤지 (ATR-normalized z-score < -2.0 즉시 청산)" 탐색, (2) c168 daemon 코드 구현 (trailing+regime hold production 코드)
 
 ---
+
+## 2026-04-05 02:31 UTC — c164 기반 멀티심볼(ETH+SOL+XRP) 3-fold WF 확장, OOS Sharpe +11.290 WR 34.4% trades 319 전 조합 PASS [ralph:c165_vpin_multi_3fold_entry_relax] 🌟[promising]
+
+**결과**: Sharpe +15.324 | WR 43.3% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+ +0.75% -10.35%   10   480
+  0.15%   +7.931 30.5%  +0.64% -12.00%   14   484
+  0.20%   +6.535 29.1%  +0.54% -15.19%   14   489
+
+--- #3: VPIN=0.35 MOM=0.0007 Hold=24 CD=4 (avg OOS: +11.186) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +10.562 33.0%  +0.85%  -8.90%   10   469
+  0.10%   +9.189 31.7%  +0.74% -10.94%   10   477
+  0.15%   +7.848 30.5%  +0.64% -12.21%   14   481
+  0.20%   +6.605 29.2%  +0.55% -14.82%   14   487
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: VPIN=0.35 MOM=0.0007 Hold=20 CD=4) ===
+  KRW-ETH Fold 1: Sharpe=+13.263  WR=31.4%  n=35  avg=+0.87%  MDD=-4.03%
+  KRW-ETH Fold 2: Sharpe=+14.132  WR=37.2%  n=43  avg=+0.98%  MDD=-5.79%
+  KRW-ETH Fold 3: Sharpe=+8.331  WR=30.8%  n=39  avg=+0.49%  MDD=-5.79%
+  KRW-ETH 평균: Sharpe=+11.909  총 trades=117
+
+  KRW-SOL Fold 1: Sharpe=+15.324  WR=43.3%  n=30  avg=+1.29%  MDD=-3.54%
+  KRW-SOL Fold 2: Sharpe=+14.967  WR=40.5%  n=37  avg=+1.25%  MDD=-6.58%
+  KRW-SOL Fold 3: Sharpe=+9.470  WR=31.6%  n=38  avg=+0.58%  MDD=-3.18%
+  KRW-SOL 평균: Sharpe=+13.254  총 trades=105
+
+  KRW-XRP Fold 1: Sharpe=+8.321  WR=25.0%  n=36  avg=+1.01%  MDD=-7.40%
+  KRW-XRP Fold 2: Sharpe=+9.551  WR=32.4%  n=34  avg=+1.19%  MDD=-7.69%
+  KRW-XRP Fold 3: Sharpe=+8.250  WR=37.0%  n=27  avg=+0.35%  MDD=-4.15%
+  KRW-XRP 평균: Sharpe=+8.707  총 trades=97
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: VPIN_LOW=0.35 MOM_THRESH=0.0007 MAX_HOLD=20 CD=4
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +11.290 PASS
+  train Sharpe: +11.710
+  Fold 1: Sharpe=+12.303  WR=33.3%  trades=101  avg=+1.05%  MDD=-4.99%
+  Fold 2: Sharpe=+12.883  WR=36.7%  trades=114  avg=+1.14%  MDD=-6.68%
+  Fold 3: Sharpe=+8.684  WR=33.1%  trades=104  avg=+0.47%  MDD=-4.37%
+
+Sharpe: +11.290
+WR: 34.4%
+trades: 319
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 04:00 UTC — c168: daemon 코드 구현 — ATR regime-adaptive TP/SL + trailing stop [ralph:c168_daemon_impl]
+
+**결과**: production 코드 구현 완료 (코드 변경, 백테스트 아님)
+
+**목적**: c168 vpin_eth trailing+regime hold (81/81 WF 통과, avg OOS +14.111, F3 BEAR Sharpe +9.443) 전략을 daemon production 코드에 구현
+
+**변경 파일**:
+- `src/crypto_trader/config.py`: RiskConfig에 13개 regime-adaptive 필드 추가 (vol_regime_lookback, vol_regime_threshold, hv/lv_hold_bars, atr_tp/sl_multiplier, hv/lv_tp/sl_offset, trail_activate/sl_atr_mult)
+- `src/crypto_trader/risk/manager.py`: ATR percentile 기반 vol regime 감지, regime-adaptive hold/TP/SL, ATR 기반 trailing stop activation
+- `src/crypto_trader/wallet.py`: strategy_config.max_holding_bars를 RiskManager에 전달
+- `src/crypto_trader/cli.py`: 동일하게 max_holding_bars 전달
+- `config/daemon.toml`: vpin_eth_wallet에 c168 3-fold 최적 파라미터 반영
+
+**핵심 구현**:
+1. ATR percentile 기반 vol regime 감지 (lookback=90, threshold=50%)
+2. Regime-adaptive hold: HV=24봉, LV=12봉 (기존 fixed 18봉)
+3. Regime-adaptive ATR TP/SL: HV=TP 4.0×/SL 0.7×, LV=TP 2.5×/SL 0.4× (기존 단일 1.5× 2:1)
+4. ATR trailing stop: 1.8×ATR profit 달성 후 활성, 0.4×ATR 거리 trailing (기존 비활성)
+
+**파라미터 (c168 3-fold 최적)**: hvH=24 lvH=12 trA=1.8 trSL=0.4, BASE_TP=3.0 BASE_SL=0.5, HV_TP+1.0 HV_SL+0.2 LV_TP-0.5 LV_SL-0.1
+
+**검증**: 33/33 risk 테스트 통과, mypy clean, ruff clean
+
+---

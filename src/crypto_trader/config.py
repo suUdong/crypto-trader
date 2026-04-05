@@ -84,6 +84,19 @@ class RiskConfig:
     partial_tp_pct: float = 0.5
     cooldown_bars: int = 3
     max_position_pct: float = SAFE_DEFAULT_MAX_POSITION_PCT
+    # Volatility regime-adaptive parameters (all 0 = disabled/use defaults)
+    vol_regime_lookback: int = 0
+    vol_regime_threshold: int = 50
+    hv_hold_bars: int = 0
+    lv_hold_bars: int = 0
+    atr_tp_multiplier: float = 0.0
+    atr_sl_multiplier: float = 0.0
+    hv_tp_offset: float = 0.0
+    hv_sl_offset: float = 0.0
+    lv_tp_offset: float = 0.0
+    lv_sl_offset: float = 0.0
+    trail_activate_atr_mult: float = 0.0
+    trail_sl_atr_mult: float = 0.0
 
 
 @dataclass(slots=True)

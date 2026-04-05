@@ -60,6 +60,7 @@ def _build_risk_manager(config) -> RiskManager:
         config.risk,
         trailing_stop_pct=config.risk.trailing_stop_pct,
         atr_stop_multiplier=config.risk.atr_stop_multiplier,
+        max_holding_bars=config.strategy.max_holding_bars,
     )
 
 

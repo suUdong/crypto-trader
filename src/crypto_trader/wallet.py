@@ -823,10 +823,12 @@ def build_wallets(config: AppConfig) -> list[StrategyWallet]:
                     wc.strategy_overrides.get("maker_fee_rate", config.backtest.fee_rate)
                 ),
             )
+        strategy_hold = strategy_config.max_holding_bars
         risk_manager = RiskManager(
             risk_config,
             trailing_stop_pct=risk_config.trailing_stop_pct,
             atr_stop_multiplier=risk_config.atr_stop_multiplier,
+            max_holding_bars=strategy_hold,
         )
         wallets.append(StrategyWallet(wc, strategy, broker, risk_manager))
     return wallets

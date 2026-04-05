@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-GAS"]
+symbols = ["KRW-ONG"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -141,7 +141,7 @@ risk_per_trade_pct = 0.02
 name = "accumulation_tree_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-SAFE"]
+symbols = ["KRW-RAY"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -305,13 +305,12 @@ risk_per_trade_pct = 0.01
 atr_stop_multiplier = 1.5
 partial_tp_pct = 0.5
 
-# vpin_eth_wallet: 2026-04-03 그리드 최적화 Sharpe +7.461 WR 27.6%
-# UPDATED: TP 4%→6%, SL 1.2%→0.8%, max_hold 24→18, vpin_mom 0.0003→0.0005
-# UPDATED 2026-04-05 사이클 152: TP 6%→7% — WF avg OOS +8.379 > +7.625 (Δ+0.754)
-#   근거: TP=7%/SL=0.8% F1=+8.015(n=93) F2=+8.744(n=67) ✅ 양 Fold 통과
-#   슬리피지 0.10%까지 Sharpe≥5.0, 전 수준에서 TP=6% 대비 우세
-#   연도별: 2022만 TP=6% 소폭 우세(-1.091), 2023~2026 TP=7% 압도
-#   이전값: TP=0.06
+# vpin_eth_wallet: c168 trailing+regime hold (3-fold WF 81/81 통과)
+# UPDATED 2026-04-05 사이클 168: ATR regime-adaptive TP/SL + trailing stop
+#   근거: c168 3-fold 최적 hvH=24 lvH=12 trA=1.8 trSL=0.4
+#   avg OOS Sharpe +14.111, F3 BEAR(BH=-46%) Sharpe +9.443
+#   슬리피지 0.20%에서도 +12.2 유지
+#   이전값: fixed TP=7% SL=0.8% atr_stop_multiplier=1.5 max_hold=18
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
@@ -320,7 +319,7 @@ symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
 momentum_lookback = 8
-max_holding_bars = 18
+max_holding_bars = 36
 vpin_low_threshold = 0.35
 vpin_high_threshold = 0.55
 vpin_momentum_threshold = 0.0005
@@ -339,7 +338,21 @@ take_profit_pct = 0.07
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
-atr_stop_multiplier = 1.5
+atr_stop_multiplier = 0.0
+# c168 regime-adaptive ATR TP/SL (BASE + regime offset)
+atr_tp_multiplier = 3.0
+atr_sl_multiplier = 0.5
+vol_regime_lookback = 90
+vol_regime_threshold = 50
+hv_hold_bars = 24
+lv_hold_bars = 12
+hv_tp_offset = 1.0
+hv_sl_offset = 0.2
+lv_tp_offset = -0.5
+lv_sl_offset = -0.1
+# c168 ATR trailing stop (activate after 1.8×ATR profit, trail at 0.4×ATR)
+trail_activate_atr_mult = 1.8
+trail_sl_atr_mult = 0.4
 
 # === Capital Allocation Summary (P0 optimization rebalance, 2026-03-29) ===
 # Equity ₩5.7M — diversified across 3 wallets based on 90d backtest optimization

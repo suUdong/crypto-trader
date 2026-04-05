@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections import deque
 
 from crypto_trader.config import (
     HARD_MAX_DAILY_LOSS_PCT,
@@ -39,6 +40,10 @@ class RiskManager:
         self._consecutive_wins: int = 0
         self._paused: bool = False
         self._edge_schedule = edge_schedule or EdgeSchedule()
+        # Volatility regime tracking
+        vol_lookback = config.vol_regime_lookback
+        self._atr_history: deque[float] = deque(maxlen=vol_lookback if vol_lookback > 0 else 1)
+        self._is_high_vol: bool = False
 
     def set_atr(self, atr: float) -> None:
         """Update current ATR for dynamic stop calculation."""
@@ -55,6 +60,23 @@ class RiskManager:
             self._current_atr = average_true_range(highs, lows, closes, period)
         except ValueError:
             return
+        if self._config.vol_regime_lookback > 0:
+            self._atr_history.append(self._current_atr)
+            self._update_vol_regime()
+
+    def _update_vol_regime(self) -> None:
+        """Classify current volatility regime by ATR percentile."""
+        if len(self._atr_history) < 2:
+            self._is_high_vol = False
+            return
+        current = self._atr_history[-1]
+        count_below = sum(1 for a in self._atr_history if a <= current)
+        pctl = count_below / len(self._atr_history) * 100
+        self._is_high_vol = pctl > self._config.vol_regime_threshold
+
+    @property
+    def is_high_vol(self) -> bool:
+        return self._is_high_vol
 
     def record_trade(self, pnl_pct: float) -> None:
         """Record a completed trade's return percentage for Kelly calculation."""
@@ -339,6 +361,27 @@ class RiskManager:
             >= max_daily_loss_pct
         )
 
+    def _effective_hold_bars(self) -> int:
+        """Return regime-adaptive max holding bars."""
+        cfg = self._config
+        if cfg.vol_regime_lookback > 0 and cfg.hv_hold_bars > 0 and cfg.lv_hold_bars > 0:
+            return cfg.hv_hold_bars if self._is_high_vol else cfg.lv_hold_bars
+        return self._max_holding_bars
+
+    def _regime_atr_multipliers(self) -> tuple[float, float]:
+        """Return (sl_mult, tp_mult) adjusted for volatility regime."""
+        cfg = self._config
+        sl_mult = cfg.atr_sl_multiplier
+        tp_mult = cfg.atr_tp_multiplier
+        if cfg.vol_regime_lookback > 0:
+            if self._is_high_vol:
+                sl_mult += cfg.hv_sl_offset
+                tp_mult += cfg.hv_tp_offset
+            else:
+                sl_mult += cfg.lv_sl_offset
+                tp_mult += cfg.lv_tp_offset
+        return sl_mult, tp_mult
+
     def exit_reason(
         self,
         position: Position,
@@ -349,10 +392,11 @@ class RiskManager:
         position.update_watermark(price)
 
         pnl_pct = position.pnl_pct(price)
+        effective_hold = self._effective_hold_bars()
 
         # Time-decay exit: graduated — close sooner if deeper underwater
-        if holding_bars > 0 and self._max_holding_bars > 0:
-            bar_ratio = holding_bars / self._max_holding_bars
+        if holding_bars > 0 and effective_hold > 0:
+            bar_ratio = holding_bars / effective_hold
             # At 60% of max bars: exit if loss > 1.5%
             # At 75% of max bars: exit if any loss
             if bar_ratio >= 0.60 and pnl_pct < -0.015:
@@ -370,19 +414,31 @@ class RiskManager:
         if watermark_gain >= 0.012 and breakeven_touched:
             return "breakeven_stop"
 
-        # ATR-based dynamic stops (if ATR available and multiplier set)
-        if self._atr_stop_multiplier > 0 and self._current_atr > 0:
+        # Regime-adaptive ATR stops (separate TP/SL multipliers)
+        cfg = self._config
+        if cfg.atr_tp_multiplier > 0 and cfg.atr_sl_multiplier > 0 and self._current_atr > 0:
+            sl_mult, tp_mult = self._regime_atr_multipliers()
+            atr_sl_dist = self._current_atr * sl_mult
+            atr_tp_dist = self._current_atr * tp_mult
+            if position.is_short:
+                stop_hit = price >= position.entry_price + atr_sl_dist
+                tp_hit = price <= position.entry_price - atr_tp_dist
+            else:
+                stop_hit = price <= position.entry_price - atr_sl_dist
+                tp_hit = price >= position.entry_price + atr_tp_dist
+            if stop_hit:
+                return "atr_stop_loss"
+            if tp_hit:
+                return "atr_take_profit"
+        elif self._atr_stop_multiplier > 0 and self._current_atr > 0:
+            # Legacy: single multiplier with 2:1 reward:risk
             atr_stop_distance = self._current_atr * self._atr_stop_multiplier
             if position.is_short:
-                atr_stop_price = position.entry_price + atr_stop_distance
-                atr_tp_price = position.entry_price - atr_stop_distance * 2.0
-                stop_hit = price >= atr_stop_price
-                tp_hit = price <= atr_tp_price
+                stop_hit = price >= position.entry_price + atr_stop_distance
+                tp_hit = price <= position.entry_price - atr_stop_distance * 2.0
             else:
-                atr_stop_price = position.entry_price - atr_stop_distance
-                atr_tp_price = position.entry_price + atr_stop_distance * 2.0  # 2:1 reward:risk
-                stop_hit = price <= atr_stop_price
-                tp_hit = price >= atr_tp_price
+                stop_hit = price <= position.entry_price - atr_stop_distance
+                tp_hit = price >= position.entry_price + atr_stop_distance * 2.0
             if stop_hit:
                 return "atr_stop_loss"
             if tp_hit:
@@ -391,52 +447,65 @@ class RiskManager:
             # Fixed percentage stops (tightened on losing streaks)
             if position.is_short:
                 stop_loss_price = position.entry_price * (1.0 + self.effective_stop_loss_pct)
-                take_profit_price = position.entry_price * (1.0 - self._config.take_profit_pct)
+                take_profit_price = position.entry_price * (1.0 - cfg.take_profit_pct)
                 stop_hit = price >= stop_loss_price
                 take_profit_hit = price <= take_profit_price
-                half_tp_price = position.entry_price * (
-                    1.0 - self._config.take_profit_pct * 0.5
-                )
+                half_tp_price = position.entry_price * (1.0 - cfg.take_profit_pct * 0.5)
                 half_tp_hit = price <= half_tp_price
             else:
                 stop_loss_price = position.entry_price * (1.0 - self.effective_stop_loss_pct)
-                take_profit_price = position.entry_price * (1.0 + self._config.take_profit_pct)
+                take_profit_price = position.entry_price * (1.0 + cfg.take_profit_pct)
                 stop_hit = price <= stop_loss_price
                 take_profit_hit = price >= take_profit_price
-                half_tp_price = position.entry_price * (
-                    1.0 + self._config.take_profit_pct * 0.5
-                )
+                half_tp_price = position.entry_price * (1.0 + cfg.take_profit_pct * 0.5)
                 half_tp_hit = price >= half_tp_price
             if stop_hit:
                 return "stop_loss"
 
             # Partial take-profit: sell a fraction at halfway to TP target
-            partial_tp_pct = self._config.partial_tp_pct
-            if partial_tp_pct > 0:
+            if cfg.partial_tp_pct > 0:
                 if half_tp_hit and not position.partial_tp_taken:
                     return "partial_take_profit"
 
             if take_profit_hit:
                 return "take_profit"
 
-        # Trailing stop: exit when price drops trailing_pct below high watermark
-        # After partial TP, auto-activate trailing stop at 2% if not already set
-        effective_trailing = self._trailing_stop_pct
-        if position.partial_tp_taken and effective_trailing <= 0:
-            effective_trailing = 0.02  # 2% trailing after partial TP
-        if effective_trailing > 0:
-            if position.is_short and position.high_watermark < position.entry_price:
-                trailing_stop_price = position.high_watermark * (1.0 + effective_trailing)
-                if price >= trailing_stop_price:
+        # ATR-based trailing stop with activation threshold
+        if (
+            cfg.trail_activate_atr_mult > 0
+            and cfg.trail_sl_atr_mult > 0
+            and self._current_atr > 0
+        ):
+            atr_pct = self._current_atr / position.entry_price
+            activate_pct = atr_pct * cfg.trail_activate_atr_mult
+            trail_dist = atr_pct * cfg.trail_sl_atr_mult
+            if not position.is_short and watermark_gain >= activate_pct:
+                trail_stop_price = position.high_watermark * (1.0 - trail_dist)
+                if price <= trail_stop_price:
                     return "trailing_stop"
-            if not position.is_short and position.high_watermark > position.entry_price:
-                trailing_stop_price = position.high_watermark * (1.0 - effective_trailing)
-                if price <= trailing_stop_price:
+            elif position.is_short and watermark_gain >= activate_pct:
+                trail_stop_price = position.high_watermark * (1.0 + trail_dist)
+                if price >= trail_stop_price:
                     return "trailing_stop"
+        else:
+            # Legacy trailing stop: fixed percentage
+            effective_trailing = self._trailing_stop_pct
+            if position.partial_tp_taken and effective_trailing <= 0:
+                effective_trailing = 0.02  # 2% trailing after partial TP
+            if effective_trailing > 0:
+                if position.is_short and position.high_watermark < position.entry_price:
+                    trailing_stop_price = position.high_watermark * (1.0 + effective_trailing)
+                    if price >= trailing_stop_price:
+                        return "trailing_stop"
+                if not position.is_short and position.high_watermark > position.entry_price:
+                    trailing_stop_price = position.high_watermark * (1.0 - effective_trailing)
+                    if price <= trailing_stop_price:
+                        return "trailing_stop"
 
         # Profit-lock trailing: after 3%+ gain with no trailing stop configured,
         # activate tight 1.5% trailing from watermark to lock profits
-        if effective_trailing <= 0 and watermark_gain >= 0.03:
+        has_atr_trail = cfg.trail_activate_atr_mult > 0 and cfg.trail_sl_atr_mult > 0
+        if not has_atr_trail and self._trailing_stop_pct <= 0 and watermark_gain >= 0.03:
             if position.is_short:
                 profit_lock_price = position.high_watermark * (1.0 + 0.015)
                 if price >= profit_lock_price:
