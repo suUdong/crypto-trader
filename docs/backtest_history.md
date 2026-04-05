@@ -11611,3 +11611,35 @@ trades: 319
 **검증**: 33/33 risk 테스트 통과, mypy clean, ruff clean
 
 ---
+
+## 2026-04-05 — c174: vpin_multi(ETH+SOL+XRP) + c168 regime-adaptive exit 결합 검증
+
+**가설**: c165 멀티심볼 최적(Sharpe +11.290) + c168 regime-adaptive TP/SL + trailing stop 결합으로 추가 개선
+**전략**: vpin_multi + ATR percentile vol regime 감지 + regime-adaptive hold(HV=24/LV=12) + regime-adaptive TP/SL + ATR trailing stop
+**심볼**: KRW-ETH, KRW-SOL, KRW-XRP (3종 풀링)
+**캔들**: 240m (4시간)
+**그리드**: trail_activate=[1.5, 1.8, 2.0] × trail_sl=[0.3, 0.4, 0.5] = 9 combos
+**WF**: 3-fold (F1: 2024-04~2025-01, F2: 2024-10~2025-07, F3: 2025-04~2026-04)
+
+| 날짜 | 전략 | 파라미터 | Sharpe | WR | avg | MDD | trades | 결론 |
+|---|---|---|---|---|---|---|---|---|
+| 2026-04-05 | vpin_multi+regime_trail | trA=1.5 trSL=0.3 (vol_lb=90 th=50% HV=24 LV=12) | +10.916 | 36.4% | +0.80% | -6.24% | 315 | ⚠️ c165 baseline +11.290 대비 Δ-0.374, BEAR F3만 +0.435 개선 |
+| 2026-04-05 | vpin_multi+regime_trail | trA=1.8 trSL=0.3 | +10.659 | 33.3% | - | - | 306 | 9/9 PASS but marginal |
+| 2026-04-05 | vpin_multi+regime_trail | trA=1.5 trSL=0.5 | +10.375 | 35.9% | - | - | 313 | 9/9 PASS but marginal |
+
+**WF 결과 (9/9 전 조합 PASS)**:
+- 최적 trA=1.5 trSL=0.3: F1 +11.291 / F2 +12.338 / F3 +9.119 → avg +10.916
+- vs c165 baseline: F1 +12.303 / F2 +12.883 / F3 +8.684 → avg +11.290
+
+**심볼별 분해 (최적 trA=1.5 trSL=0.3)**:
+- ETH: F1 +11.636 F2 +12.475 F3 +6.047 (F3 하락 주도)
+- SOL: F1 +14.093 F2 +13.686 F3 +12.134 (전 fold 안정)
+- XRP: F1 +8.143 F2 +10.853 F3 +9.177 (안정)
+
+**슬리피지 스트레스**: 0.05% +10.916 / 0.10% +9.531 / 0.15% +8.330 / 0.20% +7.271
+
+**B&H 대비**: F3에서 SOL -32.4% XRP -34.9% 하락 구간에서도 전략 Sharpe +9.119 유지
+
+**결론**: c168 regime-adaptive exit는 ETH 특화 효과. 멀티심볼에서는 c165 고정 exit(TP=4.0+2.0 RSI 동적) 대비 marginal 또는 소폭 하락. **BEAR fold(F3)에서만 Δ+0.435 개선**으로, regime-adaptive exit의 BEAR 방어 효과는 확인되었으나 BULL/중립 구간에서의 손실이 상쇄. SOL이 전 fold에서 가장 안정적 (avg Sharpe +13.3). **멀티심볼 daemon 확장 시 c165 고정 exit 유지, ETH만 c168 regime exit 적용이 최적 조합.**
+
+---
