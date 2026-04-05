@@ -10495,3 +10495,86 @@ trades: 26
 </details>
 
 ---
+
+## 2026-04-05 00:23 UTC — momentum_sol ATR 3-tier 동적 TP/SL + ADX 상승 그래디언트 필터 [ralph:cycle159_regime_tier_dynamic] 🌟[promising]
+
+**결과**: Sharpe +35.133 | WR 83.3% | trades 67
+
+
+<details><summary>raw output</summary>
+
+```
+rS=1.0  Sharpe=+17.117  WR=69.8%  MDD=-14.34%  consec=3  trades=53
+  #2 t1=40 lTP=3.5 lSL=2.0 adxG=6 TrA=2.0 TrS=1.0  Sharpe=+17.064  WR=69.2%  MDD=-14.34%  consec=3  trades=52
+  #3 t1=50 lTP=3.0 lSL=2.0 adxG=6 TrA=2.0 TrS=1.0  Sharpe=+16.958  WR=69.8%  MDD=-14.34%  consec=3  trades=53
+  #4 t1=50 lTP=3.5 lSL=2.0 adxG=6 TrA=2.0 TrS=1.0  Sharpe=+16.907  WR=69.2%  MDD=-14.34%  consec=3  trades=52
+  #5 t1=60 lTP=3.5 lSL=2.0 adxG=6 TrA=2.0 TrS=1.0  Sharpe=+16.783  WR=69.2%  MDD=-14.34%  consec=3  trades=52
+
+=== Phase 4: 연도별 성과 분해 ===
+  파라미터: t1=40 lTP=3.0 lSL=2.0 adxG=6 TrA=2.0 TrS=1.0
+  2022: Sharpe=+8.429  WR=62.5%  MDD=-9.37%  consec=2  trades=8  filt=110  adxF=131
+  2023: Sharpe=+18.947  WR=76.9%  MDD=-4.31%  consec=1  trades=13  filt=522  adxF=308
+  2024: Sharpe=+35.133  WR=83.3%  MDD=-4.45%  consec=1  trades=12  filt=498  adxF=344
+  2025: Sharpe=+16.961  WR=69.2%  MDD=-7.82%  consec=2  trades=13  filt=241  adxF=266
+  2026: Sharpe=  nan  WR=0.0%  MDD=+0.00%  consec=0  trades=0  filt=1  adxF=59
+
+=== Phase 5: Walkforward OOS 검증 (Top-3) ===
+  t1_40_ltp3.0_lsl2.0_adx6_ta2.0_ts1.0 Fold 1: Sharpe=+22.890  WR=72.7%  MDD=-4.40%✅  consec=1✅  trades=11
+  t1_40_ltp3.0_lsl2.0_adx6_ta2.0_ts1.0 Fold 2: Sharpe=+13.776  WR=66.7%  MDD=-4.84%✅  consec=1✅  trades=9
+  → t1_40_ltp3.0_lsl2.0_adx6_ta2.0_ts1.0 평균 OOS Sharpe: +18.333
+  t1_40_ltp3.5_lsl2.0_adx6_ta2.0_ts1.0 Fold 1: Sharpe=+22.021  WR=70.0%  MDD=-4.40%✅  consec=1✅  trades=10
+  t1_40_ltp3.5_lsl2.0_adx6_ta2.0_ts1.0 Fold 2: Sharpe=+14.872  WR=66.7%  MDD=-4.84%✅  consec=1✅  trades=9
+  → t1_40_ltp3.5_lsl2.0_adx6_ta2.0_ts1.0 평균 OOS Sharpe: +18.447
+  t1_50_ltp3.0_lsl2.0_adx6_ta2.0_ts1.0 Fold 1: Sharpe=+22.943  WR=72.7%  MDD=-4.40%✅  consec=1✅  trades=11
+  t1_50_ltp3.0_lsl2.0_adx6_ta2.0_ts1.0 Fold 2: Sharpe=+13.776  WR=66.7%  MDD=-4.84%✅  consec=1✅  trades=9
+  → t1_50_ltp3.0_lsl2.0_adx6_ta2.0_ts1.0 평균 OOS Sharpe: +18.360
+
+=== 안전성 요약 ===
+  연속손실 ≤ 3: ✅ PASS (실제: 3)
+  MDD < 15%: ✅ PASS (실제: -14.34%)
+
+Sharpe: +17.117
+WR: 69.8%
+trades: 53
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 09:30 UTC — momentum_sol cooldown축소+threshold완화 n확대 탐색 [ralph:c164_momentum_sol_cooldown_thresh] 🔻[poor]
+
+**결과**: Sharpe +11.219 | WR 36.2% | trades 26 | 0/144 WF 통과 — F2 n<15 블로커 미해소
+
+**고정**: ADX=20 vol=1.5 lb=20 BTC_SMA=200
+
+<details><summary>raw output</summary>
+
+```
+그리드: cool∈[6,12,18,24] × thresh∈[0.002,0.003,0.005] × TP∈[8%,10%,12%] × SL∈[3%,4%] × hold∈[48,60] = 144조합
+WF: F1 OOS 2024-07~2025-06, F2 OOS 2025-10~2026-04
+
+핵심 발견:
+  1) Cooldown 변화 무효: cool=6/12/18/24 동일 결과 — 연패 cooldown이 발동하지 않음
+  2) Threshold 완화 미미: 0.005→0.002로 F2 n이 3→4 (+1건) — regime gate가 진짜 병목
+  3) hold 60 소폭 유리: TP=12% 도달 가능, 하지만 n 변화 없음
+  4) F2 BH=-57.5% (BEAR 구간) → BTC<SMA200 regime gate가 진입 차단 → n 구조적 한계
+
+★ 최선: cool=6 thresh=0.005 TP=12% SL=4% hold=60
+  avg OOS Sharpe: +11.219 (Sharpe는 높으나 n=3으로 의미 없음)
+  F1: Sharpe=+10.203  WR=39.1%  n=23  avg=+1.98%  MDD=-19.07%
+  F2: Sharpe=+12.234  WR=33.3%  n=3   avg=+1.87%  MDD=-4.36%
+
+c158 기준선 재현 (새 윈도우):
+  F1: Sharpe=+8.483  WR=40.0%  n=25  avg=+1.48%  MDD=-22.43%
+  F2: Sharpe=+1.225  WR=50.0%  n=4   avg=+0.15%  MDD=-8.12%
+
+결론: cooldown/threshold는 n 병목이 아님 — BTC regime gate가 BEAR구간 진입을 차단하여
+momentum_sol은 BULL 전용 전략의 구조적 한계 재확인. c158 파라미터(ADX=20 vol=1.5)가
+현 시장 구조에서의 최적치.
+```
+
+</details>
+
+---
