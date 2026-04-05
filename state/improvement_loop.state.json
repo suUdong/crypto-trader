@@ -1,0 +1,39 @@
+{
+  "cycle": 12,
+  "last_change_ts": "2026-04-05T00:15:59.166623+00:00",
+  "last_change_type": "symbol_rotation",
+  "baseline_pnl": 0.0,
+  "monitoring": true,
+  "last_report_cycle": 12,
+  "rollback_count": 0,
+  "dynamic_tasks": [
+    {
+      "id": "bear_rsi_volume_bounce_1h",
+      "type": "hypothesis",
+      "desc": "BEAR/Sideways 전용 — 1h RSI 과매도(≤25) + 볼륨 급증(3×) 단기 반등 전략 설계 및 백테스트 (2022/2025 BEAR 구간 포함)",
+      "notify_on_significant": true,
+      "priority": "urgent"
+    },
+    {
+      "id": "bear_bb_sideways_bounce",
+      "type": "hypothesis",
+      "desc": "Sideways 전용 — Bollinger Band 하단 bounce + ADX<20 조건 mean-reversion 전략 (현재 시장 즉시 적용 가능)",
+      "notify_on_significant": true,
+      "priority": "urgent"
+    },
+    {
+      "id": "bear_regime_position_sizing",
+      "type": "hypothesis",
+      "desc": "레짐별 포지션 사이징 — BEAR 감지(BTC<SMA200+CVD음수) 시 max_position 10~20%로 자동 축소, 반등 신호 시 복원. capital_allocator.py 수정",
+      "notify_on_significant": true,
+      "priority": "urgent"
+    },
+    {
+      "id": "bear_alt_relative_strength",
+      "type": "hypothesis",
+      "desc": "BEAR 구간 알트 상대강도 전략 — BTC 방향성 무관, 상대적으로 강한 알트 소량 롱 (pairs-style, 2022/2026 BEAR 검증 필수)",
+      "notify_on_significant": true,
+      "priority": "urgent"
+    }
+  ]
+}
