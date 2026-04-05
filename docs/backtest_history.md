@@ -3,6 +3,47 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c166 vpin_eth RSI vel+vol surge 3-fold WF (BEAR 포함) [ralph:c166_vpin_eth_rsi_vel_vol_3fold] 🔻[poor]
+
+**결과**: ❌ RSI velocity + volume surge 필터 BEAR fold 전면 붕괴 — 추가 필터 무효, c168 베이스라인이 이미 최적
+
+**설계**: c170 promising 결과(avg OOS +17.986, n=25, 2-fold) 기반 → 3-fold WF(BEAR 포함) + n≥30 목표
+- 기반: c168 최적 (hvH=24 lvH=14 trA=2.0 trSL=0.5) + trailing+regime hold
+- 그리드: rsi_vel_lb=[3,5,7] × rsi_vel_thresh=[0,1,3,5] × vol_ratio=[1.2,1.5,2.0] = 36조합
+- 3-fold WF: F1(2024 BULL) F2(2025 혼재) F3(★2025-10~2026-04 BEAR)
+- 슬리피지+수수료 0.10% round-trip, 다음봉시가 진입
+
+### Walk-Forward 결과
+
+| 조합 | F1(BULL) | F2(2025) | F3(★BEAR) | 결과 |
+|---|---|---|---|---|
+| rvTh=0 vRat=2.0 (RSI vel OFF, 강한 vol) | Sharpe +30.3 n=8 | Sharpe +24.3 n=12 | **Sharpe -2.9 n=11** | ❌ F3 붕괴 |
+| rvLB=5 rvTh=1 vRat=2.0 | Sharpe +19.4 n=5 | Sharpe +26.9 n=9 | **Sharpe -2.9 n=11** | ❌ F3 붕괴 |
+| rvLB=5 rvTh=5 vRat=2.0 (c170 최적) | Sharpe +20.4 n=3 | Sharpe +29.3 n=9 | **Sharpe -0.8 n=9** | ❌ F3<0, n<5 |
+| **rvTh=0 vRat=1.5 (필터 OFF = c168 베이스라인)** | **Sharpe +30.6 n=19** | **Sharpe +4.1 n=25** | **Sharpe +4.2 n=15** | ✅ 통과 (=c168) |
+
+### WF 통과 조합 (3개 — 전부 rvTh=0 = RSI vel 필터 OFF)
+
+| 순위 | 파라미터 | avg OOS Sharpe | total_n |
+|---|---|:---:|:---:|
+| 1 | rvLB=3 rvTh=0 vRat=1.5 | +12.986 | 59 |
+| 2 | rvLB=5 rvTh=0 vRat=1.5 | +12.986 | 59 |
+| 3 | rvLB=7 rvTh=0 vRat=1.5 | +12.986 | 59 |
+
+→ 전부 동일 결과: rvTh=0이면 RSI vel 필터 비활성 → c168 베이스라인과 동일
+
+### 핵심 발견
+
+1. **vol_ratio=2.0 → F3(BEAR) 전면 붕괴**: 전 조합 F3 Sharpe 음수 (-0.8~-6.8). 강한 볼륨 필터가 BEAR에서 패닉 매도 볼륨과 구매 볼륨을 구분 못함
+2. **RSI velocity 필터 → BEAR에서 무효**: RSI 상승 추세 시 진입해도 false breakout 다수. BEAR에서 RSI 반등은 신뢰 불가
+3. **c170 promising은 BEAR fold 미포함으로 과대평가**: 2-fold(F1+F2)만 봤을 때 avg +17.986이었으나, F3(BEAR) 추가 시 전면 실패
+4. **c168 베이스라인(trailing+regime hold) 자체가 최적**: 추가 필터 없이도 3-fold avg OOS +12.986, F3(BEAR) Sharpe +4.249 유지
+5. **결론**: RSI vel + vol surge 필터 트랙 종료. c168 daemon 코드 구현이 다음 우선순위
+
+**편향 태그**: 🔄다음봉시가진입 | ★슬리피지포함(0.10%) | BTC EMA50 레짐게이트
+
+---
+
 ## 2026-04-05 11:00 UTC — BEAR Regime-Switch 전략 (BTC SMA 오버레이) [ralph:c164_regime_switch_bear_defense] 🔻[poor]
 
 **결과**: ❌ 4심볼 전부 WF 실패 — 단순 BTC SMA regime-switch는 BEAR 방어에 부적합
@@ -11258,5 +11299,68 @@ trades: 30
 0.05%→+15.6 | 0.10%→+14.6 | 0.15%→+13.1 | 0.20%→+12.2
 
 **결론**: ✅ **평가자 블로커 해소** — c168 trailing+regime hold 3-fold WF 전면 통과. BEAR(F3 BH=-46.1%)에서 Sharpe +4.2~+9.4 유지. daemon 교체 검토 가능.
+
+---
+
+## 2026-04-05 02:00 UTC — c168 최적 기반 RSI velocity+volume surge 필터로 BEAR fold WR 개선 탐색 [ralph:c170_vpin_eth_rsi_vel_vol_confirm] 🌟[promising]
+
+**결과**: Sharpe +34.391 | WR 80.0% | trades 128
+
+
+<details><summary>raw output</summary>
+
+```
+0.16%  MDD=-7.75%  trX=0  tpX=3  BH=-5.9%
+  평균 OOS Sharpe: +15.670 | 최소: +2.506 | min_n: 9
+  → ❌ WF FAIL (min_n=9<10)
+
+--- #10: rvLB=5 rvTh=5 vRat=2.0 ---
+  Fold 1 OOS [2024-07-01~2025-06-30]: Sharpe=+29.249  WR=71.4%  n=14  avg=+2.38%  MDD=-3.20%  trX=3  tpX=5  BH=-30.5%
+  Fold 2 OOS [2025-07-01~2026-04-05]: Sharpe=+6.722  WR=45.5%  n=11  avg=+0.41%  MDD=-6.87%  trX=2  tpX=3  BH=-5.9%
+  평균 OOS Sharpe: +17.986 | 최소: +6.722 | min_n: 11
+  → ✅ WF PASS
+
+================================================================================
+=== WF 통과: 2개 ===
+  #1 rvLB=5 rvTh=5 vRat=2.0  avg OOS=+17.986
+  #2 rvLB=5 rvTh=1 vRat=2.0  avg OOS=+16.657
+
+================================================================================
+=== 슬리피지 스트레스 테스트 (WF Top 3) ===
+
+--- #1: rvLB=5 rvTh=5 vRat=2.0 (avg OOS: +17.986) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +18.830 50.0%  +1.57%  -6.87%    6    58
+  0.10%  +17.400 50.0%  +1.44%  -7.07%    6    58
+  0.15%  +15.118 46.6%  +1.25%  -7.27%    6    58
+  0.20%  +14.396 46.6%  +1.19%  -7.47%    6    58
+
+--- #2: rvLB=5 rvTh=1 vRat=2.0 (avg OOS: +16.657) ---
+  slippage   Sharpe     WR    avg%     MDD  MCL     n
+-------------------------------------------------------
+  0.05%  +19.378 51.5%  +1.59%  -8.88%    6    66
+  0.10%  +18.015 51.5%  +1.47%  -9.18%    6    66
+  0.15%  +15.882 48.5%  +1.30%  -9.48%    6    66
+  0.20%  +14.174 45.5%  +1.15%  -9.78%    6    66
+
+================================================================================
+=== 최종 요약 ===
+★ WF 최고: rvLB=5 rvTh=5 vRat=2.0
+  (기반: c168 최적 + RSI velocity + volume surge 필터)
+  avg OOS Sharpe: +17.986
+  Fold 1: Sharpe=+29.249  WR=71.4%  n=14  MDD=-3.20%  trX=3  tpX=5
+  Fold 2: Sharpe=+6.722  WR=45.5%  n=11  MDD=-6.87%  trX=2  tpX=3
+
+  vs c168 베이스라인 (no RSI vel filter): Sharpe=+16.161  WR=44.5%  MDD=-13.02%  n=128
+  vs c168 WF 최적: avg OOS Sharpe=+9.897  WR=41.4%  n=59
+
+Sharpe: +17.986
+WR: 58.4%
+trades: 25
+
+```
+
+</details>
 
 ---
