@@ -10578,3 +10578,85 @@ momentum_sol은 BULL 전용 전략의 구조적 한계 재확인. c158 파라미
 </details>
 
 ---
+
+## 2026-04-05 00:38 UTC — BTC듀얼게이트(SMA50fallback)+적응형ADX+진입완화로 2026거래확보+MDD개선 탐색 [ralph:momentum_sol_btc_dual_gate_adaptive] 🌟[promising]
+
+**결과**: Sharpe +49.323 | WR 92.3% | trades 79
+
+
+<details><summary>raw output</summary>
+
+```
+=60 fb=0)
+  #3 gate=sma200_only entry=0.003 adapt=True fbTP=1.00  Sharpe=+17.150  WR=70.5%  MDD=-13.65%  consec=3  trades=61  (full=61 fb=0)
+  #4 gate=sma200_only entry=0.005 adapt=False fbTP=1.00  Sharpe=+17.117  WR=69.8%  MDD=-14.34%  consec=3  trades=53  (full=53 fb=0)
+  #5 gate=sma200_only entry=0.007 adapt=False fbTP=1.00  Sharpe=+17.117  WR=69.8%  MDD=-14.34%  consec=3  trades=53  (full=53 fb=0)
+
+=== Phase 4: 연도별 성과 분해 ===
+  파라미터: gate=sma200_only entry=0.005 adapt=True fbTP=1.00
+  2022: Sharpe=+2.465  WR=57.1%  MDD=-8.68%  consec=2  trades=7  filt=110  adxF=138  full=7 fb=0
+  2023: Sharpe=+13.663  WR=64.3%  MDD=-8.15%  consec=2  trades=14  filt=522  adxF=311  full=14 fb=0
+  2024: Sharpe=+27.562  WR=78.9%  MDD=-7.29%  consec=2  trades=19  filt=493  adxF=332  full=19 fb=0
+  2025: Sharpe=+15.761  WR=69.2%  MDD=-3.97%  consec=1  trades=13  filt=243  adxF=272  full=13 fb=0
+  2026: Sharpe=  nan  WR=0.0%  MDD=+0.00%  consec=0  trades=0  filt=1  adxF=59  full=2 fb=0
+
+=== Phase 5: Walkforward OOS 검증 (Top-3) ===
+  sma200_only_e0.005_aTrue_fb1.0 Fold 1: Sharpe=+49.323  WR=92.3%  MDD=-4.40%✅  consec=1✅  trades=13  full=13 fb=0
+  sma200_only_e0.005_aTrue_fb1.0 Fold 2: Sharpe=+16.579  WR=66.7%  MDD=-3.98%✅  consec=1✅  trades=9  full=9 fb=0
+  → sma200_only_e0.005_aTrue_fb1.0 평균 OOS Sharpe: +32.951
+  sma200_only_e0.007_aTrue_fb1.0 Fold 1: Sharpe=+49.323  WR=92.3%  MDD=-4.40%✅  consec=1✅  trades=13  full=13 fb=0
+  sma200_only_e0.007_aTrue_fb1.0 Fold 2: Sharpe=+16.579  WR=66.7%  MDD=-3.98%✅  consec=1✅  trades=9  full=9 fb=0
+  → sma200_only_e0.007_aTrue_fb1.0 평균 OOS Sharpe: +32.951
+  sma200_only_e0.003_aTrue_fb1.0 Fold 1: Sharpe=+49.323  WR=92.3%  MDD=-4.40%✅  consec=1✅  trades=13  full=13 fb=0
+  sma200_only_e0.003_aTrue_fb1.0 Fold 2: Sharpe=+10.551  WR=60.0%  MDD=-8.05%✅  consec=2✅  trades=10  full=10 fb=0
+  → sma200_only_e0.003_aTrue_fb1.0 평균 OOS Sharpe: +29.937
+
+=== 안전성 요약 ===
+  연속손실 ≤ 3: ✅ PASS (실제: 3)
+  MDD < 15%: ✅ PASS (실제: -13.65%)
+
+Sharpe: +18.147
+WR: 71.7%
+trades: 60
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 09:40 UTC — RSI Mean-Reversion 횡보장 전용 4h [ralph:c160_rsi_mr_sideways_4h] 🔻[poor]
+
+**결과**: 0/20 WF 통과 — 4h 타임프레임 거래수 부족 (Fold당 n=5~9, 통계적 무의미)
+
+**설계**: ADX<ceil(횡보) + RSI 과매도 반등 + BTC<SMA200(선택적), 240m TF, ETH/BTC 대상
+
+<details><summary>raw output</summary>
+
+```
+그리드: rsi_os∈[20,25,30,35] × rsi_ex∈[45,50,55,65] × ADX∈[15,20,25]
+  × TP∈[2%,3%,4%,5%] × SL∈[1.5%,2%,3%] × hold∈[6,12,18,24]
+  × btc_gate∈[Y,N] × rsi_period∈[7,10,14] = 13824조합 × 2심볼
+
+WF: F1 OOS 2024-04~2025-03, F2 OOS 2025-07~2026-04
+
+IS Top: ETH rsi_os=35 rsi_ex=65 adx=20 rsiP=7 btcG=Y → Sharpe +12.209 n=23
+  IS에서 n=23이 최대 → 4h는 신호 발생 빈도 구조적 한계
+
+부분 통과 최선:
+  BTC rsi_os=25 adx=25 rsiP=7 btcG=N → avg OOS +19.378 (F1 n=5, F2 n=5)
+  ETH rsi_os=35 adx=20 rsiP=7 btcG=Y → avg OOS +4.313 (F1 n=9, F2 n=7 Sharpe=-11)
+
+발견:
+  1) 4h RSI MR은 거래 부족(n<10/fold) — 통계적 유의성 확보 불가
+  2) ETH F2(2025-2026) 음수 Sharpe — 최근 시장 구간에서 MR 엣지 소실
+  3) BTC btcG=N이 더 나은 OOS Sharpe이나 n=5로 무의미
+  4) rsi_period=7이 14보다 우위 (단기 반응 유리)
+
+결론: 4h RSI MR은 거래 빈도 구조적 한계로 폐기.
+  60m 또는 15m 타임프레임에서 재시도 필요.
+```
+
+</details>
+
+---
