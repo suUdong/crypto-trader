@@ -117,7 +117,7 @@ strategy_report_path = "artifacts/strategy-report.md"
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
 initial_capital = 500_000.0
-symbols = ["KRW-ONG"]
+symbols = ["KRW-ONT"]
 [wallets.strategy_overrides]
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
@@ -314,7 +314,7 @@ partial_tp_pct = 0.5
 [[wallets]]
 name = "vpin_eth_wallet"
 strategy = "vpin"
-initial_capital = 2_000_000.0
+initial_capital = 800_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 rsi_period = 14
@@ -490,6 +490,7 @@ trail_sl_atr_mult = 0.4
 name = "vpin_avax_wallet"
 strategy = "vpin"
 initial_capital = 500_000.0
+enabled = false
 paper_trading = true
 symbols = ["KRW-AVAX"]
 [wallets.strategy_overrides]
@@ -689,7 +690,7 @@ atr_stop_multiplier = 1.5
 [[wallets]]
 name = "bb_squeeze_eth_wallet"
 strategy = "bb_squeeze_independent"
-initial_capital = 500_000.0
+initial_capital = 2_300_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
 squeeze_pctile_th = 40.0
@@ -741,6 +742,40 @@ btc_stealth_gate = true
 [wallets.risk_overrides]
 stop_loss_pct = 0.04
 take_profit_pct = 0.15
+risk_per_trade_pct = 0.02
+
+[[wallets]]
+name = "rsi_mr_bear_eth_wallet"
+strategy = "rsi_mr_bear"
+initial_capital = 500_000.0
+symbols = ["KRW-ETH"]
+[wallets.strategy_overrides]
+rsi_entry = 25.0
+rsi_exit = 50.0
+sl_pct = 0.02
+max_hold = 24
+rsi_period = 14
+btc_sma_period = 200
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.10
+risk_per_trade_pct = 0.02
+
+[[wallets]]
+name = "rsi_mr_bear_btc_wallet"
+strategy = "rsi_mr_bear"
+initial_capital = 500_000.0
+symbols = ["KRW-BTC"]
+[wallets.strategy_overrides]
+rsi_entry = 25.0
+rsi_exit = 50.0
+sl_pct = 0.02
+max_hold = 24
+rsi_period = 14
+btc_sma_period = 200
+[wallets.risk_overrides]
+stop_loss_pct = 0.02
+take_profit_pct = 0.10
 risk_per_trade_pct = 0.02
 
 [credentials]
