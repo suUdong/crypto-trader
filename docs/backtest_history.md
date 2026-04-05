@@ -3,6 +3,37 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c204 크로스심볼 ETH/SOL 스프레드 역추세 216조합 3-fold WF [ralph:c204_ethsol_spread_mr] 🔻[FAIL]
+
+**결과**: avg OOS Sharpe +0.642, n=94, WR 50.0%, MDD -37.7% — daemon 기준(5.0) 대비 극히 미달 **FAIL**
+
+**설계**: ETH/SOL 가격 비율 z-score 기반 역추세 — ratio 고점 시 SOL 매수, ratio 저점 시 ETH 매수
+- Upbit 현물 제약: long only → 상대 저평가 자산만 매수
+- ETH/SOL ratio 분포: mean=39.09 std=27.92 range=[11.05, 136.43] — 구조적 하향 추세(136→25)
+**그리드**: RATIO_LB=[48,96,144] × Z_ENTRY=[1.5,2.0,2.5] × Z_EXIT=[0,0.5] × MAX_HOLD=[12,24,48] × BTC_GATE=[0,200] × RSI_FILTER=[0,30] = 216조합
+**스크립트**: `scripts/backtest_cycle203_ethsol_spread_mr.py`
+**기간**: 2022-01 ~ 2026-04 | **캔들**: 240m | 3-fold WF
+🔄다음봉시가진입 | ★슬리피지포함
+
+### 최적: rlb=48 ze=1.5 zx=0.0 mh=48 bg=200 rf=0
+
+| Fold | Sharpe | WR | n | avg | MDD |
+|---|---|---|---|---|---|
+| F1 | +0.194 | 50.0% | 32 | +0.26% | -37.74% |
+| F2 | +0.774 | 46.9% | 32 | +0.98% | -33.56% |
+| F3 | +0.960 | 53.3% | 30 | +1.22% | -20.13% |
+
+### B&H 비교: Strategy +8.4%/+31.4%/+36.5% vs ETH -4.2%/+53.3%/+16.7%
+
+### 핵심 발견
+1. ETH/SOL ratio는 구조적 하향 추세(136→25) — 정상 z-score 평균회귀 가정 위반
+2. MDD -37.7%는 허용 불가 수준 — 개별 거래 수익(+0.26~1.22%)으로 복구 불가
+3. SOL Fold 1 Sharpe -0.609 — SOL 매수 시 ratio 계속 하락(ETH 대비 SOL 강세)하면 역추세 실패
+4. B&H 대비 약간 우위이나 리스크 대비 수익 부족
+5. Upbit long-only 제약으로 숏 불가 → 스프레드 전략의 핵심 무기 부재
+
+**결론**: ❌ FAIL — ETH/SOL 스프레드 역추세는 Upbit 현물 환경에서 작동 불가. 평가자 제안 3방향 모두 소진: (1)김프 FAIL, (2)스프레드 FAIL, (3)regime-adaptive FAIL. 새 평가자 리포트 필요.
+
 ## 2026-04-05 — c203 CMF Gate + OBV Trend 이중필터 192조합 3-fold WF [ralph:c203_cmf_gate_obv_trend] 🔻[FAIL]
 
 **결과**: avg OOS Sharpe +13.083, n=59, WR 37.3% — c179 baseline(+42.878) 대비 Δ -29.795 **FAIL**
