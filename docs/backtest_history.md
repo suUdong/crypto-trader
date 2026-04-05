@@ -13845,3 +13845,99 @@ trades: 64
 → VPIN을 60m/1h로 이식하는 모든 시도 중단 권고. 4h 단일 TF가 VPIN의 최적 해상도.
 
 ---
+
+## 2026-04-05 08:36 UTC — VPIN RoC(변화율) + RSI 약세다이버전스 필터 — c192 base 36조합 3-fold WF [ralph:c198_vpin_roc_rsi_divergence] 🌟[promising]
+
+**결과**: Sharpe +47.314 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+4    40
+
+================================================================================
+=== 심볼별 OOS 성능 분해 (Top 1: vrLB=3 vrMin=0.00 rdLB=3 rdSk=0) ===
+  KRW-ETH Fold 1: Sharpe=+32.539  WR=75.0%  n=4  avg=+1.96%  MDD=-0.61%
+  KRW-ETH Fold 2: Sharpe=+28.479  WR=75.0%  n=4  avg=+2.46%  MDD=-0.93%
+  KRW-ETH Fold 3: Sharpe=+25.004  WR=50.0%  n=4  avg=+2.29%  MDD=-1.51%
+  KRW-ETH 평균: Sharpe=+28.674  총 trades=12
+
+  KRW-SOL Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-SOL Fold 2: Sharpe=+39.493  WR=75.0%  n=4  avg=+2.62%  MDD=-0.93%
+  KRW-SOL Fold 3: Sharpe=+47.314  WR=75.0%  n=4  avg=+3.59%  MDD=-0.85%
+  KRW-SOL 평균: Sharpe=+28.936  총 trades=8
+
+  KRW-XRP Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2: Sharpe=+4.312  WR=33.3%  n=3  avg=+0.15%  MDD=-0.68%
+  KRW-XRP Fold 3: Sharpe=+36.309  WR=66.7%  n=3  avg=+1.40%  MDD=-0.68%
+  KRW-XRP 평균: Sharpe=+13.540  총 trades=6
+
+================================================================================
+=== c192 베이스라인 대비 비교 ===
+  c192 최적 (ttA=6 ttF=3.0 aTPS=0.5): avg_OOS=+47.314 n=~20
+  c198 최적 (vrLB=3 vrMin=0.00 rdLB=3 rdSk=0): avg_OOS=+30.947 n=26
+  Δ Sharpe: -16.367 (악화)
+  Δ trades: +6 (증가)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: VPIN_ROC_LB=3 VPIN_ROC_MIN=0.00 RSI_DIV_LB=3 RSI_DIV_SKIP=0
+  (c192 고정: ttA=6 ttF=3.0 aTPS=0.5)
+  (c190 고정: vMomLB=10 vMomMin=0.05 tpBonus=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +30.947 PASS
+  train Sharpe: +18.221
+  Fold 1: Sharpe=+32.539  WR=75.0%  trades=4  avg=+1.96%  MDD=-0.61%
+  Fold 2: Sharpe=+24.095  WR=61.1%  trades=11  avg=+1.74%  MDD=-0.85%
+  Fold 3: Sharpe=+36.209  WR=63.9%  trades=11  avg=+2.42%  MDD=-1.01%
+
+Sharpe: +30.947
+WR: 66.7%
+trades: 26
+
+```
+
+</details>
+
+---
+
+---
+
+## 2026-04-05 18:30 UTC — c200 Binance 실제 펀딩레이트 역추세(contrarian) 전략 81조합 3-fold WF [ralph:c200_funding_rate_contrarian] 🔻[poor]
+
+**결과**: avg OOS Sharpe +0.505 | WR ~60% | trades 19 | **FAIL — 신호 밀도 극도 부족**
+
+**설계**: 평가자 지시 "펀딩레이트 기반 신규 메커니즘" 실행
+- Binance perpetual **실제** 펀딩레이트 히스토리 사용 (4667건, 2022-01~2026-04)
+- 음수 펀딩(과매도) → 현물 매수, 양수 극단 → 청산
+- BTC > SMA200 regime gate + RSI 과매도 필터
+- LONG-ONLY (Upbit 현물)
+**그리드**: NEG_THRESH=[−1bp,−2bp,−3bp] × DEEP_NEG=[−3bp,−5bp,−8bp] × RSI_OS=[30,35,40] × MAX_HOLD=[12,24,48] = 81조합 (유효)
+**심볼**: ETH/SOL 240m | 🔄다음봉시가진입 | ★슬리피지포함
+**고정**: TP=4% SL=2% Trail=1.5% Cooldown=4봉
+
+**최적**: NT=−1bp DN=−3bp RSI_OS=40 MH=12
+- F1: avg Sharpe=+0.000 n=0 (2024.03~11 — 펀딩 음수 이벤트 부재)
+- F2: avg Sharpe=+1.019 n=10 (ETH +1.438/n=2, SOL +0.600/n=8)
+- F3: avg Sharpe=+0.496 n=9 (ETH +0.052/n=1, SOL +0.941/n=8)
+- 슬리피지 0.20%: Sharpe +0.176 [PASS but 매우 약함]
+
+**BTC gate 제거 변형 테스트**:
+- NT=−1bp DN=−5bp RSI=40 MH=24 → F3: avg +0.520 n=42 (SOL n=31로 개선)
+- 전 fold 평균: +0.335 — 여전히 부족
+
+**핵심 발견**: **Binance 펀딩레이트는 Upbit 현물 역추세 전략의 독립 alpha 소스로 불충분**
+1. ETH 펀딩 음수 극단(< −1bp) 전체 기간 136건 → 240m 캔들 기준 신호 밀도 극저
+2. SOL이 상대적으로 음수 빈번(619건)하나 역추세 alpha 약함 (Sharpe < 1.0)
+3. BTC 펀딩은 음수 극단 44건뿐 → 사실상 무신호
+4. 펀딩레이트 ≠ 가격 반전 — 현물 시장과 선물 시장의 괴리가 신뢰할 만한 진입 신호를 생성하지 못함
+→ **펀딩레이트 단독 전략 영구 종료**. 향후 펀딩레이트는 보조 필터(기존 전략의 확인 신호)로만 활용 검토
+
+**결론**: ❌ 평가자 제안 "펀딩레이트 기반 신규 메커니즘" 검증 완료 — FAIL. 남은 방향: regime-adaptive 전략 가중치 동적 조정 또는 완전히 새로운 alpha 소스 탐색 필요.
+

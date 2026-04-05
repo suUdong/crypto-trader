@@ -1,5 +1,5 @@
 {
-    "_comment": "Walk-Forward OOS 윈도우 사용 이력. 동일 윈도우 반복 사용 방지용. 새 WF 검증 시 여기 기록.",
+    "_comment": "Walk-Forward OOS \uc708\ub3c4\uc6b0 \uc0ac\uc6a9 \uc774\ub825. \ub3d9\uc77c \uc708\ub3c4\uc6b0 \ubc18\ubcf5 \uc0ac\uc6a9 \ubc29\uc9c0\uc6a9. \uc0c8 WF \uac80\uc99d \uc2dc \uc5ec\uae30 \uae30\ub85d.",
     "used_windows": [
         {
             "cycle": 147,
@@ -337,6 +337,26 @@
             "cycle": 199,
             "strategy": "volspike_btc_validation",
             "symbol": "KRW-BTC",
+            "windows": [
+                {
+                    "name": "F1",
+                    "oos": "2024-03-01~2024-11-30"
+                },
+                {
+                    "name": "F2",
+                    "oos": "2024-12-01~2025-08-31"
+                },
+                {
+                    "name": "F3",
+                    "oos": "2025-06-01~2026-04-05"
+                }
+            ],
+            "date": "2026-04-05"
+        },
+        {
+            "cycle": 200,
+            "strategy": "funding_rate_contrarian",
+            "symbol": "KRW-ETH/KRW-SOL",
             "windows": [
                 {
                     "name": "F1",
