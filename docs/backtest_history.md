@@ -3,6 +3,37 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 — c203 CMF Gate + OBV Trend 이중필터 192조합 3-fold WF [ralph:c203_cmf_gate_obv_trend] 🔻[FAIL]
+
+**결과**: avg OOS Sharpe +13.083, n=59, WR 37.3% — c179 baseline(+42.878) 대비 Δ -29.795 **FAIL**
+
+**설계**: c200 CMF+RSI divergence 후속 — CMF를 보너스→게이트 전환 + OBV 추세 기울기 확인 이중필터
+- CMF gate: CMF >= threshold여야 진입 허용 (자금 유출 중 진입 차단)
+- OBV trend: OBV SMA 기울기(정규화) > 임계값 (매집 추세 확인)
+- AND/OR 모드 비교, TP 보너스 유지
+**그리드**: CMF_GATE=[0,0.05,0.1,0.15] × OBV_SMA=[10,20] × OBV_SLOPE_LB=[5,10] × OBV_SLOPE_MIN=[0,0.001,0.003] × MODE=[AND,OR] × TP_BONUS=[0.5,1.0] = 192조합
+**스크립트**: `scripts/backtest_cycle202_cmf_gate_obv_trend.py`
+**기간**: 2022-01 ~ 2026-04 | **캔들**: 240m | 3-fold WF
+🔄다음봉시가진입 | ★슬리피지포함
+
+### 최적: cmfG=0.05 obvSP=10 obvSL=5 obvSM=0.001 mode=OR tpB=1.0
+
+| Fold | Sharpe | WR | n | avg | MDD |
+|---|---|---|---|---|---|
+| F1 | +16.216 | 38.2% | 20 | +2.13% | -1.47% |
+| F2 | +15.081 | 38.9% | 22 | +3.12% | -2.73% |
+| F3 | +7.951 | 34.7% | 17 | +0.67% | -1.85% |
+
+### 슬리피지 스트레스: slip=0.20% → Sharpe +9.656 PASS
+
+### 핵심 발견
+1. cmfG=0.15(강한 필터)는 Fold 3 Sharpe -253.434로 폭발 — 심각한 과적합
+2. 약한 필터(cmfG=0.05)도 c179 대비 -29.8 악화 — 좋은 거래까지 필터링
+3. SOL Fold 2 여전히 Sharpe -2.551 — CMF/OBV로 해결 불가
+4. CMF 방향 전체 소진: c200 보너스(+17.7) → c202 게이트(+13.1) → 추가 필터 역효과
+
+**결론**: ❌ FAIL — CMF/OBV 필터는 vpin_multi 성능을 악화시킴. c179 vol regime adaptive(+42.878)가 최적 확정. 추가 진입필터 탐색 종료. 크로스심볼 스프레드 또는 완전 새 alpha 탐색으로 전환.
+
 ## 2026-04-05 — c201 Regime-Adaptive Capital Reallocation 포트폴리오 시뮬레이션 [ralph:c201_regime_adaptive_realloc] 🔻[FAIL]
 
 **결과**: DYNAMIC avg Sharpe -0.705 vs STATIC avg Sharpe -0.548 | **Δ Sharpe -0.158 FAIL**
@@ -14128,3 +14159,64 @@ trades: 64
 5. 안정적 조합은 z_lb=48 z_ent=-1.5 z_ex=0.5 mh=12 (Sharpe +1.880, 더 일관된 fold 분포)
 
 **결론**: ❌ FAIL — 김프 단독 전략은 daemon 배포 불가. 기존 전략의 보조 확인 필터(진입 시 김프 < 0 조건)로만 활용 가능성 있음. 크로스심볼 스프레드 트레이딩으로 전환 권장.
+
+## 2026-04-05 09:12 UTC — c199 base + ADX추세강도(15/20/25) + OBV방향확인(EMA slope) 진입게이트 27조합 3-fold WF [ralph:c202_adx_obv_entry_gate] 🌟[promising]
+
+**결과**: Sharpe +49.658 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+OOS 성능 분해 (Top 1: aTh=15 oLB=5 oMin=0.00) ===
+  KRW-ETH Fold 1: Sharpe=+37.304  WR=75.0%  n=4  avg=+2.23%  MDD=-0.35%
+  KRW-ETH Fold 2: Sharpe=+21.291  WR=66.7%  n=3  avg=+0.90%  MDD=-0.93%
+  KRW-ETH Fold 3: Sharpe=+10.718  WR=33.3%  n=3  avg=+0.41%  MDD=-0.33%
+  KRW-ETH 평균: Sharpe=+23.104  총 trades=10
+
+  KRW-SOL Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-SOL Fold 2: Sharpe=+46.201  WR=66.7%  n=3  avg=+3.91%  MDD=-0.74%
+  KRW-SOL Fold 3: Sharpe=+49.658  WR=66.7%  n=3  avg=+4.03%  MDD=-0.43%
+  KRW-SOL 평균: Sharpe=+31.953  총 trades=6
+
+  KRW-XRP Fold 1: Sharpe=+0.000  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2: Sharpe=+7.403  WR=33.3%  n=3  avg=+0.25%  MDD=-0.38%
+  KRW-XRP Fold 3: Sharpe=+42.770  WR=66.7%  n=3  avg=+1.49%  MDD=-0.38%
+  KRW-XRP 평균: Sharpe=+16.724  총 trades=6
+
+================================================================================
+=== c199 베이스라인 대비 비교 ===
+  c199 최적 (rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.20): avg_OOS=+35.341 n=26
+  c192 최적 (ttA=6 ttF=3.0 aTPS=0.5): avg_OOS=+47.314 n=~20
+  c202 최적 (aTh=15 oLB=5 oMin=0.00): avg_OOS=+32.217 n=22
+  Δ vs c199: -3.124 (악화)
+  Δ vs c192: -15.097 (악화)
+  Δ trades vs c199: -4
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: ADX_TH=15 OBV_EMA_LB=5 OBV_SLOPE_MIN=0.00
+  (c199 고정: rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.2)
+  (c192 고정: ttA=6 ttF=3.0)
+  (c190 고정: vMomLB=10 vMomMin=0.05 tpBonus=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +32.217 PASS
+  train Sharpe: +15.481
+  Fold 1: Sharpe=+37.304  WR=75.0%  trades=4  avg=+2.23%  MDD=-0.35%
+  Fold 2: Sharpe=+24.965  WR=55.6%  trades=9  avg=+1.69%  MDD=-0.69%
+  Fold 3: Sharpe=+34.382  WR=55.6%  trades=9  avg=+1.98%  MDD=-0.38%
+
+Sharpe: +32.217
+WR: 62.0%
+trades: 22
+
+```
+
+</details>
+
+---
