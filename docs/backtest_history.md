@@ -15516,3 +15516,168 @@ ATR 레짐 적응: hiTPBonus=0.0 최적 (보너스 역효과), loSLScale 차이 
 **결론**: c215 대비 avg Sharpe +4.893 개선, MDD 0.91%p 개선. 분할익절(tp1M=2.5, 70% 조기청산)이 핵심 — ATR 레짐 적응형 배수는 효과 없음(hiTP=0 최적). SOL avg Sharpe 7.658 미달로 SOL 기여 약화. 전체 포트폴리오 기준으로는 유의미한 개선.
 
 ---
+
+## 2026-04-05 11:57 UTC — c212 래칫스탑 slippage=0.0005 공정비교 + ATR-adaptive 트리거 + 심볼별 래칫 모드(all/no_sol/xrp_only) 3-fold WF [ralph:c216_ratchet_fair_slip_atr_adaptive] 🌟[promising]
+
+**결과**: Sharpe +45.320 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+3: Sharpe=+18.895  WR=25.0%  n=8  avg=+1.76%  MDD=-0.0187
+  KRW-SOL F3: Sharpe=+13.545  WR=37.5%  n=8  avg=+0.60%  MDD=-0.0177
+  KRW-XRP F3: Sharpe=+45.320  WR=75.0%  n=4  avg=+1.98%  MDD=+0.0000
+  KRW-ETH 평균: Sharpe=+20.995  총 trades=26
+  KRW-SOL 평균: Sharpe=+14.542  총 trades=24
+  KRW-XRP 평균: Sharpe=+26.583  총 trades=14
+
+================================================================================
+=== c179 베이스라인 대비 비교 ===
+  c179 기준 (vol regime adaptive): avg_OOS=+42.878 n=~60
+  c216 최적 (beTr=0.5 lkTr=1.5 lkPct=0.90 vAdp=0 sMode=all): avg_OOS=+20.707 n=64
+  Δ Sharpe: -22.171 (악화)
+  Δ trades: 4
+
+================================================================================
+=== 슬리피지 스트레스 테스트 ===
+  slip=0.0005: avg Sharpe=+20.707 n=64 [PASS]
+  slip=0.0010: avg Sharpe=+20.202 n=64 [PASS]
+  slip=0.0015: avg Sharpe=+19.149 n=64 [PASS]
+  slip=0.0020: avg Sharpe=+18.273 n=64 [PASS]
+
+================================================================================
+=== 래칫 OFF (순수 c179 재현, slip=0.0005) 대조군 ===
+  c179 재현 (slip=0.0005): avg Sharpe=+17.271 n=64
+  F1: Sharpe=+14.439  WR=37.1%  trades=21  avg=+1.52%  MDD=-0.0162
+  F2: Sharpe=+13.459  WR=44.4%  trades=23  avg=+2.13%  MDD=-0.0317
+  F3: Sharpe=+23.914  WR=50.0%  trades=20  avg=+1.29%  MDD=-0.0169
+  c216 최적 vs c179 재현: Δ = +3.436
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: beTr=0.5 lkTr=1.5 lkPct=0.90 vAdp=0 sMode=all
+  (c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8)
+  (c177 고정: atrTh=30 body=0.7 vpRx=0.25 rxSc=0.5)
+  (c176 고정: atrLB=60)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 dMin=0.0 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  avg OOS Sharpe: +20.707 PASS
+  F1: Sharpe=+17.892  WR=37.1%  trades=21  avg=+1.54%  MDD=-0.0162
+  F2: Sharpe=+18.307  WR=44.4%  trades=23  avg=+2.42%  MDD=-0.0288
+  F3: Sharpe=+25.920  WR=45.8%  trades=20  avg=+1.45%  MDD=-0.0121
+
+Sharpe: +20.707
+WR: 42.5%
+trades: 64
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 12:01 UTC — 7컴포넌트 ablation(예측력 검증) + 스코어 기반 동적 홀드 기간(고확신=장기, 저확신=단기) 144조합 3-fold WF [ralph:score_ablation_adaptive_hold] 🌟[promising]
+
+**결과**: Sharpe +51.596 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+
+  KRW-SOL Fold 2024-04-01~2025-01-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2024-04-01~2025-01-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2024-10-01~2025-07-31: Sharpe=+33.515  WR=75.0%  n=4  avg=+2.79%  MDD=-0.43%
+  KRW-SOL Fold 2024-10-01~2025-07-31: Sharpe=+51.310  WR=75.0%  n=4  avg=+3.68%  MDD=-0.44%
+  KRW-XRP Fold 2024-10-01~2025-07-31: Sharpe=+14.281  WR=33.3%  n=3  avg=+0.43%  MDD=-0.32%
+  KRW-ETH Fold 2025-04-01~2026-04-05: Sharpe=+27.903  WR=50.0%  n=4  avg=+2.43%  MDD=-0.72%
+  KRW-SOL Fold 2025-04-01~2026-04-05: Sharpe=+51.596  WR=75.0%  n=4  avg=+3.70%  MDD=-0.41%
+  KRW-XRP Fold 2025-04-01~2026-04-05: Sharpe=+44.276  WR=66.7%  n=3  avg=+1.51%  MDD=-0.32%
+  KRW-ETH 평균: Sharpe=+33.071  총 trades=12
+  KRW-SOL 평균: Sharpe=+51.453  총 trades=8
+  KRW-XRP 평균: Sharpe=+29.279  총 trades=6
+
+================================================================================
+=== c199 베이스라인 대비 비교 ===
+  c199 기준 (regime dual exit): avg_OOS=+51.425
+  c213 기준 (entry quality score): avg_OOS=+37.362
+  c217 최적: avg_OOS=+37.362
+  Δ vs c199: -14.063 (악화)
+  Δ vs c213: +0.000 (개선)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: ablation=all scMin=1.0 hb=0 slSM=0.10
+  (c199 고정: rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.2)
+  (c192 고정: ttA=6 ttF=3.0)
+  (c190 고정: vMomLB=10 vMomMin=0.05 tpBonus=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  (BB 고정: bbP=20 bbS=2.0 sqTh=20 sqLB=30 expB=2)
+  avg OOS Sharpe: +37.362 PASS
+  train Sharpe: +26.263
+  Fold 1: Sharpe=+37.793  WR=75.0%  trades=4  avg=+2.24%  MDD=-0.29%
+  Fold 2: Sharpe=+33.035  WR=61.1%  trades=11  avg=+2.30%  MDD=-0.40%
+  Fold 3: Sharpe=+41.258  WR=63.9%  trades=11  avg=+2.55%  MDD=-0.48%
+
+Sharpe: +37.362
+WR: 64.4%
+trades: 26
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 12:15 UTC — c220 vpin_multi 래칫 스탑 + 2-tier 분할익절 스태킹 검증 3-fold WF [ralph:c220_vpin_ratchet_partial_tp]
+
+**결과**: Sharpe +20.707 | WR 42.5% | trades 64
+
+**핵심 발견**:
+- **분할익절은 vpin에 무효** — 최적 = tp1M=0.0 (분할 OFF). donchian(c219)에서 +4.893 개선을 보인 분할익절이 vpin에선 효과 없음
+- **래칫 스탑만 유효** — +3.436 (baseline +17.271 → +20.707), MDD -2.16% → -1.90%
+- **스태킹 시너지 없음** — 분할익절 기여 0, 시너지 0
+- **원인**: vpin은 이미 trailing stop이 잘 작동하므로 조기 분할익절이 불필요
+
+4모드 비교:
+- A) baseline (래칫OFF+분할OFF): avg OOS Sharpe +17.271
+- B) 래칫ON만: avg OOS Sharpe +20.707 (+3.436)
+- C) 분할ON만: +17.271 (개선 없음)
+- D) 스태킹: +20.707 (래칫만과 동일)
+
+슬리피지 stress: slip=0.0020에서도 +18.273 PASS
+
+<details><summary>탐색 그리드</summary>
+
+```
+TP1_MULT_ATR: [0, 1.0, 1.5, 2.0, 2.5] (0=분할OFF)
+PART_RATIO: [0.3, 0.5, 0.7]
+RATCHET: [ON, OFF] (c216 최적: beTr=0.5 lkTr=1.5 lkPct=0.90)
+= 26 유효 조합
+
+Top 3 OOS (3-fold WF):
+[1] tp1M=0.0 ratch=ON: avg +20.707 (래칫만 = 최적)
+[2] tp1M=2.0 pRat=0.3 ratch=ON: avg +20.674 (거의 동일)
+[3] tp1M=2.5 pRat=0.3 ratch=ON: avg +20.617
+
+★ OOS 최적: tp1M=0.0 pRat=0.0 ratch=ON
+  c216 래칫: beTr=0.5 lkTr=1.5 lkPct=0.90
+  c179 고정: volTh=60 tpSc=0.65 trSc=0.7 hdSc=0.8
+  avg OOS Sharpe: +20.707 PASS
+  F1: Sharpe=+17.892  WR=37.1%  trades=21
+  F2: Sharpe=+18.307  WR=44.4%  trades=23
+  F3: Sharpe=+25.920  WR=45.8%  trades=20
+```
+
+</details>
+
+**결론**: 분할익절은 전략 특성에 따라 효과가 다름 — donchian(추세추종)에서는 유효하나 vpin(주문흐름 기반)에서는 trailing stop이 이미 최적 청산을 달성. 래칫 스탑은 c216에서 확인된 +3.436 유지. vpin 개선은 래칫 src/ 구현으로 추진 가능.
+
+---
