@@ -1,140 +1,6 @@
 {
-  "current_cycle": 174,
+  "current_cycle": 206,
   "history": [
-    {
-      "cycle": 124,
-      "timestamp": "2026-04-04T06:47:51.561235"
-    },
-    {
-      "cycle": 125,
-      "timestamp": "2026-04-04T06:58:26.464914"
-    },
-    {
-      "cycle": 126,
-      "timestamp": "2026-04-04T07:04:23.222069"
-    },
-    {
-      "cycle": 127,
-      "timestamp": "2026-04-04T07:13:11.770010"
-    },
-    {
-      "cycle": 128,
-      "timestamp": "2026-04-04T07:43:11.584047"
-    },
-    {
-      "cycle": 129,
-      "timestamp": "2026-04-04T08:17:13.481577"
-    },
-    {
-      "cycle": 130,
-      "timestamp": "2026-04-04T08:27:14.820899"
-    },
-    {
-      "cycle": 131,
-      "timestamp": "2026-04-04T08:33:25.312379"
-    },
-    {
-      "cycle": 132,
-      "timestamp": "2026-04-04T08:41:56.947565"
-    },
-    {
-      "cycle": 133,
-      "timestamp": "2026-04-04T08:48:28.584268"
-    },
-    {
-      "cycle": 134,
-      "timestamp": "2026-04-04T08:54:10.200425"
-    },
-    {
-      "cycle": 135,
-      "timestamp": "2026-04-04T09:01:47.968839"
-    },
-    {
-      "cycle": 136,
-      "timestamp": "2026-04-04T09:09:26.510680"
-    },
-    {
-      "cycle": 137,
-      "timestamp": "2026-04-04T09:20:00.731715"
-    },
-    {
-      "cycle": 138,
-      "timestamp": "2026-04-04T09:25:46.609484"
-    },
-    {
-      "cycle": 139,
-      "timestamp": "2026-04-04T09:43:19.144200"
-    },
-    {
-      "cycle": 140,
-      "timestamp": "2026-04-04T09:49:33.659290"
-    },
-    {
-      "cycle": 141,
-      "timestamp": "2026-04-04T10:06:46.621808"
-    },
-    {
-      "cycle": 142,
-      "timestamp": "2026-04-04T10:12:30.932532"
-    },
-    {
-      "cycle": 143,
-      "timestamp": "2026-04-04T10:24:16.442703"
-    },
-    {
-      "cycle": 145,
-      "timestamp": "2026-04-04T12:50:00",
-      "result": "MAX_HOLD \uc7ac\ud0d0\uc0c9 \u2014 24\ubd09 \uc720\uc9c0 (TP=5% \uad6c\uc870\uc5d0\uc11c \ubc14\uc778\ub529 \uc81c\uc57d \uc544\ub2d8)"
-    },
-    {
-      "cycle": "145-B",
-      "timestamp": "2026-04-04T12:55:00",
-      "result": "momentum_sol C1 bias-corrected \u2014 OOS Sharpe 18.798 (open entry), daemon \ud30c\ub77c\ubbf8\ud130 \uc720\uc9c0 \ud655\uc815"
-    },
-    {
-      "cycle": 147,
-      "timestamp": "2026-04-05T05:30:16.425032"
-    },
-    {
-      "cycle": 148,
-      "timestamp": "2026-04-05T06:03:35.056593"
-    },
-    {
-      "cycle": 149,
-      "timestamp": "2026-04-05T06:12:30.053391"
-    },
-    {
-      "cycle": 150,
-      "timestamp": "2026-04-05T06:20:39.934232"
-    },
-    {
-      "cycle": 151,
-      "timestamp": "2026-04-05T06:30:26.694222"
-    },
-    {
-      "cycle": 152,
-      "timestamp": "2026-04-05T06:41:13.377254"
-    },
-    {
-      "cycle": 153,
-      "timestamp": "2026-04-05T06:52:00.976333"
-    },
-    {
-      "cycle": 154,
-      "timestamp": "2026-04-05T07:25:36.836459"
-    },
-    {
-      "cycle": 155,
-      "timestamp": "2026-04-05T07:59:20.374374"
-    },
-    {
-      "cycle": 156,
-      "timestamp": "2026-04-05T08:33:00.285047"
-    },
-    {
-      "cycle": 157,
-      "timestamp": "2026-04-05T09:06:45.792864"
-    },
     {
       "cycle": 158,
       "timestamp": "2026-04-05T09:19:00.293430"
@@ -202,192 +68,324 @@
     {
       "cycle": 173,
       "timestamp": "2026-04-05T12:42:31.571821"
+    },
+    {
+      "cycle": 174,
+      "timestamp": "2026-04-05T12:56:46.504099"
+    },
+    {
+      "cycle": 175,
+      "timestamp": "2026-04-05T13:04:41.550142"
+    },
+    {
+      "cycle": 176,
+      "timestamp": "2026-04-05T13:12:12.153433"
+    },
+    {
+      "cycle": 177,
+      "timestamp": "2026-04-05T13:26:30.519627"
+    },
+    {
+      "cycle": 178,
+      "timestamp": "2026-04-05T13:41:01.799985"
+    },
+    {
+      "cycle": 179,
+      "timestamp": "2026-04-05T13:59:55.787353"
+    },
+    {
+      "cycle": 180,
+      "timestamp": "2026-04-05T14:16:08.199800"
+    },
+    {
+      "cycle": 181,
+      "timestamp": "2026-04-05T14:28:46.807966"
+    },
+    {
+      "cycle": 182,
+      "timestamp": "2026-04-05T14:38:59.216341"
+    },
+    {
+      "cycle": 183,
+      "timestamp": "2026-04-05T14:45:43.992528"
+    },
+    {
+      "cycle": 184,
+      "timestamp": "2026-04-05T15:20:22.123621"
+    },
+    {
+      "cycle": 185,
+      "timestamp": "2026-04-05T15:31:55.575798"
+    },
+    {
+      "cycle": 186,
+      "timestamp": "2026-04-05T15:41:51.115720"
+    },
+    {
+      "cycle": 187,
+      "timestamp": "2026-04-05T15:46:36.131539"
+    },
+    {
+      "cycle": 188,
+      "timestamp": "2026-04-05T15:49:51.310264"
+    },
+    {
+      "cycle": 189,
+      "timestamp": "2026-04-05T15:53:05.638110"
+    },
+    {
+      "cycle": 190,
+      "timestamp": "2026-04-05T15:56:18.576995"
+    },
+    {
+      "cycle": 191,
+      "timestamp": "2026-04-05T15:59:32.415818"
+    },
+    {
+      "cycle": 192,
+      "timestamp": "2026-04-05T16:06:49.352662"
+    },
+    {
+      "cycle": 193,
+      "timestamp": "2026-04-05T16:41:40.389797"
+    },
+    {
+      "cycle": 194,
+      "timestamp": "2026-04-05T17:16:35.413142"
+    },
+    {
+      "cycle": 195,
+      "timestamp": "2026-04-05T17:31:27.936523"
+    },
+    {
+      "cycle": 196,
+      "timestamp": "2026-04-05T17:43:19.258298"
+    },
+    {
+      "cycle": 197,
+      "timestamp": "2026-04-05T17:56:43.858329"
+    },
+    {
+      "cycle": 198,
+      "timestamp": "2026-04-05T18:05:50.306355"
+    },
+    {
+      "cycle": 199,
+      "timestamp": "2026-04-05T18:17:56.472952"
+    },
+    {
+      "cycle": 200,
+      "timestamp": "2026-04-05T18:30:53.584631"
+    },
+    {
+      "cycle": 201,
+      "timestamp": "2026-04-05T18:43:45.772569"
+    },
+    {
+      "cycle": 202,
+      "timestamp": "2026-04-05T19:11:40.008174"
+    },
+    {
+      "cycle": 203,
+      "timestamp": "2026-04-05T19:20:56.918261"
+    },
+    {
+      "cycle": 204,
+      "timestamp": "2026-04-05T19:28:05.540458"
+    },
+    {
+      "cycle": 205,
+      "timestamp": "2026-04-05T19:43:29.674143"
+    },
+    {
+      "cycle": 206,
+      "timestamp": "2026-04-05T19:50:02.996009"
     }
   ],
   "ralph_cycle": 0,
   "ralph_done": [
     {
-      "cycle": 141,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 842s \ud6c4 \uc885\ub8cc",
-      "detail": "\ubc31\uadf8\ub77c\uc6b4\ub4dc pytest\ub3c4 exit code 0\uc73c\ub85c \uc644\ub8cc\ub410\uc2b5\ub2c8\ub2e4. \uc0ac\uc774\ud074 141 \ubaa8\ub4e0 \uac80\uc99d \ud1b5\uacfc.",
-      "timestamp": "2026-04-04T10:06:46.595255"
+      "cycle": 176,
+      "summary": "\uc791\uc5c5: c180 \ubcc0\ub3d9\uc131\ub808\uc9d0 \uc801\uc751\ud615 \uc9c4\uc785 + ADX \ucd94\uc138\uac15\ub3c4 \ud544\ud130 36\uc870\ud569 3-fold WF \uac80\uc99d | \uacb0\uacfc: \u274c OOS \uc804 \uc2e4\ud328 \u2014 \ucd5c\uc801 avg OOS Sharpe +1.087 (c179 baseline +17.938 \ub300\ube44 -16.851 \uc545\ud654). ADX=25 train +28.768\u2192OOS -45.448 \uc2ec\uac01\ud55c \uacfc\uc801\ud569. MOM/VPIN \uc2a4\ucf00\uc77c\ub9c1 \ubb34\ud6a8\uacfc. \uc9c4\uc785 \uc801\uc751 \ubc29\ud5a5 \ud3d0\uae30, c179 \uace0\uc815 \uc9c4\uc785 \uc720\uc9c0 | \ub2e4\uc74c\uc81c\uc548: (1) **VPIN \uc9c4\uc785 \ucd5c\uc801\ud654 \uc885\ub8cc \uc120\uc5b8** \u2014 c177\u2192c179\u2192c180 \ubaa8\ub450 baseline \ub300\ube44 \uc758\ubbf8 \uc788\ub294 OOS \uac1c\uc120 \uc2e4\ud328, \uc9c4\uc785 \ud544\ud130 \ucd94\uac00\ub294 \ud55c\uacc4 \ub3c4\ub2ec (2) **c178 BB squeeze breakout n \ud655\ubcf4** \u2014 avg OOS +42.205\uc774\ub098 n=19 \ubd80\uc871, squeeze_pctile \uc644\ud654(50\u219230) \ub610\ub294 \uc2ec\ubcfc \ud655\uc7a5(DOGE/AVAX)\uc73c\ub85c n\u226530 \ud655\ubcf4 \uc2dc\ub3c4 (3) **\ube44-VPIN \uacc4\uc5f4 \uc804\ub7b5 \ud0d0\uc0c9** \u2014 funding rate, cross-exchange spread \ub4f1 VPIN \uc0c1\uad00 \ub0ae\uc740 \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998 \uc870\uc0ac",
+      "detail": "[RALPH CYCLE 176 DONE] \uc791\uc5c5: c180 \ubcc0\ub3d9\uc131\ub808\uc9d0 \uc801\uc751\ud615 \uc9c4\uc785 + ADX \ucd94\uc138\uac15\ub3c4 \ud544\ud130 36\uc870\ud569 3-fold WF \uac80\uc99d | \uacb0\uacfc: \u274c OOS \uc804 \uc2e4\ud328 \u2014 \ucd5c\uc801 avg OOS Sharpe +1.087 (c179 baseline +17.938 \ub300\ube44 -16.851 \uc545\ud654). ADX=25 train +28.768\u2192OOS -45.448 \uc2ec\uac01\ud55c \uacfc\uc801\ud569. MOM/VPIN \uc2a4\ucf00\uc77c\ub9c1 \ubb34\ud6a8\uacfc. \uc9c4\uc785 \uc801\uc751 \ubc29\ud5a5 \ud3d0\uae30, c179 \uace0\uc815 \uc9c4\uc785 \uc720\uc9c0 | \ub2e4\uc74c\uc81c\uc548: (1) **VPIN \uc9c4\uc785 \ucd5c\uc801\ud654 \uc885\ub8cc \uc120\uc5b8** \u2014 c177\u2192c179\u2192c180 \ubaa8\ub450 baseline \ub300\ube44 \uc758\ubbf8 \uc788\ub294 OOS \uac1c\uc120 \uc2e4\ud328, \uc9c4\uc785 \ud544\ud130 \ucd94\uac00\ub294 \ud55c\uacc4 \ub3c4\ub2ec (2) **c178 BB squeeze breakout n \ud655\ubcf4** \u2014 avg OOS +42.205\uc774\ub098 n=19 \ubd80\uc871, squeeze_pctile \uc644\ud654(50\u219230) \ub610\ub294 \uc2ec\ubcfc \ud655\uc7a5(DOGE/AVAX)\uc73c\ub85c n\u226530 \ud655\ubcf4 \uc2dc\ub3c4 (3) **\ube44-VPIN \uacc4\uc5f4 \uc804\ub7b5 \ud0d0\uc0c9** \u2014 funding rate, cross-exchange spread \ub4f1 VPIN \uc0c1\uad00 \ub0ae\uc740 \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998 \uc870\uc0ac",
+      "timestamp": "2026-04-05T13:12:12.130156"
     },
     {
-      "cycle": 142,
-      "summary": "\uc791\uc5c5: stealth_3gate TP \ud558\ud55c \ud0d0\uc0c9 \u2014 TP=3%/4% vs \ud604\uc7ac TP=5%/SL=1.0% 6\uc870\ud569 \ube44\uad50 | \uacb0\uacfc: **TP=5% \ud558\ud55c \ud655\uc778** \u2014 TP=3%\uc5d0\uc11c W2 Sharpe \ud558\ub77d(11.359/11.757), TP=4%\ub3c4 SL=1.0% \uae30\uc900 \uc5f4\uc138(11.952), \ud604\uc7ac TP=5%/SL=1.0% (W2 12.126) \uade0\ud615 \ucd5c\uc801 \uc720\uc9c0, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol W1/W2 walk-forward \uac80\uc99d** \u2014 Sharpe 14.37 \uacfc\uc801\ud569 \uc758\uc2ec, daemon \ubc18\uc601 \uc804 \ud544\uc218 \uac80\uc99d, **(B) \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94** \u2014 TP=5%/btc_acc_min=1.2 \ud604\uc7ac \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130 \uae30\uc900 \uc2e0\uaddc \uc885\ubaa9 \ud0d0\uc0c9, **(C) vpin_eth walk-forward** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0",
-      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n---\n\n[RALPH CYCLE 142 DONE] \uc791\uc5c5: stealth_3gate TP \ud558\ud55c \ud0d0\uc0c9 \u2014 TP=3%/4% vs \ud604\uc7ac TP=5%/SL=1.0% 6\uc870\ud569 \ube44\uad50 | \uacb0\uacfc: **TP=5% \ud558\ud55c \ud655\uc778** \u2014 TP=3%\uc5d0\uc11c W2 Sharpe \ud558\ub77d(11.359/11.757), TP=4%\ub3c4 SL=1.0% \uae30\uc900 \uc5f4\uc138(11.952), \ud604\uc7ac TP=5%/SL=1.0% (W2 12.126) \uade0\ud615 \ucd5c\uc801 \uc720\uc9c0, daemon \ubcc0\uacbd \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol W1/W2 walk-forward \uac80\uc99d** \u2014 Sharpe 14.37 \uacfc\uc801\ud569 \uc758\uc2ec, daemon \ubc18\uc601 \uc804 \ud544\uc218 \uac80\uc99d, **(B) \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94** \u2014 TP=5%/btc_acc_min=1.2 \ud604\uc7ac \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130 \uae30\uc900 \uc2e0\uaddc \uc885\ubaa9 \ud0d0\uc0c9, **(C) vpin_eth walk-forward** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0",
-      "timestamp": "2026-04-04T10:12:30.910729"
+      "cycle": 177,
+      "summary": "\uc791\uc5c5: c178 BB squeeze breakout n \ud655\ubcf4 \u2014 squeeze_pctile \uc644\ud654(50\u219230) + 5\uc2ec\ubcfc(+DOGE/AVAX) \ud655\uc7a5 18\uc870\ud569 3-fold WF | \uacb0\uacfc: \u274c **n\u226530 \ubaa9\ud45c \ubbf8\ub2ec** \u2014 \ucd5c\uc801 sqTh=30 sqLB=20 upR=0.95\uc5d0\uc11c avg OOS Sharpe +34.057\uc774\ub098 n=15(c178 n=19\ubcf4\ub2e4 \uac10\uc18c). XRP/DOGE \uc804 fold 0\uac74, AVAX fold3\ub9cc 5\uac74, Fold 1 \uc804 \uc2ec\ubcfc 0\uac74. \ub2e4\uc911 \ud544\ud130 \uccb4\uc778(VPIN+body+ATR+BB squeeze)\uc774 \uad6c\uc870\uc801\uc73c\ub85c \uac70\ub798 \uc218 \uc81c\ud55c. BB squeeze + VPIN \uc870\ud569 n \ud655\ubcf4 \ubd88\uac00\ub2a5 \ud655\uc778 \u2014 **BB squeeze breakout \ud2b8\ub799 \uc885\ub8cc** | \ub2e4\uc74c\uc81c\uc548: (1) **BB squeeze breakout\uc744 \ub3c5\ub9bd \uc804\ub7b5(non-VPIN)\uc73c\ub85c \ubd84\ub9ac \ud14c\uc2a4\ud2b8** \u2014 VPIN/body/ATR \ud544\ud130 \uc81c\uac70, BB squeeze + BTC gate + momentum\ub9cc\uc73c\ub85c \ub2e8\uc21c\ud654, (2) **\ube44-VPIN \uacc4\uc5f4 \uc804\ub7b5 \ud0d0\uc0c9** \u2014 funding rate, order flow imbalance \ub4f1 VPIN \uc0c1\uad00 \ub0ae\uc740 \uba54\ucee4\ub2c8\uc998 \uc870\uc0ac, (3) **RSI mean-reversion BEAR \uc804\uc6a9** \u2014 \ud3c9\uac00\uc790 \uc9c0\uc2dc \ubbf8\ucc29\uc218, RSI<25\u2192RSI>45 60m/240m \uce94\ub4e4 ETH/BTC 3-fold WF",
+      "detail": "[RALPH CYCLE 177 DONE] \uc791\uc5c5: c178 BB squeeze breakout n \ud655\ubcf4 \u2014 squeeze_pctile \uc644\ud654(50\u219230) + 5\uc2ec\ubcfc(+DOGE/AVAX) \ud655\uc7a5 18\uc870\ud569 3-fold WF | \uacb0\uacfc: \u274c **n\u226530 \ubaa9\ud45c \ubbf8\ub2ec** \u2014 \ucd5c\uc801 sqTh=30 sqLB=20 upR=0.95\uc5d0\uc11c avg OOS Sharpe +34.057\uc774\ub098 n=15(c178 n=19\ubcf4\ub2e4 \uac10\uc18c). XRP/DOGE \uc804 fold 0\uac74, AVAX fold3\ub9cc 5\uac74, Fold 1 \uc804 \uc2ec\ubcfc 0\uac74. \ub2e4\uc911 \ud544\ud130 \uccb4\uc778(VPIN+body+ATR+BB squeeze)\uc774 \uad6c\uc870\uc801\uc73c\ub85c \uac70\ub798 \uc218 \uc81c\ud55c. BB squeeze + VPIN \uc870\ud569 n \ud655\ubcf4 \ubd88\uac00\ub2a5 \ud655\uc778 \u2014 **BB squeeze breakout \ud2b8\ub799 \uc885\ub8cc** | \ub2e4\uc74c\uc81c\uc548: (1) **BB squeeze breakout\uc744 \ub3c5\ub9bd \uc804\ub7b5(non-VPIN)\uc73c\ub85c \ubd84\ub9ac \ud14c\uc2a4\ud2b8** \u2014 VPIN/body/ATR \ud544\ud130 \uc81c\uac70, BB squeeze + BTC gate + momentum\ub9cc\uc73c\ub85c \ub2e8\uc21c\ud654, (2) **\ube44-VPIN \uacc4\uc5f4 \uc804\ub7b5 \ud0d0\uc0c9** \u2014 funding rate, order flow imbalance \ub4f1 VPIN \uc0c1\uad00 \ub0ae\uc740 \uba54\ucee4\ub2c8\uc998 \uc870\uc0ac, (3) **RSI mean-reversion BEAR \uc804\uc6a9** \u2014 \ud3c9\uac00\uc790 \uc9c0\uc2dc \ubbf8\ucc29\uc218, RSI<25\u2192RSI>45 60m/240m \uce94\ub4e4 ETH/BTC 3-fold WF",
+      "timestamp": "2026-04-05T13:26:30.493982"
     },
     {
-      "cycle": 143,
-      "summary": "\uc791\uc5c5: stealth_3gate \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94 \u2014 \uc804\uccb4 141\uac1c \uc2ec\ubcfc W1/W2 per-symbol \ubd84\uc11d + \ud655\uc7a5 \uc138\ud2b8 \ube44\uad50 | \uacb0\uacfc: **7\uac1c wallet \uc2e4\uc81c W2 Sharpe=9.547(n=31)** vs **14\uac1c \ud655\uc7a5 \ud6c4 W2 Sharpe=13.183(n=71, WR=59.2%)** \u2014 daemon.toml symbols\uc5d0 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA \ucd94\uac00 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth walk-forward \uac80\uc99d** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0, **(B) RS \ubc94\uc704 \uc7ac\ud0d0\uc0c9** \u2014 14\uac1c \uc2ec\ubcfc \uae30\uc900 RS=[0.4,0.9) \uc7ac\ucd5c\uc801\ud654 (\ud655\uc7a5 \uc2ec\ubcfc \ubc18\uc601), **(C) 14\uac1c \uc2ec\ubcfc \uae30\uc900 BTC_ACC_MIN \uc7ac\ud0d0\uc0c9** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ucd94\uac00\ub85c \ucd5c\uc801 \uc784\uacc4\uac12 \ubcc0\ud654 \uac00\ub2a5\uc131",
-      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n---\n\n[RALPH CYCLE 143 DONE] \uc791\uc5c5: stealth_3gate \uc2e0\uaddc \uc2ec\ubcfc \uc2a4\uce94 \u2014 \uc804\uccb4 141\uac1c \uc2ec\ubcfc W1/W2 per-symbol \ubd84\uc11d + \ud655\uc7a5 \uc138\ud2b8 \ube44\uad50 | \uacb0\uacfc: **7\uac1c wallet \uc2e4\uc81c W2 Sharpe=9.547(n=31)** vs **14\uac1c \ud655\uc7a5 \ud6c4 W2 Sharpe=13.183(n=71, WR=59.2%)** \u2014 daemon.toml symbols\uc5d0 KRW-ASTR/CELO/CHZ/IOST/NEO/PEPE/THETA \ucd94\uac00 \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth walk-forward \uac80\uc99d** \u2014 Sharpe 7.46 \uac80\uc99d \ud6c4 daemon \ucd94\uac00 \uac80\ud1a0, **(B) RS \ubc94\uc704 \uc7ac\ud0d0\uc0c9** \u2014 14\uac1c \uc2ec\ubcfc \uae30\uc900 RS=[0.4,0.9) \uc7ac\ucd5c\uc801\ud654 (\ud655\uc7a5 \uc2ec\ubcfc \ubc18\uc601), **(C) 14\uac1c \uc2ec\ubcfc \uae30\uc900 BTC_ACC_MIN \uc7ac\ud0d0\uc0c9** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ucd94\uac00\ub85c \ucd5c\uc801 \uc784\uacc4\uac12 \ubcc0\ud654 \uac00\ub2a5\uc131",
-      "timestamp": "2026-04-04T10:24:16.420876"
+      "cycle": 178,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 683s \ud6c4 \uc885\ub8cc",
+      "detail": "---</parameter>\n</invoke>",
+      "timestamp": "2026-04-05T13:41:01.777610"
     },
     {
-      "cycle": 147,
-      "summary": "\uc791\uc5c5: momentum_sol \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + MDD walk-forward 3-window \uac80\uc99d (lb=12, adx=25, TP=12%, SL=4%) | \uacb0\uacfc: **WF 2/3 \ud1b5\uacfc** \u2014 W1 Sharpe +15.929 / W2 +18.842 / W3 +11.231(n=4 FAIL, OOS 3\uac1c\uc6d4 \uc9e7\uc74c). **\uc2ac\ub9ac\ud53c\uc9c0 0.15%\uc5d0\uc11c\ub3c4 Sharpe +9.919** \u2014 \uc2e4\uc804 \ub0b4\uc131 \ud655\uc778. BH \ub300\ube44 196% vs 9.8%. MDD -19.95% (\uc804\uccb4), \ucd5c\uc545 OOS -11.80%, \ucd5c\ub300\uc5f0\uc18d\uc190\uc2e4 3. **1\uc2ac\ub86f \uc720\uc9c0, 2\uc2ac\ub86f \ud655\ub300\ub294 W3 \ub370\uc774\ud130 \ucd95\uc801(6\uc6d4+) \ud6c4 \uc7ac\uac80\uc99d** | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth W2 \ud30c\ub77c\ubbf8\ud130 \uc7ac\ud0d0\uc0c9** \u2014 Sharpe 4.662\u21925.0+ \ubaa9\ud45c, \uacf5\ud68c\uc804 \ud574\uc18c \uc6b0\uc120, **(B) BB bounce ADX<20 Bear/sideways \ubc31\ud14c\uc2a4\ud2b8** \u2014 \uc720\ud734 KRW \ud65c\uc6a9 \uacbd\ub85c \ud655\ubcf4, **(C) stealth_3gate 14\uc2ec\ubcfc \ud655\uc7a5 \ud6c4 RS \ubc94\uc704 \uc7ac\ucd5c\uc801\ud654** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ubc18\uc601 RS=[0.4,0.9) \uc7ac\ud0d0\uc0c9",
-      "detail": "\ucee4\ubc0b \uc644\ub8cc.\n\n---\n\n[RALPH CYCLE 147 DONE] \uc791\uc5c5: momentum_sol \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + MDD walk-forward 3-window \uac80\uc99d (lb=12, adx=25, TP=12%, SL=4%) | \uacb0\uacfc: **WF 2/3 \ud1b5\uacfc** \u2014 W1 Sharpe +15.929 / W2 +18.842 / W3 +11.231(n=4 FAIL, OOS 3\uac1c\uc6d4 \uc9e7\uc74c). **\uc2ac\ub9ac\ud53c\uc9c0 0.15%\uc5d0\uc11c\ub3c4 Sharpe +9.919** \u2014 \uc2e4\uc804 \ub0b4\uc131 \ud655\uc778. BH \ub300\ube44 196% vs 9.8%. MDD -19.95% (\uc804\uccb4), \ucd5c\uc545 OOS -11.80%, \ucd5c\ub300\uc5f0\uc18d\uc190\uc2e4 3. **1\uc2ac\ub86f \uc720\uc9c0, 2\uc2ac\ub86f \ud655\ub300\ub294 W3 \ub370\uc774\ud130 \ucd95\uc801(6\uc6d4+) \ud6c4 \uc7ac\uac80\uc99d** | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth W2 \ud30c\ub77c\ubbf8\ud130 \uc7ac\ud0d0\uc0c9** \u2014 Sharpe 4.662\u21925.0+ \ubaa9\ud45c, \uacf5\ud68c\uc804 \ud574\uc18c \uc6b0\uc120, **(B) BB bounce ADX<20 Bear/sideways \ubc31\ud14c\uc2a4\ud2b8** \u2014 \uc720\ud734 KRW \ud65c\uc6a9 \uacbd\ub85c \ud655\ubcf4, **(C) stealth_3gate 14\uc2ec\ubcfc \ud655\uc7a5 \ud6c4 RS \ubc94\uc704 \uc7ac\ucd5c\uc801\ud654** \u2014 \uc2e0\uaddc \uc2ec\ubcfc \ubc18\uc601 RS=[0.4,0.9) \uc7ac\ud0d0\uc0c9",
-      "timestamp": "2026-04-05T05:30:16.400811"
+      "cycle": 179,
+      "summary": "\uc791\uc5c5: c182 BB Squeeze Breakout \ub3c5\ub9bd \uc804\ub7b5 (non-VPIN) \u2014 VPIN/body/ATR_pctile/RSI_vel \uc81c\uac70, \uc21c\uc218 BB squeeze + ADX + EMA + BTC gate, 5\uc2ec\ubcfc 3-fold WF \uac80\uc99d | \uacb0\uacfc: \u2705 avg OOS Sharpe **+12.291** PASS, WR 60.9%, n=336, \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c\ub3c4 +8.596. ETH(+23.4)/DOGE(+23.8) \ucd5c\uac15, SOL(+8.9) \uc591\ud638. BH \ub300\ube44 \uc804 \uc2ec\ubcfc \uc555\ub3c4(ETH +163% vs BH -12%). \ube44-VPIN \ub3c5\ub9bd \uc804\ub7b5 \ud655\ubcf4 \uc131\uacf5 | \ub2e4\uc74c\uc81c\uc548: (1) **c182 ETH/DOGE/SOL 3\uc2ec\ubcfc daemon \ubc30\ud3ec \uc900\ube44** \u2014 `bb_squeeze_independent` \uc804\ub7b5 \ud074\ub798\uc2a4 \uad6c\ud604 \u2192 daemon.toml \uc2e0\uaddc wallet \ucd94\uac00, XRP/AVAX \uc81c\uc678 (2) **VPIN vs BB_squeeze \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d** \u2014 \uc2e0\ud638 \uc2dc\uc810 \uacb9\uce68 \ube44\uc728 \ud655\uc778, \ube44\uc0c1\uad00 \ud655\uc778 \ud6c4 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uac00\uc911\uce58 \uacb0\uc815 (3) **c182 \ud30c\ub77c\ubbf8\ud130 \ub85c\ubc84\uc2a4\ud2b8\ub2c8\uc2a4** \u2014 \uc778\uc811 \ud30c\ub77c\ubbf8\ud130(sqTh=35~45, adx=22~28) \uc131\ub2a5 \uade0\uc77c\uc131 \ud655\uc778\ud558\uc5ec \uacfc\uc801\ud569 \uc704\ud5d8 \uc810\uac80",
+      "detail": "[RALPH CYCLE 179 DONE] \uc791\uc5c5: c182 BB Squeeze Breakout \ub3c5\ub9bd \uc804\ub7b5 (non-VPIN) \u2014 VPIN/body/ATR_pctile/RSI_vel \uc81c\uac70, \uc21c\uc218 BB squeeze + ADX + EMA + BTC gate, 5\uc2ec\ubcfc 3-fold WF \uac80\uc99d | \uacb0\uacfc: \u2705 avg OOS Sharpe **+12.291** PASS, WR 60.9%, n=336, \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c\ub3c4 +8.596. ETH(+23.4)/DOGE(+23.8) \ucd5c\uac15, SOL(+8.9) \uc591\ud638. BH \ub300\ube44 \uc804 \uc2ec\ubcfc \uc555\ub3c4(ETH +163% vs BH -12%). \ube44-VPIN \ub3c5\ub9bd \uc804\ub7b5 \ud655\ubcf4 \uc131\uacf5 | \ub2e4\uc74c\uc81c\uc548: (1) **c182 ETH/DOGE/SOL 3\uc2ec\ubcfc daemon \ubc30\ud3ec \uc900\ube44** \u2014 `bb_squeeze_independent` \uc804\ub7b5 \ud074\ub798\uc2a4 \uad6c\ud604 \u2192 daemon.toml \uc2e0\uaddc wallet \ucd94\uac00, XRP/AVAX \uc81c\uc678 (2) **VPIN vs BB_squeeze \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d** \u2014 \uc2e0\ud638 \uc2dc\uc810 \uacb9\uce68 \ube44\uc728 \ud655\uc778, \ube44\uc0c1\uad00 \ud655\uc778 \ud6c4 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uac00\uc911\uce58 \uacb0\uc815 (3) **c182 \ud30c\ub77c\ubbf8\ud130 \ub85c\ubc84\uc2a4\ud2b8\ub2c8\uc2a4** \u2014 \uc778\uc811 \ud30c\ub77c\ubbf8\ud130(sqTh=35~45, adx=22~28) \uc131\ub2a5 \uade0\uc77c\uc131 \ud655\uc778\ud558\uc5ec \uacfc\uc801\ud569 \uc704\ud5d8 \uc810\uac80",
+      "timestamp": "2026-04-05T13:59:55.757292"
     },
     {
-      "cycle": 148,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1817s \ud6c4 \uc885\ub8cc",
+      "cycle": 180,
+      "summary": "\uc791\uc5c5: c185 BB Squeeze Breakout \ud30c\ub77c\ubbf8\ud130 \ub85c\ubc84\uc2a4\ud2b8\ub2c8\uc2a4 \uac80\uc99d \u2014 c182 \ucd5c\uc801 \uc911\uc2ec 729\uc870\ud569 3-fold OOS \uc804\uc218\uac80\uc0ac (ETH/SOL/DOGE 3\uc2ec\ubcfc) | \uacb0\uacfc: \u2705 **\uadf9\ub3c4\ub85c \ub85c\ubc84\uc2a4\ud2b8** \u2014 729/729 (100%) avg OOS Sharpe > 5.0, 717/729 (98.4%) 3-fold PASS. tp/sl \uadf9\ud788 \uc548\uc815(\ud3b8\ucc28<0.6), adx \uac00\uc7a5 \ubbfc\uac10(20\u219230\uc2dc +10\u2192+19). c182 \ucd5c\uc801 \uc21c\uc704 196/729(\uc0c1\uc70427%). \uacfc\uc801\ud569 \uc704\ud5d8 \uc5c6\uc74c \ud655\uc815 | \ub2e4\uc74c\uc81c\uc548: (1) **bb_squeeze_independent \uc804\ub7b5 \ud074\ub798\uc2a4 \uad6c\ud604 \u2192 daemon.toml ETH/DOGE/SOL wallet \ucd94\uac00** \u2014 \ub85c\ubc84\uc2a4\ud2b8\ub2c8\uc2a4 \ud655\uc778 \uc644\ub8cc\ub85c \ubc30\ud3ec \ube14\ub85c\ucee4 \ud574\uc18c, (2) **VPIN vs BB_squeeze \uc2e0\ud638 \uc2dc\uc810 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d** \u2014 \ube44\uc0c1\uad00 \ud655\uc778 \ud6c4 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uac00\uc911\uce58 \uacb0\uc815, (3) **c183 VWMOM / c184 MTF RSI \ubc31\ud14c\uc2a4\ud2b8 \uc2e4\ud589** \u2014 research loop \ub300\uae30 \uc911",
+      "detail": "[RALPH CYCLE 180 DONE] \uc791\uc5c5: c185 BB Squeeze Breakout \ud30c\ub77c\ubbf8\ud130 \ub85c\ubc84\uc2a4\ud2b8\ub2c8\uc2a4 \uac80\uc99d \u2014 c182 \ucd5c\uc801 \uc911\uc2ec 729\uc870\ud569 3-fold OOS \uc804\uc218\uac80\uc0ac (ETH/SOL/DOGE 3\uc2ec\ubcfc) | \uacb0\uacfc: \u2705 **\uadf9\ub3c4\ub85c \ub85c\ubc84\uc2a4\ud2b8** \u2014 729/729 (100%) avg OOS Sharpe > 5.0, 717/729 (98.4%) 3-fold PASS. tp/sl \uadf9\ud788 \uc548\uc815(\ud3b8\ucc28<0.6), adx \uac00\uc7a5 \ubbfc\uac10(20\u219230\uc2dc +10\u2192+19). c182 \ucd5c\uc801 \uc21c\uc704 196/729(\uc0c1\uc70427%). \uacfc\uc801\ud569 \uc704\ud5d8 \uc5c6\uc74c \ud655\uc815 | \ub2e4\uc74c\uc81c\uc548: (1) **bb_squeeze_independent \uc804\ub7b5 \ud074\ub798\uc2a4 \uad6c\ud604 \u2192 daemon.toml ETH/DOGE/SOL wallet \ucd94\uac00** \u2014 \ub85c\ubc84\uc2a4\ud2b8\ub2c8\uc2a4 \ud655\uc778 \uc644\ub8cc\ub85c \ubc30\ud3ec \ube14\ub85c\ucee4 \ud574\uc18c, (2) **VPIN vs BB_squeeze \uc2e0\ud638 \uc2dc\uc810 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d** \u2014 \ube44\uc0c1\uad00 \ud655\uc778 \ud6c4 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uac00\uc911\uce58 \uacb0\uc815, (3) **c183 VWMOM / c184 MTF RSI \ubc31\ud14c\uc2a4\ud2b8 \uc2e4\ud589** \u2014 research loop \ub300\uae30 \uc911",
+      "timestamp": "2026-04-05T14:16:08.176720"
+    },
+    {
+      "cycle": 181,
+      "summary": "\uc791\uc5c5: c186 bb_squeeze_independent \uc804\ub7b5 \ud074\ub798\uc2a4 \uad6c\ud604 + daemon.toml ETH/DOGE/SOL 3\uac1c paper wallet \ubc30\ud3ec \u2014 6\ud30c\uc77c \ubcc0\uacbd, \uc804\ub7b5 \ucf54\ub4dc/config/wallet factory/daemon \uc644\uc804 \ud1b5\ud569 | \uacb0\uacfc: \u2705 \uc804\ub7b5 \uad6c\ud604 \uc644\ub8cc, 382 tests PASS, mypy strict PASS, ruff PASS. c182 \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130(sqTh=40, sqLB=15, upR=0.97, adx=25, tp=5.0ATR, sl=2.0ATR) \ubc18\uc601. \ubc30\ud3ec \uadfc\uac70: avg OOS Sharpe +12.291 (n=336), c185 729/729 100% Sharpe>5 ROBUST | \ub2e4\uc74c\uc81c\uc548: (1) **VPIN vs BB_squeeze \uc2e0\ud638 \uc2dc\uc810 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d** \u2014 Jaccard similarity \uc0b0\ucd9c\ud558\uc5ec \ube44\uc0c1\uad00 \ud655\uc778 \ud6c4 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uac00\uc911\uce58 \uacb0\uc815 (2) **paper wallet \uac70\ub798 \ucd95\uc801 \ubaa8\ub2c8\ud130\ub9c1** \u2014 20\uac70\ub798 \uc774\uc0c1 \ucd95\uc801 \ud6c4 \uc2e4\uc81c WR/Sharpe vs \ubc31\ud14c\uc2a4\ud2b8 \uad34\ub9ac \uc810\uac80 (3) **funding rate / cross-exchange basis \ud0d0\uc0c9** \u2014 \ube44-VPIN \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998 \uc5f0\uad6c \uc2dc\uc791",
+      "detail": "[RALPH CYCLE 181 DONE] \uc791\uc5c5: c186 bb_squeeze_independent \uc804\ub7b5 \ud074\ub798\uc2a4 \uad6c\ud604 + daemon.toml ETH/DOGE/SOL 3\uac1c paper wallet \ubc30\ud3ec \u2014 6\ud30c\uc77c \ubcc0\uacbd, \uc804\ub7b5 \ucf54\ub4dc/config/wallet factory/daemon \uc644\uc804 \ud1b5\ud569 | \uacb0\uacfc: \u2705 \uc804\ub7b5 \uad6c\ud604 \uc644\ub8cc, 382 tests PASS, mypy strict PASS, ruff PASS. c182 \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130(sqTh=40, sqLB=15, upR=0.97, adx=25, tp=5.0ATR, sl=2.0ATR) \ubc18\uc601. \ubc30\ud3ec \uadfc\uac70: avg OOS Sharpe +12.291 (n=336), c185 729/729 100% Sharpe>5 ROBUST | \ub2e4\uc74c\uc81c\uc548: (1) **VPIN vs BB_squeeze \uc2e0\ud638 \uc2dc\uc810 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d** \u2014 Jaccard similarity \uc0b0\ucd9c\ud558\uc5ec \ube44\uc0c1\uad00 \ud655\uc778 \ud6c4 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uac00\uc911\uce58 \uacb0\uc815 (2) **paper wallet \uac70\ub798 \ucd95\uc801 \ubaa8\ub2c8\ud130\ub9c1** \u2014 20\uac70\ub798 \uc774\uc0c1 \ucd95\uc801 \ud6c4 \uc2e4\uc81c WR/Sharpe vs \ubc31\ud14c\uc2a4\ud2b8 \uad34\ub9ac \uc810\uac80 (3) **funding rate / cross-exchange basis \ud0d0\uc0c9** \u2014 \ube44-VPIN \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998 \uc5f0\uad6c \uc2dc\uc791",
+      "timestamp": "2026-04-05T14:28:46.784891"
+    },
+    {
+      "cycle": 182,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 427s \ud6c4 \uc885\ub8cc",
+      "detail": "\n\nExplorer agent \uc644\ub8cc \u2014 \uc774\ubbf8 \ud544\uc694\ud55c \uc815\ubcf4\ub294 \ud65c\uc6a9 \uc644\ub8cc. \uc0ac\uc774\ud074 182 \uc791\uc5c5 \uc644\ub8cc \ubcf4\uace0 \uc704\uc5d0 \ucd9c\ub825\ub428.",
+      "timestamp": "2026-04-05T14:38:59.194218"
+    },
+    {
+      "cycle": 183,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 218s \ud6c4 \uc885\ub8cc",
+      "detail": "c188 OBV/MACD \ubc31\uadf8\ub77c\uc6b4\ub4dc \ud0dc\uc2a4\ud06c \uc644\ub8cc \ud655\uc778. \uacb0\uacfc(c179 \ub300\ube44 -27.6 \uc545\ud654, \ucc44\ud0dd\ubd88\uac00)\ub294 \uc774\ubbf8 \uae30\ub85d \ubc0f \ucee4\ubc0b \uc644\ub8cc. \uc0ac\uc774\ud074 183 4\uac74 \uc804\ubd80 \uc644\uacb0.",
+      "timestamp": "2026-04-05T14:45:43.969328"
+    },
+    {
+      "cycle": 184,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1889s \ud6c4 \uc885\ub8cc",
       "detail": "",
-      "timestamp": "2026-04-05T06:03:35.034179"
+      "timestamp": "2026-04-05T15:20:22.101218"
     },
     {
-      "cycle": 149,
-      "summary": "\uc791\uc5c5: stealth_3gate TP\u2208{3,4,5,6,7}% \u00d7 SL\u2208{0.8,1.0,1.5}% \uc138\ubc00 \uadf8\ub9ac\ub4dc 15\uc870\ud569 + \uc804\uccb4 238\uc2ec\ubcfc WF 2/2 \uac80\uc99d | \uacb0\uacfc: **\uc804 \uc870\ud569 WF \ud1b5\uacfc**, \ucd5c\uc801 TP=5%/SL=0.8% W2 Sharpe +12.140 (\uc804\uccb4) / daemon W2 +14.114, \ud604\ud589 TP=5%/SL=1.0% W2=11.960 \ub300\ube44 \u0394+0.180 (\ubbf8\ubbf8) \u2192 **\ud604\ud589 \uc720\uc9c0**. TP=4~5% \ucd5c\uc801 \uad6c\uac04 \ud655\uc815, TP=3% fee drag, TP\u22656% \uae30\ud68c\ube44\uc6a9 \ud655\uc778. BH \ub300\ube44 +1504% vs -70% | \ub2e4\uc74c\uc81c\uc548: **(A) SL=0.8% \uc2e4\uac70\ub798 2\uc8fc \ucd94\uc801 \ud6c4 \uc804\ud658 \uac80\ud1a0** \u2014 daemon\uc5d0\uc11c paper_trading SL=0.8% \ubd84\uae30 \ucd94\uc801, **(B) vpin_eth ATR/\ubcfc\ub968 \ud544\ud130 \uacb0\uacfc \ud655\uc778** \u2014 research loop \uc0ac\uc774\ud074 207 \uacb0\uacfc \ud655\uc778 \ud6c4 daemon \ubc18\uc601, **(C) stealth_3gate MAX_HOLD \ucd95\uc18c \ud0d0\uc0c9** \u2014 \ud604 24h\u219218/12h \ud0d0\uc0c9\uc73c\ub85c BEAR \ub808\uc9d0 \ube60\ub978 \uccad\uc0b0 \ud6a8\uacfc \uac80\uc99d",
-      "detail": "[RALPH CYCLE 149 DONE] \uc791\uc5c5: stealth_3gate TP\u2208{3,4,5,6,7}% \u00d7 SL\u2208{0.8,1.0,1.5}% \uc138\ubc00 \uadf8\ub9ac\ub4dc 15\uc870\ud569 + \uc804\uccb4 238\uc2ec\ubcfc WF 2/2 \uac80\uc99d | \uacb0\uacfc: **\uc804 \uc870\ud569 WF \ud1b5\uacfc**, \ucd5c\uc801 TP=5%/SL=0.8% W2 Sharpe +12.140 (\uc804\uccb4) / daemon W2 +14.114, \ud604\ud589 TP=5%/SL=1.0% W2=11.960 \ub300\ube44 \u0394+0.180 (\ubbf8\ubbf8) \u2192 **\ud604\ud589 \uc720\uc9c0**. TP=4~5% \ucd5c\uc801 \uad6c\uac04 \ud655\uc815, TP=3% fee drag, TP\u22656% \uae30\ud68c\ube44\uc6a9 \ud655\uc778. BH \ub300\ube44 +1504% vs -70% | \ub2e4\uc74c\uc81c\uc548: **(A) SL=0.8% \uc2e4\uac70\ub798 2\uc8fc \ucd94\uc801 \ud6c4 \uc804\ud658 \uac80\ud1a0** \u2014 daemon\uc5d0\uc11c paper_trading SL=0.8% \ubd84\uae30 \ucd94\uc801, **(B) vpin_eth ATR/\ubcfc\ub968 \ud544\ud130 \uacb0\uacfc \ud655\uc778** \u2014 research loop \uc0ac\uc774\ud074 207 \uacb0\uacfc \ud655\uc778 \ud6c4 daemon \ubc18\uc601, **(C) stealth_3gate MAX_HOLD \ucd95\uc18c \ud0d0\uc0c9** \u2014 \ud604 24h\u219218/12h \ud0d0\uc0c9\uc73c\ub85c BEAR \ub808\uc9d0 \ube60\ub978 \uccad\uc0b0 \ud6a8\uacfc \uac80\uc99d",
-      "timestamp": "2026-04-05T06:12:30.030531"
+      "cycle": 185,
+      "summary": "\uc791\uc5c5: c190 vol_mom_gate 5-fold expanding WF \uc7ac\uac80\uc99d + SOL 0\uac70\ub798 \uc6d0\uc778 \ubd84\uc11d | \uacb0\uacfc: Sharpe +22.980 / WR 72.2% / n=20 **FAIL** (n<<45, 2/5 fold 0\uac70\ub798) | \ub2e4\uc74c\uc81c\uc548: c190/vpin_multi \ubc29\ud5a5\uc740 \uad6c\uc870\uc801 \uc2e0\ud638 \ud76c\uc18c\uc131\uc73c\ub85c daemon \ubc18\uc601 \ubd88\uac00 \ud655\uc815. \ud3c9\uac00\uc790 \uad8c\uace0\ub300\ub85c (1) accumulation/volspike \uc57d\uccb4 \uc2ac\ub86f\uc744 BB squeeze \ub610\ub294 RSI MR BEAR \uc2ec\ubcfc \ud655\uc7a5\uc73c\ub85c \uad50\uccb4, (2) \uba40\ud2f0\ud0c0\uc784\ud504\ub808\uc784 1h+4h \uc2e0\ud638 \ud569\uc131 \ud0d0\uc0c9, (3) regime-adaptive \uac00\uc911\uce58 \ub3d9\uc801 \uc870\uc815 \uc124\uacc4\ub85c \uc804\ud658 \uad8c\uc7a5",
+      "detail": "[RALPH CYCLE 185 DONE] \uc791\uc5c5: c190 vol_mom_gate 5-fold expanding WF \uc7ac\uac80\uc99d + SOL 0\uac70\ub798 \uc6d0\uc778 \ubd84\uc11d | \uacb0\uacfc: Sharpe +22.980 / WR 72.2% / n=20 **FAIL** (n<<45, 2/5 fold 0\uac70\ub798) | \ub2e4\uc74c\uc81c\uc548: c190/vpin_multi \ubc29\ud5a5\uc740 \uad6c\uc870\uc801 \uc2e0\ud638 \ud76c\uc18c\uc131\uc73c\ub85c daemon \ubc18\uc601 \ubd88\uac00 \ud655\uc815. \ud3c9\uac00\uc790 \uad8c\uace0\ub300\ub85c (1) accumulation/volspike \uc57d\uccb4 \uc2ac\ub86f\uc744 BB squeeze \ub610\ub294 RSI MR BEAR \uc2ec\ubcfc \ud655\uc7a5\uc73c\ub85c \uad50\uccb4, (2) \uba40\ud2f0\ud0c0\uc784\ud504\ub808\uc784 1h+4h \uc2e0\ud638 \ud569\uc131 \ud0d0\uc0c9, (3) regime-adaptive \uac00\uc911\uce58 \ub3d9\uc801 \uc870\uc815 \uc124\uacc4\ub85c \uc804\ud658 \uad8c\uc7a5",
+      "timestamp": "2026-04-05T15:31:55.554721"
     },
     {
-      "cycle": 150,
-      "summary": "\uc791\uc5c5: momentum_sol ADX-tight + BTC SMA200 \ub808\uc9d0\ud544\ud130 + \ucfe8\ub2e4\uc6b4(trig=3, cool=24) \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 \u2014 lb=12/20 \u00d7 adx=25/30/35 \u00d7 TP=8~12%/SL=3~4% \uc804\uccb4 8\ubcc0\ud615 + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: **adx=30 \ubcc0\ud615 consec=3 \u2705 \uc720\uc77c\ud55c \uc548\uc804 \ud1b5\uacfc**, WF OOS avg **+13.957** (F1=+19.117 n=7, F2=+8.796 n=6), \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 Sharpe +5.712 \ud1b5\uacfc. BTC SMA200 \ud544\ud130 \ud6a8\uacfc \uadf9\uc801 \u2014 \ubca0\uc774\uc2a4\ub77c\uc778 \ub300\ube44 MDD -37.8%\u2192-16.2%, consec 9\u21923. \uc804\ub7b5\uc218\uc775 +88.6% vs BH +9.8%. **\u274c daemon \ubc30\ud3ec \ubd88\uac00**: OOS n=6~7 (n\u226530 \ubbf8\ucda9\uc871), 2026\ub144 0\uac70\ub798 (BTC < SMA200). | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50** \u2014 \ud3c9\uac00\uc790 #1 \ube14\ub85c\ucee4 \ud574\uc18c, daemon \uc989\uc2dc \ubc18\uc601 \uac00\ub2a5\uc131, **(B) BTC SMA100/SMA50 \ub2e8\ucd95 SMA \ud14c\uc2a4\ud2b8** \u2014 2026 \ube44\ud65c\uc131 \ud574\uc18c + n \ud655\ubcf4, **(C) BB bounce ADX<20 Bear/Sideways \uc804\ub7b5** \u2014 BEAR \uac00\ub3d9 \uac00\ub2a5 \uc804\ub7b5 \ud655\ubcf4",
-      "detail": "[RALPH CYCLE 150 DONE] \uc791\uc5c5: momentum_sol ADX-tight + BTC SMA200 \ub808\uc9d0\ud544\ud130 + \ucfe8\ub2e4\uc6b4(trig=3, cool=24) \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 \u2014 lb=12/20 \u00d7 adx=25/30/35 \u00d7 TP=8~12%/SL=3~4% \uc804\uccb4 8\ubcc0\ud615 + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: **adx=30 \ubcc0\ud615 consec=3 \u2705 \uc720\uc77c\ud55c \uc548\uc804 \ud1b5\uacfc**, WF OOS avg **+13.957** (F1=+19.117 n=7, F2=+8.796 n=6), \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 Sharpe +5.712 \ud1b5\uacfc. BTC SMA200 \ud544\ud130 \ud6a8\uacfc \uadf9\uc801 \u2014 \ubca0\uc774\uc2a4\ub77c\uc778 \ub300\ube44 MDD -37.8%\u2192-16.2%, consec 9\u21923. \uc804\ub7b5\uc218\uc775 +88.6% vs BH +9.8%. **\u274c daemon \ubc30\ud3ec \ubd88\uac00**: OOS n=6~7 (n\u226530 \ubbf8\ucda9\uc871), 2026\ub144 0\uac70\ub798 (BTC < SMA200). | \ub2e4\uc74c\uc81c\uc548: **(A) vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50** \u2014 \ud3c9\uac00\uc790 #1 \ube14\ub85c\ucee4 \ud574\uc18c, daemon \uc989\uc2dc \ubc18\uc601 \uac00\ub2a5\uc131, **(B) BTC SMA100/SMA50 \ub2e8\ucd95 SMA \ud14c\uc2a4\ud2b8** \u2014 2026 \ube44\ud65c\uc131 \ud574\uc18c + n \ud655\ubcf4, **(C) BB bounce ADX<20 Bear/Sideways \uc804\ub7b5** \u2014 BEAR \uac00\ub3d9 \uac00\ub2a5 \uc804\ub7b5 \ud655\ubcf4",
-      "timestamp": "2026-04-05T06:20:39.912026"
+      "cycle": 186,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 406s \ud6c4 \uc885\ub8cc",
+      "detail": "c192 entry_quality_score \uacb0\uacfc: Sharpe +18.416, WR 46.3%, n=64. c179 baseline(Sharpe +42.878) \ub300\ube44 \uc5f4\ud654 \u2014 \ucd94\uac00 \uc5f0\uad6c \ubd88\ud544\uc694. \uc0ac\uc774\ud074 186 \uc644\ub8cc.",
+      "timestamp": "2026-04-05T15:41:51.094411"
     },
     {
-      "cycle": 151,
-      "summary": "\uc791\uc5c5: vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50 \u2014 \ud3c9\uac00\uc790 \ube14\ub85c\ucee4 #1 \ud574\uc18c (8TP \u00d7 3SL = 24\uc870\ud569, 2-fold WF + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574) | \uacb0\uacfc: **TP=4.5% avg OOS +6.637 < TP=6% avg OOS +7.625 (\u0394=-0.988)** \u2192 \ud3c9\uac00\uc790 \uc8fc\uc7a5 \ubc18\uc99d, **daemon \ud604\ud589 TP=6% \uc720\uc9c0 \ud655\uc815**. TP=7.0%/SL=0.8% avg OOS **+8.379** (F1=+8.015 n=93, F2=+8.744 n=67) \u2705 \uc591 Fold \ud1b5\uacfc, cumR +416.9% vs BH -11.9%. \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 TP=6%\uac00 TP=4.5% \ub300\ube44 \uc804 \uad6c\uac04 \uc6b0\uc138. | \ub2e4\uc74c\uc81c\uc548: **(A) TP=7.0% daemon \ubc18\uc601 \uac80\ud1a0** \u2014 \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 \uc0c1\uc138 + \uc5f0\ub3c4\ubcc4 \uc548\uc815\uc131 \ud655\uc778 \ud6c4 TP=6%\u21927% \uc804\ud658, **(B) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, 2026 \ube44\ud65c\uc131 \ud574\uc18c, **(C) BB bounce Bear/Sideways** \u2014 BEAR \uac00\ub3d9 \uc804\ub7b5 \ud655\ubcf4",
-      "detail": "[RALPH CYCLE 151 DONE] \uc791\uc5c5: vpin_eth TP=6% vs TP=4.5% \uc9c1\uc811 WF \ube44\uad50 \u2014 \ud3c9\uac00\uc790 \ube14\ub85c\ucee4 #1 \ud574\uc18c (8TP \u00d7 3SL = 24\uc870\ud569, 2-fold WF + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574) | \uacb0\uacfc: **TP=4.5% avg OOS +6.637 < TP=6% avg OOS +7.625 (\u0394=-0.988)** \u2192 \ud3c9\uac00\uc790 \uc8fc\uc7a5 \ubc18\uc99d, **daemon \ud604\ud589 TP=6% \uc720\uc9c0 \ud655\uc815**. TP=7.0%/SL=0.8% avg OOS **+8.379** (F1=+8.015 n=93, F2=+8.744 n=67) \u2705 \uc591 Fold \ud1b5\uacfc, cumR +416.9% vs BH -11.9%. \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uae4c\uc9c0 TP=6%\uac00 TP=4.5% \ub300\ube44 \uc804 \uad6c\uac04 \uc6b0\uc138. | \ub2e4\uc74c\uc81c\uc548: **(A) TP=7.0% daemon \ubc18\uc601 \uac80\ud1a0** \u2014 \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 \uc0c1\uc138 + \uc5f0\ub3c4\ubcc4 \uc548\uc815\uc131 \ud655\uc778 \ud6c4 TP=6%\u21927% \uc804\ud658, **(B) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, 2026 \ube44\ud65c\uc131 \ud574\uc18c, **(C) BB bounce Bear/Sideways** \u2014 BEAR \uac00\ub3d9 \uc804\ub7b5 \ud655\ubcf4",
-      "timestamp": "2026-04-05T06:30:26.671796"
+      "cycle": 187,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 96s \ud6c4 \uc885\ub8cc",
+      "detail": "You're out of extra usage \u00b7 resets 4pm (Asia/Seoul)",
+      "timestamp": "2026-04-05T15:46:36.110203"
     },
     {
-      "cycle": 152,
-      "summary": "\uc791\uc5c5: vpin_eth TP=6%\u21927% daemon \ubc30\ud3ec \uacb0\uc815 \u2014 TP={5.5~8.0}% 6\ub2e8\uacc4 \u00d7 WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 6\ub2e8\uacc4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 \uc9c1\uc811 \ube44\uad50 | \uacb0\uacfc: **TP=7.0%/SL=0.8% avg OOS +8.379** > daemon TP=6% +7.625 (\u0394+0.754), F1=+8.015(n=93) F2=+8.744(n=67) \u2705 \uc591 Fold \ud1b5\uacfc, \uc2ac\ub9ac\ud53c\uc9c0 \uc804 \uad6c\uac04 TP=6% \ub300\ube44 \uc6b0\uc138, cumR +175.7% vs BH -11.9%. **daemon.toml \ubc18\uc601 \uc644\ub8cc** (take_profit_pct 0.06\u21920.07). \uc5f0\ub3c4\ubcc4: 2022\ub9cc TP=6% \uc18c\ud3ed \uc6b0\uc138, 2023~2026 TP=7% \uc555\ub3c4 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, SMA200\uc5d0\uc11c 2026 \ube44\ud65c\uc131 \ubb38\uc81c \ud574\uc18c, **(B) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4 (\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874), **(C) TP=7.5% \ucd94\uac00 \uac80\ud1a0** \u2014 avg OOS +8.354\ub85c TP=7%\uc640 \uac70\uc758 \ub3d9\ub4f1, F2\uc5d0\uc11c +9.033\uc73c\ub85c \ucd5c\uac15",
-      "detail": "[RALPH CYCLE 152 DONE] \uc791\uc5c5: vpin_eth TP=6%\u21927% daemon \ubc30\ud3ec \uacb0\uc815 \u2014 TP={5.5~8.0}% 6\ub2e8\uacc4 \u00d7 WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 6\ub2e8\uacc4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 \uc9c1\uc811 \ube44\uad50 | \uacb0\uacfc: **TP=7.0%/SL=0.8% avg OOS +8.379** > daemon TP=6% +7.625 (\u0394+0.754), F1=+8.015(n=93) F2=+8.744(n=67) \u2705 \uc591 Fold \ud1b5\uacfc, \uc2ac\ub9ac\ud53c\uc9c0 \uc804 \uad6c\uac04 TP=6% \ub300\ube44 \uc6b0\uc138, cumR +175.7% vs BH -11.9%. **daemon.toml \ubc18\uc601 \uc644\ub8cc** (take_profit_pct 0.06\u21920.07). \uc5f0\ub3c4\ubcc4: 2022\ub9cc TP=6% \uc18c\ud3ed \uc6b0\uc138, 2023~2026 TP=7% \uc555\ub3c4 | \ub2e4\uc74c\uc81c\uc548: **(A) momentum_sol BTC SMA100/50 \ub2e8\ucd95 \ud14c\uc2a4\ud2b8** \u2014 cycle 150 \ud6c4\uc18d, SMA200\uc5d0\uc11c 2026 \ube44\ud65c\uc131 \ubb38\uc81c \ud574\uc18c, **(B) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4 (\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874), **(C) TP=7.5% \ucd94\uac00 \uac80\ud1a0** \u2014 avg OOS +8.354\ub85c TP=7%\uc640 \uac70\uc758 \ub3d9\ub4f1, F2\uc5d0\uc11c +9.033\uc73c\ub85c \ucd5c\uac15",
-      "timestamp": "2026-04-05T06:41:13.355500"
+      "cycle": 188,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 5s \ud6c4 \uc885\ub8cc",
+      "detail": "You're out of extra usage \u00b7 resets 4pm (Asia/Seoul)",
+      "timestamp": "2026-04-05T15:49:51.289157"
     },
     {
-      "cycle": 153,
-      "summary": "\uc791\uc5c5: momentum_sol BTC SMA \ub2e8\ucd95 \ub808\uc9d0\ud544\ud130 \ud0d0\uc0c9 \u2014 SMA{50,75,100,150,200} \u00d7 TP{8,10,12}% \u00d7 SL{3,4}% \uadf8\ub9ac\ub4dc + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 | \uacb0\uacfc: **\u274c SMA \ub2e8\ucd95 \ubb34\ud6a8** \u2014 \ubaa8\ub4e0 SMA(50~200)\uc5d0\uc11c **2026=0\uac70\ub798**. \uadfc\ubcf8 \uc6d0\uc778\uc740 SOL ADX>30+\ubcfc\ub968 \uc2e0\ud638 \uc790\uccb4 \ubd80\uc7ac. **SMA200\uc774 WF \ucd5c\uc801**(avg OOS +14.069, F1=+17.857 n=11, F2=+10.282 n=13) \u2014 \uae34 SMA\uac00 \ub178\uc774\uc988 \ud544\ud130 \ud488\uc9c8 \uc6b0\uc218. SMA50 \uc804\uccb4Sharpe \ucd5c\uace0(+12.360)\uc774\ub098 WF F2 \ubd88\uc548\uc815(+10.188 vs SMA200 +10.282). **daemon \ubc30\ud3ec \ubd88\uac00**: n=11~15(n\u226530 \ubbf8\ucda9\uc871). momentum_sol\uc740 BULL \uc804\uc6a9 \uc804\ub7b5 \ud655\uc815, \ud604\ud589 daemon \uc720\uc9c0. | \ub2e4\uc74c\uc81c\uc548: **(A) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4(\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874, \ud3c9\uac00\uc790 \uc6b0\uc120\uc21c\uc704), **(B) momentum_sol ADX \uc644\ud654(30\u219225) + \ubcfc\ub968 \uc644\ud654(1.5\u21921.0) \ud0d0\uc0c9** \u2014 \uc9c4\uc785\uae30\uc900 \ub0ae\ucdb0 2026 \uc2e0\ud638 \ud3ec\ucc29 \uac00\ub2a5\uc131, **(C) volspike_btc \uc874\uc18d \uc5ec\ubd80 \ubd84\uc11d** \u2014 \ube44\ud65c\uc131\ud654 + \uc790\ubcf8 \uc7ac\ubc30\ubd84 \uc2dc\ub098\ub9ac\uc624",
-      "detail": "[RALPH CYCLE 153 DONE] \uc791\uc5c5: momentum_sol BTC SMA \ub2e8\ucd95 \ub808\uc9d0\ud544\ud130 \ud0d0\uc0c9 \u2014 SMA{50,75,100,150,200} \u00d7 TP{8,10,12}% \u00d7 SL{3,4}% \uadf8\ub9ac\ub4dc + WF 2-fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 + \uc5f0\ub3c4\ubcc4 \ubd84\ud574 | \uacb0\uacfc: **\u274c SMA \ub2e8\ucd95 \ubb34\ud6a8** \u2014 \ubaa8\ub4e0 SMA(50~200)\uc5d0\uc11c **2026=0\uac70\ub798**. \uadfc\ubcf8 \uc6d0\uc778\uc740 SOL ADX>30+\ubcfc\ub968 \uc2e0\ud638 \uc790\uccb4 \ubd80\uc7ac. **SMA200\uc774 WF \ucd5c\uc801**(avg OOS +14.069, F1=+17.857 n=11, F2=+10.282 n=13) \u2014 \uae34 SMA\uac00 \ub178\uc774\uc988 \ud544\ud130 \ud488\uc9c8 \uc6b0\uc218. SMA50 \uc804\uccb4Sharpe \ucd5c\uace0(+12.360)\uc774\ub098 WF F2 \ubd88\uc548\uc815(+10.188 vs SMA200 +10.282). **daemon \ubc30\ud3ec \ubd88\uac00**: n=11~15(n\u226530 \ubbf8\ucda9\uc871). momentum_sol\uc740 BULL \uc804\uc6a9 \uc804\ub7b5 \ud655\uc815, \ud604\ud589 daemon \uc720\uc9c0. | \ub2e4\uc74c\uc81c\uc548: **(A) BB bounce Bear/Sideways \uc804\ub7b5** \u2014 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud655\ubcf4(\ud604\uc7ac \ubaa8\ub4e0 \uc804\ub7b5 BULL \uc758\uc874, \ud3c9\uac00\uc790 \uc6b0\uc120\uc21c\uc704), **(B) momentum_sol ADX \uc644\ud654(30\u219225) + \ubcfc\ub968 \uc644\ud654(1.5\u21921.0) \ud0d0\uc0c9** \u2014 \uc9c4\uc785\uae30\uc900 \ub0ae\ucdb0 2026 \uc2e0\ud638 \ud3ec\ucc29 \uac00\ub2a5\uc131, **(C) volspike_btc \uc874\uc18d \uc5ec\ubd80 \ubd84\uc11d** \u2014 \ube44\ud65c\uc131\ud654 + \uc790\ubcf8 \uc7ac\ubc30\ubd84 \uc2dc\ub098\ub9ac\uc624",
-      "timestamp": "2026-04-05T06:52:00.953999"
+      "cycle": 189,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 6s \ud6c4 \uc885\ub8cc",
+      "detail": "You're out of extra usage \u00b7 resets 4pm (Asia/Seoul)",
+      "timestamp": "2026-04-05T15:53:05.616793"
     },
     {
-      "cycle": 154,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1833s \ud6c4 \uc885\ub8cc",
+      "cycle": 190,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 5s \ud6c4 \uc885\ub8cc",
+      "detail": "You're out of extra usage \u00b7 resets 4pm (Asia/Seoul)",
+      "timestamp": "2026-04-05T15:56:18.555711"
+    },
+    {
+      "cycle": 191,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 5s \ud6c4 \uc885\ub8cc",
+      "detail": "You're out of extra usage \u00b7 resets 4pm (Asia/Seoul)",
+      "timestamp": "2026-04-05T15:59:32.394616"
+    },
+    {
+      "cycle": 192,
+      "summary": "\uc791\uc5c5: c194 3\ub2e8\uacc4 graduated trail + hold extend 27\uc870\ud569 3-fold WF \uc2e4\ud589 \u2014 VPIN exit \ub77c\uc778 \ud3ec\ud654 \ud655\uc815 | \uacb0\uacfc: Sharpe +30.947 (= c192 baseline, \u0394=0.000), 27/27 \uc804 \uc870\ud569 \ub3d9\uc77c \uacb0\uacfc, 3\ub2e8\uacc4 \ud2b8\ub808\uc77c/\ud640\ub4dc \uc5f0\uc7a5 \uc2e4\uc81c \ubc1c\ub3d9 \uc5c6\uc74c | \ub2e4\uc74c\uc81c\uc548: VPIN multi exit \ucd5c\uc801\ud654 \uc885\ub8cc \u2014 \ud3c9\uac00\uc790 explore \ud56d\ubaa9 (\uba40\ud2f0\ud0c0\uc784\ud504\ub808\uc784 1h+4h, \ud380\ub529\ub808\uc774\ud2b8 \uae30\ubc18 \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998, regime-adaptive \uac00\uc911\uce58 \ub3d9\uc801 \uc870\uc815) \uc911 \ud558\ub098\ub85c \ubc29\ud5a5 \uc804\ud658",
+      "detail": "[RALPH CYCLE 192 DONE] \uc791\uc5c5: c194 3\ub2e8\uacc4 graduated trail + hold extend 27\uc870\ud569 3-fold WF \uc2e4\ud589 \u2014 VPIN exit \ub77c\uc778 \ud3ec\ud654 \ud655\uc815 | \uacb0\uacfc: Sharpe +30.947 (= c192 baseline, \u0394=0.000), 27/27 \uc804 \uc870\ud569 \ub3d9\uc77c \uacb0\uacfc, 3\ub2e8\uacc4 \ud2b8\ub808\uc77c/\ud640\ub4dc \uc5f0\uc7a5 \uc2e4\uc81c \ubc1c\ub3d9 \uc5c6\uc74c | \ub2e4\uc74c\uc81c\uc548: VPIN multi exit \ucd5c\uc801\ud654 \uc885\ub8cc \u2014 \ud3c9\uac00\uc790 explore \ud56d\ubaa9 (\uba40\ud2f0\ud0c0\uc784\ud504\ub808\uc784 1h+4h, \ud380\ub529\ub808\uc774\ud2b8 \uae30\ubc18 \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998, regime-adaptive \uac00\uc911\uce58 \ub3d9\uc801 \uc870\uc815) \uc911 \ud558\ub098\ub85c \ubc29\ud5a5 \uc804\ud658",
+      "timestamp": "2026-04-05T16:06:49.331299"
+    },
+    {
+      "cycle": 193,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1902s \ud6c4 \uc885\ub8cc",
       "detail": "",
-      "timestamp": "2026-04-05T07:25:36.812687"
+      "timestamp": "2026-04-05T16:41:40.367741"
     },
     {
-      "cycle": 155,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1840s \ud6c4 \uc885\ub8cc",
-      "detail": "",
-      "timestamp": "2026-04-05T07:59:20.352615"
+      "cycle": 194,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1904s \ud6c4 \uc885\ub8cc",
+      "detail": "c196 background task completed \u2014 results already captured and recorded in the cycle summary above. All three backtests (c195/c196/c197) are committed.",
+      "timestamp": "2026-04-05T17:16:35.393098"
     },
     {
-      "cycle": 156,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1836s \ud6c4 \uc885\ub8cc",
-      "detail": "",
-      "timestamp": "2026-04-05T08:33:00.262550"
+      "cycle": 195,
+      "summary": "\uc791\uc5c5: c198 MTF 4h VPIN+1h \ud655\uc778 \uc559\uc0c1\ube14 48\uc870\ud569 WF FAIL + c199 volspike_btc daemon \ud30c\ub77c\ubbf8\ud130 \uc815\ubc00 WF \uc7ac\uac80\uc99d PASS | \uacb0\uacfc: c198 Sharpe +30.024 but n=4 (\uad6c\uc870\uc801 FAIL \u2014 ETH VPIN \uc2e0\ud638 \ubc00\ub3c4 \uadf9\uc800\ub85c \ucd94\uac00 \ud544\ud130 \ubd88\uac00), c199 Sharpe +5.759 avg / +15.862(BULL) PASS \u2192 \uc790\ubcf8 \uc774\uc804 \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: VPIN ETH \uc9c4\uc785/\ucd9c\uad6c/TF/MTF \uc804\ubc29\uc704 \ucd5c\uc801\ud654 \uc644\uc804 \uc885\ub8cc \ud655\uc815 \u2014 \ub2e4\uc74c \uc0ac\uc774\ud074\uc740 (1) \ud380\ub529\ub808\uc774\ud2b8 \uae30\ubc18 \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998(Binance perpetual API \ub370\uc774\ud130 \ud655\ubcf4\u2192\ubc31\ud14c\uc2a4\ud2b8) \ub610\ub294 (2) regime-adaptive \uc790\ubcf8 \ub3d9\uc801 \uc7ac\ubc30\ubd84(BEAR\uc2dc RSI MR BEAR \ube44\uc911 \ud655\ub300) \uc911 \ud558\ub098\ub85c \uc804\ud658",
+      "detail": "[RALPH CYCLE 195 DONE] \uc791\uc5c5: c198 MTF 4h VPIN+1h \ud655\uc778 \uc559\uc0c1\ube14 48\uc870\ud569 WF FAIL + c199 volspike_btc daemon \ud30c\ub77c\ubbf8\ud130 \uc815\ubc00 WF \uc7ac\uac80\uc99d PASS | \uacb0\uacfc: c198 Sharpe +30.024 but n=4 (\uad6c\uc870\uc801 FAIL \u2014 ETH VPIN \uc2e0\ud638 \ubc00\ub3c4 \uadf9\uc800\ub85c \ucd94\uac00 \ud544\ud130 \ubd88\uac00), c199 Sharpe +5.759 avg / +15.862(BULL) PASS \u2192 \uc790\ubcf8 \uc774\uc804 \ubd88\ud544\uc694 | \ub2e4\uc74c\uc81c\uc548: VPIN ETH \uc9c4\uc785/\ucd9c\uad6c/TF/MTF \uc804\ubc29\uc704 \ucd5c\uc801\ud654 \uc644\uc804 \uc885\ub8cc \ud655\uc815 \u2014 \ub2e4\uc74c \uc0ac\uc774\ud074\uc740 (1) \ud380\ub529\ub808\uc774\ud2b8 \uae30\ubc18 \uc2e0\uaddc \uba54\ucee4\ub2c8\uc998(Binance perpetual API \ub370\uc774\ud130 \ud655\ubcf4\u2192\ubc31\ud14c\uc2a4\ud2b8) \ub610\ub294 (2) regime-adaptive \uc790\ubcf8 \ub3d9\uc801 \uc7ac\ubc30\ubd84(BEAR\uc2dc RSI MR BEAR \ube44\uc911 \ud655\ub300) \uc911 \ud558\ub098\ub85c \uc804\ud658",
+      "timestamp": "2026-04-05T17:31:27.916221"
     },
     {
-      "cycle": 157,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1841s \ud6c4 \uc885\ub8cc",
-      "detail": "",
-      "timestamp": "2026-04-05T09:06:45.769463"
+      "cycle": 196,
+      "summary": "\uc791\uc5c5: c200 Binance \uc2e4\uc81c \ud380\ub529\ub808\uc774\ud2b8(4667\uac74, 2022~) \uc5ed\ucd94\uc138 \uc804\ub7b5 81\uc870\ud569 3-fold WF + BTC gate \uc81c\uac70 \ubcc0\ud615 \ud14c\uc2a4\ud2b8 | \uacb0\uacfc: avg OOS Sharpe +0.505, n=19 FAIL \u2014 \ud380\ub529 \uc74c\uc218 \uadf9\ub2e8 \uc774\ubca4\ud2b8 \ud76c\uc18c(ETH 136\uac74/4\ub144), \uc5ed\ucd94\uc138 alpha \ubd88\ucda9\ubd84, \ub2e8\ub3c5 \uc804\ub7b5 \uc601\uad6c \uc885\ub8cc | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 \uc81c\uc548 2\uac1c \ucd95 \ubaa8\ub450 \uc18c\uc9c4(VPIN \uc804\ubc29\uc704 \ucd5c\uc801\ud654 \uc885\ub8cc + \ud380\ub529\ub808\uc774\ud2b8 FAIL) \u2014 \ub2e4\uc74c \uc0ac\uc774\ud074\uc740 (1) regime-adaptive \uc804\ub7b5 \uac00\uc911\uce58 \ub3d9\uc801 \uc7ac\ubc30\ubd84(macro \uc2e0\ud638 \uae30\ubc18 BEAR\u2194BULL \uc790\ubcf8 \uc774\ub3d9) \ub610\ub294 (2) \uc644\uc804 \uc0c8 alpha: \uae40\ud504(kimchi premium) \uae30\ubc18 \uc9c4\uc785 \uc804\ub7b5, \ub610\ub294 (3) \ud06c\ub85c\uc2a4\uc2ec\ubcfc \ud398\uc5b4\ud2b8\ub808\uc774\ub529(ETH/SOL \uc2a4\ud504\ub808\ub4dc \uc5ed\uc804) \ud0d0\uc0c9",
+      "detail": "[RALPH CYCLE 196 DONE] \uc791\uc5c5: c200 Binance \uc2e4\uc81c \ud380\ub529\ub808\uc774\ud2b8(4667\uac74, 2022~) \uc5ed\ucd94\uc138 \uc804\ub7b5 81\uc870\ud569 3-fold WF + BTC gate \uc81c\uac70 \ubcc0\ud615 \ud14c\uc2a4\ud2b8 | \uacb0\uacfc: avg OOS Sharpe +0.505, n=19 FAIL \u2014 \ud380\ub529 \uc74c\uc218 \uadf9\ub2e8 \uc774\ubca4\ud2b8 \ud76c\uc18c(ETH 136\uac74/4\ub144), \uc5ed\ucd94\uc138 alpha \ubd88\ucda9\ubd84, \ub2e8\ub3c5 \uc804\ub7b5 \uc601\uad6c \uc885\ub8cc | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 \uc81c\uc548 2\uac1c \ucd95 \ubaa8\ub450 \uc18c\uc9c4(VPIN \uc804\ubc29\uc704 \ucd5c\uc801\ud654 \uc885\ub8cc + \ud380\ub529\ub808\uc774\ud2b8 FAIL) \u2014 \ub2e4\uc74c \uc0ac\uc774\ud074\uc740 (1) regime-adaptive \uc804\ub7b5 \uac00\uc911\uce58 \ub3d9\uc801 \uc7ac\ubc30\ubd84(macro \uc2e0\ud638 \uae30\ubc18 BEAR\u2194BULL \uc790\ubcf8 \uc774\ub3d9) \ub610\ub294 (2) \uc644\uc804 \uc0c8 alpha: \uae40\ud504(kimchi premium) \uae30\ubc18 \uc9c4\uc785 \uc804\ub7b5, \ub610\ub294 (3) \ud06c\ub85c\uc2a4\uc2ec\ubcfc \ud398\uc5b4\ud2b8\ub808\uc774\ub529(ETH/SOL \uc2a4\ud504\ub808\ub4dc \uc5ed\uc804) \ud0d0\uc0c9",
+      "timestamp": "2026-04-05T17:43:19.236921"
     },
     {
-      "cycle": 158,
-      "summary": "\uc791\uc5c5: momentum_sol ADX\uc644\ud654(25\u219220)+\ubcfc\ub968\uc644\ud654(2.0\u21921.5) \uadf8\ub9ac\ub4dc 72\uc870\ud569 WF \ud0d0\uc0c9 | \uacb0\uacfc: avg OOS Sharpe +11.413, WR 39.4%, n=37, **2026=6\uac70\ub798 \ud655\ubcf4**(c153 \ube14\ub85c\ucee4 \ud574\uc18c), 4/72 WF \ud1b5\uacfc, \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c\ub3c4 +7.366 \uacac\uace0 | \ub2e4\uc74c\uc81c\uc548: (1) ADX=20 vol=1.5 \ud30c\ub77c\ubbf8\ud130\ub85c momentum_sol paper trade 2\uc8fc \uc2dc\uc791\ud558\uc5ec \uc2e4\uac70\ub798 \uac80\uc99d, (2) F2 n=15 \uacbd\uacc4\uac12 \ubcf4\uac15 \u2014 cooldown \ucd95\uc18c(24\u219212) \ub610\ub294 entry_threshold \uc644\ud654(0.005\u21920.003)\ub85c n \ud655\ub300 \ud0d0\uc0c9, (3) BEAR \uc804\ub7b5\uc740 spot \uad6c\uc870\uc801 \ud55c\uacc4 \ud655\uc778\ub428 \u2014 \ub2e4\ub978 \uac01\ub3c4(\uc608: \uc2a4\ud14c\uc774\ube14\ucf54\uc778 \uc804\ud658 \ud0c0\uc774\ubc0d) \uc7ac\uac80\ud1a0 \ud544\uc694",
-      "detail": "[RALPH CYCLE 158 DONE] \uc791\uc5c5: momentum_sol ADX\uc644\ud654(25\u219220)+\ubcfc\ub968\uc644\ud654(2.0\u21921.5) \uadf8\ub9ac\ub4dc 72\uc870\ud569 WF \ud0d0\uc0c9 | \uacb0\uacfc: avg OOS Sharpe +11.413, WR 39.4%, n=37, **2026=6\uac70\ub798 \ud655\ubcf4**(c153 \ube14\ub85c\ucee4 \ud574\uc18c), 4/72 WF \ud1b5\uacfc, \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c\ub3c4 +7.366 \uacac\uace0 | \ub2e4\uc74c\uc81c\uc548: (1) ADX=20 vol=1.5 \ud30c\ub77c\ubbf8\ud130\ub85c momentum_sol paper trade 2\uc8fc \uc2dc\uc791\ud558\uc5ec \uc2e4\uac70\ub798 \uac80\uc99d, (2) F2 n=15 \uacbd\uacc4\uac12 \ubcf4\uac15 \u2014 cooldown \ucd95\uc18c(24\u219212) \ub610\ub294 entry_threshold \uc644\ud654(0.005\u21920.003)\ub85c n \ud655\ub300 \ud0d0\uc0c9, (3) BEAR \uc804\ub7b5\uc740 spot \uad6c\uc870\uc801 \ud55c\uacc4 \ud655\uc778\ub428 \u2014 \ub2e4\ub978 \uac01\ub3c4(\uc608: \uc2a4\ud14c\uc774\ube14\ucf54\uc778 \uc804\ud658 \ud0c0\uc774\ubc0d) \uc7ac\uac80\ud1a0 \ud544\uc694",
-      "timestamp": "2026-04-05T09:19:00.271144"
+      "cycle": 197,
+      "summary": "\uc791\uc5c5: c201 regime-adaptive \uc790\ubcf8 \ub3d9\uc801 \uc7ac\ubc30\ubd84 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc2dc\ubbac\ub808\uc774\uc158 (STATIC vs DYNAMIC 3-fold WF) | \uacb0\uacfc: DYNAMIC avg Sharpe -0.705 vs STATIC -0.548, \u0394 Sharpe -0.158 FAIL \u2014 \uc790\ubcf8 \uc7ac\ubc30\ubd84\uc740 \ub3c5\ub9bd alpha \uc544\ub2d8, \ub808\ubc84\ub9ac\uc9c0 \ud6a8\uacfc\ub9cc \uc788\uc5b4 \uc190\uc2e4 \uc99d\ud3ed + \uc804\ud658\ube44\uc6a9 \u20a9572K + MDD 26.9% \uc545\ud654 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc911 (3) \uc18c\uc9c4 \u2014 \ub2e4\uc74c \uc0ac\uc774\ud074\uc740 (1) \uae40\ud504(kimchi premium) \uae30\ubc18 Upbit-Binance \uad34\ub9ac \uc5ed\ucd94\uc138 \ubc31\ud14c\uc2a4\ud2b8 \ub610\ub294 (2) \ud06c\ub85c\uc2a4\uc2ec\ubcfc ETH/SOL \uc2a4\ud504\ub808\ub4dc \uc5ed\ucd94\uc138 \ud0d0\uc0c9\uc73c\ub85c \uc804\ud658. KimchiPremiumStrategy \ud074\ub798\uc2a4 \uc774\ubbf8 \uc874\uc7ac \u2192 \ub370\uc774\ud130 \ud30c\uc774\ud504\ub77c\uc778 \uad6c\ucd95 \ud6c4 \ubc31\ud14c\uc2a4\ud2b8 \uac00\ub2a5",
+      "detail": "[RALPH CYCLE 197 DONE] \uc791\uc5c5: c201 regime-adaptive \uc790\ubcf8 \ub3d9\uc801 \uc7ac\ubc30\ubd84 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc2dc\ubbac\ub808\uc774\uc158 (STATIC vs DYNAMIC 3-fold WF) | \uacb0\uacfc: DYNAMIC avg Sharpe -0.705 vs STATIC -0.548, \u0394 Sharpe -0.158 FAIL \u2014 \uc790\ubcf8 \uc7ac\ubc30\ubd84\uc740 \ub3c5\ub9bd alpha \uc544\ub2d8, \ub808\ubc84\ub9ac\uc9c0 \ud6a8\uacfc\ub9cc \uc788\uc5b4 \uc190\uc2e4 \uc99d\ud3ed + \uc804\ud658\ube44\uc6a9 \u20a9572K + MDD 26.9% \uc545\ud654 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc911 (3) \uc18c\uc9c4 \u2014 \ub2e4\uc74c \uc0ac\uc774\ud074\uc740 (1) \uae40\ud504(kimchi premium) \uae30\ubc18 Upbit-Binance \uad34\ub9ac \uc5ed\ucd94\uc138 \ubc31\ud14c\uc2a4\ud2b8 \ub610\ub294 (2) \ud06c\ub85c\uc2a4\uc2ec\ubcfc ETH/SOL \uc2a4\ud504\ub808\ub4dc \uc5ed\ucd94\uc138 \ud0d0\uc0c9\uc73c\ub85c \uc804\ud658. KimchiPremiumStrategy \ud074\ub798\uc2a4 \uc774\ubbf8 \uc874\uc7ac \u2192 \ub370\uc774\ud130 \ud30c\uc774\ud504\ub77c\uc778 \uad6c\ucd95 \ud6c4 \ubc31\ud14c\uc2a4\ud2b8 \uac00\ub2a5",
+      "timestamp": "2026-04-05T17:56:43.837057"
     },
     {
-      "cycle": 159,
-      "summary": "\uc791\uc5c5: momentum_sol cooldown\ucd95\uc18c(24\u21926)+threshold\uc644\ud654(0.005\u21920.002)+hold\ud655\uc7a5(48\u219260) 144\uc870\ud569 WF \ud0d0\uc0c9 | \uacb0\uacfc: avg OOS Sharpe +11.219, WR 36.2%, 0/144 WF \ud1b5\uacfc \u2014 **F2 n=3~5\ub85c n\u226515 \ubbf8\ub2ec, cooldown/threshold\ub294 n \ubcd1\ubaa9\uc774 \uc544\ub2d8, BTC regime gate\uac00 BEAR \uad6c\uac04 \uc9c4\uc785 \ucc28\ub2e8\ud558\uc5ec \uad6c\uc870\uc801 \ud55c\uacc4 \uc7ac\ud655\uc778** | \ub2e4\uc74c\uc81c\uc548: (1) momentum_sol\uc740 c158 \ud30c\ub77c\ubbf8\ud130(ADX=20 vol=1.5)\ub85c \ud655\uc815, BULL \uc804\ud658 \uc2dc paper trade \uc2dc\uc791 \u2014 \ucd94\uac00 \ud30c\ub77c\ubbf8\ud130 \ud0d0\uc0c9\uc740 \uc218\ud655\uccb4\uac10, (2) \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 \uacfc\uc81c\uc778 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud0d0\uc0c9\uc73c\ub85c \uc804\ud658 \u2014 stablecoin \uc804\ud658 \ud0c0\uc774\ubc0d \ub610\ub294 RSI mean-reversion \uacc4\uc5f4, (3) research loop\uc758 c162/c163 vpin_eth \ubcc0\ud615 \uacb0\uacfc \ub300\uae30 \ud6c4 \uc720\ub9dd\ud55c \ucabd \ud6c4\uc18d \uc9c4\ud589",
-      "detail": "[RALPH CYCLE 159 DONE] \uc791\uc5c5: momentum_sol cooldown\ucd95\uc18c(24\u21926)+threshold\uc644\ud654(0.005\u21920.002)+hold\ud655\uc7a5(48\u219260) 144\uc870\ud569 WF \ud0d0\uc0c9 | \uacb0\uacfc: avg OOS Sharpe +11.219, WR 36.2%, 0/144 WF \ud1b5\uacfc \u2014 **F2 n=3~5\ub85c n\u226515 \ubbf8\ub2ec, cooldown/threshold\ub294 n \ubcd1\ubaa9\uc774 \uc544\ub2d8, BTC regime gate\uac00 BEAR \uad6c\uac04 \uc9c4\uc785 \ucc28\ub2e8\ud558\uc5ec \uad6c\uc870\uc801 \ud55c\uacc4 \uc7ac\ud655\uc778** | \ub2e4\uc74c\uc81c\uc548: (1) momentum_sol\uc740 c158 \ud30c\ub77c\ubbf8\ud130(ADX=20 vol=1.5)\ub85c \ud655\uc815, BULL \uc804\ud658 \uc2dc paper trade \uc2dc\uc791 \u2014 \ucd94\uac00 \ud30c\ub77c\ubbf8\ud130 \ud0d0\uc0c9\uc740 \uc218\ud655\uccb4\uac10, (2) \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 \uacfc\uc81c\uc778 BEAR \ub808\uc9d0 \uc804\uc6a9 \uc804\ub7b5 \ud0d0\uc0c9\uc73c\ub85c \uc804\ud658 \u2014 stablecoin \uc804\ud658 \ud0c0\uc774\ubc0d \ub610\ub294 RSI mean-reversion \uacc4\uc5f4, (3) research loop\uc758 c162/c163 vpin_eth \ubcc0\ud615 \uacb0\uacfc \ub300\uae30 \ud6c4 \uc720\ub9dd\ud55c \ucabd \ud6c4\uc18d \uc9c4\ud589",
-      "timestamp": "2026-04-05T09:31:00.797008"
+      "cycle": 198,
+      "summary": "\uc791\uc5c5: c202 \uae40\ud504(kimchi premium) z-score \uc5ed\ucd94\uc138 108\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 Binance 4h klines \ud30c\uc774\ud504\ub77c\uc778 \uad6c\ucd95 + ETH/BTC/SOL 8394\ubd09 \uc815\ub82c + \uc6d4\ubcc4 FX \uadfc\uc0ac | \uacb0\uacfc: avg OOS Sharpe +1.895, n=322, WR 53.0% FAIL \u2014 \uae40\ud504 \uc5ed\ucd94\uc138\uc5d0 \uc57d\ud55c alpha \uc874\uc7ac\ud558\ub098 Fold 3(\ucd5c\uadfc) +0.715\ub85c \uac10\uc1e0, daemon \uae30\uc900(5.0) \ubbf8\ub2ec. \uad6c\uc870\uc801 \uc591\uc758 \ud504\ub9ac\ubbf8\uc5c4(+2%) \ud658\uacbd\uc5d0\uc11c \uc5ed\ucd94\uc138 \uc2e0\ud638 \ubc00\ub3c4 \ubd80\uc871 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc911 (1)\uae40\ud504 \uc18c\uc9c4, (3)regime-adaptive \uc18c\uc9c4 \u2014 \ub0a8\uc740 \ubc29\ud5a5 (2) \ud06c\ub85c\uc2a4\uc2ec\ubcfc ETH/SOL \uc2a4\ud504\ub808\ub4dc \uc5ed\ucd94\uc138 \ud0d0\uc0c9. ETH/SOL \uac00\uaca9\ube44\uc728 z-score \uae30\ubc18 \uc5ed\ucd94\uc138 \ubc31\ud14c\uc2a4\ud2b8 (Upbit \ud604\ubb3c \ud55c\ucabd long \uc81c\uc57d \ubc18\uc601). \ub610\ub294 \uae40\ud504\ub97c \uae30\uc874 vpin_multi/volspike \uc9c4\uc785 \ud544\ud130\ub85c \ud1b5\ud569 \uac80\ud1a0 (\uae40\ud504 < 0 \uc870\uac74 \ucd94\uac00 \u2192 \uae30\uc874 \uc804\ub7b5 Sharpe \uac1c\uc120 \uc5ec\ubd80)",
+      "detail": "[RALPH CYCLE 198 DONE] \uc791\uc5c5: c202 \uae40\ud504(kimchi premium) z-score \uc5ed\ucd94\uc138 108\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 Binance 4h klines \ud30c\uc774\ud504\ub77c\uc778 \uad6c\ucd95 + ETH/BTC/SOL 8394\ubd09 \uc815\ub82c + \uc6d4\ubcc4 FX \uadfc\uc0ac | \uacb0\uacfc: avg OOS Sharpe +1.895, n=322, WR 53.0% FAIL \u2014 \uae40\ud504 \uc5ed\ucd94\uc138\uc5d0 \uc57d\ud55c alpha \uc874\uc7ac\ud558\ub098 Fold 3(\ucd5c\uadfc) +0.715\ub85c \uac10\uc1e0, daemon \uae30\uc900(5.0) \ubbf8\ub2ec. \uad6c\uc870\uc801 \uc591\uc758 \ud504\ub9ac\ubbf8\uc5c4(+2%) \ud658\uacbd\uc5d0\uc11c \uc5ed\ucd94\uc138 \uc2e0\ud638 \ubc00\ub3c4 \ubd80\uc871 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc911 (1)\uae40\ud504 \uc18c\uc9c4, (3)regime-adaptive \uc18c\uc9c4 \u2014 \ub0a8\uc740 \ubc29\ud5a5 (2) \ud06c\ub85c\uc2a4\uc2ec\ubcfc ETH/SOL \uc2a4\ud504\ub808\ub4dc \uc5ed\ucd94\uc138 \ud0d0\uc0c9. ETH/SOL \uac00\uaca9\ube44\uc728 z-score \uae30\ubc18 \uc5ed\ucd94\uc138 \ubc31\ud14c\uc2a4\ud2b8 (Upbit \ud604\ubb3c \ud55c\ucabd long \uc81c\uc57d \ubc18\uc601). \ub610\ub294 \uae40\ud504\ub97c \uae30\uc874 vpin_multi/volspike \uc9c4\uc785 \ud544\ud130\ub85c \ud1b5\ud569 \uac80\ud1a0 (\uae40\ud504 < 0 \uc870\uac74 \ucd94\uac00 \u2192 \uae30\uc874 \uc804\ub7b5 Sharpe \uac1c\uc120 \uc5ec\ubd80)",
+      "timestamp": "2026-04-05T18:05:50.284933"
     },
     {
-      "cycle": 160,
-      "summary": "\uc791\uc5c5: RSI Mean-Reversion \ud6a1\ubcf4\uc7a5 \uc804\uc6a9 4h(240m) \u2014 ADX<ceil \ud6a1\ubcf4\ud544\ud130 + RSI \uacfc\ub9e4\ub3c4 \ubc18\ub4f1, 13824\u00d72 \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 | \uacb0\uacfc: 0/20 WF \ud1b5\uacfc, IS \ucd5c\ub300 n=23(4h \uad6c\uc870\uc801 \ud55c\uacc4), \ubd80\ubd84\ud1b5\uacfc \ucd5c\uc120 BTC avg OOS +19.378\uc774\ub098 n=5/fold \ubb34\uc758\ubbf8, ETH F2 Sharpe \uc74c\uc218 | \ub2e4\uc74c\uc81c\uc548: (1) RSI MR\uc744 60m(1h) \ud0c0\uc784\ud504\ub808\uc784\uc73c\ub85c \uc7ac\uc2dc\ub3c4 \u2014 c157 \uc2a4\ud06c\ub9bd\ud2b8 \uc2e4\ud589\ud558\uc5ec IS \ud1b5\uacfc \uc5ec\ubd80 \ud655\uc778, rsi_period=7 \uc6b0\uc704 \ubc18\uc601, (2) 60m\ub3c4 n \ubd80\uc871 \uc2dc 15m \ud0d0\uc0c9, (3) \ub610\ub294 \ud3c9\uac00\uc790 \uc81c\uc548 stablecoin \uc804\ud658 \ud0c0\uc774\ubc0d \uc804\ub7b5\uc73c\ub85c \uc804\ud658 \u2014 BTC<SMA200 \uac10\uc9c0 \uc2dc \uc54c\ud2b8\u2192USDT \uc804\ud658, \uc774\ub294 RSI MR\uacfc \ub2e4\ub978 \uc811\uadfc(\ud3ec\uc9c0\uc158 on/off vs \uc5ed\ucd94\uc138 \uc9c4\uc785)",
-      "detail": "[RALPH CYCLE 160 DONE] \uc791\uc5c5: RSI Mean-Reversion \ud6a1\ubcf4\uc7a5 \uc804\uc6a9 4h(240m) \u2014 ADX<ceil \ud6a1\ubcf4\ud544\ud130 + RSI \uacfc\ub9e4\ub3c4 \ubc18\ub4f1, 13824\u00d72 \uadf8\ub9ac\ub4dc \ud0d0\uc0c9 | \uacb0\uacfc: 0/20 WF \ud1b5\uacfc, IS \ucd5c\ub300 n=23(4h \uad6c\uc870\uc801 \ud55c\uacc4), \ubd80\ubd84\ud1b5\uacfc \ucd5c\uc120 BTC avg OOS +19.378\uc774\ub098 n=5/fold \ubb34\uc758\ubbf8, ETH F2 Sharpe \uc74c\uc218 | \ub2e4\uc74c\uc81c\uc548: (1) RSI MR\uc744 60m(1h) \ud0c0\uc784\ud504\ub808\uc784\uc73c\ub85c \uc7ac\uc2dc\ub3c4 \u2014 c157 \uc2a4\ud06c\ub9bd\ud2b8 \uc2e4\ud589\ud558\uc5ec IS \ud1b5\uacfc \uc5ec\ubd80 \ud655\uc778, rsi_period=7 \uc6b0\uc704 \ubc18\uc601, (2) 60m\ub3c4 n \ubd80\uc871 \uc2dc 15m \ud0d0\uc0c9, (3) \ub610\ub294 \ud3c9\uac00\uc790 \uc81c\uc548 stablecoin \uc804\ud658 \ud0c0\uc774\ubc0d \uc804\ub7b5\uc73c\ub85c \uc804\ud658 \u2014 BTC<SMA200 \uac10\uc9c0 \uc2dc \uc54c\ud2b8\u2192USDT \uc804\ud658, \uc774\ub294 RSI MR\uacfc \ub2e4\ub978 \uc811\uadfc(\ud3ec\uc9c0\uc158 on/off vs \uc5ed\ucd94\uc138 \uc9c4\uc785)",
-      "timestamp": "2026-04-05T09:45:51.436265"
+      "cycle": 199,
+      "summary": "\uc791\uc5c5: c203 CMF gate+OBV trend 192\uc870\ud569 WF FAIL(+13.083, c179 \ub300\ube44 -29.8) + c204 ETH/SOL \ud06c\ub85c\uc2a4\uc2ec\ubcfc \uc2a4\ud504\ub808\ub4dc \uc5ed\ucd94\uc138 216\uc870\ud569 WF FAIL(+0.642, alpha \ubd80\uc7ac) | \uacb0\uacfc: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc804\ubd80 \uc18c\uc9c4 \u2014 (1)\uae40\ud504 +1.895 FAIL, (2)\uc2a4\ud504\ub808\ub4dc +0.642 FAIL, (3)regime-adaptive -0.158 FAIL. CMF \ucd94\uac00\ud544\ud130\ub3c4 c179 \uc545\ud654\ub9cc \ucd08\ub798. c179 vpin_multi vol regime adaptive(+42.878)\uc774 \ucd5c\uc801 \ud655\uc815 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \ubaa8\ub450 \uc18c\uc9c4\ub428 \u2192 \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \ud544\uc694. \ud6c4\ubcf4: (A) Donchian/range breakout \ucd94\uc138\ucd94\uc885(VPIN \uc5ed\ucd94\uc138\uc640 \ub2e4\ub978 alpha \ucd95), (B) VWAP anchored deviation \uc5ed\ucd94\uc138, (C) \uae30\uc874 \uc804\ub7b5 \uc870\ud569 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d(\uac1c\ubcc4 \uc804\ub7b5\uc740 \ucd5c\uc801\uc774\ub098 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \ud6a8\uc728 \ubbf8\uac80\uc99d), (D) 60m \ub2e8\uae30 \ud0c0\uc784\ud504\ub808\uc784 VPIN \ud0d0\uc0c9(\ud604\uc7ac 240m\ub9cc \uc0ac\uc6a9)",
+      "detail": "ADX+OBV gate \uacb0\uacfc \ud655\uc778: avg OOS Sharpe +32.217\uc774\ub098 **n=22\ub85c daemon \ubc30\ud3ec \ubd88\uac00(n<30 \uaddc\uce59)**. \ud1b5\uacc4\uc801\uc73c\ub85c \ubd88\ucda9\ubd84.\n\n\uc774 \uc0ac\uc774\ud074\uc5d0\uc11c 2\uac1c \ubc31\ud14c\uc2a4\ud2b8 \uc644\ub8cc:\n1. c203 CMF gate + OBV trend: Sharpe +13.083 FAIL (c179 \ub300\ube44 -29.8)\n2. c204 ETH/SOL spread MR: Sharpe +0.642 FAIL (alpha \ubd80\uc7ac)\n\n[RALPH CYCLE 199 DONE] \uc791\uc5c5: c203 CMF gate+OBV trend 192\uc870\ud569 WF FAIL(+13.083, c179 \ub300\ube44 -29.8) + c204 ETH/SOL \ud06c\ub85c\uc2a4\uc2ec\ubcfc \uc2a4\ud504\ub808\ub4dc \uc5ed\ucd94\uc138 216\uc870\ud569 WF FAIL(+0.642, alpha \ubd80\uc7ac) | \uacb0\uacfc: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc804\ubd80 \uc18c\uc9c4 \u2014 (1)\uae40\ud504 +1.895 FAIL, (2)\uc2a4\ud504\ub808\ub4dc +0.642 FAIL, (3)regime-adaptive -0.158 FAIL. CMF \ucd94\uac00\ud544\ud130\ub3c4 c179 \uc545\ud654\ub9cc \ucd08\ub798. c179 vpin_multi vol regime adaptive(+42.878)\uc774 \ucd5c\uc801 \ud655\uc815 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \ubaa8\ub450 \uc18c\uc9c4\ub428 \u2192 \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \ud544\uc694. \ud6c4\ubcf4: (A) Donchian/range breakout \ucd94\uc138\ucd94\uc885(VPIN \uc5ed\ucd94\uc138\uc640 \ub2e4\ub978 alpha \ucd95), (B) VWAP anchored deviation \uc5ed\ucd94\uc138, (C) \uae30\uc874 \uc804\ub7b5 \uc870\ud569 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d(\uac1c\ubcc4 \uc804\ub7b5\uc740 \ucd5c\uc801\uc774\ub098 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \ud6a8\uc728 \ubbf8\uac80\uc99d), (D) 60m \ub2e8\uae30 \ud0c0\uc784\ud504\ub808\uc784 VPIN \ud0d0\uc0c9(\ud604\uc7ac 240m\ub9cc \uc0ac\uc6a9)",
+      "timestamp": "2026-04-05T18:17:56.451135"
     },
     {
-      "cycle": 161,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1846s \ud6c4 \uc885\ub8cc",
-      "detail": "\ubc31\uadf8\ub77c\uc6b4\ub4dc \ubc31\ud14c\uc2a4\ud2b8 \uc644\ub8cc \ud655\uc778. \uacb0\uacfc\ub294 \uc774\ubbf8 \ucc98\ub9ac \uc644\ub8cc \u2014 c161 \ucee4\ubc0b \ubc0f \uae30\ub85d \uc644\ub8cc \uc0c1\ud0dc.",
-      "timestamp": "2026-04-05T10:19:40.119390"
+      "cycle": 200,
+      "summary": "\uc791\uc5c5: c205 Donchian Channel Breakout \ub3c5\ub9bd \uc804\ub7b5 486\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 ETH/SOL/XRP 240m, \uc21c\uc218 \ucd94\uc138\ucd94\uc885(\uc5ed\ucd94\uc138 VPIN\uacfc \ub2e4\ub978 alpha \ucd95) | \uacb0\uacfc: avg OOS Sharpe +9.542 PASS (>5.0), n=139, WR 53%, F1=+16.3 F2=+11.6 F3=+0.8 \u2014 F3(\ucd5c\uadfc 4\uac1c\uc6d4) \uae09\uaca9\ud55c alpha \uac10\uc1e0. 2025 \ud558\ubc18\uae30 \uc774\ud6c4 \ud6a1\ubcf4\uc7a5\uc5d0\uc11c \ucd94\uc138\ucd94\uc885 \uc791\ub3d9 \uc57d\ud654. daemon \ubc30\ud3ec \ubd88\uac00 (c179 +42.878 \ub300\ube44 -33.3) | \ub2e4\uc74c\uc81c\uc548: Donchian F3 \uac10\uc1e0 \uc6d0\uc778\uc740 \ucd5c\uadfc \uc800\ubcc0\ub3d9 \ud6a1\ubcf4\uc7a5 \u2014 \uc21c\uc218 \ucd94\uc138\ucd94\uc885 \ub2e8\ub3c5\uc740 \ubd88\uac00. \ub2e4\uc74c \ubc29\ud5a5: (A) Donchian\uc744 VPIN\uacfc \uacb0\ud569\ud55c \ub4c0\uc5bc \ubaa8\ub4dc(\ucd94\uc138+\uc5ed\ucd94\uc138 \uc790\ub3d9\uc804\ud658) \ub610\ub294 (B) VWAP anchored deviation \uc5ed\ucd94\uc138 (\uae30\uc874\uacfc \ub2e4\ub978 \uac00\uaca9 \uc575\ucee4) \ub610\ub294 (C) 60m \ub2e8\uae30 \ud0c0\uc784\ud504\ub808\uc784\uc73c\ub85c c179 VPIN \uc7ac\uac80\uc99d (\uc2e0\ud638 \ubc00\ub3c4 4\ubc30 \uc99d\uac00 \u2192 n \ud655\ubcf4). \uac1c\uc778\uc801\uc73c\ub85c (C) 60m VPIN\uc774 \uac00\uc7a5 \uc778\ud504\ub77c \ud6a8\uc728\uc801 \u2014 c179 \ud30c\ub77c\ubbf8\ud130 60m \uc9c1\uc811 \uc774\uc2dd \ud6c4 OOS \uac80\uc99d",
+      "detail": "[RALPH CYCLE 200 DONE] \uc791\uc5c5: c205 Donchian Channel Breakout \ub3c5\ub9bd \uc804\ub7b5 486\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 ETH/SOL/XRP 240m, \uc21c\uc218 \ucd94\uc138\ucd94\uc885(\uc5ed\ucd94\uc138 VPIN\uacfc \ub2e4\ub978 alpha \ucd95) | \uacb0\uacfc: avg OOS Sharpe +9.542 PASS (>5.0), n=139, WR 53%, F1=+16.3 F2=+11.6 F3=+0.8 \u2014 F3(\ucd5c\uadfc 4\uac1c\uc6d4) \uae09\uaca9\ud55c alpha \uac10\uc1e0. 2025 \ud558\ubc18\uae30 \uc774\ud6c4 \ud6a1\ubcf4\uc7a5\uc5d0\uc11c \ucd94\uc138\ucd94\uc885 \uc791\ub3d9 \uc57d\ud654. daemon \ubc30\ud3ec \ubd88\uac00 (c179 +42.878 \ub300\ube44 -33.3) | \ub2e4\uc74c\uc81c\uc548: Donchian F3 \uac10\uc1e0 \uc6d0\uc778\uc740 \ucd5c\uadfc \uc800\ubcc0\ub3d9 \ud6a1\ubcf4\uc7a5 \u2014 \uc21c\uc218 \ucd94\uc138\ucd94\uc885 \ub2e8\ub3c5\uc740 \ubd88\uac00. \ub2e4\uc74c \ubc29\ud5a5: (A) Donchian\uc744 VPIN\uacfc \uacb0\ud569\ud55c \ub4c0\uc5bc \ubaa8\ub4dc(\ucd94\uc138+\uc5ed\ucd94\uc138 \uc790\ub3d9\uc804\ud658) \ub610\ub294 (B) VWAP anchored deviation \uc5ed\ucd94\uc138 (\uae30\uc874\uacfc \ub2e4\ub978 \uac00\uaca9 \uc575\ucee4) \ub610\ub294 (C) 60m \ub2e8\uae30 \ud0c0\uc784\ud504\ub808\uc784\uc73c\ub85c c179 VPIN \uc7ac\uac80\uc99d (\uc2e0\ud638 \ubc00\ub3c4 4\ubc30 \uc99d\uac00 \u2192 n \ud655\ubcf4). \uac1c\uc778\uc801\uc73c\ub85c (C) 60m VPIN\uc774 \uac00\uc7a5 \uc778\ud504\ub77c \ud6a8\uc728\uc801 \u2014 c179 \ud30c\ub77c\ubbf8\ud130 60m \uc9c1\uc811 \uc774\uc2dd \ud6c4 OOS \uac80\uc99d",
+      "timestamp": "2026-04-05T18:30:53.563003"
     },
     {
-      "cycle": 162,
-      "summary": "\uc791\uc5c5: vpin_eth c163 \ucd5c\uc801(avg OOS Sharpe +8.837) 3-fold WF \uac80\uc99d \u2014 729\uac1c \uadfc\uc811 \uadf8\ub9ac\ub4dc \ud3ec\ud568 | \uacb0\uacfc: 0/729 \uc804\uccb4\ud1b5\uacfc, F2(2025 BEAR) Sharpe=-8~-17 \uc804\uba74 \ubd95\uad34, BULL \uad6c\uac04(F1/F3)\ub9cc Sharpe +14~+21 \u2014 c163 2-fold \uc131\uacf5\uc740 OOS \uc708\ub3c4\uc6b0\uac00 2025 BEAR \ud68c\ud53c\ud55c \uacb0\uacfc\ub85c \ud655\uc778, vpin_eth RSI-scaled ATR\uc740 BULL \uc804\uc6a9 \uc804\ub7b5 | \ub2e4\uc74c\uc81c\uc548: (1) vpin_eth \ubcc0\ud615 \ud0d0\uc0c9 \uc885\ub8cc \u2014 \ud604 daemon TP=7% \uc720\uc9c0, BEAR \ubc29\uc5b4 \ubd88\uac00 \ud655\uc815, (2) \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 \uacfc\uc81c\uc778 BEAR/\ud6a1\ubcf4\uc7a5 \uc804\ub7b5 \ud0d0\uc0c9 \ubcf8\uaca9\ud654 \u2014 stablecoin \uc804\ud658 \ud0c0\uc774\ubc0d(BTC<SMA200 \u2192 \uc54c\ud2b8 \ub9e4\ub3c4) \ub610\ub294 stealth_3gate \uc2ec\ubcfc \ud655\uc7a5(14\u219220+), (3) research loop c164(RSI velocity dynamic SL) \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d \uc9c4\ud589, \uc544\ub2c8\uba74 BEAR \uc804\ub7b5 \uc804\ud658",
-      "detail": "[RALPH CYCLE 162 DONE] \uc791\uc5c5: vpin_eth c163 \ucd5c\uc801(avg OOS Sharpe +8.837) 3-fold WF \uac80\uc99d \u2014 729\uac1c \uadfc\uc811 \uadf8\ub9ac\ub4dc \ud3ec\ud568 | \uacb0\uacfc: 0/729 \uc804\uccb4\ud1b5\uacfc, F2(2025 BEAR) Sharpe=-8~-17 \uc804\uba74 \ubd95\uad34, BULL \uad6c\uac04(F1/F3)\ub9cc Sharpe +14~+21 \u2014 c163 2-fold \uc131\uacf5\uc740 OOS \uc708\ub3c4\uc6b0\uac00 2025 BEAR \ud68c\ud53c\ud55c \uacb0\uacfc\ub85c \ud655\uc778, vpin_eth RSI-scaled ATR\uc740 BULL \uc804\uc6a9 \uc804\ub7b5 | \ub2e4\uc74c\uc81c\uc548: (1) vpin_eth \ubcc0\ud615 \ud0d0\uc0c9 \uc885\ub8cc \u2014 \ud604 daemon TP=7% \uc720\uc9c0, BEAR \ubc29\uc5b4 \ubd88\uac00 \ud655\uc815, (2) \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 \uacfc\uc81c\uc778 BEAR/\ud6a1\ubcf4\uc7a5 \uc804\ub7b5 \ud0d0\uc0c9 \ubcf8\uaca9\ud654 \u2014 stablecoin \uc804\ud658 \ud0c0\uc774\ubc0d(BTC<SMA200 \u2192 \uc54c\ud2b8 \ub9e4\ub3c4) \ub610\ub294 stealth_3gate \uc2ec\ubcfc \ud655\uc7a5(14\u219220+), (3) research loop c164(RSI velocity dynamic SL) \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d \uc9c4\ud589, \uc544\ub2c8\uba74 BEAR \uc804\ub7b5 \uc804\ud658",
-      "timestamp": "2026-04-05T10:32:30.712819"
+      "cycle": 201,
+      "summary": "\uc791\uc5c5: c206 VWAP Anchored Deviation \uc5ed\ucd94\uc138 216\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 daily/weekly \uc575\ucee4 \u00d7 z-score \uc9c4\uc785/\uccad\uc0b0 \u00d7 ATR SL \u00d7 \u03c3 lookback \uc804 \ud30c\ub77c\ubbf8\ud130 \ud0d0\uc0c9 | \uacb0\uacfc: avg OOS Sharpe -2.325 FAIL, n=259, WR 52.4%, F1=+2.7 F2=+1.2 F3=-10.9 \u2014 240m\uc5d0\uc11c \uc77c\ubcc4 VWAP \ub9ac\uc14b\uc740 6\ubd09/\uc77c\ub85c VWAP \uc815\ubcf4\ub7c9 \uad6c\uc870\uc801 \ubd80\uc871, F3(\ucd5c\uadfc 6\uac1c\uc6d4) catastrophic \ud558\ub77d | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc911 (1) 60m VPIN, (2) VWAP \ubaa8\ub450 \uc18c\uc9c4 \u2192 \ub0a8\uc740 \ubc29\ud5a5 (1) 60m \ud0c0\uc784\ud504\ub808\uc784 c179 VPIN \uc7ac\uac80\uc99d\uc774 \uc720\uc77c\ud55c \ubbf8\ud0d0\uc0c9 \ucd95. 60m \ub370\uc774\ud130 34284\ud589 \ud655\uc778\ub428(\ud30c\uc774\ud504\ub77c\uc778 \uad6c\ucd95 \uc644\ub8cc). c179 \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130(VPIN=0.35, MOM=0.0007, Hold=80\ubd09=20\u00d74, CD=16\ubd09=4\u00d74)\ub85c 60m 3-fold WF \uc989\uc2dc \uc2e4\ud589 \uac00\ub2a5. \ub610\ub294 (3) daemon 8\uc804\ub7b5 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d\uc73c\ub85c \uc790\ubcf8 \ud6a8\uc728 \uac1c\uc120(\uac1c\ubcc4 \uc804\ub7b5 \ucd5c\uc801\uc774\ub098 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc218\uc900 \ubbf8\uac80\uc99d)",
+      "detail": "[RALPH CYCLE 201 DONE] \uc791\uc5c5: c206 VWAP Anchored Deviation \uc5ed\ucd94\uc138 216\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 daily/weekly \uc575\ucee4 \u00d7 z-score \uc9c4\uc785/\uccad\uc0b0 \u00d7 ATR SL \u00d7 \u03c3 lookback \uc804 \ud30c\ub77c\ubbf8\ud130 \ud0d0\uc0c9 | \uacb0\uacfc: avg OOS Sharpe -2.325 FAIL, n=259, WR 52.4%, F1=+2.7 F2=+1.2 F3=-10.9 \u2014 240m\uc5d0\uc11c \uc77c\ubcc4 VWAP \ub9ac\uc14b\uc740 6\ubd09/\uc77c\ub85c VWAP \uc815\ubcf4\ub7c9 \uad6c\uc870\uc801 \ubd80\uc871, F3(\ucd5c\uadfc 6\uac1c\uc6d4) catastrophic \ud558\ub77d | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 \uc911 (1) 60m VPIN, (2) VWAP \ubaa8\ub450 \uc18c\uc9c4 \u2192 \ub0a8\uc740 \ubc29\ud5a5 (1) 60m \ud0c0\uc784\ud504\ub808\uc784 c179 VPIN \uc7ac\uac80\uc99d\uc774 \uc720\uc77c\ud55c \ubbf8\ud0d0\uc0c9 \ucd95. 60m \ub370\uc774\ud130 34284\ud589 \ud655\uc778\ub428(\ud30c\uc774\ud504\ub77c\uc778 \uad6c\ucd95 \uc644\ub8cc). c179 \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130(VPIN=0.35, MOM=0.0007, Hold=80\ubd09=20\u00d74, CD=16\ubd09=4\u00d74)\ub85c 60m 3-fold WF \uc989\uc2dc \uc2e4\ud589 \uac00\ub2a5. \ub610\ub294 (3) daemon 8\uc804\ub7b5 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d\uc73c\ub85c \uc790\ubcf8 \ud6a8\uc728 \uac1c\uc120(\uac1c\ubcc4 \uc804\ub7b5 \ucd5c\uc801\uc774\ub098 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc218\uc900 \ubbf8\uac80\uc99d)",
+      "timestamp": "2026-04-05T18:43:45.751037"
     },
     {
-      "cycle": 163,
-      "summary": "\uc791\uc5c5: stealth_3gate \uc2ec\ubcfc \ud655\uc7a5 \uc2a4\uce94 (corrected engine, 236\uac1c \uc54c\ud2b8 \u2192 156\uac1c \ubd84\uc11d) | \uacb0\uacfc: 0/156 \ud1b5\uacfc (W2 Sharpe\u22655.0 & n\u226510), BTC \uc2a4\ud154\uc2a4 \ud65c\uc131\ubd09 233/8585(2.7%)\ub85c \uac1c\ubcc4 \uc2ec\ubcfc n \uad6c\uc870\uc801 \ubcd1\ubaa9, \ud3ec\ud2b8\ud3f4\ub9ac\uc624 14\uc2ec\ubcfc \ud569\uc0b0 Sharpe=13.162 n=76 WR=60.5% \ud655\uc778, \ud604 14\uc2ec\ubcfc \uc720\uc9c0 | \ub2e4\uc74c\uc81c\uc548: (1) stealth_3gate \uc2ec\ubcfc \ud655\uc7a5 \ud2b8\ub799 \uc885\ub8cc \u2014 \uc2e0\ud638 \ud76c\uc18c\uc131 \uad6c\uc870\uc801 \ud55c\uacc4 \ud655\uc815, (2) \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 BEAR/\ud6a1\ubcf4\uc7a5 \ubc29\uc5b4 \uc804\ub7b5 \ud0d0\uc0c9 \ubcf8\uaca9\ud654 \u2014 stablecoin regime-switch (BTC<SMA200 \uac10\uc9c0 \uc2dc \uc54c\ud2b8\u2192USDT \uc804\ud658) \uc124\uacc4 \ubc0f \ubc31\ud14c\uc2a4\ud2b8, 2022 BEAR + 2025 Q4 BEAR \uad6c\uac04 \ud544\uc218 \ud3ec\ud568, (3) research loop c169 \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d \uc9c4\ud589",
-      "detail": "[RALPH CYCLE 163 DONE] \uc791\uc5c5: stealth_3gate \uc2ec\ubcfc \ud655\uc7a5 \uc2a4\uce94 (corrected engine, 236\uac1c \uc54c\ud2b8 \u2192 156\uac1c \ubd84\uc11d) | \uacb0\uacfc: 0/156 \ud1b5\uacfc (W2 Sharpe\u22655.0 & n\u226510), BTC \uc2a4\ud154\uc2a4 \ud65c\uc131\ubd09 233/8585(2.7%)\ub85c \uac1c\ubcc4 \uc2ec\ubcfc n \uad6c\uc870\uc801 \ubcd1\ubaa9, \ud3ec\ud2b8\ud3f4\ub9ac\uc624 14\uc2ec\ubcfc \ud569\uc0b0 Sharpe=13.162 n=76 WR=60.5% \ud655\uc778, \ud604 14\uc2ec\ubcfc \uc720\uc9c0 | \ub2e4\uc74c\uc81c\uc548: (1) stealth_3gate \uc2ec\ubcfc \ud655\uc7a5 \ud2b8\ub799 \uc885\ub8cc \u2014 \uc2e0\ud638 \ud76c\uc18c\uc131 \uad6c\uc870\uc801 \ud55c\uacc4 \ud655\uc815, (2) \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 BEAR/\ud6a1\ubcf4\uc7a5 \ubc29\uc5b4 \uc804\ub7b5 \ud0d0\uc0c9 \ubcf8\uaca9\ud654 \u2014 stablecoin regime-switch (BTC<SMA200 \uac10\uc9c0 \uc2dc \uc54c\ud2b8\u2192USDT \uc804\ud658) \uc124\uacc4 \ubc0f \ubc31\ud14c\uc2a4\ud2b8, 2022 BEAR + 2025 Q4 BEAR \uad6c\uac04 \ud544\uc218 \ud3ec\ud568, (3) research loop c169 \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d \uc9c4\ud589",
-      "timestamp": "2026-04-05T10:40:34.621937"
+      "cycle": 202,
+      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1481s \ud6c4 \uc885\ub8cc",
+      "detail": "\ubc31\uadf8\ub77c\uc6b4\ub4dc \ud0dc\uc2a4\ud06c \uc644\ub8cc \ud655\uc778 \u2014 \uc774\ubbf8 \uacb0\uacfc\ub97c \uc77d\uace0 \uae30\ub85d/\ucee4\ubc0b\uae4c\uc9c0 \uc644\ub8cc\ud588\uc2b5\ub2c8\ub2e4. \uc0ac\uc774\ud074 202 \uc885\ub8cc.",
+      "timestamp": "2026-04-05T19:11:39.987722"
     },
     {
-      "cycle": 164,
-      "summary": "\uc791\uc5c5: BEAR regime-switch \uc804\ub7b5 (BTC SMA daily overlay, 4\uc2ec\ubcfc+basket, 12\ud30c\ub77c\ubbf8\ud130 \uadf8\ub9ac\ub4dc, 3-fold WF) | \uacb0\uacfc: 0/4 \uc2ec\ubcfc WF \ud1b5\uacfc \u2014 F1(2024) \uc804\ubd80 BH \ub300\ube44 Sharpe \uc5f4\ud654(\ud729\uc3d8 -0.02~-0.60), F2(2025) BTC-\uc54c\ud2b8 \ub514\ucee4\ud50c\ub9c1\uc73c\ub85c \ubc29\uc5b4 \uc2e4\ud328, F3(2026) 100% \ud604\uae08 \ud5c8\uc0c1. 2022 BEAR MDD \uac1c\uc120(ETH -65%\u2192-17%)\uc740 \uc778\uc0c1\uc801\uc774\ub098 WF \uc77c\uad00\uc131 \ubd80\uc7ac. \ub2e8\uc21c BTC SMA crossover\ub294 BEAR \ubc29\uc5b4 \uc804\ub7b5\uc73c\ub85c NOT DEPLOYABLE | \ub2e4\uc74c\uc81c\uc548: (1) \ub2e4\uc911 \uc9c0\ud45c regime \ud310\ub2e8 (SMA + RSI oversold + \uac70\ub798\ub7c9 \uae09\uac10 = BEAR \ud655\uc815) \u2014 \ub2e8\uc77c SMA \ud55c\uacc4 \uadf9\ubcf5, (2) \uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay (\uc54c\ud2b8 \uc790\uccb4 20-day MA \uc774\ud0c8 \uc2dc \uccad\uc0b0) \u2014 BTC-\uc54c\ud2b8 \ub514\ucee4\ud50c\ub9c1 \ub300\uc751, (3) \uae09\ub77d \uac10\uc9c0 \uc989\uc2dc \uccad\uc0b0 + \uc644\ub9cc \ud558\ub77d \uc720\uc9c0\ud558\ub294 \"\uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0\" \u2014 \ud729\uc3d8 \ucd5c\uc18c\ud654",
-      "detail": "[RALPH CYCLE 164 DONE] \uc791\uc5c5: BEAR regime-switch \uc804\ub7b5 (BTC SMA daily overlay, 4\uc2ec\ubcfc+basket, 12\ud30c\ub77c\ubbf8\ud130 \uadf8\ub9ac\ub4dc, 3-fold WF) | \uacb0\uacfc: 0/4 \uc2ec\ubcfc WF \ud1b5\uacfc \u2014 F1(2024) \uc804\ubd80 BH \ub300\ube44 Sharpe \uc5f4\ud654(\ud729\uc3d8 -0.02~-0.60), F2(2025) BTC-\uc54c\ud2b8 \ub514\ucee4\ud50c\ub9c1\uc73c\ub85c \ubc29\uc5b4 \uc2e4\ud328, F3(2026) 100% \ud604\uae08 \ud5c8\uc0c1. 2022 BEAR MDD \uac1c\uc120(ETH -65%\u2192-17%)\uc740 \uc778\uc0c1\uc801\uc774\ub098 WF \uc77c\uad00\uc131 \ubd80\uc7ac. \ub2e8\uc21c BTC SMA crossover\ub294 BEAR \ubc29\uc5b4 \uc804\ub7b5\uc73c\ub85c NOT DEPLOYABLE | \ub2e4\uc74c\uc81c\uc548: (1) \ub2e4\uc911 \uc9c0\ud45c regime \ud310\ub2e8 (SMA + RSI oversold + \uac70\ub798\ub7c9 \uae09\uac10 = BEAR \ud655\uc815) \u2014 \ub2e8\uc77c SMA \ud55c\uacc4 \uadf9\ubcf5, (2) \uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay (\uc54c\ud2b8 \uc790\uccb4 20-day MA \uc774\ud0c8 \uc2dc \uccad\uc0b0) \u2014 BTC-\uc54c\ud2b8 \ub514\ucee4\ud50c\ub9c1 \ub300\uc751, (3) \uae09\ub77d \uac10\uc9c0 \uc989\uc2dc \uccad\uc0b0 + \uc644\ub9cc \ud558\ub77d \uc720\uc9c0\ud558\ub294 \"\uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0\" \u2014 \ud729\uc3d8 \ucd5c\uc18c\ud654",
-      "timestamp": "2026-04-05T10:50:45.525126"
+      "cycle": 203,
+      "summary": "\uc791\uc5c5: c209 BB Squeeze Soft Gate + Volume Surge 235\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 c199 \uae30\ubc18 squeeze hard\u2192soft \uc804\ud658 + vol surge \ud0c0\uc774\ubc0d \uacb0\ud569, ETH/SOL/XRP 240m | \uacb0\uacfc: avg OOS Sharpe +37.473 PASS(>5.0), c199(+51.425) \ub300\ube44 -13.952 \uc545\ud654, vol surge \uc601\ud5a5 0, XRP \uc804 fold 0 trades(squeeze \uc644\uc804\ucc28\ub2e8), n=13, WR 59.9%. Top 12 \uc870\ud569 \ub3d9\uc77c \uacb0\uacfc \u2192 vol_surge/combo_bonus \ubb34\uc758\ubbf8 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 + \uc5f0\uad6c\ub8e8\ud504 \ud6c4\uc18d \ubaa8\ub450 \uc18c\uc9c4. c199(+51.425)\uac00 \ud604 \ucd5c\uc801 \ud655\uc815. \ub2e4\uc74c\uc740 (A) daemon 8\uc804\ub7b5 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d(\ud3c9\uac00\uc790 \ub0a8\uc740 \ubc29\ud5a5 3\ubc88 \u2014 \uac1c\ubcc4 \uc804\ub7b5 \ucd5c\uc801\uc774\ub098 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc218\uc900 \uc790\ubcf8 \ud6a8\uc728 \ubbf8\uac80\uc99d), (B) \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \uc694\uccad(6\uc0ac\uc774\ud074 \uc5f0\uc18d c199 \ubbf8\ub3cc\ud30c \u2192 \uc644\uc804\ud788 \uc0c8\ub85c\uc6b4 \ud0d0\uc0c9 \ucd95 \ud544\uc694), (C) c209 MACD slope gate 144\uc870\ud569 \uc2e4\ud589(\uc5f0\uad6c\ub8e8\ud504 promising). \ucd94\ucc9c: (B) \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \u2014 \ud544\ud130/\uac8c\uc774\ud2b8 \ucd94\uac00 \ucd95\uc774 \uad6c\uc870\uc801 \ud55c\uacc4\uc5d0 \ub3c4\ub2ec, \uadfc\ubcf8\uc801\uc73c\ub85c \ub2e4\ub978 \uc804\ub7b5 \uccb4\uacc4(multi-timeframe ensemble, ML-based feature selection \ub4f1) \ud544\uc694",
+      "detail": "[RALPH CYCLE 203 DONE] \uc791\uc5c5: c209 BB Squeeze Soft Gate + Volume Surge 235\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 c199 \uae30\ubc18 squeeze hard\u2192soft \uc804\ud658 + vol surge \ud0c0\uc774\ubc0d \uacb0\ud569, ETH/SOL/XRP 240m | \uacb0\uacfc: avg OOS Sharpe +37.473 PASS(>5.0), c199(+51.425) \ub300\ube44 -13.952 \uc545\ud654, vol surge \uc601\ud5a5 0, XRP \uc804 fold 0 trades(squeeze \uc644\uc804\ucc28\ub2e8), n=13, WR 59.9%. Top 12 \uc870\ud569 \ub3d9\uc77c \uacb0\uacfc \u2192 vol_surge/combo_bonus \ubb34\uc758\ubbf8 | \ub2e4\uc74c\uc81c\uc548: \ud3c9\uac00\uc790 3\ubc29\ud5a5 + \uc5f0\uad6c\ub8e8\ud504 \ud6c4\uc18d \ubaa8\ub450 \uc18c\uc9c4. c199(+51.425)\uac00 \ud604 \ucd5c\uc801 \ud655\uc815. \ub2e4\uc74c\uc740 (A) daemon 8\uc804\ub7b5 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d(\ud3c9\uac00\uc790 \ub0a8\uc740 \ubc29\ud5a5 3\ubc88 \u2014 \uac1c\ubcc4 \uc804\ub7b5 \ucd5c\uc801\uc774\ub098 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc218\uc900 \uc790\ubcf8 \ud6a8\uc728 \ubbf8\uac80\uc99d), (B) \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \uc694\uccad(6\uc0ac\uc774\ud074 \uc5f0\uc18d c199 \ubbf8\ub3cc\ud30c \u2192 \uc644\uc804\ud788 \uc0c8\ub85c\uc6b4 \ud0d0\uc0c9 \ucd95 \ud544\uc694), (C) c209 MACD slope gate 144\uc870\ud569 \uc2e4\ud589(\uc5f0\uad6c\ub8e8\ud504 promising). \ucd94\ucc9c: (B) \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \u2014 \ud544\ud130/\uac8c\uc774\ud2b8 \ucd94\uac00 \ucd95\uc774 \uad6c\uc870\uc801 \ud55c\uacc4\uc5d0 \ub3c4\ub2ec, \uadfc\ubcf8\uc801\uc73c\ub85c \ub2e4\ub978 \uc804\ub7b5 \uccb4\uacc4(multi-timeframe ensemble, ML-based feature selection \ub4f1) \ud544\uc694",
+      "timestamp": "2026-04-05T19:20:56.897108"
     },
     {
-      "cycle": 165,
-      "summary": "\uc791\uc5c5: c168 vpin_eth trailing+regime hold 3-fold WF \uac80\uc99d (BEAR \uad6c\uac04 \ud544\uc218 \ud3ec\ud568, 81\uc870\ud569 \uadfc\uc811 \uadf8\ub9ac\ub4dc) | \uacb0\uacfc: **81/81 \uc804 \uc870\ud569 3-fold WF \ud1b5\uacfc** \u2014 c168 \ucd5c\uc801(hvH=24 lvH=14 trA=2.0 trSL=0.5) avg OOS Sharpe +12.986, F3 BEAR(BH=-46.1%) Sharpe +4.249; 3-fold \ucd5c\uc801(hvH=24 lvH=12 trA=1.8 trSL=0.4) avg OOS +14.111, F3 BEAR Sharpe +9.443; \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c\ub3c4 +12.2 \uc720\uc9c0. **\ud3c9\uac00\uc790 1\uc21c\uc704 \ube14\ub85c\ucee4 \ud574\uc18c** | \ub2e4\uc74c\uc81c\uc548: (1) daemon.toml\uc5d0 vpin_eth trailing_stop \ud30c\ub77c\ubbf8\ud130 \ubc18\uc601 \uac80\ud1a0 \u2014 c168 \uc6d0\ub798 vs 3-fold \ucd5c\uc801 \uc911 \uc120\ud0dd \ud6c4 \ubc30\ud3ec, (2) \ud3c9\uac00\uc790 [explore] \uacfc\uc81c \uc911 \"\uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay (ETH 20-day MA breakdown exit)\" \ubc31\ud14c\uc2a4\ud2b8 \u2014 BEAR MDD \ucd94\uac00 \uac1c\uc120 \uac00\ub2a5\uc131 \ud0d0\uc0c9, (3) \ud3c9\uac00\uc790 [monitor] paper trade 30\uac70\ub798 \ucd95\uc801 \ud6c4 live vs backtest Sharpe \uad34\ub9ac \ubd84\uc11d \uc9c4\ud589",
-      "detail": "[RALPH CYCLE 165 DONE] \uc791\uc5c5: c168 vpin_eth trailing+regime hold 3-fold WF \uac80\uc99d (BEAR \uad6c\uac04 \ud544\uc218 \ud3ec\ud568, 81\uc870\ud569 \uadfc\uc811 \uadf8\ub9ac\ub4dc) | \uacb0\uacfc: **81/81 \uc804 \uc870\ud569 3-fold WF \ud1b5\uacfc** \u2014 c168 \ucd5c\uc801(hvH=24 lvH=14 trA=2.0 trSL=0.5) avg OOS Sharpe +12.986, F3 BEAR(BH=-46.1%) Sharpe +4.249; 3-fold \ucd5c\uc801(hvH=24 lvH=12 trA=1.8 trSL=0.4) avg OOS +14.111, F3 BEAR Sharpe +9.443; \uc2ac\ub9ac\ud53c\uc9c0 0.20%\uc5d0\uc11c\ub3c4 +12.2 \uc720\uc9c0. **\ud3c9\uac00\uc790 1\uc21c\uc704 \ube14\ub85c\ucee4 \ud574\uc18c** | \ub2e4\uc74c\uc81c\uc548: (1) daemon.toml\uc5d0 vpin_eth trailing_stop \ud30c\ub77c\ubbf8\ud130 \ubc18\uc601 \uac80\ud1a0 \u2014 c168 \uc6d0\ub798 vs 3-fold \ucd5c\uc801 \uc911 \uc120\ud0dd \ud6c4 \ubc30\ud3ec, (2) \ud3c9\uac00\uc790 [explore] \uacfc\uc81c \uc911 \"\uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay (ETH 20-day MA breakdown exit)\" \ubc31\ud14c\uc2a4\ud2b8 \u2014 BEAR MDD \ucd94\uac00 \uac1c\uc120 \uac00\ub2a5\uc131 \ud0d0\uc0c9, (3) \ud3c9\uac00\uc790 [monitor] paper trade 30\uac70\ub798 \ucd95\uc801 \ud6c4 live vs backtest Sharpe \uad34\ub9ac \ubd84\uc11d \uc9c4\ud589",
-      "timestamp": "2026-04-05T11:00:34.370386"
+      "cycle": 204,
+      "summary": "\uc791\uc5c5: c210 Signal Strength Adaptive TP/SL 108\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 \uc9c4\uc785 \uc720\uc9c0, VPIN+MOM \uc2dc\uadf8\ub110 \ud488\uc9c8\ub85c TP/SL \ubc30\uc218 \ub3d9\uc801 \uc870\uc815 | \uacb0\uacfc: avg OOS Sharpe +17.655, c179(+42.878) \ub300\ube44 -25.223 \uc545\ud654, slTighten=0.0 \ucd5c\uc801(SL \ub3d9\uc801 \ucd95\uc18c \uc720\ud574), tpBoost=0.8 \ucd5c\uc801\uc774\ub098 \uace0\uc815 TP \ub300\ube44 \uc545\ud654, Top 5 \uc804\ubd80 \ub3d9\uc77c \ud328\ud134, SOL F2 -2.551 | \ub2e4\uc74c\uc81c\uc548: **7\uc0ac\uc774\ud074 \uc5f0\uc18d c179 \ubbf8\ub3cc\ud30c** \u2014 \ud544\ud130 \ucd94\uac00/\uac8c\uc774\ud2b8/TP-SL \uc870\uc815/\uc9c4\uc785 \ubcf4\uc870/\uccad\uc0b0 \ucd5c\uc801\ud654/\ud0c0\uc784\ud504\ub808\uc784 \ubcc0\uacbd/VWAP \uc575\ucee4 \ubaa8\ub450 \uc18c\uc9c4. \ub0a8\uc740 \uc120\ud0dd: (A) **\uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \uc694\uccad** \u2014 \uc644\uc804\ud788 \ub2e4\ub978 \ud0d0\uc0c9 \ucd95 \ud544\uc694(multi-TF ensemble, ML feature selection, \ube44\ub300\uce6d \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 \ub4f1), (B) daemon 8\uc804\ub7b5 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d(\uac1c\ubcc4 \uc804\ub7b5 \ucd5c\uc801\ud654 \ub300\uc2e0 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc218\uc900 \uc790\ubcf8 \ud6a8\uc728 \uac1c\uc120), (C) c209 MACD slope gate 144\uc870\ud569(\uc5f0\uad6c\ub8e8\ud504 remaining). \ucd94\ucc9c: **(A) \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8** \u2014 c179 \ub2e8\uc77c \uc804\ub7b5 \ucd5c\uc801\ud654\ub294 \uad6c\uc870\uc801 \ud55c\uacc4 \ub3c4\ub2ec, \uadfc\ubcf8\uc801 \ud328\ub7ec\ub2e4\uc784 \uc804\ud658\uc774 \ud544\uc694",
+      "detail": "[RALPH CYCLE 204 DONE] \uc791\uc5c5: c210 Signal Strength Adaptive TP/SL 108\uc870\ud569 3-fold WF \ubc31\ud14c\uc2a4\ud2b8 \u2014 \uc9c4\uc785 \uc720\uc9c0, VPIN+MOM \uc2dc\uadf8\ub110 \ud488\uc9c8\ub85c TP/SL \ubc30\uc218 \ub3d9\uc801 \uc870\uc815 | \uacb0\uacfc: avg OOS Sharpe +17.655, c179(+42.878) \ub300\ube44 -25.223 \uc545\ud654, slTighten=0.0 \ucd5c\uc801(SL \ub3d9\uc801 \ucd95\uc18c \uc720\ud574), tpBoost=0.8 \ucd5c\uc801\uc774\ub098 \uace0\uc815 TP \ub300\ube44 \uc545\ud654, Top 5 \uc804\ubd80 \ub3d9\uc77c \ud328\ud134, SOL F2 -2.551 | \ub2e4\uc74c\uc81c\uc548: **7\uc0ac\uc774\ud074 \uc5f0\uc18d c179 \ubbf8\ub3cc\ud30c** \u2014 \ud544\ud130 \ucd94\uac00/\uac8c\uc774\ud2b8/TP-SL \uc870\uc815/\uc9c4\uc785 \ubcf4\uc870/\uccad\uc0b0 \ucd5c\uc801\ud654/\ud0c0\uc784\ud504\ub808\uc784 \ubcc0\uacbd/VWAP \uc575\ucee4 \ubaa8\ub450 \uc18c\uc9c4. \ub0a8\uc740 \uc120\ud0dd: (A) **\uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8 \uc694\uccad** \u2014 \uc644\uc804\ud788 \ub2e4\ub978 \ud0d0\uc0c9 \ucd95 \ud544\uc694(multi-TF ensemble, ML feature selection, \ube44\ub300\uce6d \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 \ub4f1), (B) daemon 8\uc804\ub7b5 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d(\uac1c\ubcc4 \uc804\ub7b5 \ucd5c\uc801\ud654 \ub300\uc2e0 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc218\uc900 \uc790\ubcf8 \ud6a8\uc728 \uac1c\uc120), (C) c209 MACD slope gate 144\uc870\ud569(\uc5f0\uad6c\ub8e8\ud504 remaining). \ucd94\ucc9c: **(A) \uc0c8 \ud3c9\uac00\uc790 \ub9ac\ud3ec\ud2b8** \u2014 c179 \ub2e8\uc77c \uc804\ub7b5 \ucd5c\uc801\ud654\ub294 \uad6c\uc870\uc801 \ud55c\uacc4 \ub3c4\ub2ec, \uadfc\ubcf8\uc801 \ud328\ub7ec\ub2e4\uc784 \uc804\ud658\uc774 \ud544\uc694",
+      "timestamp": "2026-04-05T19:28:05.519229"
     },
     {
-      "cycle": 166,
-      "summary": "\uc791\uc5c5: c170 RSI vel+vol surge 3-fold WF \uac80\uc99d (BEAR fold \ud3ec\ud568, 36\uc870\ud569 \uadf8\ub9ac\ub4dc) | \uacb0\uacfc: \u274c vRat=2.0 \uc804 \uc870\ud569 F3(BEAR) Sharpe \uc74c\uc218(-0.8~-6.8), WF \ud1b5\uacfc 3\uac1c\ub294 \uc804\ubd80 \ud544\ud130OFF(=c168 \ubca0\uc774\uc2a4\ub77c\uc778 avg OOS +12.986 n=59). RSI vel+vol surge \ud544\ud130 BEAR \ubb34\ud6a8 \ud655\uc815, \ud2b8\ub799 \uc885\ub8cc | \ub2e4\uc74c\uc81c\uc548: (1) **c168 trailing+regime hold daemon \ucf54\ub4dc \uad6c\ud604** \u2014 ATR \uae30\ubc18 regime-adaptive TP/SL + trailing stop\uc744 RiskManager/pipeline\uc5d0 \uad6c\ud604\ud558\uc5ec daemon.toml \ubc30\ud3ec \uac00\ub2a5\ud558\uac8c \ud568 (\ud604\uc7ac \ubc31\ud14c\uc2a4\ud2b8\uc5d0\ub9cc \uc874\uc7ac\ud558\ub294 \ub85c\uc9c1), (2) \ud3c9\uac00\uc790 [explore] \"\uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay (ETH 20-day MA breakdown exit)\" \ubc31\ud14c\uc2a4\ud2b8 \u2014 BEAR MDD \ucd94\uac00 \uac1c\uc120 \uac00\ub2a5\uc131 \ud0d0\uc0c9 (BEAR \ubc29\uc5b4 \uc804\ub7b5 \uc911 \uc720\uc77c\ud55c \ubbf8\ud0d0\uc0c9 \ud56d\ubaa9), (3) research loop c169 (vol_regime+btc_mom 3-fold) \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d",
-      "detail": "[RALPH CYCLE 166 DONE] \uc791\uc5c5: c170 RSI vel+vol surge 3-fold WF \uac80\uc99d (BEAR fold \ud3ec\ud568, 36\uc870\ud569 \uadf8\ub9ac\ub4dc) | \uacb0\uacfc: \u274c vRat=2.0 \uc804 \uc870\ud569 F3(BEAR) Sharpe \uc74c\uc218(-0.8~-6.8), WF \ud1b5\uacfc 3\uac1c\ub294 \uc804\ubd80 \ud544\ud130OFF(=c168 \ubca0\uc774\uc2a4\ub77c\uc778 avg OOS +12.986 n=59). RSI vel+vol surge \ud544\ud130 BEAR \ubb34\ud6a8 \ud655\uc815, \ud2b8\ub799 \uc885\ub8cc | \ub2e4\uc74c\uc81c\uc548: (1) **c168 trailing+regime hold daemon \ucf54\ub4dc \uad6c\ud604** \u2014 ATR \uae30\ubc18 regime-adaptive TP/SL + trailing stop\uc744 RiskManager/pipeline\uc5d0 \uad6c\ud604\ud558\uc5ec daemon.toml \ubc30\ud3ec \uac00\ub2a5\ud558\uac8c \ud568 (\ud604\uc7ac \ubc31\ud14c\uc2a4\ud2b8\uc5d0\ub9cc \uc874\uc7ac\ud558\ub294 \ub85c\uc9c1), (2) \ud3c9\uac00\uc790 [explore] \"\uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay (ETH 20-day MA breakdown exit)\" \ubc31\ud14c\uc2a4\ud2b8 \u2014 BEAR MDD \ucd94\uac00 \uac1c\uc120 \uac00\ub2a5\uc131 \ud0d0\uc0c9 (BEAR \ubc29\uc5b4 \uc804\ub7b5 \uc911 \uc720\uc77c\ud55c \ubbf8\ud0d0\uc0c9 \ud56d\ubaa9), (3) research loop c169 (vol_regime+btc_mom 3-fold) \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d",
-      "timestamp": "2026-04-05T11:14:04.031880"
-    },
-    {
-      "cycle": 167,
-      "summary": "\uc791\uc5c5: ETH MA breakdown exit overlay on c168 3-fold \ucd5c\uc801 baseline (30\uc870\ud569: SMA/EMA \u00d7 10~50 period \u00d7 1~3 confirm, 3-fold WF BEAR \ud3ec\ud568) | \uacb0\uacfc: \u274c \ud6a8\uacfc \ubbf8\ubbf8 \u2014 \ucd5c\uc801 SMA50 conf=1 avg OOS +14.612 (\u0394+0.500 vs baseline +14.111), F2 MDD -11.30%\u2192-9.05%(2\uac74 MA exit), F3 MDD \ubcc0\ud654\uc5c6\uc74c(0\uac74). **\uad6c\uc870\uc801 \ud55c\uacc4**: max_hold=12~24\ubd09(2~4\uc77c) \ub2e8\uae30\ubcf4\uc720 \uc804\ub7b5\uc5d0\uc11c MA breakdown exit\uc740 SL/TP/trailing\ubcf4\ub2e4 \ub290\ub824 \ubb34\uc758\ubbf8. \ud3c9\uac00\uc790 [explore] \"\uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay\" \ud0d0\uc0c9 \uacf5\uac04 \uc18c\uc9c4 | \ub2e4\uc74c\uc81c\uc548: (1) **c168 trailing+regime hold daemon \ucf54\ub4dc \uad6c\ud604** \u2014 81/81 WF \ud1b5\uacfc, avg OOS +14.111, \uc2e4\uc81c production \ucf54\ub4dc\uc5d0 ATR\uae30\ubc18 trailing stop \uad6c\ud604\uc774 \uac00\uc7a5 \ub192\uc740 ROI \uc791\uc5c5, (2) \ud3c9\uac00\uc790 [explore] \"\ud558\ub77d \uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0 (ATR-normalized z-score < -2.0 \uc989\uc2dc \uccad\uc0b0)\" \u2014 MA\ubcf4\ub2e4 \ube60\ub978 \ubc18\uc751\uc774 \uac00\ub2a5\ud558\uc9c0\ub9cc \ub2e8\uae30\ubcf4\uc720 \uad6c\uc870\uc801 \ud55c\uacc4 \ub3d9\uc77c\ud560 \uac00\ub2a5\uc131 \ub192\uc74c, (3) c169 vol_regime+btc_mom \uc2e4\ud328 \ud655\uc815(avg OOS -64M), c171 adaptive RSI vel n=25\ub85c daemon \ubc30\ud3ec \ubd88\uac00 \u2014 \uc2e0\uaddc BEAR \ubc29\uc5b4 \uc804\ub7b5\uc740 \uc9c4\uc785 \ud544\ud130 \uac15\ud654\ubcf4\ub2e4 \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5(\ub808\uc9d0\ubcc4 \ubc30\ud305 \ube44\uc911 \uc870\uc808)\uc774 \ub354 \uc720\ud6a8\ud560 \uc218 \uc788\uc74c",
-      "detail": "[RALPH CYCLE 167 DONE] \uc791\uc5c5: ETH MA breakdown exit overlay on c168 3-fold \ucd5c\uc801 baseline (30\uc870\ud569: SMA/EMA \u00d7 10~50 period \u00d7 1~3 confirm, 3-fold WF BEAR \ud3ec\ud568) | \uacb0\uacfc: \u274c \ud6a8\uacfc \ubbf8\ubbf8 \u2014 \ucd5c\uc801 SMA50 conf=1 avg OOS +14.612 (\u0394+0.500 vs baseline +14.111), F2 MDD -11.30%\u2192-9.05%(2\uac74 MA exit), F3 MDD \ubcc0\ud654\uc5c6\uc74c(0\uac74). **\uad6c\uc870\uc801 \ud55c\uacc4**: max_hold=12~24\ubd09(2~4\uc77c) \ub2e8\uae30\ubcf4\uc720 \uc804\ub7b5\uc5d0\uc11c MA breakdown exit\uc740 SL/TP/trailing\ubcf4\ub2e4 \ub290\ub824 \ubb34\uc758\ubbf8. \ud3c9\uac00\uc790 [explore] \"\uc54c\ud2b8 \uac1c\ubcc4 momentum exit overlay\" \ud0d0\uc0c9 \uacf5\uac04 \uc18c\uc9c4 | \ub2e4\uc74c\uc81c\uc548: (1) **c168 trailing+regime hold daemon \ucf54\ub4dc \uad6c\ud604** \u2014 81/81 WF \ud1b5\uacfc, avg OOS +14.111, \uc2e4\uc81c production \ucf54\ub4dc\uc5d0 ATR\uae30\ubc18 trailing stop \uad6c\ud604\uc774 \uac00\uc7a5 \ub192\uc740 ROI \uc791\uc5c5, (2) \ud3c9\uac00\uc790 [explore] \"\ud558\ub77d \uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0 (ATR-normalized z-score < -2.0 \uc989\uc2dc \uccad\uc0b0)\" \u2014 MA\ubcf4\ub2e4 \ube60\ub978 \ubc18\uc751\uc774 \uac00\ub2a5\ud558\uc9c0\ub9cc \ub2e8\uae30\ubcf4\uc720 \uad6c\uc870\uc801 \ud55c\uacc4 \ub3d9\uc77c\ud560 \uac00\ub2a5\uc131 \ub192\uc74c, (3) c169 vol_regime+btc_mom \uc2e4\ud328 \ud655\uc815(avg OOS -64M), c171 adaptive RSI vel n=25\ub85c daemon \ubc30\ud3ec \ubd88\uac00 \u2014 \uc2e0\uaddc BEAR \ubc29\uc5b4 \uc804\ub7b5\uc740 \uc9c4\uc785 \ud544\ud130 \uac15\ud654\ubcf4\ub2e4 \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5(\ub808\uc9d0\ubcc4 \ubc30\ud305 \ube44\uc911 \uc870\uc808)\uc774 \ub354 \uc720\ud6a8\ud560 \uc218 \uc788\uc74c",
-      "timestamp": "2026-04-05T11:25:59.551200"
-    },
-    {
-      "cycle": 168,
-      "summary": "\uc791\uc5c5: c168 trailing+regime hold daemon production \ucf54\ub4dc \uad6c\ud604 \u2014 ATR percentile vol regime \uac10\uc9c0 + regime-adaptive hold(HV=24/LV=12) + regime-adaptive ATR TP/SL(HV:4.0/0.7, LV:2.5/0.4) + ATR trailing stop(activate 1.8\u00d7, trail 0.4\u00d7) | \uacb0\uacfc: production \ucf54\ub4dc 6\ud30c\uc77c \ubcc0\uacbd, 33/33 risk \ud14c\uc2a4\ud2b8 \ufffd\ufffd\uacfc, mypy/ruff clean, daemon.toml \ubc30\ud3ec \uc644\ub8cc (\uadfc\uac70: 81/81 WF \ud1b5\uacfc avg OOS Sharpe +14.111, F3 BEAR +9.443, \uc2ac\ub9ac\ud53c\uc9c0 0.20% +12.2) | \ub2e4\uc74c\uc81c\uc548: (1) paper trade 30\uac70\ub798 \ucd95\uc801 \ud6c4 live vs backtest Sharpe \uad34\ub9ac \ubd84\uc11d \u2014 \ud3c9\uac00\uc790 [monitor] \uacfc\uc81c, (2) \ud3c9\uac00\uc790 [explore] \"\ud558\ub77d \uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0 (ATR-normalized z-score < -2.0 \uc989\uc2dc \uccad\uc0b0)\" \u2014 BEAR \ubc29\uc5b4 \uc804\ub7b5 \ucd94\uac00 \ud0d0\uc0c9, (3) research loop c167_vpin_eth_bear_defense_dd_rs \ud6c4\uc18d \uacb0\uacfc \ud655\uc778 (vol_regime+BTC_mom Sharpe +19.880 promising)",
-      "detail": "[RALPH CYCLE 168 DONE] \uc791\uc5c5: c168 trailing+regime hold daemon production \ucf54\ub4dc \uad6c\ud604 \u2014 ATR percentile vol regime \uac10\uc9c0 + regime-adaptive hold(HV=24/LV=12) + regime-adaptive ATR TP/SL(HV:4.0/0.7, LV:2.5/0.4) + ATR trailing stop(activate 1.8\u00d7, trail 0.4\u00d7) | \uacb0\uacfc: production \ucf54\ub4dc 6\ud30c\uc77c \ubcc0\uacbd, 33/33 risk \ud14c\uc2a4\ud2b8 \ufffd\ufffd\uacfc, mypy/ruff clean, daemon.toml \ubc30\ud3ec \uc644\ub8cc (\uadfc\uac70: 81/81 WF \ud1b5\uacfc avg OOS Sharpe +14.111, F3 BEAR +9.443, \uc2ac\ub9ac\ud53c\uc9c0 0.20% +12.2) | \ub2e4\uc74c\uc81c\uc548: (1) paper trade 30\uac70\ub798 \ucd95\uc801 \ud6c4 live vs backtest Sharpe \uad34\ub9ac \ubd84\uc11d \u2014 \ud3c9\uac00\uc790 [monitor] \uacfc\uc81c, (2) \ud3c9\uac00\uc790 [explore] \"\ud558\ub77d \uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0 (ATR-normalized z-score < -2.0 \uc989\uc2dc \uccad\uc0b0)\" \u2014 BEAR \ubc29\uc5b4 \uc804\ub7b5 \ucd94\uac00 \ud0d0\uc0c9, (3) research loop c167_vpin_eth_bear_defense_dd_rs \ud6c4\uc18d \uacb0\uacfc \ud655\uc778 (vol_regime+BTC_mom Sharpe +19.880 promising)",
-      "timestamp": "2026-04-05T11:37:36.066663"
-    },
-    {
-      "cycle": 169,
-      "summary": "\uc791\uc5c5: c174 vpin_multi(ETH+SOL+XRP) + c168 regime-adaptive exit(ATR trailing+regime hold) \uacb0\ud569 3-fold WF \uac80\uc99d (9 combos \u00d7 3 symbols) | \uacb0\uacfc: \u26a0\ufe0f 9/9 \uc804 \uc870\ud569 WF \ud1b5\uacfc, \ucd5c\uc801 trA=1.5 trSL=0.3 avg OOS Sharpe +10.916 WR 36.4% trades 315 \u2014 c165 baseline +11.290 \ub300\ube44 **\u0394-0.374 \uc18c\ud3ed \ud558\ub77d**. c168 regime-adaptive exit\ub294 ETH \ud2b9\ud654 \ud6a8\uacfc \ud655\uc778 (BEAR F3\uc5d0\uc11c\ub9cc \u0394+0.435 \uac1c\uc120, BULL/\uc911\ub9bd \uad6c\uac04 \uc0c1\uc1c4). SOL \uc804 fold \ucd5c\uc548\uc815(avg +13.3). **\uba40\ud2f0\uc2ec\ubcfc daemon \ud655\uc7a5 \uc2dc ETH=c168 regime exit, SOL/XRP=c165 \uace0\uc815 exit \ubd84\ub9ac \uc801\uc6a9\uc774 \ucd5c\uc801** | \ub2e4\uc74c\uc81c\uc548: (1) **c165 \ucd5c\uc801 \uae30\ubc18 SOL/XRP \ub3c5\ub9bd wallet daemon.toml \ucd94\uac00** \u2014 c165 \uacb0\uacfc\ub85c SOL avg Sharpe +13.254 / XRP +8.707 \uc774\ubbf8 \uac80\uc99d\ub428, \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \ubd84\uc0b0 \ud6a8\uacfc + \uac70\ub798\uc218 3\ubc30 \ud655\ub300\uac00 \uac00\uc7a5 \ub192\uc740 ROI, (2) \ud3c9\uac00\uc790 [explore] \"\ud558\ub77d \uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0 (ATR z-score < -2.0 \uc989\uc2dc \uccad\uc0b0)\" \u2014 \ub2e8\uae30\ubcf4\uc720 \uad6c\uc870\uc801 \ud55c\uacc4 \uac00\ub2a5\uc131 \ub192\uc9c0\ub9cc \ubbf8\uac80\uc99d, (3) research loop c173 (ADX+BTC SMA \uadf8\ub9ac\ub4dc) \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d",
-      "detail": "[RALPH CYCLE 169 DONE] \uc791\uc5c5: c174 vpin_multi(ETH+SOL+XRP) + c168 regime-adaptive exit(ATR trailing+regime hold) \uacb0\ud569 3-fold WF \uac80\uc99d (9 combos \u00d7 3 symbols) | \uacb0\uacfc: \u26a0\ufe0f 9/9 \uc804 \uc870\ud569 WF \ud1b5\uacfc, \ucd5c\uc801 trA=1.5 trSL=0.3 avg OOS Sharpe +10.916 WR 36.4% trades 315 \u2014 c165 baseline +11.290 \ub300\ube44 **\u0394-0.374 \uc18c\ud3ed \ud558\ub77d**. c168 regime-adaptive exit\ub294 ETH \ud2b9\ud654 \ud6a8\uacfc \ud655\uc778 (BEAR F3\uc5d0\uc11c\ub9cc \u0394+0.435 \uac1c\uc120, BULL/\uc911\ub9bd \uad6c\uac04 \uc0c1\uc1c4). SOL \uc804 fold \ucd5c\uc548\uc815(avg +13.3). **\uba40\ud2f0\uc2ec\ubcfc daemon \ud655\uc7a5 \uc2dc ETH=c168 regime exit, SOL/XRP=c165 \uace0\uc815 exit \ubd84\ub9ac \uc801\uc6a9\uc774 \ucd5c\uc801** | \ub2e4\uc74c\uc81c\uc548: (1) **c165 \ucd5c\uc801 \uae30\ubc18 SOL/XRP \ub3c5\ub9bd wallet daemon.toml \ucd94\uac00** \u2014 c165 \uacb0\uacfc\ub85c SOL avg Sharpe +13.254 / XRP +8.707 \uc774\ubbf8 \uac80\uc99d\ub428, \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \ubd84\uc0b0 \ud6a8\uacfc + \uac70\ub798\uc218 3\ubc30 \ud655\ub300\uac00 \uac00\uc7a5 \ub192\uc740 ROI, (2) \ud3c9\uac00\uc790 [explore] \"\ud558\ub77d \uc18d\ub3c4 \uae30\ubc18 \ub3d9\uc801 \ud5e4\uc9c0 (ATR z-score < -2.0 \uc989\uc2dc \uccad\uc0b0)\" \u2014 \ub2e8\uae30\ubcf4\uc720 \uad6c\uc870\uc801 \ud55c\uacc4 \uac00\ub2a5\uc131 \ub192\uc9c0\ub9cc \ubbf8\uac80\uc99d, (3) research loop c173 (ADX+BTC SMA \uadf8\ub9ac\ub4dc) \uacb0\uacfc \ud655\uc778 \ud6c4 \uc720\ub9dd\ud558\uba74 \ud6c4\uc18d",
-      "timestamp": "2026-04-05T11:49:36.358924"
-    },
-    {
-      "cycle": 170,
-      "summary": "\uc791\uc5c5: SOL/XRP \ub3c5\ub9bd wallet daemon.toml \ubc30\ud3ec \u2014 c165 3-fold WF \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130(VPIN=0.35 MOM=0.0007 Hold=20 CD=4, ATR fixed exit TP=5.0 SL=0.3 Trail=1.5/0.4), paper_trading=true | \uacb0\uacfc: \u2705 vpin_sol_wallet(\u20a9500K, avg Sharpe +13.254) + vpin_xrp_wallet(\u20a9500K, avg Sharpe +8.707, max_position 50% \uc81c\ud55c n=27 \ub9ac\uc2a4\ud06c) daemon.toml \ucd94\uac00, config \ub85c\ub4dc/48 safety tests/382 \ucf54\ub4dc \ud14c\uc2a4\ud2b8 \ud1b5\uacfc, git commit \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: (1) **paper trade 30\uac70\ub798 \ucd95\uc801 \ud6c4 live vs backtest Sharpe \uad34\ub9ac \ubd84\uc11d** \u2014 \ud3c9\uac00\uc790 [monitor] \ucd5c\uc6b0\uc120 \uacfc\uc81c, \ube44\uc728 < 0.5\uc774\uba74 \ud30c\ub77c\ubbf8\ud130 \uc7ac\ubcf4\uc815, (2) **c167 BTC \ub4dc\ub85c\ub2e4\uc6b4 \uac8c\uc774\ud2b8 + ETH/BTC \uc0c1\ub300\uac15\ub3c4 \ud544\ud130 \ud6c4\uc18d** \u2014 research loop promising (avg OOS Sharpe +46.790) but n=22 < 30, \ucd94\uac00 fold \ub610\ub294 \uc2ec\ubcfc \ud655\uc7a5\uc73c\ub85c n \ud655\ubcf4 \ud544\uc694, (3) \ud3c9\uac00\uc790 [explore] \ub808\uc9d0\ubcc4 \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 \u2014 capital_allocator.py vol_regime \uae30\ubc18 \ub3d9\uc801 \uc0ac\uc774\uc9d5 \ud0d0\uc0c9",
-      "detail": "[RALPH CYCLE 170 DONE] \uc791\uc5c5: SOL/XRP \ub3c5\ub9bd wallet daemon.toml \ubc30\ud3ec \u2014 c165 3-fold WF \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130(VPIN=0.35 MOM=0.0007 Hold=20 CD=4, ATR fixed exit TP=5.0 SL=0.3 Trail=1.5/0.4), paper_trading=true | \uacb0\uacfc: \u2705 vpin_sol_wallet(\u20a9500K, avg Sharpe +13.254) + vpin_xrp_wallet(\u20a9500K, avg Sharpe +8.707, max_position 50% \uc81c\ud55c n=27 \ub9ac\uc2a4\ud06c) daemon.toml \ucd94\uac00, config \ub85c\ub4dc/48 safety tests/382 \ucf54\ub4dc \ud14c\uc2a4\ud2b8 \ud1b5\uacfc, git commit \uc644\ub8cc | \ub2e4\uc74c\uc81c\uc548: (1) **paper trade 30\uac70\ub798 \ucd95\uc801 \ud6c4 live vs backtest Sharpe \uad34\ub9ac \ubd84\uc11d** \u2014 \ud3c9\uac00\uc790 [monitor] \ucd5c\uc6b0\uc120 \uacfc\uc81c, \ube44\uc728 < 0.5\uc774\uba74 \ud30c\ub77c\ubbf8\ud130 \uc7ac\ubcf4\uc815, (2) **c167 BTC \ub4dc\ub85c\ub2e4\uc6b4 \uac8c\uc774\ud2b8 + ETH/BTC \uc0c1\ub300\uac15\ub3c4 \ud544\ud130 \ud6c4\uc18d** \u2014 research loop promising (avg OOS Sharpe +46.790) but n=22 < 30, \ucd94\uac00 fold \ub610\ub294 \uc2ec\ubcfc \ud655\uc7a5\uc73c\ub85c n \ud655\ubcf4 \ud544\uc694, (3) \ud3c9\uac00\uc790 [explore] \ub808\uc9d0\ubcc4 \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 \u2014 capital_allocator.py vol_regime \uae30\ubc18 \ub3d9\uc801 \uc0ac\uc774\uc9d5 \ud0d0\uc0c9",
-      "timestamp": "2026-04-05T11:59:19.847071"
-    },
-    {
-      "cycle": 171,
-      "summary": "\uc791\uc5c5: c165 VPIN \ud30c\ub77c\ubbf8\ud130 \uae30\ubc18 5\uac1c \uc2e0\uaddc \uc2ec\ubcfc(DOGE/AVAX/ADA/SUI/LINK) 3-fold WF \uc2a4\ud06c\ub9ac\ub2dd \u2014 6 combo \u00d7 5 \uc2ec\ubcfc \u00d7 3 fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: **5/5 \uc804 \uc2ec\ubcfc PASS** \u2014 DOGE avg OOS Sharpe +13.945 (n=135, slip 0.20% +6.731), AVAX +16.946 (n=39, +6.591), ADA +11.451 (n=51, +4.503), SUI +15.916 (n=27 \u26a0\ufe0fn<30), LINK +7.425 (n=139, +4.892). \uc804 \uc2ec\ubcfc Buy-and-Hold \ub300\ube44 \ub300\ud3ed \ucd08\uacfc \uc218\uc775 (DOGE +171.6% vs BH -17.8%, AVAX +60.1% vs BH -82.3%). c165 VPIN \uc804\ub7b5\uc758 \uad11\ubc94\uc704\ud55c \uc77c\ubc18\ud654 \ud655\uc778 | \ub2e4\uc74c\uc81c\uc548: (1) **DOGE daemon.toml \ubc30\ud3ec** \u2014 n=135 \ud1b5\uacc4 \ucda9\ubd84, slip +6.731, 3 fold \uc804\ubd80 \uc548\uc815 (F1=+12.6 F2=+16.2 F3=+13.0), VPIN=0.40 MOM=0.0005 Hold=20 CD=4, paper_trading=true\ub85c \uc2dc\uc791, (2) **AVAX daemon.toml \ubc30\ud3ec** \u2014 n=39>30, Sharpe \ucd5c\uace0 +16.946, \ub2e8 fold\ubcc4 n \uc791\uc74c(8/12/19) \uac10\uc548 max_position 50% \uc81c\ud55c \uad8c\uc7a5, (3) ADA/LINK\ub294 slip 0.20% Sharpe 5.0 \ubbf8\ub9cc \uacbd\uacc4 \u2014 \ud30c\ub77c\ubbf8\ud130 \ubbf8\uc138\uc870\uc815 \ub610\ub294 \ucd94\uac00 fold \uac80\uc99d \ud6c4 \uacb0\uc815, (4) SUI\ub294 n=27<30 \u2014 \ucd94\uac00 OOS \ucd95\uc801 \ub300\uae30",
-      "detail": "[RALPH CYCLE 171 DONE] \uc791\uc5c5: c165 VPIN \ud30c\ub77c\ubbf8\ud130 \uae30\ubc18 5\uac1c \uc2e0\uaddc \uc2ec\ubcfc(DOGE/AVAX/ADA/SUI/LINK) 3-fold WF \uc2a4\ud06c\ub9ac\ub2dd \u2014 6 combo \u00d7 5 \uc2ec\ubcfc \u00d7 3 fold + \uc2ac\ub9ac\ud53c\uc9c0 \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: **5/5 \uc804 \uc2ec\ubcfc PASS** \u2014 DOGE avg OOS Sharpe +13.945 (n=135, slip 0.20% +6.731), AVAX +16.946 (n=39, +6.591), ADA +11.451 (n=51, +4.503), SUI +15.916 (n=27 \u26a0\ufe0fn<30), LINK +7.425 (n=139, +4.892). \uc804 \uc2ec\ubcfc Buy-and-Hold \ub300\ube44 \ub300\ud3ed \ucd08\uacfc \uc218\uc775 (DOGE +171.6% vs BH -17.8%, AVAX +60.1% vs BH -82.3%). c165 VPIN \uc804\ub7b5\uc758 \uad11\ubc94\uc704\ud55c \uc77c\ubc18\ud654 \ud655\uc778 | \ub2e4\uc74c\uc81c\uc548: (1) **DOGE daemon.toml \ubc30\ud3ec** \u2014 n=135 \ud1b5\uacc4 \ucda9\ubd84, slip +6.731, 3 fold \uc804\ubd80 \uc548\uc815 (F1=+12.6 F2=+16.2 F3=+13.0), VPIN=0.40 MOM=0.0005 Hold=20 CD=4, paper_trading=true\ub85c \uc2dc\uc791, (2) **AVAX daemon.toml \ubc30\ud3ec** \u2014 n=39>30, Sharpe \ucd5c\uace0 +16.946, \ub2e8 fold\ubcc4 n \uc791\uc74c(8/12/19) \uac10\uc548 max_position 50% \uc81c\ud55c \uad8c\uc7a5, (3) ADA/LINK\ub294 slip 0.20% Sharpe 5.0 \ubbf8\ub9cc \uacbd\uacc4 \u2014 \ud30c\ub77c\ubbf8\ud130 \ubbf8\uc138\uc870\uc815 \ub610\ub294 \ucd94\uac00 fold \uac80\uc99d \ud6c4 \uacb0\uc815, (4) SUI\ub294 n=27<30 \u2014 \ucd94\uac00 OOS \ucd95\uc801 \ub300\uae30",
-      "timestamp": "2026-04-05T12:09:57.881758"
-    },
-    {
-      "cycle": 172,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1098s \ud6c4 \uc885\ub8cc",
-      "detail": "\uc138 \ubc88\uc9f8\ub3c4 \uc644\ub8cc. Cycle 172 \ubaa8\ub4e0 \uac80\uc99d \ud1b5\uacfc, \ucee4\ubc0b \uc644\ub8cc \uc0c1\ud0dc.",
-      "timestamp": "2026-04-05T12:31:19.947072"
-    },
-    {
-      "cycle": 173,
-      "summary": "\uc791\uc5c5: c176 ATR pctile+body \ud544\ud130(THRESH=30 BODY=0.7)\ub97c DOGE/AVAX/ADA/SUI/LINK 5\uc2ec\ubcfc \ud655\uc7a5 \uac80\uc99d \u2014 baseline vs filtered 3-fold WF + slip \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: \u274c \ud544\ud130 \uc77c\ubc18\ud654 \uc131\uacf5(4/5\uc2ec\ubcfc Sharpe +53% \uac1c\uc120, +12.833\u2192+19.644) but **n=57 (85% \uac10\uc18c)\ub85c daemon \ubc30\ud3ec \ubd88\uac00** \u2014 AVAX 0 trades \uc644\uc804\ucc28\ub2e8, SUI F3 0 trades, fold\ub2f9 \uc2ec\ubcfc\ub2f9 ~5 trades \ud1b5\uacc4 \ubd88\ucda9\ubd84. slip 0.20%\uc5d0\uc11c\ub3c4 +16.659 \uacac\uc870\ud558\ub098 n \ubd80\uc871\uc774 \uce58\uba85\uc801. daemon.toml \ubcc0\uacbd \uc5c6\uc74c | \ub2e4\uc74c\uc81c\uc548: (1) **c177 filter relaxation** \u2014 research loop\uc774 \uc774\ubbf8 \ud050\uc789\ud55c THRESH=15~20 BODY=0.3~0.5 \uc644\ud654 \uc870\ud569 \ud14c\uc2a4\ud2b8\ub85c n \ud655\ubcf4\ud558\uba74\uc11c Sharpe \uc720\uc9c0 \uac00\ub2a5\ud55c sweet spot \ud0d0\uc0c9, (2) **BEAR/Sideways \uc804\ub7b5 \ud0d0\uc0c9** \u2014 \ucd5c\uadfc directive\uc5d0 \ub530\ub77c RSI mean reversion / BB sideways bounce \ub4f1 \ube44-BULL \uc804\ub7b5 \ubc31\ud14c\uc2a4\ud2b8, (3) baseline \uc720\uc9c0\ud558\uace0 paper trade 30\uac70\ub798 \ucd95\uc801 \ubaa8\ub2c8\ud130\ub9c1\uc5d0 \uc9d1\uc911",
-      "detail": "[RALPH CYCLE 173 DONE] \uc791\uc5c5: c176 ATR pctile+body \ud544\ud130(THRESH=30 BODY=0.7)\ub97c DOGE/AVAX/ADA/SUI/LINK 5\uc2ec\ubcfc \ud655\uc7a5 \uac80\uc99d \u2014 baseline vs filtered 3-fold WF + slip \uc2a4\ud2b8\ub808\uc2a4 | \uacb0\uacfc: \u274c \ud544\ud130 \uc77c\ubc18\ud654 \uc131\uacf5(4/5\uc2ec\ubcfc Sharpe +53% \uac1c\uc120, +12.833\u2192+19.644) but **n=57 (85% \uac10\uc18c)\ub85c daemon \ubc30\ud3ec \ubd88\uac00** \u2014 AVAX 0 trades \uc644\uc804\ucc28\ub2e8, SUI F3 0 trades, fold\ub2f9 \uc2ec\ubcfc\ub2f9 ~5 trades \ud1b5\uacc4 \ubd88\ucda9\ubd84. slip 0.20%\uc5d0\uc11c\ub3c4 +16.659 \uacac\uc870\ud558\ub098 n \ubd80\uc871\uc774 \uce58\uba85\uc801. daemon.toml \ubcc0\uacbd \uc5c6\uc74c | \ub2e4\uc74c\uc81c\uc548: (1) **c177 filter relaxation** \u2014 research loop\uc774 \uc774\ubbf8 \ud050\uc789\ud55c THRESH=15~20 BODY=0.3~0.5 \uc644\ud654 \uc870\ud569 \ud14c\uc2a4\ud2b8\ub85c n \ud655\ubcf4\ud558\uba74\uc11c Sharpe \uc720\uc9c0 \uac00\ub2a5\ud55c sweet spot \ud0d0\uc0c9, (2) **BEAR/Sideways \uc804\ub7b5 \ud0d0\uc0c9** \u2014 \ucd5c\uadfc directive\uc5d0 \ub530\ub77c RSI mean reversion / BB sideways bounce \ub4f1 \ube44-BULL \uc804\ub7b5 \ubc31\ud14c\uc2a4\ud2b8, (3) baseline \uc720\uc9c0\ud558\uace0 paper trade 30\uac70\ub798 \ucd95\uc801 \ubaa8\ub2c8\ud130\ub9c1\uc5d0 \uc9d1\uc911",
-      "timestamp": "2026-04-05T12:42:31.549848"
+      "cycle": 205,
+      "summary": "\uc791\uc5c5: c211 daemon 14\uc9c0\uac11 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d \u2014 \uc0c1\uad00\ud589\ub82c + \ub3d9\uc2dc MDD + mean-variance \ucd5c\uc801 \uac00\uc911\uce58 + Kelly fraction + BH \ub300\ube44 | \uacb0\uacfc: vpin_sol\u2194vpin_avax \uc0c1\uad00 0.834(\uc911\ubcf5), bb_squeeze_eth Sharpe +3.732 Kelly 50%(\ud604 5%\u2192\ucd5c\uc801 23%), vpin_eth \uacfc\ubc30\ubd84(20%\u21928%), \ubd84\uc0b0\ud6a8\uacfc 54%(portfolio MDD -0.38% vs \uac1c\ubcc4\ud569 -0.83%), volspike_btc\u2194vpin_xrp \uc5ed\uc0c1\uad00 -0.33(\uc720\uc77c \ubd84\uc0b0\uc30d) | \ub2e4\uc74c\uc81c\uc548: **(A) daemon.toml \uc790\ubcf8 \uc7ac\ubc30\ubd84** \u2014 bb_squeeze_eth \u20a9500K\u2192\u20a92.3M \uc99d\uc561 + vpin_eth \u20a92M\u2192\u20a9800K \uac10\uc561(n=35 Sharpe +3.7 \uadfc\uac70 \ucda9\ubd84), **(B) vpin_sol/vpin_avax \uc911\ubcf5 \ud574\uc18c** \u2014 \ub458 \uc911 \ud558\ub098\ub97c \ub2e4\ub978 \uc790\uc0b0(\uc608: ONDO)\uc73c\ub85c \uad50\uccb4\ud558\uac70\ub098 \ud1b5\ud569, **(C) cross-asset lead-lag \ubd84\uc11d** \u2014 \ud3c9\uac00\uc790 \ub2e4\uc74c \ud0d0\uc0c9 \ubc29\ud5a5(BTC\u2192ALT \uc120\ud589\uc9c0\ud45c), **(D) bb_squeeze_eth n=35 \u2192 daemon \ubc30\ud3ec \uae30\uc900 n>30 \ucda9\uc871, \uc790\ubcf8 \uc99d\uc561 \uc989\uc2dc \uc2e4\ud589 \uac00\ub2a5",
+      "detail": "[RALPH CYCLE 205 DONE] \uc791\uc5c5: c211 daemon 14\uc9c0\uac11 \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc0c1\uad00\uad00\uacc4 \ubd84\uc11d \u2014 \uc0c1\uad00\ud589\ub82c + \ub3d9\uc2dc MDD + mean-variance \ucd5c\uc801 \uac00\uc911\uce58 + Kelly fraction + BH \ub300\ube44 | \uacb0\uacfc: vpin_sol\u2194vpin_avax \uc0c1\uad00 0.834(\uc911\ubcf5), bb_squeeze_eth Sharpe +3.732 Kelly 50%(\ud604 5%\u2192\ucd5c\uc801 23%), vpin_eth \uacfc\ubc30\ubd84(20%\u21928%), \ubd84\uc0b0\ud6a8\uacfc 54%(portfolio MDD -0.38% vs \uac1c\ubcc4\ud569 -0.83%), volspike_btc\u2194vpin_xrp \uc5ed\uc0c1\uad00 -0.33(\uc720\uc77c \ubd84\uc0b0\uc30d) | \ub2e4\uc74c\uc81c\uc548: **(A) daemon.toml \uc790\ubcf8 \uc7ac\ubc30\ubd84** \u2014 bb_squeeze_eth \u20a9500K\u2192\u20a92.3M \uc99d\uc561 + vpin_eth \u20a92M\u2192\u20a9800K \uac10\uc561(n=35 Sharpe +3.7 \uadfc\uac70 \ucda9\ubd84), **(B) vpin_sol/vpin_avax \uc911\ubcf5 \ud574\uc18c** \u2014 \ub458 \uc911 \ud558\ub098\ub97c \ub2e4\ub978 \uc790\uc0b0(\uc608: ONDO)\uc73c\ub85c \uad50\uccb4\ud558\uac70\ub098 \ud1b5\ud569, **(C) cross-asset lead-lag \ubd84\uc11d** \u2014 \ud3c9\uac00\uc790 \ub2e4\uc74c \ud0d0\uc0c9 \ubc29\ud5a5(BTC\u2192ALT \uc120\ud589\uc9c0\ud45c), **(D) bb_squeeze_eth n=35 \u2192 daemon \ubc30\ud3ec \uae30\uc900 n>30 \ucda9\uc871, \uc790\ubcf8 \uc99d\uc561 \uc989\uc2dc \uc2e4\ud589 \uac00\ub2a5",
+      "timestamp": "2026-04-05T19:43:29.652500"
     }
   ],
-  "ralph_last_run": "2026-04-05T12:42:31.549860",
+  "ralph_last_run": "2026-04-05T19:43:29.652512",
   "engine_bias_note": "\u26a0\ufe0f \uc0ac\uc774\ud074 94~144 Sharpe \uc218\uce58\ub294 1\ubd09 \uc120\ud589\ud3b8\ud5a5 \uc5d4\uc9c4 \uacb0\uacfc (\ubb34\ud6a8). \uc218\uc815: 22fa9ed (2026-04-04 10:35). \uc0ac\uc774\ud074 145\ubd80\ud130 \uc218\uc815\ub41c \uc5d4\uc9c4 \uae30\uc900.",
   "revalidated_baselines": {
     "stealth_3gate": {

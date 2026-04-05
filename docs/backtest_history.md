@@ -3,6 +3,32 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-05 20:00 UTC — c212 래칫 스탑(breakeven lock + profit lock) 40조합 3-fold WF [ralph:c212_ratchet_stop] 🔻[FAIL vs c179]
+
+**가설**: c179 진입/TP/Trail 100% 유지, SL만 단계적 상향. L1: 수익이 BE_TRIGGER ATR 도달→SL을 breakeven으로. L2: LOCK_TRIGGER ATR 도달→SL을 진입가+수익*LOCK_PCT로 이동. fat-tail 수익 유지하면서 큰 unrealized profit 반전 방지.
+**데이터**: ETH/SOL/XRP 240m 3-fold WF, 슬리피지=0.001 고정
+**그리드**: beTrigger=[0,1,1.5,2] × lockTrigger=[0,2,2.5,3] × lockPct=[0.3,0.5,0.7] = 40조합(중복 제거)
+
+| 순위 | beTr | lkTr | lkPct | avg OOS Sharpe | n |
+|---|---|---|---|---|---|
+| 1 | 1.0 | 2.0 | 0.7 | +17.408 | 64 |
+| 2 | 0.0 | 2.0 | 0.7 | +17.042 | 64 |
+| 3 | 1.5 | 2.0 | 0.7 | +17.042 | 64 |
+| 5 | 1.0 | 2.0 | 0.5 | +16.735 | 64 |
+| 6 | 1.0 | 0.0 | — | +16.655 | 64 |
+
+**심볼별 분해 (Top 1: beTr=1.0 lkTr=2.0 lkPct=0.7)**:
+- ETH: avg Sharpe +17.040, n=26
+- SOL: avg Sharpe +9.660, n=24 (F2 -1.485 구조적 약점)
+- XRP: avg Sharpe +25.523, n=14
+
+**c179 대비**: avg OOS +17.408 vs c179 +42.878 → Δ = **-25.470 악화**
+⚠️ 주의: c212는 slippage=0.001(이중), c179 baseline은 slippage=0.0005(단일). 동일 슬리피지 기준 비교 시 차이 축소 예상.
+
+**결론**: 래칫 스탑은 c179 대비 개선 없음. 8사이클 연속 c179 미돌파. SL 조기 상향이 fat-tail 수익을 중간에 절단하는 역효과. beTr=0/lkTr=0(OFF)도 Top 10 밖 → 슬리피지=0.001 자체가 성능 대폭 하락 주원인. 단일 전략 파라미터 최적화 구조적 한계 재확인.
+
+---
+
 ## 2026-04-05 — c204 크로스심볼 ETH/SOL 스프레드 역추세 216조합 3-fold WF [ralph:c204_ethsol_spread_mr] 🔻[FAIL]
 
 **결과**: avg OOS Sharpe +0.642, n=94, WR 50.0%, MDD -37.7% — daemon 기준(5.0) 대비 극히 미달 **FAIL**
@@ -14975,5 +15001,61 @@ trades: 58
 6. ⚠️ 대부분 지갑 n<30 — 통계적 유의성 제한. 특히 vpin_eth(4), vpin_sol(3) 결과는 참고용
 
 **다음 단계**: (A) bb_squeeze_eth 증액 + vpin_eth 감액 daemon.toml 반영 검토, (B) vpin_sol/vpin_avax 중복 해소 — 하나로 통합 또는 자산 변경, (C) cross-asset lead-lag 분석 (평가자 다음 방향)
+
+---
+
+## 2026-04-05 10:45 UTC — BB squeeze soft gate(TP only) + volume surge 타이밍 조합 486개 3-fold WF [ralph:c209_squeeze_soft_gate_vol_surge] 🌟[promising]
+
+**결과**: Sharpe +60.126 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+ Fold 2024-04-01~2025-01-31: Sharpe=+44.215  WR=66.7%  n=3  avg=+2.78%  MDD=-0.35%
+  KRW-SOL Fold 2024-04-01~2025-01-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2024-04-01~2025-01-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2024-10-01~2025-07-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-SOL Fold 2024-10-01~2025-07-31: Sharpe=+37.133  WR=66.7%  n=3  avg=+2.76%  MDD=+0.00%
+  KRW-XRP Fold 2024-10-01~2025-07-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2025-04-01~2026-04-05: Sharpe=+10.718  WR=33.3%  n=3  avg=+0.41%  MDD=-0.33%
+  KRW-SOL Fold 2025-04-01~2026-04-05: Sharpe=+51.425  WR=75.0%  n=4  avg=+3.69%  MDD=-0.43%
+  KRW-XRP Fold 2025-04-01~2026-04-05: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH 평균: Sharpe=+27.467  총 trades=6
+  KRW-SOL 평균: Sharpe=+44.279  총 trades=7
+  KRW-XRP 평균: Sharpe=+0.000  총 trades=0
+
+================================================================================
+=== c199 베이스라인 대비 비교 ===
+  c199 기준 (regime dual exit): avg_OOS=+51.425
+  c209 최적: avg_OOS=+37.473
+  Δ vs c199: -13.952 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: sqM=2 sqTP=0.5 vsM=0 vsTh=1.5 vsLB=5 comb=0.0
+  (c199 고정: rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.2)
+  (c192 고정: ttA=6 ttF=3.0)
+  (c190 고정: vMomLB=10 vMomMin=0.05 tpBonus=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  (BB 고정: bbP=20 bbS=2.0 sqTh=20 sqLB=30 expB=2)
+  avg OOS Sharpe: +37.473 PASS
+  train Sharpe: +60.126
+  Fold 1: Sharpe=+44.215  WR=66.7%  trades=3  avg=+2.78%  MDD=-0.35%
+  Fold 2: Sharpe=+37.133  WR=66.7%  trades=3  avg=+2.76%  MDD=+0.00%
+  Fold 3: Sharpe=+31.071  WR=54.2%  trades=7  avg=+2.05%  MDD=-0.38%
+
+Sharpe: +37.473
+WR: 59.9%
+trades: 13
+
+```
+
+</details>
 
 ---
