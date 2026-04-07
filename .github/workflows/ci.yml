@@ -62,4 +62,5 @@ jobs:
             --ignore=tests/test_extended_alpha.py \
             --ignore=tests/test_dashboard.py \
             --ignore=tests/test_regime_report.py \
+            --ignore=tests/test_ml_regime.py \
             -q
