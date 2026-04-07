@@ -104,7 +104,8 @@ CREATE TABLE IF NOT EXISTS trades (
     pnl_pct       REAL NOT NULL,
     exit_reason   TEXT NOT NULL,
     session_id    TEXT NOT NULL,
-    position_side TEXT NOT NULL DEFAULT 'long',
+    position_side TEXT NOT NULL DEFAULT 'long'
+        CHECK (position_side IN ('long', 'short')),
     inserted_at   TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (wallet, symbol, entry_time, exit_time, session_id)
 );
@@ -119,6 +120,7 @@ _TRADES_INDEXES = (
 
 _NUMERIC_FIELDS = ("entry_price", "exit_price", "quantity", "pnl", "pnl_pct")
 _NON_NEGATIVE_FIELDS = ("entry_price", "exit_price", "quantity")
+_ALLOWED_POSITION_SIDES = frozenset({"long", "short"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,6 +165,11 @@ class TradeRow:
             raise ValidationError(
                 f"exit_time {self.exit_time!r} precedes entry_time "
                 f"{self.entry_time!r}"
+            )
+        if self.position_side not in _ALLOWED_POSITION_SIDES:
+            raise ValidationError(
+                f"position_side must be one of "
+                f"{sorted(_ALLOWED_POSITION_SIDES)}, got {self.position_side!r}"
             )
 
 

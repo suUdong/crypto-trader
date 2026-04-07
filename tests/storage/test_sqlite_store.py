@@ -228,6 +228,72 @@ class TestInputValidation:
     def test_validation_error_is_storage_error(self) -> None:
         assert issubclass(ValidationError, StorageError)
 
+    def test_rejects_unknown_position_side(self) -> None:
+        with pytest.raises(ValidationError, match="position_side"):
+            TradeRow(
+                wallet="w",
+                symbol="KRW-X",
+                entry_time="2026-04-07T00:00:00+00:00",
+                exit_time="2026-04-07T01:00:00+00:00",
+                entry_price=1.0,
+                exit_price=1.0,
+                quantity=1.0,
+                pnl=0.0,
+                pnl_pct=0.0,
+                exit_reason="x",
+                session_id="s",
+                position_side="longg",  # typo
+            )
+
+    def test_accepts_short_position_side(self) -> None:
+        row = TradeRow(
+            wallet="w",
+            symbol="KRW-X",
+            entry_time="2026-04-07T00:00:00+00:00",
+            exit_time="2026-04-07T01:00:00+00:00",
+            entry_price=1.0,
+            exit_price=1.0,
+            quantity=1.0,
+            pnl=0.0,
+            pnl_pct=0.0,
+            exit_reason="x",
+            session_id="s",
+            position_side="short",
+        )
+        assert row.position_side == "short"
+
+    def test_db_check_constraint_rejects_bad_position_side(
+        self, store: SqliteStore
+    ) -> None:
+        # Defense-in-depth: even if a future code path bypasses TradeRow
+        # validation, the DB CHECK must reject unknown position_side values.
+        with store.connection() as conn:
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    """
+                    INSERT INTO trades (
+                        wallet, symbol, entry_time, exit_time,
+                        entry_price, exit_price, quantity,
+                        pnl, pnl_pct, exit_reason,
+                        session_id, position_side
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "w",
+                        "KRW-X",
+                        "2026-04-07T00:00:00+00:00",
+                        "2026-04-07T01:00:00+00:00",
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        "x",
+                        "s",
+                        "sideways",  # invalid
+                    ),
+                )
+
 
 def _worker_insert(args: tuple[str, int]) -> int:
     db_path, idx = args
