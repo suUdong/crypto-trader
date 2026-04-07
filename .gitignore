@@ -21,4 +21,16 @@ artifacts/
 .omg/
 .worktrees/
 macro_intelligence.db
+macro_intelligence.db-shm
+macro_intelligence.db-wal
 *.egg-info/
+
+# Large historical datasets — keep small binance_cache parquet tracked
+data/historical/daily/
+data/historical/monthly/
+data/historical/url_list.txt
+
+# Local logs / temp
+daemon.log
+lab-stable.log
+MagicMock/
