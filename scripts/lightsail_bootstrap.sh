@@ -92,7 +92,7 @@ if [[ ! -x "$APP_DIR/.venv/bin/python" ]]; then
 fi
 log "pip install -e ."
 sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --upgrade pip setuptools wheel
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install -e "$APP_DIR"
+sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --upgrade -e "$APP_DIR"
 
 # ---------- 5b. artifacts symlink ----------
 # daemon.toml uses relative `artifacts/*` paths. systemd hardening grants
