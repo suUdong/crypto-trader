@@ -1,9 +1,7 @@
 """BacktestEngine이 신호 봉 다음 봉 시가에 진입하는지 검증."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import UTC, datetime
 
 from crypto_trader.backtest.engine import BacktestEngine
 from crypto_trader.config import BacktestConfig, RiskConfig
@@ -24,7 +22,7 @@ class AlwaysBuyStrategy:
 
 def _make_candle(hour: int, open_: float, close: float) -> Candle:
     return Candle(
-        timestamp=datetime(2024, 1, 1, hour, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2024, 1, 1, hour, 0, tzinfo=UTC),
         open=open_,
         high=max(open_, close) + 1.0,
         low=min(open_, close) - 1.0,

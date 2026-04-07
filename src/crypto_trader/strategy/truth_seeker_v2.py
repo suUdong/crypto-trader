@@ -8,7 +8,7 @@ from crypto_trader.models import (
     Signal,
     SignalAction,
 )
-from crypto_trader.strategy.indicators import rsi, average_directional_index
+from crypto_trader.strategy.indicators import average_directional_index, rsi
 from crypto_trader.strategy.vpin import VPINStrategy
 
 

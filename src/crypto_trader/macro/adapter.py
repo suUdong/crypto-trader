@@ -203,7 +203,10 @@ class MacroRegimeAdapter:
             )
 
         crypto_regime = self.normalize_overall_regime(snapshot.crypto_regime)
-        if crypto_regime == "contractionary" and snapshot.crypto_confidence >= crypto_confidence_threshold:
+        if (
+            crypto_regime == "contractionary"
+            and snapshot.crypto_confidence >= crypto_confidence_threshold
+        ):
             return True, (
                 f"macro_regime_gate: crypto={crypto_regime} "
                 f"confidence={snapshot.crypto_confidence:.0%}"
@@ -270,7 +273,10 @@ class MacroRegimeAdapter:
                 adjustment -= 0.1
                 reasons.append(f"extreme fear (F&G={snapshot.fear_greed_index}) -> -0.1")
 
-        if snapshot.kimchi_premium is not None and snapshot.kimchi_premium > kimchi_premium_threshold:
+        if (
+            snapshot.kimchi_premium is not None
+            and snapshot.kimchi_premium > kimchi_premium_threshold
+        ):
             adjustment -= 0.15
             reasons.append(f"high kimchi premium ({snapshot.kimchi_premium:.1f}%) -> -0.15")
 

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import numpy as np
+
 from crypto_trader.config import StrategyConfig
 from crypto_trader.models import (
     Candle,
-    OrderbookSnapshot,
     Position,
     Signal,
     SignalAction,
 )
-from crypto_trader.strategy.indicators import rsi, average_directional_index, _ema
+from crypto_trader.strategy.indicators import rsi
 from crypto_trader.strategy.vpin import VPINStrategy
 
 

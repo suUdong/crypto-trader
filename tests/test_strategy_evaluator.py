@@ -1,15 +1,13 @@
 """Tests for strategy_evaluator_loop — core logic only (no I/O, no LLM calls)."""
 from __future__ import annotations
-import json
+
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 # scripts/ 디렉토리를 sys.path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 import strategy_evaluator_loop as ev
-
 
 # ── decide_traits ─────────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from crypto_trader.config import (
     AppConfig,
@@ -18,7 +18,7 @@ from crypto_trader.config import (
 from crypto_trader.execution.paper import PaperBroker
 from crypto_trader.models import Candle, Position
 from crypto_trader.notifications.telegram import Notifier
-from crypto_trader.pipeline import KST, TradingPipeline
+from crypto_trader.pipeline import TradingPipeline
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.composite import CompositeStrategy
 

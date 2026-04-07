@@ -3,9 +3,6 @@ from __future__ import annotations
 from inspect import Parameter, signature
 from typing import Any, Protocol, cast
 
-from crypto_trader.models import Candle, Position, Signal
-
-
 from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import Candle, Position, Signal
 
