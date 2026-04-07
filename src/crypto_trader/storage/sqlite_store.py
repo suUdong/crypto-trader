@@ -18,11 +18,17 @@ Design notes
 
 from __future__ import annotations
 
+import logging
+import math
 import sqlite3
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
+
+from crypto_trader.storage.errors import IntegrityError, ValidationError
+
+_LOG = logging.getLogger(__name__)
 
 _TRADES_DDL = """
 CREATE TABLE IF NOT EXISTS trades (
@@ -51,6 +57,10 @@ _TRADES_INDEXES = (
 )
 
 
+_NUMERIC_FIELDS = ("entry_price", "exit_price", "quantity", "pnl", "pnl_pct")
+_NON_NEGATIVE_FIELDS = ("entry_price", "exit_price", "quantity")
+
+
 @dataclass(frozen=True, slots=True)
 class TradeRow:
     """Single closed trade.
@@ -58,6 +68,10 @@ class TradeRow:
     Mirrors the rows in ``artifacts/paper-trades.jsonl`` but normalised to
     the columns we actually query on. Slippage/fee fields can be added when
     Phase 1 starts ingesting them; for now they live in JSONL only.
+
+    Validation runs in ``__post_init__``: NaN/Inf in any numeric field, a
+    negative price/quantity, or ``exit_time < entry_time`` will raise
+    :class:`ValidationError` before any DB call.
     """
 
     wallet: str
@@ -72,6 +86,24 @@ class TradeRow:
     exit_reason: str
     session_id: str
     position_side: str = "long"
+
+    def __post_init__(self) -> None:
+        for name in _NUMERIC_FIELDS:
+            value = getattr(self, name)
+            if not math.isfinite(value):
+                raise ValidationError(
+                    f"TradeRow.{name} must be finite, got {value!r}"
+                )
+        for name in _NON_NEGATIVE_FIELDS:
+            if getattr(self, name) < 0:
+                raise ValidationError(
+                    f"TradeRow.{name} must be non-negative"
+                )
+        if self.exit_time < self.entry_time:
+            raise ValidationError(
+                f"exit_time {self.exit_time!r} precedes entry_time "
+                f"{self.entry_time!r}"
+            )
 
 
 class SqliteStore:
@@ -119,6 +151,10 @@ class SqliteStore:
         Idempotent on the natural key. If a trade with the same
         (wallet, symbol, entry_time, exit_time, session_id) already exists,
         the existing id is returned and no new row is created.
+
+        Raises :class:`IntegrityError` if a constraint other than the
+        natural-key UNIQUE is violated. ``sqlite3.IntegrityError`` never
+        leaks past this method.
         """
 
         with self.connection() as conn:
@@ -148,7 +184,7 @@ class SqliteStore:
                     ),
                 )
                 return int(cursor.lastrowid)
-            except sqlite3.IntegrityError:
+            except sqlite3.IntegrityError as exc:
                 row = conn.execute(
                     """
                     SELECT id FROM trades
@@ -164,18 +200,58 @@ class SqliteStore:
                     ),
                 ).fetchone()
                 if row is None:
-                    raise
+                    _LOG.warning(
+                        "insert_trade integrity error without natural-key match: %s",
+                        exc,
+                    )
+                    raise IntegrityError(str(exc)) from exc
                 return int(row["id"])
 
-    def query_trades(self, *, wallet: str | None = None) -> list[TradeRow]:
-        sql = "SELECT * FROM trades"
-        params: tuple = ()
+    def query_trades(
+        self,
+        *,
+        wallet: str | None = None,
+        exit_reason: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int | None = None,
+    ) -> list[TradeRow]:
+        """Query trades with optional filters.
+
+        ``since``/``until`` are ISO-8601 strings compared lexically against
+        ``exit_time`` (the ingest path enforces consistent format).
+
+        ``limit`` caps the result; callers handling large volumes should
+        switch to :meth:`iter_trades` once added.
+        """
+
+        clauses: list[str] = []
+        params: list[object] = []
         if wallet is not None:
-            sql += " WHERE wallet = ?"
-            params = (wallet,)
+            clauses.append("wallet = ?")
+            params.append(wallet)
+        if exit_reason is not None:
+            clauses.append("exit_reason = ?")
+            params.append(exit_reason)
+        if since is not None:
+            clauses.append("exit_time >= ?")
+            params.append(since)
+        if until is not None:
+            clauses.append("exit_time < ?")
+            params.append(until)
+
+        sql = "SELECT * FROM trades"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
         sql += " ORDER BY exit_time ASC, id ASC"
+        if limit is not None:
+            if limit < 0:
+                raise ValidationError("limit must be non-negative")
+            sql += " LIMIT ?"
+            params.append(limit)
+
         with self.connection() as conn:
-            rows = conn.execute(sql, params).fetchall()
+            rows = conn.execute(sql, tuple(params)).fetchall()
         return [
             TradeRow(
                 wallet=r["wallet"],
