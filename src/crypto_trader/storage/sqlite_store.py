@@ -20,15 +20,75 @@ from __future__ import annotations
 
 import logging
 import math
+import random
 import sqlite3
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, TypeVar
 
 from crypto_trader.storage.errors import IntegrityError, ValidationError
 
 _LOG = logging.getLogger(__name__)
+
+# Connection-level wait for sqlite3 to acquire a lock before raising
+# OperationalError("database is locked"). Matches PRAGMA busy_timeout so
+# both the Python driver and SQLite itself honor the same budget.
+_BUSY_TIMEOUT_SECONDS = 5.0
+_BUSY_TIMEOUT_MS = int(_BUSY_TIMEOUT_SECONDS * 1000)
+
+# Application-level retry wrapped around the sqlite3 busy_timeout. Even
+# with busy_timeout set, pathological contention (or PRAGMA-less initial
+# connection races) can still raise "database is locked" — a bounded
+# exponential backoff catches those without livelocking the daemon.
+_LOCK_RETRY_ATTEMPTS = 5
+_LOCK_RETRY_BASE_DELAY = 0.05  # seconds
+_LOCK_RETRY_MAX_DELAY = 0.5
+
+T = TypeVar("T")
+
+
+def _is_locked_error(exc: sqlite3.OperationalError) -> bool:
+    message = str(exc).lower()
+    return "locked" in message or "busy" in message
+
+
+def _retry_on_lock(operation: str, func):  # type: ignore[no-untyped-def]
+    """Run ``func`` with bounded exponential backoff on lock contention.
+
+    Only ``sqlite3.OperationalError`` whose message mentions ``locked`` or
+    ``busy`` is retried; everything else propagates immediately so real
+    bugs are not masked as transient.
+    """
+
+    delay = _LOCK_RETRY_BASE_DELAY
+    last_exc: sqlite3.OperationalError | None = None
+    for attempt in range(1, _LOCK_RETRY_ATTEMPTS + 1):
+        try:
+            return func()
+        except sqlite3.OperationalError as exc:
+            if not _is_locked_error(exc):
+                raise
+            last_exc = exc
+            if attempt == _LOCK_RETRY_ATTEMPTS:
+                break
+            # Jittered backoff avoids thundering-herd retries from
+            # multiple daemons colliding on the same tick.
+            sleep_for = min(_LOCK_RETRY_MAX_DELAY, delay) * (
+                1.0 + random.random() * 0.25
+            )
+            _LOG.warning(
+                "sqlite %s locked (attempt %d/%d); retrying in %.3fs",
+                operation,
+                attempt,
+                _LOCK_RETRY_ATTEMPTS,
+                sleep_for,
+            )
+            time.sleep(sleep_for)
+            delay = min(_LOCK_RETRY_MAX_DELAY, delay * 2)
+    assert last_exc is not None  # loop always assigns before break
+    raise last_exc
 
 _TRADES_DDL = """
 CREATE TABLE IF NOT EXISTS trades (
@@ -125,8 +185,9 @@ class SqliteStore:
 
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self._path)
+        conn = sqlite3.connect(self._path, timeout=_BUSY_TIMEOUT_SECONDS)
         conn.row_factory = sqlite3.Row
+        conn.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS};")
         try:
             yield conn
             conn.commit()
@@ -136,12 +197,15 @@ class SqliteStore:
     # ── schema ────────────────────────────────────────────────────────────
 
     def _initialise(self) -> None:
-        with self.connection() as conn:
-            conn.execute("PRAGMA journal_mode=WAL;")
-            conn.execute("PRAGMA synchronous=NORMAL;")
-            conn.execute(_TRADES_DDL)
-            for stmt in _TRADES_INDEXES:
-                conn.execute(stmt)
+        def _run() -> None:
+            with self.connection() as conn:
+                conn.execute("PRAGMA journal_mode=WAL;")
+                conn.execute("PRAGMA synchronous=NORMAL;")
+                conn.execute(_TRADES_DDL)
+                for stmt in _TRADES_INDEXES:
+                    conn.execute(stmt)
+
+        _retry_on_lock("initialise", _run)
 
     # ── trades ────────────────────────────────────────────────────────────
 
@@ -155,8 +219,17 @@ class SqliteStore:
         Raises :class:`IntegrityError` if a constraint other than the
         natural-key UNIQUE is violated. ``sqlite3.IntegrityError`` never
         leaks past this method.
+
+        Lock contention (``database is locked``/``busy``) is retried with
+        a bounded exponential backoff; persistent lock failures surface
+        as ``sqlite3.OperationalError`` after the retry budget is spent.
         """
 
+        return _retry_on_lock(
+            "insert_trade", lambda: self._insert_trade_once(trade)
+        )
+
+    def _insert_trade_once(self, trade: TradeRow) -> int:
         with self.connection() as conn:
             try:
                 cursor = conn.execute(

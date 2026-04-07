@@ -264,3 +264,66 @@ class TestConcurrency:
         assert len(set(results)) == 20  # all unique row ids
         store = SqliteStore(db_path)
         assert len(store.query_trades()) == 20
+
+    def test_connection_sets_busy_timeout(self, store: SqliteStore) -> None:
+        # busy_timeout must be set for every connection so sqlite3 itself
+        # waits on the lock instead of failing fast — retries in
+        # _retry_on_lock are the safety net for the residual churn.
+        with store.connection() as conn:
+            row = conn.execute("PRAGMA busy_timeout;").fetchone()
+        assert row[0] >= 1000  # milliseconds
+
+    def test_insert_trade_retries_on_transient_lock(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        store = SqliteStore(tmp_path / "retry.sqlite")
+        call_count = {"n": 0}
+        real_insert = store._insert_trade_once
+
+        def flaky_insert(trade: TradeRow) -> int:
+            call_count["n"] += 1
+            if call_count["n"] < 3:
+                raise sqlite3.OperationalError("database is locked")
+            return real_insert(trade)
+
+        monkeypatch.setattr(store, "_insert_trade_once", flaky_insert)
+        # Shrink backoff so the test stays sub-second.
+        monkeypatch.setattr(
+            "crypto_trader.storage.sqlite_store._LOCK_RETRY_BASE_DELAY", 0.001
+        )
+
+        trade_id = store.insert_trade(_sample_trade())
+        assert trade_id > 0
+        assert call_count["n"] == 3  # two retries, then success
+
+    def test_insert_trade_raises_after_retry_budget(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        store = SqliteStore(tmp_path / "retry_fail.sqlite")
+
+        def always_locked(trade: TradeRow) -> int:
+            raise sqlite3.OperationalError("database is locked")
+
+        monkeypatch.setattr(store, "_insert_trade_once", always_locked)
+        monkeypatch.setattr(
+            "crypto_trader.storage.sqlite_store._LOCK_RETRY_BASE_DELAY", 0.001
+        )
+
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            store.insert_trade(_sample_trade())
+
+    def test_non_lock_operational_error_is_not_retried(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        store = SqliteStore(tmp_path / "no_retry.sqlite")
+        call_count = {"n": 0}
+
+        def boom(trade: TradeRow) -> int:
+            call_count["n"] += 1
+            raise sqlite3.OperationalError("no such table: trades")
+
+        monkeypatch.setattr(store, "_insert_trade_once", boom)
+
+        with pytest.raises(sqlite3.OperationalError, match="no such table"):
+            store.insert_trade(_sample_trade())
+        assert call_count["n"] == 1  # no retry for non-lock errors
