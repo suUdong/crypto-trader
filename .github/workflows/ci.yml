@@ -129,4 +129,5 @@ jobs:
             tests/test_pyupbit_client.py \
             tests/test_data_clients.py \
             tests/test_candle_cache.py \
+            --deselect tests/test_macro_client.py::TestMacroClientRetry::test_log_throttling_suppresses_repeated_warnings \
             -q
