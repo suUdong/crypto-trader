@@ -148,7 +148,7 @@ Group=$APP_GROUP
 WorkingDirectory=$DATA_DIR
 EnvironmentFile=$ETC_DIR/environment
 EnvironmentFile=$ETC_DIR/secrets.env
-ExecStart=$APP_DIR/.venv/bin/python -m crypto_trader.cli run-daemon --config $APP_DIR/config/daemon.toml
+ExecStart=$APP_DIR/.venv/bin/python -m crypto_trader.cli run-multi --config $APP_DIR/config/daemon.toml
 Restart=always
 RestartSec=15
 
