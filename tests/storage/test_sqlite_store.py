@@ -110,6 +110,74 @@ class TestInsertTrade:
         # smoking gun for the dual-daemon bug. Both rows must be retained so
         # we can detect/quantify the duplication, not silently merged.
 
+    def test_failed_insert_inside_explicit_transaction_rolls_back(
+        self, store: SqliteStore
+    ) -> None:
+        """Batch atomicity — a failure mid-transaction must leave zero rows.
+
+        Guards against a future batch-insert API that commits partial
+        progress on error. Uses a raw connection so we exercise the
+        transaction boundary directly, not the insert_trade() wrapper
+        (which opens a fresh connection per call).
+        """
+        with store.connection() as conn:
+            conn.execute("BEGIN;")
+            conn.execute(
+                """
+                INSERT INTO trades (
+                    wallet, symbol, entry_time, exit_time,
+                    entry_price, exit_price, quantity,
+                    pnl, pnl_pct, exit_reason,
+                    session_id, position_side
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "w",
+                    "KRW-X",
+                    "2026-04-07T00:00:00+00:00",
+                    "2026-04-07T01:00:00+00:00",
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    "x",
+                    "batch-session",
+                    "long",
+                ),
+            )
+            # Second insert violates the position_side CHECK, aborting
+            # the statement. We then ROLLBACK the whole batch.
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    """
+                    INSERT INTO trades (
+                        wallet, symbol, entry_time, exit_time,
+                        entry_price, exit_price, quantity,
+                        pnl, pnl_pct, exit_reason,
+                        session_id, position_side
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "w",
+                        "KRW-Y",
+                        "2026-04-07T00:00:00+00:00",
+                        "2026-04-07T01:00:00+00:00",
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        "x",
+                        "batch-session",
+                        "bogus",
+                    ),
+                )
+            conn.execute("ROLLBACK;")
+
+        # Both rows must be absent — the first insert was rolled back too.
+        assert store.query_trades(wallet="w") == []
+
 
 class TestQueryByWallet:
     def test_filters_to_target_wallet(self, store: SqliteStore) -> None:
@@ -261,6 +329,72 @@ class TestInputValidation:
             position_side="short",
         )
         assert row.position_side == "short"
+
+    def test_rejects_nan_quantity(self) -> None:
+        with pytest.raises(ValidationError, match="quantity"):
+            TradeRow(
+                wallet="w",
+                symbol="KRW-X",
+                entry_time="2026-04-07T00:00:00+00:00",
+                exit_time="2026-04-07T01:00:00+00:00",
+                entry_price=1.0,
+                exit_price=1.0,
+                quantity=math.nan,
+                pnl=0.0,
+                pnl_pct=0.0,
+                exit_reason="x",
+                session_id="s",
+            )
+
+    def test_rejects_infinite_pnl(self) -> None:
+        with pytest.raises(ValidationError, match="pnl"):
+            TradeRow(
+                wallet="w",
+                symbol="KRW-X",
+                entry_time="2026-04-07T00:00:00+00:00",
+                exit_time="2026-04-07T01:00:00+00:00",
+                entry_price=1.0,
+                exit_price=1.0,
+                quantity=1.0,
+                pnl=math.inf,
+                pnl_pct=0.0,
+                exit_reason="x",
+                session_id="s",
+            )
+
+    def test_rejects_negative_entry_price(self) -> None:
+        with pytest.raises(ValidationError, match="entry_price"):
+            TradeRow(
+                wallet="w",
+                symbol="KRW-X",
+                entry_time="2026-04-07T00:00:00+00:00",
+                exit_time="2026-04-07T01:00:00+00:00",
+                entry_price=-1.0,
+                exit_price=1.0,
+                quantity=1.0,
+                pnl=0.0,
+                pnl_pct=0.0,
+                exit_reason="x",
+                session_id="s",
+            )
+
+    def test_rejects_equal_time_is_allowed_boundary(self) -> None:
+        # Zero-duration trade is a weird-but-valid edge (e.g. instant
+        # fill/cancel). exit_time == entry_time must NOT raise.
+        row = TradeRow(
+            wallet="w",
+            symbol="KRW-X",
+            entry_time="2026-04-07T00:00:00+00:00",
+            exit_time="2026-04-07T00:00:00+00:00",
+            entry_price=1.0,
+            exit_price=1.0,
+            quantity=1.0,
+            pnl=0.0,
+            pnl_pct=0.0,
+            exit_reason="instant",
+            session_id="s",
+        )
+        assert row.exit_time == row.entry_time
 
     def test_db_check_constraint_rejects_bad_position_side(
         self, store: SqliteStore
