@@ -12,10 +12,11 @@ dependencies = [
     "rich>=13.7",
     "numpy>=1.26",
     "duckdb>=1.0",
+    "pyupbit>=0.2.33",
 ]
 
 [project.optional-dependencies]
-live = ["pyupbit>=0.2.33"]
+live = []
 dev = ["mypy>=1.10", "pytest>=8.3", "ruff>=0.5"]
 
 [project.scripts]
