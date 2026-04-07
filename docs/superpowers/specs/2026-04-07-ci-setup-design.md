@@ -32,7 +32,17 @@ on:
     branches: [master]
 ```
 
-**Job: `test`** — Ubuntu latest, Python 3.12 단일
+**최소 권한 & 동시 실행 제어:**
+```yaml
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+**Job: `test`** — Ubuntu latest, Python 3.12 단일, `timeout-minutes: 10`
 
 **Steps:**
 1. `actions/checkout@v4`
@@ -88,8 +98,12 @@ CI에서 돌릴 매매 코어 (60~70개, 목표 ~1분 이내).
 |---|---|
 | `ruff check` 실패 | 반드시 fix (`ruff check --fix`) |
 | `mypy src/` 실패 | `continue-on-error: true` — 경고만 |
-| `pytest` 일부 실패 | 즉시 화이트리스트에서 제외 (백로그) |
-| 추가 import 에러 | 같은 처리 — 일단 제외, 백로그 |
+| `pytest` 일부 실패 | 화이트리스트에서 제외 + **`docs/tech-debt.md`에 한 줄 등록 의무** (파일명, 사유, 복구 기한) |
+| 추가 import 에러 | 같은 처리 — 제외 + tech-debt 등록 |
+
+**품질 하한선:**
+- 1차 PR에서 **제외하는 테스트 파일 수가 10개 초과**하면 작업 중단하고 사용자에게 확인. 화이트리스트 자체가 잘못 잡힌 신호.
+- 한번 제외한 테스트는 반드시 `tech-debt.md`에 등록 — 회귀 은닉 방지.
 
 **1차 PR 성공 기준:**
 - ✅ ruff green
@@ -103,7 +117,15 @@ CI에서 돌릴 매매 코어 (60~70개, 목표 ~1분 이내).
 3. 테스트 디렉토리 재구조화 (`tests/core/`, `tests/research/`)
 4. CD (Lightsail 자동 배포)
 
-## 6. 작업 순서 & 산출물
+## 6. 보안 & 운영 메모
+
+- **Secrets 미사용** — 1차 CI는 외부 자격증명 0. Upbit/Telegram/macro API 키는 사용 안 함.
+- **Permissions** — `contents: read`만 부여. write 권한 없음.
+- **Action SHA pinning** — 1차에는 적용 안 함 (1인 프로젝트, Dependabot 없으면 유지보수 부담). 추후 보안 강화 사이클에서 검토.
+- **타임아웃** — job-level `timeout-minutes: 10` 으로 폭주 방지.
+- **동시 실행** — `concurrency` 그룹으로 같은 ref 중복 실행 자동 취소.
+
+## 7. 작업 순서 & 산출물
 
 **산출물:**
 1. `.github/workflows/ci.yml` (신규)
