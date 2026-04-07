@@ -195,6 +195,29 @@ def parse_best_params(strategy_id: str, output: str) -> dict | None:
 
 # ── daemon 재시작 ──────────────────────────────────────────────────────────────
 
+def reload_daemon() -> int | None:
+    """
+    SIGHUP으로 daemon에 wallet 심볼 hot-reload 요청. 재시작 없이 다음 tick부터 반영.
+    systemd MainPID를 찾아 SIGHUP 전송. 성공 시 0, 실패(미관리/오류) 시 None.
+    """
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "show", "crypto-trader.service",
+             "-p", "MainPID", "--value"],
+            capture_output=True, text=True, timeout=5,
+        )
+        pid_text = (result.stdout or "").strip()
+        if not pid_text or pid_text == "0":
+            return None
+        pid = int(pid_text)
+        os.kill(pid, signal.SIGHUP)
+        print(f"[updater] daemon hot-reload SIGHUP → PID {pid}")
+        return 0
+    except Exception as exc:
+        print(f"[updater] SIGHUP hot-reload 실패: {exc}")
+        return None
+
+
 def restart_daemon() -> int | None:
     """
     scripts/restart_daemon.sh 를 호출해 daemon을 재시작.
@@ -313,6 +336,7 @@ def apply_symbol_rotation(
     """
     backup = _backup()
     any_changed = False
+    pending_changes: list[tuple[str, dict]] = []
 
     for wallet_name, new_symbol in wallet_assignments:
         diff = update_symbols(wallet_name, new_symbol)
@@ -320,21 +344,33 @@ def apply_symbol_rotation(
             print(f"[updater] {wallet_name}: 변경 없음 ({new_symbol})")
             continue
         any_changed = True
-        new_pid = restart_daemon() if restart else None
+        pending_changes.append((wallet_name, diff))
+        print(f"[updater] {wallet_name}: {diff['before']} → {diff['after']}")
+
+    if not any_changed:
+        backup.unlink(missing_ok=True)
+        return False
+
+    # 모든 wallet 업데이트 후 단 한 번만 daemon에 알림.
+    # SIGHUP hot-reload 우선 시도, 실패 시에만 전체 재시작 fallback.
+    daemon_notified = False
+    if restart:
+        if reload_daemon() == 0:
+            daemon_notified = True
+        else:
+            new_pid = restart_daemon()
+            daemon_notified = new_pid is not None
+
+    for wallet_name, diff in pending_changes:
         log_change(
             change_type="symbol_rotation",
             wallet_name=wallet_name,
             diff=diff,
             trigger=trigger,
-            daemon_restarted=new_pid is not None,
+            daemon_restarted=daemon_notified,
         )
-        print(f"[updater] {wallet_name}: {diff['before']} → {diff['after']}")
 
-    if not any_changed:
-        # 백업 불필요 — 삭제
-        backup.unlink(missing_ok=True)
-
-    return any_changed
+    return True
 
 
 def apply_param_update(
