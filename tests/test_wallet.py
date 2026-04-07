@@ -17,6 +17,7 @@ from crypto_trader.config import (
     WalletConfig,
 )
 from crypto_trader.execution.paper import PaperBroker
+from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import Candle, OrderType, Position, Signal, SignalAction
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
@@ -27,6 +28,30 @@ from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.momentum_pullback import MomentumPullbackStrategy
 from crypto_trader.wallet import StrategyWallet, build_wallets, create_strategy
+
+
+def _benign_macro_snapshot() -> MacroSnapshot:
+    """Neutral macro snapshot for tests — does not trigger any block/throttle gates.
+
+    Required because StrategyWallet.run_once fails-closed (blocks BUY) when
+    self._macro_snapshot is None — added in d3fac6a as a production safety guard.
+    Tests must inject a benign snapshot to exercise the entry path.
+    """
+    # Expansionary regime: no NEUTRAL_CONFIDENCE_UPLIFT (+0.08), no F&G blocks.
+    return MacroSnapshot(
+        overall_regime="expansionary",
+        overall_confidence=0.6,
+        us_regime="expansionary",
+        us_confidence=0.6,
+        kr_regime="expansionary",
+        kr_confidence=0.6,
+        crypto_regime="expansionary",
+        crypto_confidence=0.6,
+        crypto_signals={},
+        btc_dominance=55.0,
+        kimchi_premium=2.0,
+        fear_greed_index=50,
+    )
 
 
 def _make_candles(closes: list[float]) -> list[Candle]:
@@ -158,7 +183,9 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
             initial_capital=1_000_000.0,
             strategy_overrides=strategy_overrides or {},
         )
-        return StrategyWallet(wallet_config, strategy, wallet_broker, risk_manager)
+        wallet = StrategyWallet(wallet_config, strategy, wallet_broker, risk_manager)
+        wallet._macro_snapshot = _benign_macro_snapshot()
+        return wallet
 
     def test_wallet_run_once_buy(self) -> None:
         # Rising prices trigger a momentum BUY when thresholds are loose
@@ -206,6 +233,7 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
                 )
             ),
         )
+        wallet._macro_snapshot = _benign_macro_snapshot()
 
         result = wallet.run_once("KRW-BTC", _make_candles([100.0 + i for i in range(24)]))
 
@@ -302,6 +330,7 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
             broker,
             risk_manager,
         )
+        wallet._macro_snapshot = _benign_macro_snapshot()
         broker.positions["KRW-ETH"] = Position(
             symbol="KRW-ETH",
             quantity=1.0,
@@ -356,6 +385,7 @@ class TestStrategyWalletRunOnce(unittest.TestCase):
             broker,
             risk_manager,
         )
+        wallet._macro_snapshot = _benign_macro_snapshot()
 
         result = wallet.run_once("KRW-BTC", _make_candles([100.0 + i for i in range(20)]))
 

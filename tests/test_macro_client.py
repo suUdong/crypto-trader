@@ -365,6 +365,12 @@ class TestMacroClientRetry(unittest.TestCase):
         def _fail(url: str, timeout: float):
             raise URLError("Connection refused")
 
+        # Force first call to log WARNING (force throttle window stale),
+        # second call to log DEBUG (within throttle).
+        # Was CI-flaky on GitHub Actions due to non-deterministic monotonic clock
+        # interaction with pytest log capture / handler ordering.
+        client._last_failure_log_time = -1e9
+
         with patch("crypto_trader.macro.client.urlopen", side_effect=_fail):
             with patch("crypto_trader.macro.client.time.sleep"):
                 with self.assertLogs("crypto_trader.macro.client", level="DEBUG") as cm:

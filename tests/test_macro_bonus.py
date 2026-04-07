@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 def test_macro_bonus_vix_falling():
-    from autonomous_lab_loop import compute_macro_bonus
+    from market_scan_loop import compute_macro_bonus
     payload = {
         "overall_regime": "neutral",
         "overall_confidence": 0.5,
@@ -21,7 +21,7 @@ def test_macro_bonus_vix_falling():
     assert bonus == 0.3  # vix_falling(0.2) + dxy_falling(0.1)
 
 def test_macro_bonus_expansionary():
-    from autonomous_lab_loop import compute_macro_bonus
+    from market_scan_loop import compute_macro_bonus
     payload = {
         "overall_regime": "expansionary",
         "overall_confidence": 0.6,
@@ -31,7 +31,7 @@ def test_macro_bonus_expansionary():
     assert bonus == 0.3  # expansionary(0.3)
 
 def test_macro_bonus_low_confidence_returns_zero():
-    from autonomous_lab_loop import compute_macro_bonus
+    from market_scan_loop import compute_macro_bonus
     payload = {
         "overall_regime": "expansionary",
         "overall_confidence": 0.2,
@@ -41,6 +41,6 @@ def test_macro_bonus_low_confidence_returns_zero():
     assert bonus == 0.0
 
 def test_macro_bonus_server_down():
-    from autonomous_lab_loop import compute_macro_bonus
+    from market_scan_loop import compute_macro_bonus
     bonus = compute_macro_bonus(None)
     assert bonus == 0.0

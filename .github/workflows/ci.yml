@@ -52,6 +52,7 @@ jobs:
             tests/test_runtime.py \
             tests/test_runtime_state.py \
             tests/test_multi_symbol.py \
+            tests/test_wallet.py \
             tests/test_wallet_health.py \
             tests/test_wallet_performance.py \
             tests/test_capital_allocator.py \
@@ -76,6 +77,8 @@ jobs:
             tests/test_trailing_stop.py \
             tests/test_trailing_after_partial_tp.py \
             tests/test_time_decay_exit.py \
+            tests/test_macro_adapter.py \
+            tests/test_macro_bonus.py \
             tests/test_macro_client.py \
             tests/test_regime.py \
             tests/test_regime_gate.py \
@@ -129,5 +132,4 @@ jobs:
             tests/test_pyupbit_client.py \
             tests/test_data_clients.py \
             tests/test_candle_cache.py \
-            --deselect tests/test_macro_client.py::TestMacroClientRetry::test_log_throttling_suppresses_repeated_warnings \
             -q
