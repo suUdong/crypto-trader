@@ -1464,6 +1464,45 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(result["best_symbol"]["symbol"], "KRW-SOL")
         self.assertEqual(result["best_candidate"]["trade_count"], 18)
 
+    def test_load_edge_analysis_prefers_sqlite_mirror_when_present(self) -> None:
+        from crypto_trader.storage import SqliteStore, TradeRow
+
+        store = SqliteStore(Path(self.tmpdir) / "paper-trades.db")
+        store.insert_trade(
+            TradeRow(
+                wallet="vpin_eth",
+                symbol="KRW-ETH",
+                entry_time="2026-03-27T00:00:00+00:00",
+                exit_time="2026-03-27T00:10:00+00:00",
+                entry_price=4_000_000.0,
+                exit_price=4_050_000.0,
+                quantity=0.1,
+                pnl=5_000.0,
+                pnl_pct=0.0125,
+                exit_reason="take_profit",
+                session_id="test-session",
+            )
+        )
+        # JSONL contains a disjoint trade; the SQLite path must win.
+        (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
+            json.dumps(
+                {
+                    "wallet": "should_be_ignored",
+                    "symbol": "KRW-BTC",
+                    "pnl": 999_999,
+                    "exit_time": "2026-03-27T00:00:00+00:00",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_edge_analysis()
+        data_mod.load_edge_analysis.clear()  # reset streamlit cache
+
+        assert result is not None
+        self.assertEqual(result["trade_count"], 1)
+        self.assertEqual(result["symbols"], ["KRW-ETH"])
+
     def test_load_edge_analysis_builds_hour_symbol_heatmap(self) -> None:
         (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
             "\n".join(

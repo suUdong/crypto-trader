@@ -19,6 +19,20 @@ ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
 DEFAULT_INITIAL_CAPITAL = 1_000_000.0
+
+# Phase-1 DB introduction: dashboard is transitioning from paper-trades.jsonl
+# to SqliteStore reads. The SQLite schema currently stores a strict subset
+# of JSONL fields (no fee/slippage/confidence yet), so only consumers that
+# need the covered columns may opt in. The JSONL remains the source of
+# truth for everything else.
+def _resolve_sqlite_trades_path() -> Path:
+    """Resolve on every call so tests that patch ARTIFACTS_DIR also shift
+    the mirror location and cannot leak state from the real artifacts dir.
+    """
+    override = os.environ.get("CT_PAPER_TRADE_SQLITE_PATH")
+    if override:
+        return Path(override)
+    return ARTIFACTS_DIR / "paper-trades.db"
 _FUTURE_GRACE = timedelta(minutes=5)
 _KST = timezone(timedelta(hours=9))
 
@@ -160,6 +174,50 @@ def _load_json(filename: str) -> dict[str, Any] | None:
     except (json.JSONDecodeError, ValueError):
         logger.warning("Corrupted JSON: %s", path)
         return None
+
+
+def _load_paper_trades_from_sqlite() -> list[dict[str, Any]] | None:
+    """Return paper trades from SqliteStore if the DB file exists, else None.
+
+    Rows are emitted in the JSONL-compatible dict shape the rest of
+    dashboard/data.py expects. Columns that SqliteStore does not yet
+    store (fee/slippage/confidence) are populated with sentinel values
+    so downstream code stays defensive without branching on the source.
+
+    Returns ``None`` when the SQLite mirror is absent — callers should
+    fall back to the JSONL loader.
+    """
+
+    sqlite_path = _resolve_sqlite_trades_path()
+    if not sqlite_path.exists():
+        return None
+    try:
+        # Local import keeps Streamlit cold-start fast when the mirror
+        # isn't configured (common in dev environments).
+        from crypto_trader.storage import SqliteStore
+
+        store = SqliteStore(sqlite_path)
+        rows = store.query_trades()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("SQLite paper trade read failed, falling back: %s", exc)
+        return None
+    return [
+        {
+            "wallet": row.wallet,
+            "symbol": row.symbol,
+            "entry_time": row.entry_time,
+            "exit_time": row.exit_time,
+            "entry_price": row.entry_price,
+            "exit_price": row.exit_price,
+            "quantity": row.quantity,
+            "pnl": row.pnl,
+            "pnl_pct": row.pnl_pct,
+            "exit_reason": row.exit_reason,
+            "session_id": row.session_id,
+            "position_side": row.position_side,
+        }
+        for row in rows
+    ]
 
 
 def _load_jsonl(filename: str) -> list[dict[str, Any]]:
@@ -1173,8 +1231,15 @@ def load_funding_rate_research() -> dict[str, Any] | None:
 
 @st.cache_data(ttl=30)
 def load_edge_analysis() -> dict[str, Any] | None:
-    """Aggregate full trade history into hour-by-symbol edge heatmap data."""
-    trades = _load_jsonl("paper-trades.jsonl")
+    """Aggregate full trade history into hour-by-symbol edge heatmap data.
+
+    Prefers the SqliteStore mirror when present (faster, indexed, and
+    survives JSONL rotation); falls back to the JSONL journal so the
+    dashboard still renders on dev machines without the DB mirror.
+    """
+    trades = _load_paper_trades_from_sqlite()
+    if trades is None:
+        trades = _load_jsonl("paper-trades.jsonl")
     parsed_rows: list[dict[str, Any]] = []
 
     for trade in trades:
