@@ -12,11 +12,10 @@
 - ATOM OHLCV root cause (위 항목과 통합)
 - daemon 정본 결정 (현재 로컬 WSL PID 1013373이 paper 30거래 누적 중, Lightsail은 stop). 30거래 달성 후 Lightsail로 컷오버.
 
-### CI 화이트리스트에서 제외된 테스트 (회귀 의심 — 복구 필요)
+### CI 화이트리스트 복구 완료 (2026-04-07 당일)
 
-스펙 `docs/superpowers/specs/2026-04-07-ci-setup-design.md` §5 회귀 은닉 방지 룰. CI 도입 시점(2026-04-07)에 master에서 이미 깨져 있던 테스트들. 화이트리스트에서 제외했지만 반드시 원인 파악 후 복구할 것. 복구 기한: **2026-04-21 (2주 내)**.
-
-- [ ] `tests/test_wallet.py` — 6 failures (TestStrategyWalletRunOnce). 모멘텀 BUY 시그널이 HOLD로 떨어지는 등 매매 의사결정 회귀 의심. 우선순위 ⚠️ **HIGH** (코어 로직).
-- [ ] `tests/test_macro_adapter.py` — 2 failures (TestShouldBlockEntry: extreme_fear_blocks, none_snapshot_does_not_block). 매크로 게이트 동작 변경 의심. 우선순위 **MEDIUM**.
-- [ ] `tests/test_macro_bonus.py` — 4 failures. `ModuleNotFoundError: autonomous_lab_loop` (외부 lab 스크립트가 src/에 없음). 우선순위 **LOW** (테스트가 production이 아닌 lab 모듈을 import). 테스트를 lab repo로 옮기거나 모듈 위치 정리 필요.
-- [ ] `tests/test_macro_client.py::TestMacroClientRetry::test_log_throttling_suppresses_repeated_warnings` — CI(GitHub Actions) 환경에서만 flaky (로컬 14/14 green). 로그 throttling 카운터가 0/1로 어긋남 — 타이밍/로그 상태 격리 의심. **MEDIUM** (단일 테스트, 다른 13개 macro_client 테스트는 CI green).
+처음 1차 PR(#2)에서 제외했던 4개 항목 모두 복구 완료. 같은 날 후속 PR로 화이트리스트 재포함.
+- ✅ `test_wallet.py` (6) — `_macro_snapshot` 주입 누락이 원인. `_benign_macro_snapshot` helper 추가, fail-closed 안전 게이트는 유지.
+- ✅ `test_macro_adapter.py` (2) — fail-closed 의도 반영 (None → block), F&G threshold 명시적 전달로 수정.
+- ✅ `test_macro_bonus.py` (4) — `compute_macro_bonus`가 `scripts/market_scan_loop.py`로 이동된 후 import 경로 미수정. import만 갱신.
+- ✅ `test_macro_client.py::test_log_throttling_*` — `_last_failure_log_time = -1e9`로 결정적 throttle 진입.

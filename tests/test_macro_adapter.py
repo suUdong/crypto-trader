@@ -148,10 +148,12 @@ class TestShouldBlockEntry(unittest.TestCase):
     def setUp(self) -> None:
         self.adapter = MacroRegimeAdapter()
 
-    def test_none_snapshot_does_not_block(self) -> None:
+    def test_none_snapshot_blocks_fail_closed(self) -> None:
+        # Safety: when macro data is unavailable, we fail-closed (no entries).
+        # Added in d3fac6a (FIRE mode safety hardening).
         blocked, reason = self.adapter.should_block_entry(None)
-        self.assertFalse(blocked)
-        self.assertEqual(reason, "")
+        self.assertTrue(blocked)
+        self.assertIn("fail-closed", reason)
 
     def test_expansionary_does_not_block(self) -> None:
         snapshot = _make_snapshot(overall_regime="expansionary", overall_confidence=0.8)
@@ -195,8 +197,11 @@ class TestShouldBlockEntry(unittest.TestCase):
         self.assertFalse(blocked)
 
     def test_extreme_fear_blocks(self) -> None:
+        # F&G gating now requires explicit threshold (None = disabled by default).
         snapshot = _make_snapshot(overall_regime="neutral", fear_greed_index=10)
-        blocked, reason = self.adapter.should_block_entry(snapshot)
+        blocked, reason = self.adapter.should_block_entry(
+            snapshot, fear_greed_block_threshold=15
+        )
         self.assertTrue(blocked)
         self.assertIn("extreme_fear", reason)
 
