@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from datetime import datetime
 
 from crypto_trader.config import StrategyConfig
 from crypto_trader.macro.client import MacroSnapshot
 from crypto_trader.models import Candle, Position, Signal, SignalAction
-from crypto_trader.strategy.indicators import rsi, bollinger_bands
+from crypto_trader.strategy.indicators import rsi
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +79,12 @@ class EtfFlowAdmissionStrategy:
         
         if etf_flow < dynamic_threshold:
             return Signal(
-                SignalAction.HOLD, 
-                f"etf_flow_admission_rejected (flow={etf_flow:.1f} < thresh={dynamic_threshold:.1f})",
-                0.0
+                SignalAction.HOLD,
+                (
+                    f"etf_flow_admission_rejected "
+                    f"(flow={etf_flow:.1f} < thresh={dynamic_threshold:.1f})"
+                ),
+                0.0,
             )
 
         # 4. Micro-structure confirmation (RSI/Bollinger)

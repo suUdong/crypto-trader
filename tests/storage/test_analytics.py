@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from crypto_trader.storage import SqliteStore, TradeRow
-from crypto_trader.storage.analytics import AnalyticsView, WalletStats
+from crypto_trader.storage.analytics import AnalyticsView
 
 
 def _trade(

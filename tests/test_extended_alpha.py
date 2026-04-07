@@ -1,14 +1,16 @@
-import pytest
-import torch
 import sys
 from pathlib import Path
+
+import pytest
+import torch
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
 def test_compute_batch_gpu_has_extended_columns():
-    import pandas as pd
     import numpy as np
+    import pandas as pd
     np.random.seed(1)
     def make_df(n=60):
         c = 100 + np.cumsum(np.random.randn(n) * 0.5)

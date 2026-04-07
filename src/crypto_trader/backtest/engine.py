@@ -67,7 +67,11 @@ class BacktestEngine:
 
             # ── pending entry 처리: 전 봉 신호 → 현재 봉 시가로 진입 ──────────
             # 마지막 봉에서는 진입해도 즉시 강제청산이므로 스킵
-            if pending_entry_side is not None and open_position is None and index < len(candles) - 1:
+            if (
+                pending_entry_side is not None
+                and open_position is None
+                and index < len(candles) - 1
+            ):
                 fill_price = _entry_fill_price(
                     pending_entry_side,
                     current.open,

@@ -1,9 +1,11 @@
-import pytest
-import torch
-import pandas as pd
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+import torch
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -30,6 +32,7 @@ def test_compute_alpha_series_vectorized_matches_original():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
 def test_vectorized_is_faster():
     import time
+
     from backtest_alpha_filter import compute_alpha_series, compute_alpha_series_vectorized
     df = _make_df(500, seed=3)
     btc = _make_df(500, seed=4)

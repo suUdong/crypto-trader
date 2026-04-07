@@ -3,9 +3,9 @@ from __future__ import annotations
 import datetime as dt
 import logging
 from collections.abc import Mapping
-from pathlib import Path
 from dataclasses import replace
 from datetime import UTC
+from pathlib import Path
 from typing import Any, Protocol
 
 from crypto_trader.config import (
@@ -32,31 +32,31 @@ from crypto_trader.models import (
     SignalAction,
 )
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.strategy.bb_squeeze_independent import BBSqueezeIndependentStrategy
 from crypto_trader.strategy.bollinger_mean_reversion import BollingerMeanReversionStrategy
 from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
+
+# --- Lab Mode Strategies ---
+from crypto_trader.strategy.btc_regime_rotation import BtcRegimeRotationStrategy
 from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.consensus import ConsensusStrategy
 from crypto_trader.strategy.ema_crossover import EMACrossoverStrategy
+from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
 from crypto_trader.strategy.evaluator import evaluate_strategy
+from crypto_trader.strategy.experimental.accumulation_hunter import AccumulationBreakoutStrategy
 from crypto_trader.strategy.funding_rate import FundingRateStrategy
 from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.momentum_pullback import MomentumPullbackStrategy
 from crypto_trader.strategy.obi import OBIStrategy
-from crypto_trader.strategy.bb_squeeze_independent import BBSqueezeIndependentStrategy
-from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
 from crypto_trader.strategy.rsi_mr_bear import RsiMrBearStrategy
 from crypto_trader.strategy.stealth_3gate import Stealth3GateStrategy
+from crypto_trader.strategy.truth_seeker import TruthSeekerStrategy
+from crypto_trader.strategy.truth_seeker_v2 import TruthSeekerV2Strategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
 from crypto_trader.strategy.vpin import VPINStrategy
-
-# --- Lab Mode Strategies ---
-from crypto_trader.strategy.btc_regime_rotation import BtcRegimeRotationStrategy
-from crypto_trader.strategy.truth_seeker import TruthSeekerStrategy
-from crypto_trader.strategy.truth_seeker_v2 import TruthSeekerV2Strategy
-from crypto_trader.strategy.experimental.accumulation_hunter import AccumulationBreakoutStrategy
 
 
 class StrategyProtocol(Protocol):
@@ -484,14 +484,14 @@ class StrategyWallet:
         if not self._btc_stealth_gate:
             return None
         import json as _json
-        from datetime import datetime as _dt, timezone as _tz
+        from datetime import datetime as _dt
         path = Path("artifacts/stealth-watchlist.json")
         try:
             data = _json.loads(path.read_text())
             updated_at = _dt.fromisoformat(data["updated_at"])
             if updated_at.tzinfo is None:
-                updated_at = updated_at.replace(tzinfo=_tz.utc)
-            age_hours = (_dt.now(_tz.utc) - updated_at).total_seconds() / 3600
+                updated_at = updated_at.replace(tzinfo=UTC)
+            age_hours = (_dt.now(UTC) - updated_at).total_seconds() / 3600
             if age_hours > 3.0:
                 return None  # stale — don't gate on old data
             return bool(data.get("btc_bull_regime", True))
@@ -507,14 +507,14 @@ class StrategyWallet:
         if not self._btc_30bar_gate:
             return None
         import json as _json
-        from datetime import datetime as _dt, timezone as _tz
+        from datetime import datetime as _dt
         path = Path("artifacts/stealth-watchlist.json")
         try:
             data = _json.loads(path.read_text())
             updated_at = _dt.fromisoformat(data["updated_at"])
             if updated_at.tzinfo is None:
-                updated_at = updated_at.replace(tzinfo=_tz.utc)
-            age_hours = (_dt.now(_tz.utc) - updated_at).total_seconds() / 3600
+                updated_at = updated_at.replace(tzinfo=UTC)
+            age_hours = (_dt.now(UTC) - updated_at).total_seconds() / 3600
             if age_hours > 3.0:
                 return None  # stale — don't gate on old data
             return bool(data.get("btc_30bar_pos", True))
@@ -600,7 +600,11 @@ class StrategyWallet:
             vol_ratio = self._volume_ratio(candles)
 
             # --- active_regimes gate (fast, no I/O) — must run before macro gate ---
-            if position is None and signal.action is SignalAction.BUY and self._active_regimes_explicit:
+            if (
+                position is None
+                and signal.action is SignalAction.BUY
+                and self._active_regimes_explicit
+            ):
                 if self._current_market_regime not in self._active_regimes:
                     self._logger.info(
                         "[%s] BUY blocked by active_regimes gate: regime=%s not in %s",

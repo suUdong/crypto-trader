@@ -23,10 +23,11 @@ import math
 import random
 import sqlite3
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, TypeVar
+from typing import TypeVar
 
 from crypto_trader.storage.errors import IntegrityError, ValidationError
 

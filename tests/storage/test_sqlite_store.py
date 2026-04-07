@@ -483,7 +483,8 @@ class TestInputValidation:
 
 def _worker_insert(args: tuple[str, int]) -> int:
     db_path, idx = args
-    from crypto_trader.storage import SqliteStore as _S, TradeRow as _T  # re-import in subproc
+    from crypto_trader.storage import SqliteStore as _S  # re-import in subproc
+    from crypto_trader.storage import TradeRow as _T
     s = _S(db_path)
     return s.insert_trade(
         _T(

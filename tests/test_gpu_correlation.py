@@ -1,9 +1,11 @@
-import pytest
-import torch
-import pandas as pd
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+import torch
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")

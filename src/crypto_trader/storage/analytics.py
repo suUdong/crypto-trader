@@ -11,7 +11,6 @@ analyses (e.g. ``stage1a_live_performance``) with reusable SQL.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
 
 import duckdb
 
