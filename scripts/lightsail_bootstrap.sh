@@ -94,6 +94,23 @@ log "pip install -e ."
 sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --upgrade pip setuptools wheel
 sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install -e "$APP_DIR"
 
+# ---------- 5b. artifacts symlink ----------
+# daemon.toml uses relative `artifacts/*` paths. systemd hardening grants
+# write access only to /var/lib/crypto-trader, so we symlink the in-repo
+# artifacts dir to the persistent data dir. Avoids touching every path
+# field in config.py.
+ART_LINK="$APP_DIR/artifacts"
+ART_TARGET="$DATA_DIR/artifacts"
+if [[ -L "$ART_LINK" ]]; then
+    log "artifacts symlink already present"
+elif [[ -e "$ART_LINK" ]]; then
+    warn "$ART_LINK exists and is not a symlink — moving to ${ART_LINK}.bak"
+    mv "$ART_LINK" "${ART_LINK}.bak.$(date -u +%s)"
+    sudo -u "$APP_USER" ln -s "$ART_TARGET" "$ART_LINK"
+else
+    sudo -u "$APP_USER" ln -s "$ART_TARGET" "$ART_LINK"
+fi
+
 # ---------- 6. environment file ----------
 ENV_FILE="$ETC_DIR/environment"
 if [[ ! -f "$ENV_FILE" ]]; then
