@@ -149,6 +149,8 @@ cat > /etc/systemd/system/crypto-trader.service <<EOF
 Description=crypto-trader multi-wallet daemon
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -160,8 +162,6 @@ EnvironmentFile=$ETC_DIR/secrets.env
 ExecStart=$APP_DIR/.venv/bin/python -m crypto_trader.cli run-daemon --config $APP_DIR/config/daemon.toml
 Restart=always
 RestartSec=15
-StartLimitIntervalSec=300
-StartLimitBurst=5
 
 NoNewPrivileges=true
 ProtectSystem=strict
