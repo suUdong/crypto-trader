@@ -13,6 +13,7 @@ from crypto_trader.operator.paper_trading import (
     build_daily_performance_report,
     build_position_snapshot,
 )
+from crypto_trader.storage import SqliteStore
 
 
 class PaperTradingOperationsTests(unittest.TestCase):
@@ -115,3 +116,47 @@ class PaperTradingOperationsTests(unittest.TestCase):
             operations.sync(broker, {"KRW-BTC": 101.0})
             self.assertTrue((Path(temp_dir) / "positions.json").exists())
             self.assertTrue((Path(temp_dir) / "daily.json").exists())
+
+    def test_operations_sync_dual_writes_closed_trades_to_sqlite(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            broker = PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0)
+            broker.submit_order(
+                OrderRequest(
+                    symbol="KRW-BTC",
+                    side=OrderSide.BUY,
+                    quantity=1.0,
+                    requested_at=datetime(2025, 1, 1, 0, 0, 0),
+                    reason="entry",
+                ),
+                market_price=100.0,
+            )
+            broker.submit_order(
+                OrderRequest(
+                    symbol="KRW-BTC",
+                    side=OrderSide.SELL,
+                    quantity=1.0,
+                    requested_at=datetime(2025, 1, 1, 1, 0, 0),
+                    reason="take_profit",
+                ),
+                market_price=110.0,
+            )
+            sqlite_path = Path(temp_dir) / "trades.db"
+            operations = PaperTradingOperations(
+                Path(temp_dir) / "trades.jsonl",
+                Path(temp_dir) / "positions.json",
+                Path(temp_dir) / "daily.json",
+                sqlite_store_path=sqlite_path,
+                wallet_name="vpin_eth",
+                session_id="session-42",
+            )
+            operations.sync(broker, {"KRW-BTC": 110.0})
+            # Second sync is idempotent: no new trades, no duplicate SQLite rows.
+            operations.sync(broker, {"KRW-BTC": 110.0})
+
+            store = SqliteStore(sqlite_path)
+            rows = store.query_trades()
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0].wallet, "vpin_eth")
+            self.assertEqual(rows[0].session_id, "session-42")
+            self.assertEqual(rows[0].exit_reason, "take_profit")
+            self.assertEqual(rows[0].symbol, "KRW-BTC")

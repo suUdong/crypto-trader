@@ -39,6 +39,7 @@ from crypto_trader.operator.automated_reporting import (
 from crypto_trader.operator.calibration import DriftCalibrationToolkit
 from crypto_trader.operator.journal import StrategyRunJournal
 from crypto_trader.operator.paper_trading import PaperTradeJournal
+from crypto_trader.storage import SqliteStore, TradeRow
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
@@ -163,6 +164,11 @@ class MultiSymbolRuntime:
             Path(config.runtime.daily_performance_path).parent / "telegram-daily-summary-state.json"
         )
         self._trade_journal = PaperTradeJournal(config.runtime.paper_trade_journal_path)
+        self._sqlite_trade_store: SqliteStore | None = (
+            SqliteStore(config.runtime.paper_trade_sqlite_path)
+            if config.runtime.paper_trade_sqlite_path
+            else None
+        )
         self._journal_trade_counts: dict[str, int] = {w.name: 0 for w in wallets}
         self._strategy_run_journal = StrategyRunJournal(config.runtime.strategy_run_journal_path)
         snapshot_path = Path(config.runtime.runtime_checkpoint_path).parent / "pnl-snapshots.jsonl"
@@ -1731,6 +1737,33 @@ class MultiSymbolRuntime:
                     wallet_name=wallet.name,
                     session_id=self._session_id,
                 )
+                if self._sqlite_trade_store is not None:
+                    for trade in new_trades:
+                        try:
+                            self._sqlite_trade_store.insert_trade(
+                                TradeRow(
+                                    wallet=wallet.name,
+                                    symbol=trade.symbol,
+                                    entry_time=trade.entry_time.isoformat(),
+                                    exit_time=trade.exit_time.isoformat(),
+                                    entry_price=trade.entry_price,
+                                    exit_price=trade.exit_price,
+                                    quantity=trade.quantity,
+                                    pnl=trade.pnl,
+                                    pnl_pct=trade.pnl_pct,
+                                    exit_reason=trade.exit_reason,
+                                    session_id=self._session_id,
+                                )
+                            )
+                        except Exception as exc:  # noqa: BLE001
+                            # JSONL is source of truth; never block daemon on
+                            # SQLite mirror failures during Phase 1 rollout.
+                            self._logger.warning(
+                                "sqlite mirror insert failed for %s %s: %s",
+                                wallet.name,
+                                trade.symbol,
+                                exc,
+                            )
                 self._journal_trade_counts[wallet.name] = current_count
 
     def _maybe_reload_alpha_watchlist(self) -> None:

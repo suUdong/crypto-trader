@@ -1789,6 +1789,9 @@ def main() -> None:
                 config.runtime.paper_trade_journal_path,
                 config.runtime.position_snapshot_path,
                 config.runtime.daily_performance_path,
+                sqlite_store_path=(
+                    config.runtime.paper_trade_sqlite_path or None
+                ),
             ),
             checkpoint_store=RuntimeCheckpointStore(config.runtime.runtime_checkpoint_path),
             poll_interval_seconds=config.runtime.poll_interval_seconds,

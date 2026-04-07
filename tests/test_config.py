@@ -56,6 +56,18 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.runtime.network_recovery_backoff_seconds, 12)
         self.assertEqual(config.runtime.daemon_alert_cooldown_seconds, 45)
 
+    def test_paper_trade_sqlite_path_defaults_empty_and_env_override(self) -> None:
+        config = load_config(ROOT / "config" / "example.toml", {})
+        self.assertEqual(config.runtime.paper_trade_sqlite_path, "")
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {"CT_PAPER_TRADE_SQLITE_PATH": "artifacts/paper-trades.db"},
+        )
+        self.assertEqual(
+            config.runtime.paper_trade_sqlite_path,
+            "artifacts/paper-trades.db",
+        )
+
     def test_live_trading_requires_credentials(self) -> None:
         with self.assertRaisesRegex(ValueError, "credentials"):
             load_config(
