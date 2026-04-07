@@ -18,5 +18,6 @@ artifacts/
 .memsearch.toml
 .openchrome/
 .omg/
+.worktrees/
 macro_intelligence.db
 *.egg-info/
