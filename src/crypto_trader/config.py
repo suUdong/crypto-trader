@@ -163,6 +163,7 @@ class RuntimeConfig:
     operator_report_path: str = "artifacts/operator-report.md"
     strategy_run_journal_path: str = "artifacts/strategy-runs.jsonl"
     paper_trade_journal_path: str = "artifacts/paper-trades.jsonl"
+    paper_trade_sqlite_path: str = ""
     position_snapshot_path: str = "artifacts/positions.json"
     daily_performance_path: str = "artifacts/daily-performance.json"
     drift_report_path: str = "artifacts/drift-report.json"
@@ -738,6 +739,16 @@ def load_config(
                 "paper_trade_journal_path",
                 "CT_PAPER_TRADE_JOURNAL_PATH",
                 "artifacts/paper-trades.jsonl",
+            )
+        ),
+        paper_trade_sqlite_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "paper_trade_sqlite_path",
+                "CT_PAPER_TRADE_SQLITE_PATH",
+                "",
             )
         ),
         position_snapshot_path=str(
