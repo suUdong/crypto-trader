@@ -287,24 +287,15 @@ class SqliteStore:
                     raise IntegrityError(str(exc)) from exc
                 return int(row["id"])
 
-    def query_trades(
+    def _build_trades_query(
         self,
         *,
-        wallet: str | None = None,
-        exit_reason: str | None = None,
-        since: str | None = None,
-        until: str | None = None,
-        limit: int | None = None,
-    ) -> list[TradeRow]:
-        """Query trades with optional filters.
-
-        ``since``/``until`` are ISO-8601 strings compared lexically against
-        ``exit_time`` (the ingest path enforces consistent format).
-
-        ``limit`` caps the result; callers handling large volumes should
-        switch to :meth:`iter_trades` once added.
-        """
-
+        wallet: str | None,
+        exit_reason: str | None,
+        since: str | None,
+        until: str | None,
+        limit: int | None,
+    ) -> tuple[str, tuple[object, ...]]:
         clauses: list[str] = []
         params: list[object] = []
         if wallet is not None:
@@ -329,23 +320,102 @@ class SqliteStore:
                 raise ValidationError("limit must be non-negative")
             sql += " LIMIT ?"
             params.append(limit)
+        return sql, tuple(params)
 
+    @staticmethod
+    def _row_to_trade(row: sqlite3.Row) -> TradeRow:
+        return TradeRow(
+            wallet=row["wallet"],
+            symbol=row["symbol"],
+            entry_time=row["entry_time"],
+            exit_time=row["exit_time"],
+            entry_price=row["entry_price"],
+            exit_price=row["exit_price"],
+            quantity=row["quantity"],
+            pnl=row["pnl"],
+            pnl_pct=row["pnl_pct"],
+            exit_reason=row["exit_reason"],
+            session_id=row["session_id"],
+            position_side=row["position_side"],
+        )
+
+    def query_trades(
+        self,
+        *,
+        wallet: str | None = None,
+        exit_reason: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int | None = None,
+    ) -> list[TradeRow]:
+        """Query trades with optional filters.
+
+        ``since``/``until`` are ISO-8601 strings compared lexically against
+        ``exit_time`` (the ingest path enforces consistent format).
+
+        ``limit`` caps the result; callers handling large volumes should
+        switch to :meth:`iter_trades` for bounded memory.
+        """
+
+        sql, params = self._build_trades_query(
+            wallet=wallet,
+            exit_reason=exit_reason,
+            since=since,
+            until=until,
+            limit=limit,
+        )
         with self.connection() as conn:
-            rows = conn.execute(sql, tuple(params)).fetchall()
-        return [
-            TradeRow(
-                wallet=r["wallet"],
-                symbol=r["symbol"],
-                entry_time=r["entry_time"],
-                exit_time=r["exit_time"],
-                entry_price=r["entry_price"],
-                exit_price=r["exit_price"],
-                quantity=r["quantity"],
-                pnl=r["pnl"],
-                pnl_pct=r["pnl_pct"],
-                exit_reason=r["exit_reason"],
-                session_id=r["session_id"],
-                position_side=r["position_side"],
-            )
-            for r in rows
-        ]
+            rows = conn.execute(sql, params).fetchall()
+        return [self._row_to_trade(r) for r in rows]
+
+    def iter_trades(
+        self,
+        *,
+        wallet: str | None = None,
+        exit_reason: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        limit: int | None = None,
+        batch_size: int = 500,
+    ) -> Iterator[TradeRow]:
+        """Stream trades in ``batch_size`` chunks via a server-side cursor.
+
+        Unlike :meth:`query_trades`, this holds the connection open for
+        the lifetime of the generator and yields rows without ever
+        materialising the full result set — safe for unbounded paper
+        trade histories at Phase 2 scale.
+
+        Usage
+        -----
+        ::
+
+            for trade in store.iter_trades(wallet="vpin_eth"):
+                process(trade)
+
+        The generator closes its connection as soon as the caller stops
+        iterating (GeneratorExit via ``finally``), so partial consumption
+        is safe. ``batch_size`` trades off cursor round-trips against
+        Python-side buffering; the default of 500 is fine for sub-GB
+        paper trade tables.
+        """
+        if batch_size <= 0:
+            raise ValidationError("batch_size must be positive")
+
+        sql, params = self._build_trades_query(
+            wallet=wallet,
+            exit_reason=exit_reason,
+            since=since,
+            until=until,
+            limit=limit,
+        )
+        with self.connection() as conn:
+            cursor = conn.execute(sql, params)
+            try:
+                while True:
+                    rows = cursor.fetchmany(batch_size)
+                    if not rows:
+                        return
+                    for row in rows:
+                        yield self._row_to_trade(row)
+            finally:
+                cursor.close()

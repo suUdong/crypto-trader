@@ -228,6 +228,58 @@ class TestQueryByWallet:
         assert len(rows) == 3
 
 
+class TestIterTrades:
+    def _seed(self, store: SqliteStore, n: int) -> None:
+        for i in range(n):
+            # Each row needs a distinct natural key — vary entry_time.
+            store.insert_trade(
+                dataclasses.replace(
+                    _sample_trade(),
+                    entry_time=f"2026-04-07T{i:02d}:00:00+00:00",
+                    exit_time=f"2026-04-07T{i:02d}:30:00+00:00",
+                )
+            )
+
+    def test_iter_trades_yields_all_rows_across_batches(
+        self, store: SqliteStore
+    ) -> None:
+        self._seed(store, 12)
+        # batch_size smaller than the row count forces multiple
+        # fetchmany round-trips.
+        streamed = list(store.iter_trades(batch_size=5))
+        assert len(streamed) == 12
+        assert streamed == store.query_trades()
+
+    def test_iter_trades_respects_filters(self, store: SqliteStore) -> None:
+        store.insert_trade(_sample_trade(wallet="vpin_doge_wallet"))
+        store.insert_trade(
+            _sample_trade(wallet="vpin_xrp_wallet", symbol="KRW-XRP")
+        )
+        streamed = list(store.iter_trades(wallet="vpin_xrp_wallet"))
+        assert len(streamed) == 1
+        assert streamed[0].wallet == "vpin_xrp_wallet"
+
+    def test_iter_trades_supports_partial_consumption(
+        self, store: SqliteStore
+    ) -> None:
+        self._seed(store, 10)
+        gen = store.iter_trades(batch_size=3)
+        first = next(gen)
+        second = next(gen)
+        # Abandon the generator; its finally: block must close the
+        # cursor + connection cleanly, and a fresh query must still
+        # work afterwards.
+        gen.close()
+        assert first.entry_time < second.entry_time
+        assert len(store.query_trades()) == 10
+
+    def test_iter_trades_rejects_zero_batch_size(
+        self, store: SqliteStore
+    ) -> None:
+        with pytest.raises(ValidationError, match="batch_size"):
+            next(iter(store.iter_trades(batch_size=0)))
+
+
 class TestInputValidation:
     def test_rejects_nan_pnl_pct(self) -> None:
         with pytest.raises(ValidationError):
