@@ -100,6 +100,11 @@ drift_calibration_path = "artifacts/drift-calibration.json"
 operator_report_path = "artifacts/operator-report.md"
 strategy_run_journal_path = "artifacts/strategy-runs.jsonl"
 paper_trade_journal_path = "artifacts/paper-trades.jsonl"
+# Phase 1 DB introduction: SQLite mirror for dashboard/analytics reads.
+# JSONL above remains the source of truth; daemon dual-writes on every
+# _persist_journal tick. Mirror failures are logged but never block the
+# tick (see multi_runtime.py:_persist_journal).
+paper_trade_sqlite_path = "artifacts/paper-trades.db"
 position_snapshot_path = "artifacts/positions.json"
 daily_performance_path = "artifacts/daily-performance.json"
 drift_report_path = "artifacts/drift-report.json"
