@@ -210,6 +210,8 @@ class MultiSymbolRuntime:
         self._last_successful_results = 0
         self._last_failed_results = 0
         self._tick_errors: list[Exception] = []
+        self._tick_failed_symbols: set[str] = set()
+        self._tick_unrecoverable_error = False
         self._latest_prices: dict[str, float] = {}
         self._last_results: list[PipelineResult] = []
         self._last_correlation_snapshot: dict[str, Any] = {}
@@ -257,6 +259,8 @@ class MultiSymbolRuntime:
         self._last_tick_had_error = False
         self._last_tick_recoverable = False
         self._last_retry_delay_seconds = 0
+        self._tick_failed_symbols = set()
+        self._tick_unrecoverable_error = False
 
     def _systemd_status(self) -> str:
         return (
@@ -277,15 +281,22 @@ class MultiSymbolRuntime:
             f"stopping config={self._config_path or 'unknown'} iteration={self._iteration}"
         )
 
-    def _record_tick_error(self, exc: Exception) -> None:
+    def _record_tick_error(self, exc: Exception, *, symbol: str | None = None) -> None:
         self._tick_errors.append(exc)
         self._last_tick_had_error = True
         recoverable = self._is_recoverable_error(exc)
         self._last_tick_recoverable = self._last_tick_recoverable or recoverable
+        if not recoverable:
+            self._tick_unrecoverable_error = True
+        if symbol is not None and recoverable:
+            self._tick_failed_symbols.add(symbol)
         self._last_error = str(exc)
         self._last_error_type = type(exc).__name__
         self._last_failure_at = datetime.now(UTC).isoformat()
         self._logger.warning("Tick error detected: %s", exc)
+
+    def _mark_symbol_recovered(self, symbol: str) -> None:
+        self._tick_failed_symbols.discard(symbol)
 
     def _finalize_tick_state(
         self,
@@ -298,6 +309,15 @@ class MultiSymbolRuntime:
         self._last_tick_duration_seconds = round(duration_seconds, 3)
         self._last_successful_results = sum(1 for result in results if result.error is None)
         self._last_failed_results = len(self._tick_errors)
+        recovered = (
+            self._last_tick_had_error
+            and not self._tick_unrecoverable_error
+            and not self._tick_failed_symbols
+            and bool(results)
+        )
+        if recovered:
+            self._last_tick_had_error = False
+            self._tick_recovered_count = getattr(self, "_tick_recovered_count", 0) + 1
         if self._last_tick_had_error:
             self._failure_streak += 1
             if not results and self._last_tick_recoverable:
@@ -420,7 +440,7 @@ class MultiSymbolRuntime:
         except Exception as exc:
             self._logger.error("Failed to fetch candles for %s: %s", first, exc)
             if self._is_recoverable_error(exc):
-                self._record_tick_error(exc)
+                self._record_tick_error(exc, symbol=first)
                 candle_cache[first] = []
             else:
                 raise
@@ -437,7 +457,7 @@ class MultiSymbolRuntime:
             except Exception as exc:
                 self._logger.error("Failed to fetch candles for %s: %s", symbol, exc)
                 if self._is_recoverable_error(exc):
-                    self._record_tick_error(exc)
+                    self._record_tick_error(exc, symbol=symbol)
                     candle_cache[symbol] = []
                     continue
                 raise
@@ -471,10 +491,11 @@ class MultiSymbolRuntime:
                     if candles:
                         latest_prices[symbol] = candles[-1].close
                         portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
+                        self._mark_symbol_recovered(symbol)
                 except Exception as exc:
                     self._logger.error("Retry fetch failed for %s: %s", symbol, exc)
                     if self._is_recoverable_error(exc):
-                        self._record_tick_error(exc)
+                        self._record_tick_error(exc, symbol=symbol)
                         continue
                     raise
                 if not candles:
