@@ -83,6 +83,7 @@ class MultiSymbolRuntime:
         self._config = config
         self._logger = logging.getLogger(__name__)
         self._shutdown_requested = False
+        self._reload_requested = False
         self._iteration = 0
         self._start_time = time.monotonic()
         self._systemd_notifier = SystemdNotifier.from_env()
@@ -253,6 +254,59 @@ class MultiSymbolRuntime:
         self._logger.info("Received %s, finishing current tick then shutting down...", sig_name)
         self._shutdown_requested = True
 
+    def _handle_reload_signal(self, signum: int, frame: Any) -> None:
+        self._logger.info("Received SIGHUP, will reload wallet symbols at next tick.")
+        self._reload_requested = True
+
+    def _apply_pending_reload(self) -> None:
+        """Hot-reload wallet symbol assignments from daemon.toml on SIGHUP.
+
+        Only updates per-wallet allowed_symbols and the global trading.symbols
+        list. Wallet add/remove, strategy/risk parameter changes, and capital
+        changes still require a full restart.
+        """
+        if not self._reload_requested:
+            return
+        self._reload_requested = False
+        if not self._config_path:
+            self._logger.warning("Reload requested but no config path known; skipping.")
+            return
+        try:
+            from crypto_trader.config import load_config
+
+            new_config = load_config(self._config_path)
+        except Exception as exc:
+            self._logger.error("Reload failed loading %s: %s", self._config_path, exc)
+            return
+
+        new_wallet_symbols: dict[str, set[str]] = {}
+        for wcfg in new_config.wallets:
+            if wcfg.symbols:
+                new_wallet_symbols[wcfg.name] = set(wcfg.symbols)
+
+        changes: list[str] = []
+        for wallet in self._wallets:
+            new_syms = new_wallet_symbols.get(wallet.name)
+            if new_syms is None:
+                continue
+            if new_syms != wallet.allowed_symbols:
+                before = sorted(wallet.allowed_symbols)
+                after = sorted(new_syms)
+                wallet.allowed_symbols = new_syms
+                changes.append(f"{wallet.name}: {before} -> {after}")
+
+        old_global = list(self._config.trading.symbols)
+        new_global = list(new_config.trading.symbols)
+        if old_global != new_global:
+            self._config.trading.symbols = new_global
+            self._active_symbols = list(new_global)
+            changes.append(f"trading.symbols: {old_global} -> {new_global}")
+
+        if changes:
+            self._logger.info("Hot-reload applied: %s", " | ".join(changes))
+        else:
+            self._logger.info("Hot-reload: no symbol changes detected.")
+
     def _begin_tick(self) -> None:
         self._tick_errors = []
         self._last_tick_started_at = datetime.now(UTC).isoformat()
@@ -356,6 +410,7 @@ class MultiSymbolRuntime:
     def run(self) -> None:
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
+        signal.signal(signal.SIGHUP, self._handle_reload_signal)
 
         self._active_symbols = list(self._config.trading.symbols)
         max_iter = self._config.runtime.max_iterations
@@ -375,6 +430,7 @@ class MultiSymbolRuntime:
 
         try:
             while not self._shutdown_requested:
+                self._apply_pending_reload()
                 if self._kill_switch.is_triggered:
                     cooldown = self._config.kill_switch.cooldown_minutes * 60
                     self._logger.critical(
@@ -421,6 +477,10 @@ class MultiSymbolRuntime:
             self._notify_systemd_stopping()
             self._logger.info("Multi-symbol runtime stopped after %d iterations.", self._iteration)
 
+    # Pacing between Upbit OHLCV fetches: Upbit allows ~10 req/s per IP.
+    # Sleeping ~120ms between calls keeps us at ~8 req/s with headroom.
+    _OHLCV_FETCH_PACING_SECONDS = 0.12
+
     def _run_tick(self, symbols: list[str]) -> list[PipelineResult]:
         results: list[PipelineResult] = []
         candle_cache: dict[str, Any] = {}
@@ -448,6 +508,7 @@ class MultiSymbolRuntime:
         for symbol in symbols:
             if symbol == first:
                 continue
+            time.sleep(self._OHLCV_FETCH_PACING_SECONDS)
             try:
                 candle_cache[symbol] = self._market_data.get_ohlcv(
                     symbol=symbol,
@@ -481,6 +542,7 @@ class MultiSymbolRuntime:
         for symbol in symbols:
             candles = candle_cache[symbol]
             if not candles:
+                time.sleep(self._OHLCV_FETCH_PACING_SECONDS)
                 try:
                     candles = self._market_data.get_ohlcv(
                         symbol=symbol,
