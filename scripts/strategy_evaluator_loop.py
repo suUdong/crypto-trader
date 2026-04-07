@@ -33,7 +33,18 @@ RESEARCH_STATE = ROOT / "state" / "strategy_research.state.json"
 BACKTEST_HISTORY = ROOT / "docs" / "backtest_history.md"
 DAEMON_CONFIG = ROOT / "config" / "daemon.toml"
 
-POLL_INTERVAL = 120   # 준비도 체크 주기 (초)
+POLL_INTERVAL = 120   # 준비도 체크 주기 (초) — loop_throttle.toml로 오버라이드 가능
+THROTTLE_FILE = ROOT / "config" / "loop_throttle.toml"
+
+
+def _read_throttle_poll() -> int:
+    """config/loop_throttle.toml에서 evaluator.poll_interval_seconds 읽기."""
+    try:
+        import tomllib
+        data = tomllib.loads(THROTTLE_FILE.read_text())
+        return int(data.get("evaluator", {}).get("poll_interval_seconds", POLL_INTERVAL))
+    except Exception:
+        return POLL_INTERVAL
 ADJUSTMENT_AFTER_N = 10  # N회 평가 후 threshold 자기조정
 
 THRESHOLD_BOUNDS = {
@@ -476,7 +487,8 @@ def main() -> None:
             run_once(dry_run=args.dry_run)
         except Exception as e:
             print(f"[evaluator] 루프 에러: {e}")
-        time.sleep(POLL_INTERVAL)
+        poll = _read_throttle_poll()
+        time.sleep(poll)
 
 
 if __name__ == "__main__":

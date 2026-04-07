@@ -112,11 +112,11 @@ class RiskManager:
 
     @property
     def is_decaying(self) -> bool:
-        """True when rolling win rate drops below 35% — strategy losing edge."""
+        """True when rolling win rate drops below threshold — strategy losing edge."""
         wr = self.rolling_win_rate()
         if wr is None:
             return False
-        return wr < 0.35
+        return wr < self._config.decay_win_rate
 
     @property
     def effective_stop_loss_pct(self) -> float:
@@ -150,11 +150,11 @@ class RiskManager:
         if gross_loss == 0:
             return False  # all winners, don't pause
         pf = gross_profit / gross_loss
-        # Hysteresis: pause at 0.7, resume at 0.8
+        # Hysteresis: pause at low, resume at high
         if self._paused:
-            self._paused = pf < 0.8
+            self._paused = pf < self._config.auto_pause_pf_high
         else:
-            self._paused = pf < 0.7
+            self._paused = pf < self._config.auto_pause_pf_low
         return self._paused
 
     @property
@@ -404,11 +404,9 @@ class RiskManager:
         # Time-decay exit: graduated — close sooner if deeper underwater
         if holding_bars > 0 and effective_hold > 0:
             bar_ratio = holding_bars / effective_hold
-            # At 60% of max bars: exit if loss > 1.5%
-            # At 75% of max bars: exit if any loss
-            if bar_ratio >= 0.60 and pnl_pct < -0.015:
+            if bar_ratio >= self._config.time_decay_bar_ratio_1 and pnl_pct < -0.015:
                 return "time_decay_exit"
-            if bar_ratio >= 0.75 and pnl_pct < 0:
+            if bar_ratio >= self._config.time_decay_bar_ratio_2 and pnl_pct < 0:
                 return "time_decay_exit"
 
         # Breakeven stop: if position ever gained >= 1.2% (watermark), stop at entry
@@ -418,7 +416,7 @@ class RiskManager:
         else:
             watermark_gain = (position.high_watermark - position.entry_price) / position.entry_price
             breakeven_touched = price <= position.entry_price
-        if watermark_gain >= 0.012 and breakeven_touched:
+        if watermark_gain >= self._config.breakeven_watermark and breakeven_touched:
             return "breakeven_stop"
 
         # Ratchet stop: progressive gain-locking via ATR thresholds

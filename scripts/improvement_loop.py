@@ -34,7 +34,18 @@ STATE_FILE    = ROOT / "state" / "improvement_loop.state.json"
 HISTORY_MD    = ROOT / "docs" / "backtest_history.md"
 RESEARCH_STATE = ROOT / "state" / "strategy_research.state.json"
 
-CYCLE_HOURS   = 4        # 메인 루프 주기
+CYCLE_HOURS   = 4        # 메인 루프 주기 — loop_throttle.toml로 오버라이드 가능
+THROTTLE_FILE = ROOT / "config" / "loop_throttle.toml"
+
+
+def _read_throttle_cycle_hours() -> int:
+    """config/loop_throttle.toml에서 improvement.cycle_hours 읽기."""
+    try:
+        import tomllib
+        data = tomllib.loads(THROTTLE_FILE.read_text())
+        return int(data.get("improvement", {}).get("cycle_hours", CYCLE_HOURS))
+    except Exception:
+        return CYCLE_HOURS
 MONITOR_HOURS = 48       # 파라미터 변경 후 성과 관측 기간
 ROLLBACK_THRESHOLD = -0.05  # 누적 수익률 -5% 시 롤백
 REPORT_INTERVAL_CYCLES = 6  # 24시간마다 리포트 (6사이클 × 4h)
@@ -332,8 +343,9 @@ def main() -> None:
         except Exception as e:
             print(f"[improve] 사이클 오류: {e}")
 
-        print(f"[improve] 다음 사이클까지 {CYCLE_HOURS}h 대기...")
-        time.sleep(CYCLE_HOURS * 3600)
+        hours = _read_throttle_cycle_hours()
+        print(f"[improve] 다음 사이클까지 {hours}h 대기...")
+        time.sleep(hours * 3600)
 
 
 if __name__ == "__main__":

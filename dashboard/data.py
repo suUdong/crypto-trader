@@ -1172,6 +1172,65 @@ def load_funding_rate_research() -> dict[str, Any] | None:
 
 
 @st.cache_data(ttl=30)
+def load_all_paper_trades() -> list[dict[str, Any]]:
+    """Load ALL paper trades without session filtering."""
+    trades = []
+    for trade in _load_jsonl("paper-trades.jsonl"):
+        pnl = _numeric_value(trade.get("pnl"))
+        pnl_pct = _numeric_value(trade.get("pnl_pct"))
+        exit_dt = _parse_dt(trade.get("exit_time"))
+        entry_dt = _parse_dt(trade.get("entry_time"))
+        ts = exit_dt or entry_dt
+        trades.append({
+            "timestamp": ts.astimezone(_KST).strftime("%m/%d %H:%M") if ts else "-",
+            "symbol": str(trade.get("symbol", "")),
+            "wallet": str(trade.get("wallet", "")),
+            "pnl": pnl,
+            "pnl_pct": pnl_pct * 100,
+            "exit_reason": str(trade.get("exit_reason", "")),
+            "session_id": str(trade.get("session_id", "")),
+            "win": pnl > 0,
+        })
+    return trades
+
+
+@st.cache_data(ttl=30)
+def load_cumulative_trade_summary() -> dict[str, Any]:
+    """Aggregate all paper trades into wallet-level summary."""
+    trades = load_all_paper_trades()
+    wallet_stats: dict[str, dict[str, Any]] = {}
+    for t in trades:
+        w = t["wallet"]
+        if w not in wallet_stats:
+            wallet_stats[w] = {"count": 0, "wins": 0, "pnl": 0.0}
+        wallet_stats[w]["count"] += 1
+        wallet_stats[w]["pnl"] += t["pnl"]
+        if t["win"]:
+            wallet_stats[w]["wins"] += 1
+
+    total_pnl = sum(s["pnl"] for s in wallet_stats.values())
+    total_trades = sum(s["count"] for s in wallet_stats.values())
+    total_wins = sum(s["wins"] for s in wallet_stats.values())
+
+    rows = []
+    for w, s in sorted(wallet_stats.items(), key=lambda x: x[1]["pnl"], reverse=True):
+        wr = s["wins"] / s["count"] * 100 if s["count"] else 0
+        rows.append({
+            "지갑": strategy_kr(w),
+            "거래수": s["count"],
+            "승률": f"{wr:.0f}%",
+            "누적PnL": s["pnl"],
+        })
+
+    return {
+        "rows": rows,
+        "total_pnl": total_pnl,
+        "total_trades": total_trades,
+        "win_rate": total_wins / total_trades * 100 if total_trades else 0,
+    }
+
+
+@st.cache_data(ttl=30)
 def load_edge_analysis() -> dict[str, Any] | None:
     """Aggregate full trade history into hour-by-symbol edge heatmap data."""
     trades = _load_jsonl("paper-trades.jsonl")

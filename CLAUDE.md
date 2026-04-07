@@ -2,6 +2,20 @@
 
 Upbit multi-strategy auto-trading. Backtesting, paper, live. FIRE workspace: `~/workspace/WORKSPACE.md`.
 
+## *** 과최적화 금지 — 최우선 원칙 ***
+
+> **백테스트 Sharpe 숫자를 올리는 것 ≠ 실전 수익.**
+> 13일 553커밋, ralph 213사이클, research 251사이클 돌렸지만 실전 paper 9거래 WR 11% (₩-7,695).
+> 필터를 쌓을수록 실전 진입 0건이 되는 과최적화 함정에 빠졌음.
+
+**절대 규칙:**
+1. 백테스트는 **아이디어 스크리닝 용도만**. 최종 판단은 forward(paper/live) 데이터로.
+2. 자동 루프(ralph/research/evaluator)로 Sharpe 반복 최적화 **금지**.
+3. paper 데이터 30건+ 없이 파라미터 변경/전략 배포 **금지**.
+4. "시스템 위에 시스템" (메타 평가자, 추가 루프 등) 제안 **금지**.
+5. 백테스트 필터와 daemon 필터가 **동일한지 반드시 확인** — 괴리가 실전 거래 0건의 원인이었음.
+6. **"더이상 하지마라" = 진짜 멈춰라.** 기본을 지킬 것.
+
 ## Architecture
 
 ```

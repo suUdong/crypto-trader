@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "threshold": {
-    "min_cycles": 5,
-    "min_backtests": 2,
+    "min_cycles": 4,
+    "min_backtests": 1,
     "min_interval_minutes": 30,
-    "last_adjusted": null
+    "last_adjusted": "2026-04-05T07:10:21.544204+00:00"
   },
   "evaluations": [
     {
@@ -251,10 +251,1064 @@
         "telegram_summary": "📊 **전략 평가 리포트 (사이클 153)**\n\n✅ vpin_eth TP=7% daemon 배포 완료\n→ WF avg OOS **+8.379**, 슬리피지 0.20%까지 TP=6% 대비 우세\n\n❌ momentum_sol SMA 단축 전면 실패\n→ SMA50~200 전체 2026=0거래, BULL 전용 확정\n\n⚠️ 트레일링 스톱 variant 부적합\n→ WR 23%, 슬리피지 낙차 -47% — 탐색 종료\n\n🎯 **다음 우선순위**\n1️⃣ BB bounce Bear/Sideways — BEAR 전용 전략 확보 (3회 연속 제안)\n2️⃣ momentum_sol ADX/볼륨 완화 — 2026 신호 포착 탐색\n3️⃣ volspike_btc 자본 재배분 의사결정\n\n📡 모니터링: vpin_eth TP=7% 실거래 2주 추적 + stealth_3gate 14심볼 forward 검증"
       },
       "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-277f7b31",
+      "timestamp": "2026-04-05T00:33:12.548454+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 159,
+        "new_backtests_since_last": 2,
+        "cycles_since_last": 6,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "regime_specialist",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "promising",
+        "key_findings": [
+          "momentum_sol c158(ADX=20 vol=1.5)이 현 시장구조 최적치로 확정 — c159에서 cooldown/threshold 탐색은 수확체감 재확인, BTC regime gate가 구조적 n 병목",
+          "c159 ATR 3-tier 동적 TP/SL: 헤드라인 Sharpe +35.133은 2024 단일연도 수치이며 전체기간 +17.117, 2026=0거래 — 통계적 과적합 리스크 극대, 배포 불가",
+          "vpin_eth c161 OOS Sharpe +15.297 유망하나 F2 n=7로 통계 불충분(n<30). TP=7% daemon 배포는 c152 기반(n=67/93)으로 유효",
+          "stealth_3gate가 가장 안정적: W2 n=76, Sharpe +13.703, daemon 14심볼 Sharpe +13.703 — 유일한 대량 표본 전략",
+          "BEAR 레짐 전략 완전 공백: momentum_sol BULL 전용 확정, spot 구조적 한계로 하락장 대응 전무 — 포트폴리오 최대 약점"
+        ],
+        "direction": "momentum_sol은 c158 파라미터(ADX=20 vol=1.5)로 동결하고 BULL 전환 시 paper trade 시작. 핵심 리소스를 BEAR/횡보장 전략 탐색에 집중 전환 — stablecoin 전환 타이밍, RSI mean-reversion, 또는 볼린저 횡보장 전용 전략이 유망. vpin_eth c161 변형(ATR+BTC gate)은 n 확보를 위한 추가 OOS 윈도우 검증이 선행되어야 함.",
+        "directives": [
+          {
+            "type": "avoid",
+            "target": "momentum_sol 추가 파라미터 탐색",
+            "reason": "c158→c159→c164로 3사이클 연속 수확체감 확인. cooldown/threshold/hold 모두 무효. BTC regime gate가 구조적 병목이며 이를 제거하면 BEAR 손실 노출",
+            "suggested_action": "momentum_sol 탐색 중단, c158 파라미터 동결(ADX=20 vol=1.5 lb=12 TP=12% SL=3%), BULL 전환 감지 시 paper trade 시작"
+          },
+          {
+            "type": "avoid",
+            "target": "c159 ATR 3-tier 동적 TP/SL (momentum_sol)",
+            "reason": "2024 Sharpe +35.133은 12거래 기반 극소 표본, 2026=0거래, 전체 MDD=-14.34%로 HARD 한계(15%) 근접. 연도별 Sharpe 편차 8.4~35.1로 과적합 전형",
+            "suggested_action": "ATR 3-tier는 연구 기록으로만 보존. 배포 후보에서 영구 제외"
+          },
+          {
+            "type": "investigate",
+            "target": "vpin_eth c161 ATR스케일링+BTC게이트 변형",
+            "reason": "avg OOS Sharpe +15.297로 현 daemon(+8.379)보다 Δ+6.9 우위이나 F2 n=7로 통계 불충분. 잠재력은 높으나 검증 부족",
+            "suggested_action": "3-fold WF로 확장하여 n≥30 OOS 확보 시도. 실패 시 현 TP=7% daemon 유지"
+          },
+          {
+            "type": "explore",
+            "target": "BEAR/횡보장 stablecoin 전환 타이밍 전략",
+            "reason": "현 포트폴리오 6전략 모두 BULL/중립 편향. F2 BH=-57.5%(BEAR) 구간에서 momentum_sol n=3, vpin_eth도 축소. 하락장 방어 전략 완전 공백",
+            "suggested_action": "BTC<SMA200 감지 시 알트→USDT 전환하는 regime-switch 전략 설계. 백테스트 시 2022 BEAR + 2025 Q4 BEAR 구간 필수 포함"
+          },
+          {
+            "type": "explore",
+            "target": "RSI mean-reversion 횡보장 전용",
+            "reason": "ADX<20 횡보 구간에서 RSI 과매도→반등 패턴은 spot에서도 수익 가능. BB bounce BEAR 시도(c154-c157)는 신호 없음으로 종료되었으나 RSI MR은 다른 진입 로직",
+            "suggested_action": "RSI<25 진입 / RSI>50 청산, ADX<20 필터, 4h 또는 1h 타임프레임에서 ETH/BTC 대상 그리드 탐색"
+          },
+          {
+            "type": "explore",
+            "target": "stealth_3gate 심볼 확장 (14→20+)",
+            "reason": "stealth_3gate가 n=76(W2)으로 가장 안정적 전략. 심볼 확장으로 n 추가 확보 시 포트폴리오 분산 효과 + Sharpe 개선 가능성",
+            "suggested_action": "market_scan에서 BTC 상관도 낮은 6개 신규 심볼 선별, stealth_3gate WF 검증 실행"
+          },
+          {
+            "type": "monitor",
+            "target": "vpin_eth TP=7% daemon 실거래",
+            "reason": "c152에서 배포 완료(TP 6%→7%). 슬리피지 0.15%에서 Sharpe +4.810, 0.20%에서 +3.002로 급격한 열화 — 실전 슬리피지가 0.15% 초과 시 TP=6% 복귀 필요",
+            "suggested_action": "2주간 실거래 슬리피지 분포 수집, 평균 >0.12% 시 TP=6% 복귀 트리거 설정"
+          },
+          {
+            "type": "monitor",
+            "target": "stealth_3gate daemon 성과",
+            "reason": "W1 Sharpe 4.277(기준 5.0 미달)로 초기 구간 약세. 실거래에서도 초기 드로다운 가능성 존재",
+            "suggested_action": "stealth_3gate 실거래 20거래 이후 OOS Sharpe<5.0 시 SL=0.8% 전환 검토(백테스트상 Δ+0.41 우위)"
+          }
+        ],
+        "blockers": [
+          "BEAR 레짐 방어 전략 부재 — 현 6전략 모두 하락장 무력화, 포트폴리오 최대 리스크",
+          "vpin_eth 슬리피지 0.15%+ 구간 Sharpe 급락(+7.4→+3.0) — 실전 슬리피지 모니터링 미구축",
+          "momentum_sol paper trade 미시작 — BULL 전환 시 즉시 가동할 파이프라인 사전 준비 필요"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 리포트 (c155-c164)\n\n✅ momentum_sol ADX=20/vol=1.5 최적 확정 — 3사이클 수확체감 확인, 탐색 중단\n⚠️ ATR 3-tier Sharpe +35는 2024 12거래 과적합 — 배포 불가\n✅ vpin_eth TP=7% 배포 유효 (n=93/67)\n🔍 vpin_eth c161 Sharpe +15.3 유망하나 n=7 통계부족\n🚨 BEAR 전략 완전 공백 — 최우선 탐색 과제\n\n📌 다음 방향:\n1️⃣ BEAR용 stablecoin 전환 타이밍 전략\n2️⃣ RSI mean-reversion 횡보장 전용\n3️⃣ stealth_3gate 심볼 14→20+ 확장"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-5b589ecd",
+      "timestamp": "2026-04-05T01:52:38.907689+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 164,
+        "new_backtests_since_last": 4,
+        "cycles_since_last": 5,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "promising",
+        "key_findings": [
+          "c168 trailing+regime hold: OOS avg Sharpe +9.897로 현 daemon baseline(+8.379) 대비 Δ+1.5, F2(2025 BEAR) Sharpe +7.394로 BEAR 구간 생존 확인 — 단 F2 n=21로 통계적 경계선",
+          "c164 RSI velocity dynamic SL: c163 F2를 Sharpe +0.420→+6.554로 극적 개선했으나, F2 n=11(통계 불충분), 슬리피지 0.15→0.20% 구간 Sharpe 급락(-34%) — 실전 내성 취약",
+          "최근 5사이클(c160-c164) 전부 WF 0통과 또는 n부족 — BEAR/횡보 방어 전략 탐색은 구조적 벽에 도달, RSI MR·SMA regime-switch·stealth 확장 모두 폐기 확정",
+          "c168 슬리피지 내성 양호: 0.05%→0.20% Sharpe 22% 하락(16.1→12.6)으로 선형 감쇄, c164 대비 2배 견고",
+          "vpin_eth 계열 BULL 전용 특성 재확인: c162 3-fold 검증에서 F2(2025 BEAR) Sharpe=-8~-17 전면 붕괴, c168·c164는 2-fold로 BEAR 회피 윈도우 설정 가능성 — 그러나 이는 OOS 윈도우 선택 편향 위험"
+        ],
+        "direction": "c168(trailing+regime hold)이 현 daemon baseline 대비 Sharpe Δ+1.5이고 슬리피지 내성도 양호하나, F2 n=21로 배포 전 추가 검증 필요. 3-fold WF(2022 BEAR 포함)를 실시하여 BEAR 구간 붕괴 여부 확인 후, 통과 시 daemon.toml에 trailing_stop 파라미터 추가 반영. BEAR 방어 전략은 단일 지표 접근 한계 확정 — 다중 지표 composite regime(SMA+RSI+거래량) 또는 알트 개별 momentum exit overlay로 전환 필요.",
+        "directives": [
+          {
+            "type": "investigate",
+            "target": "c168 vpin_eth trailing+regime hold (hvH=24 lvH=14 trA=2.0 trSL=0.5)",
+            "reason": "F2 n=21 통계 경계선 + 2-fold만 검증 — 3-fold(2022 BEAR 포함) 미실시. c162에서 3-fold 시 BEAR Sharpe=-8~-17 붕괴 전례 있음",
+            "suggested_action": "c168 최적 파라미터로 3-fold WF 실행(F1: ~2023, F2: 2024-2025, F3: 2025-2026). F2에 2022 BEAR 또는 2025 BEAR 구간 필수 포함. 전체 통과 시 deploy_ready 승격"
+          },
+          {
+            "type": "avoid",
+            "target": "c164 RSI velocity dynamic SL",
+            "reason": "F2 n=11 통계 불충분(최소 15 필요), 슬리피지 0.20%에서 Sharpe 46% 급락(13.8→7.3), train n=50도 과적합 위험 높음",
+            "suggested_action": "c164 트랙 종료. RSI velocity 개념은 향후 composite에 부분 활용 가능하나 단독 전략으로는 불가"
+          },
+          {
+            "type": "monitor",
+            "target": "현 daemon vpin_eth (TP=7%, SL=0.8%, hold=18)",
+            "reason": "c168이 검증 완료될 때까지 현 baseline 유지가 안전. paper trade 성과 vs backtest Sharpe +8.379 괴리 모니터링 필요",
+            "suggested_action": "paper trade 30거래 이상 축적 후 실제 Sharpe/WR/MDD를 backtest 기대치와 비교. Sharpe 괴리 >50% 시 daemon 재평가 트리거"
+          },
+          {
+            "type": "explore",
+            "target": "다중 지표 composite regime detector (SMA + RSI oversold + 거래량 급감 + VIX proxy)",
+            "reason": "단일 BTC SMA(c164)는 휩쏘+디커플링으로 실패. 다중 지표 합산 확인 방식은 false positive 감소 기대. macro-intelligence 서버 regime 신호 활용 가능",
+            "suggested_action": "BTC SMA200 하회 + BTC RSI<30 + 5일 거래량 30% 감소 = 3-of-3 BEAR 확정 시 알트 청산. 2022 BEAR + 2025-Q4 구간에서 시그널 발생 타이밍 분석부터 시작"
+          },
+          {
+            "type": "explore",
+            "target": "알트 개별 momentum exit overlay (알트 자체 20-day MA 이탈 시 포지션 청산)",
+            "reason": "BTC-알트 디커플링 대응. c164에서 BTC>SMA200이나 ETH/SOL 독자 하락한 2025 케이스 — 알트 자체 exit 신호가 더 직접적",
+            "suggested_action": "현 vpin_eth 전략에 ETH 20-day MA breakdown exit 오버레이 추가. 기존 TP/SL과 병렬 작동, 추가 exit 조건으로만 기능. 2024-2026 백테스트로 MDD 개선 효과 측정"
+          },
+          {
+            "type": "explore",
+            "target": "하락 속도 기반 동적 헤지 (급락 감지 즉시 청산, 완만 하락 유지)",
+            "reason": "SMA crossover의 핵심 문제는 '속도 무감각' — 5% 급락과 1% 완만 하락 동일 처리. 속도 기반이면 2022 급락은 즉시 청산, 2024 BULL 횡보 완만 하락은 유지",
+            "suggested_action": "ATR-normalized 일간 수익률 z-score < -2.0 시 즉시 청산, 다음 날 봉 양전환 시 재진입. 2022 BEAR + 2024 BULL 구간 시뮬레이션으로 휩쏘 빈도 vs MDD 개선 트레이드오프 분석"
+          }
+        ],
+        "blockers": [
+          "c168 3-fold WF 미실시 — BEAR 구간(2022 또는 2025) 포함 검증 전까지 daemon 교체 불가",
+          "paper trade 실적 데이터 부족 — 현 daemon 전략들의 live vs backtest 괴리를 정량적으로 판단할 수 없음 (vpin_sol 과적합 전례 있음)",
+          "BEAR 방어 전략 0개 — 전 활성 전략이 BULL 전용(active_regimes=[bull]) 또는 all-regime이나 BEAR 방어력 미검증"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 완료 (사이클 160-164 + c168)\n\n🌟 c168 trailing+regime hold: OOS Sharpe +9.897 — 현 daemon(+8.379) 대비 +18% 개선, 슬리피지 내성 양호\n⚠️ 단, F2 n=21 경계선 + 2-fold만 검증 → 3-fold(BEAR 포함) 추가 검증 필수\n❌ c164 RSI velocity: n=11 통계부족 + 슬리피지 취약 → 폐기\n❌ 최근 5사이클 BEAR 방어 전략 전부 실패 — 단일 지표 한계 확정\n\n📌 다음 우선순위:\n1️⃣ c168 3-fold WF (BEAR 구간 포함) 실행\n2️⃣ 다중 지표 composite regime detector 설계\n3️⃣ 알트 개별 MA exit overlay 탐색"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-1f9476a0",
+      "timestamp": "2026-04-05T02:51:15.812556+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 169,
+        "new_backtests_since_last": 4,
+        "cycles_since_last": 5,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "regime_specialist",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "deploy_ready",
+        "key_findings": [
+          "c165 vpin_multi 3-fold WF 전 조합 PASS — ETH/SOL/XRP 합산 avg OOS Sharpe +11.290, trades 319 (통계 충분). SOL이 최안정 심볼 (avg +13.254)",
+          "c168 regime-adaptive exit는 ETH 특화 효과 확정 — 멀티심볼 적용 시 Δ-0.374 하락. daemon에는 ETH=c168, SOL/XRP=c165 분리 적용이 최적",
+          "슬리피지 0.20%에서도 Sharpe +7.271 유지 — 실전 투입 가능 수준이나 0.10%→0.20% 구간 낙차 -2.26이 가장 크므로 실제 체결 슬리피지 모니터링 필수",
+          "XRP F3 n=27로 통계 경계선 — 단독 wallet 배포 전 추가 OOS 데이터 필요",
+          "WF fold 간 6개월 중복 존재 (F1~F2, F2~F3 각 3개월) — OOS 순수성 80% 수준, Sharpe 과대추정 리스크 10~15%",
+          "BEAR 구간(F3) B&H -32~-35% 대비 전략 Sharpe +8.7~+9.1 — 절대적 BEAR 방어력 확인, 추가 exit overlay 탐색은 ROI 낮음"
+        ],
+        "direction": "SOL/XRP c165 고정 exit 기반 독립 wallet을 daemon.toml에 추가 배포하는 것이 가장 높은 ROI 작업. ETH는 c168 regime exit 유지. 배포 후 paper trade 30거래 축적하여 live vs backtest Sharpe 괴리 분석이 최우선 모니터링 과제.",
+        "directives": [
+          {
+            "type": "deploy",
+            "target": "SOL/XRP 독립 wallet (c165 고정 exit 파라미터)",
+            "reason": "SOL avg Sharpe +13.254 (전 fold 최안정), XRP +8.707 이미 3-fold 검증 완료. 포트폴리오 분산 + 거래수 3배 확대가 risk-adjusted return 극대화",
+            "suggested_action": "daemon.toml에 vpin_sol_wallet, vpin_xrp_wallet 추가. c165 최적 파라미터(VPIN=0.35 MOM=0.0007 Hold=20 CD=4, TP=4.0+2.0 Trail=0.3+0.2) 적용. XRP는 n=27 리스크 감안하여 초기 포지션 사이즈 50% 제한"
+          },
+          {
+            "type": "monitor",
+            "target": "ETH c168 daemon + SOL/XRP c165 daemon",
+            "reason": "백테스트 Sharpe +11~14 vs 실전 괴리율 통상 30~50% — paper 30거래 미축적 상태",
+            "suggested_action": "paper trade 30거래 축적 후 live Sharpe / backtest Sharpe 비율 산출. 비율 < 0.5이면 파라미터 재보정, < 0.3이면 daemon 중단 트리거"
+          },
+          {
+            "type": "explore",
+            "target": "레짐별 포지션 사이징 (regime-aware capital allocation)",
+            "reason": "c166~c167 진입 필터/exit overlay 탐색 공간 소진. BEAR 방어의 다음 레버는 진입 빈도가 아닌 배팅 비중 조절. BEAR에서 position size 50% 축소만으로 MDD -4~-7%p 개선 가능",
+            "suggested_action": "capital_allocator.py에 vol_regime 기반 동적 사이징 로직 추가. BEAR(HV regime): max_position 50%, BULL(LV regime): max_position 100%. 3-fold WF 검증 후 daemon 반영"
+          },
+          {
+            "type": "explore",
+            "target": "캔들 타임프레임 다변화 (1h/2h vpin_multi)",
+            "reason": "현재 전략 전부 240m(4h) 단일 타임프레임. 더 짧은 TF에서 trade 빈도 증가 + 분산 효과 기대. 단, 슬리피지 영향 증가 리스크",
+            "suggested_action": "c165 파라미터 고정으로 60m/120m 캔들 3-fold WF 백테스트. 슬리피지 0.10~0.20% 스트레스 필수 포함"
+          },
+          {
+            "type": "explore",
+            "target": "심볼 확장 (DOGE, AVAX 등 Upbit 거래량 상위)",
+            "reason": "ETH/SOL/XRP 3종에서 전략 유효성 확인. 거래량 충분한 추가 심볼로 포트폴리오 확장 시 분산 효과 + Sharpe 안정화 가능",
+            "suggested_action": "Upbit 일평균 거래대금 상위 5~10종 중 ETH/SOL/XRP 제외 후보 선정. c165 파라미터로 개별 심볼 3-fold WF 스크리닝"
+          },
+          {
+            "type": "avoid",
+            "target": "추가 exit overlay 탐색 (MA breakdown, RSI velocity, vol surge)",
+            "reason": "c166(RSI vel BEAR 무효), c167(MA exit 구조적 한계), c169(vol_regime 실패) — 단기보유(12~24봉) 전략에서 exit 개선 탐색 공간 소진. 추가 탐색 ROI 극히 낮음",
+            "suggested_action": "exit 관련 신규 백테스트 중단. 리소스를 포지션 사이징/심볼 확장/TF 다변화에 집중"
+          }
+        ],
+        "blockers": [
+          "Paper trade 30거래 미축적 — live vs backtest 괴리율 미확인 상태에서 실자금 투입 불가",
+          "XRP 개별 fold n=27 (통계 경계) — 독립 wallet 배포 시 초기 포지션 제한 또는 추가 OOS 검증 필요",
+          "WF fold 간 3개월 중복으로 OOS Sharpe 10~15% 과대추정 가능성 — 비중복 fold 재검증 권장(필수는 아님)"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 완료 (사이클 169)\n\n✅ c165 vpin_multi 3종(ETH/SOL/XRP) deploy_ready\n  → avg OOS Sharpe +11.290, 319거래, 슬리피지 0.20%에서도 +7.3 유지\n\n🏆 SOL 최안정 심볼 (avg Sharpe +13.3, 전 fold 안정)\n⚙️ ETH는 c168 regime exit, SOL/XRP는 c165 고정 exit 분리 적용 최적\n\n🚀 다음 최우선: SOL/XRP 독립 wallet daemon.toml 추가\n📈 탐색 방향: 레짐별 포지션 사이징 > TF 다변화 > 심볼 확장\n🚫 exit overlay 추가 탐색 중단 (공간 소진)\n⏳ 블로커: paper 30거래 축적 후 live/backtest 괴리 확인 필요"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-5a715d22",
+      "timestamp": "2026-04-05T03:58:55.847002+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 174,
+        "new_backtests_since_last": 4,
+        "cycles_since_last": 5,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "promising",
+        "key_findings": [
+          "【Statistical Auditor】c177 OBV 필터 n=17 통계 무의미 — XRP 0거래, ETH 3거래. c177 adaptive relaxation도 fold당 심볼별 n=4~10으로 개별 fold 신뢰도 낮음. c176 baseline(n=58)조차 심볼별 분해 시 fold당 8~10 수준으로 경계선",
+          "【Statistical Auditor】VPIN 5-wallet 확장(c171)은 DOGE n=135로 통계 충분, AVAX fold당 n=8/12/19·XRP n=27은 경계선. paper 30거래 축적 게이트가 올바르게 설정됨",
+          "【Comparative Analyst】전략 포트폴리오 VPIN 집중도 위험 — 9개 wallet 중 5개가 VPIN. BEAR 시장에서 vpin_eth만 전 레짐 활성(btc_stealth_gate=false), 나머지 4 VPIN wallet은 stealth_gate=true로 BEAR 신호 제한적. 비-VPIN wallet(accumulation, momentum, volspike) 전부 bull-only 게이트",
+          "【Live Monitor】vpin_sol 과거 '백테스트 과적합, 실거래 역추세 진입' 이력 존재(2026-03-29 비활성화). 동일 전략명으로 c165 파라미터 재배포했으나, 이전 실패 패턴 재현 가능성 모니터링 필수. paper trade 실적 데이터 여전히 미확인",
+          "【Comparative Analyst】c174 vol_regime 사이징 MDD +32% 개선 검증 완료했으나 daemon.toml 미반영 상태 — 검증 결과와 배포 사이 갭이 가장 큰 즉시 실행 가능 아이템",
+          "【Regime Specialist】c177 adaptive filter relaxation은 baseline 대비 Sharpe Δ+0.008·n Δ+6으로 실질 개선 없음. 필터 복잡도만 증가(vpRx, rxSc 2개 하이퍼파라미터 추가)하고 수익 기여 미미 — 과파라미터화 경고"
+        ],
+        "direction": "즉시 실행: c174 vol_regime 사이징(ATR_LB=120 HV_TH=40 HV_SIZE=0.5)을 기존 vpin_eth_wallet에 우선 적용하여 MDD 방어력 확보. c177 adaptive filter와 OBV filter는 모두 baseline 대비 개선이 없거나 n 부족으로 폐기하고, 연구 리소스를 BEAR/Sideways 전용 전략 탐색(RSI mean-reversion, BB squeeze breakout)으로 전환. paper wallet 4개(SOL/XRP/DOGE/AVAX)는 30거래 축적 모니터링에 집중하되, 과거 vpin_sol 과적합 실패 패턴 재현 여부를 특히 주시.",
+        "directives": [
+          {
+            "type": "deploy",
+            "target": "vol_regime 포지션 사이징 → vpin_eth_wallet",
+            "reason": "c174 3-fold WF 27/27 조합 MDD 개선 확인, 균형 최적 Sharpe +4% MDD +32% 동시 개선, 슬리피지 전 수준 일관 효과. 검증 완료 → 배포 지연 중",
+            "suggested_action": "vpin_eth_wallet risk_overrides에 vol_regime_atr_lookback=120, vol_regime_hv_threshold=40, vol_regime_hv_size_mult=0.5 추가. capital_allocator.py 또는 risk_manager.py에 vol_regime 사이징 로직이 이미 구현되어 있는지 확인 후 daemon.toml 반영"
+          },
+          {
+            "type": "avoid",
+            "target": "c177 adaptive filter relaxation (vpRx/rxSc)",
+            "reason": "baseline 대비 Sharpe Δ+0.008, n Δ+6 — 하이퍼파라미터 2개 추가 대비 실질 개선 0. 과파라미터화 리스크만 증가",
+            "suggested_action": "c177 adaptive filter 파라미터 탐색 종료. c176 baseline(atrTh=30 body=0.7) 유지"
+          },
+          {
+            "type": "avoid",
+            "target": "c177 OBV divergence filter",
+            "reason": "n=17(ETH 3, SOL 14, XRP 0) — 통계적으로 무의미. baseline 대비 Sharpe -2.468 악화. 거래 85%+ 차단으로 실용성 없음",
+            "suggested_action": "OBV 필터 탐색 완전 종료. 동일 방향 재시도 금지"
+          },
+          {
+            "type": "monitor",
+            "target": "paper wallet 4개(SOL/XRP/DOGE/AVAX) 30거래 축적",
+            "reason": "vpin_sol 과거 과적합 실패 이력(2026-03-29). 동일 전략 계열 재배포이므로 live vs backtest 괴리 조기 감지 필수",
+            "suggested_action": "paper trade journal에서 10거래 시점 중간 점검 — WR<30% 또는 avg loss > avg win × 2이면 즉시 파라미터 재검토. 30거래 도달 시 backtest Sharpe 대비 비율 0.5 미만이면 live 전환 보류"
+          },
+          {
+            "type": "explore",
+            "target": "BEAR/Sideways 전용 전략 — RSI mean-reversion + BB squeeze breakout",
+            "reason": "현재 비-VPIN 전략 전부 bull-only 게이트. BEAR 시장에서 vpin_eth 단일 의존 구조. directive(b30a601)에서 이미 BEAR 전략 최우선 탐색 지시됨",
+            "suggested_action": "RSI MR: RSI<25 진입 → RSI>45 청산, BEAR 레짐 전용, 60m/240m 캔들. BB squeeze: bandwidth<0.03 수축 후 breakout 방향 추종. 각각 ETH/BTC 3-fold WF 검증"
+          },
+          {
+            "type": "explore",
+            "target": "VPIN 집중도 완화 — 비상관 전략 계열 탐색",
+            "reason": "9 wallet 중 5 VPIN, 2 accumulation, 1 momentum, 1 volume_spike. VPIN 계열 상관 리스크 높음 — 동일 시장 조건에서 동시 손실 가능",
+            "suggested_action": "funding rate arbitrage, order flow imbalance, 또는 cross-exchange spread 등 VPIN과 낮은 상관관계 전략 계열 조사. 최소 1개 비-VPIN BEAR 전략 확보 목표"
+          },
+          {
+            "type": "investigate",
+            "target": "paper trade 실적 데이터 부재",
+            "reason": "c170(SOL/XRP 배포) 이후 paper trade journal 실적이 평가 입력에 포함되지 않음. daemon이 실제로 신호를 생성하고 있는지, 레짐 게이트에 의해 완전 차단되어 있는지 확인 불가",
+            "suggested_action": "artifacts/paper-trades.jsonl 확인 — 최근 24h 내 거래 기록 존재 여부. 0건이면 레짐 게이트/stealth 게이트 설정 점검"
+          }
+        ],
+        "blockers": [
+          "vol_regime 사이징 로직이 risk_manager.py/capital_allocator.py에 실제 구현되어 있는지 미확인 — 백테스트 스크립트에만 존재할 가능성",
+          "paper trade 4 wallet의 실제 거래 발생 여부 미확인 — BEAR 레짐 + stealth_gate=true 조합으로 신호 0건일 수 있음",
+          "BEAR/Sideways 전용 전략 0개 — 현재 시장 환경에서 수익 기회 구조적 제한"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 (사이클 174 기준)\n\n✅ c174 vol_regime MDD -32% 개선 검증 완료 → daemon 배포 1순위\n❌ c177 adaptive filter: Sharpe Δ+0.008 개선 무의미 → 폐기\n❌ c177 OBV filter: n=17 통계 불충분, Sharpe 악화 → 폐기\n⚠️ VPIN 집중도 경고: 9 wallet 중 5개 VPIN 계열\n⚠️ paper wallet 4개 실거래 데이터 여전히 미확인\n🔍 BEAR 전용 전략 0개 — RSI MR / BB squeeze 탐색 시급\n📋 즉시 행동: vol_regime → vpin_eth 배포, paper 10거래 중간점검 설정"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-463358f7",
+      "timestamp": "2026-04-05T05:03:10.288479+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 179,
+        "new_backtests_since_last": 4,
+        "cycles_since_last": 5,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "deploy_ready",
+        "key_findings": [
+          "c182 BB Squeeze Independent: n=336 통계적으로 강건 (기존 VPIN 계열 n=27~135 대비 압도). 3-fold 전부 양수 Sharpe, 슬리피지 0.20%에서도 +8.596 유지",
+          "VPIN 진입 최적화 한계 도달 확인: c176(ADX필터)→c177(n확보)→c180(vol_mom) 3연속 baseline 대비 개선 실패. VPIN 프레임워크 내 추가 알파는 소진",
+          "c182는 비-VPIN 독립 전략으로 포트폴리오 비상관 다각화 효과 기대. VPIN 6개 wallet 편중 리스크를 구조적으로 해소할 첫 번째 후보",
+          "심볼별 편차 큼: ETH(+23.4)/DOGE(+23.8) vs XRP(+1.3)/AVAX(+4.0). XRP/AVAX 배포는 alpha 대비 complexity 비효율",
+          "c180 vol_mom_confirm: 헤드라인 Sharpe +36.554 / WR 66.7% / n=4200은 raw output과 불일치. 실제 최종 요약은 avg OOS +16.345, n=58, WR 41.1%. baseline 대비 Δ=0.000 — 순수 노이즈 필터, 개선 없음",
+          "현재 daemon은 VPIN 5개 wallet + volume_spike 1개 + momentum 1개 = 전략 상관도 극히 높음. bb_squeeze_independent 추가 시 실질적 분산 효과"
+        ],
+        "direction": "c182 BB Squeeze Independent를 ETH/DOGE/SOL 3심볼로 daemon paper wallet 배포하여 실전 신호 검증 단계 진입. 동시에 인접 파라미터 로버스트니스(sqTh=35~45, adx=22~28) 확인하여 과적합 여부 최종 점검. VPIN 계열 추가 진입 최적화는 ROI 대비 연구 비용이 높으므로 중단하고, 비-VPIN 계열 신규 메커니즘(funding rate, cross-exchange basis) 탐색으로 전환.",
+        "directives": [
+          {
+            "type": "deploy",
+            "target": "c182 bb_squeeze_independent — ETH/DOGE/SOL",
+            "reason": "avg OOS Sharpe +12.291, n=336 (통계 충분), 3-fold 전부 PASS, 슬리피지 0.20% 견고, BH 대비 전 심볼 초과수익. 비-VPIN 독립 전략으로 포트폴리오 비상관 다각화 효과",
+            "suggested_action": "bb_squeeze_independent 전략 클래스 구현 → daemon.toml에 bb_squeeze_eth/doge/sol 3개 paper wallet 추가 (initial_capital 각 500K). XRP/AVAX 제외 (Sharpe <5)"
+          },
+          {
+            "type": "investigate",
+            "target": "c182 파라미터 로버스트니스",
+            "reason": "단일 최적점(sqTh=40, adx=25, ema=20) 과적합 리스크 — 인접 파라미터 성능 균일성 미확인",
+            "suggested_action": "sqTh=[35,40,45] × adx=[22,25,28] × ema=[15,20,25] 27조합 3-fold WF 추가 검증. 인접 파라미터 Sharpe 편차 < 30% 확인"
+          },
+          {
+            "type": "investigate",
+            "target": "VPIN vs BB_squeeze 신호 상관관계",
+            "reason": "두 전략이 같은 시점에 진입하면 포트폴리오 분산 효과 없음. 비상관 확인 필수",
+            "suggested_action": "2024-06~2026-04 ETH 구간에서 VPIN 진입 시점과 BB_squeeze 진입 시점의 겹침 비율(Jaccard similarity) 산출. 겹침 < 20%이면 비상관 확인"
+          },
+          {
+            "type": "avoid",
+            "target": "VPIN 프레임워크 내 추가 진입 필터 연구",
+            "reason": "c176(ADX)→c177(n확보)→c180(vol_mom) 3연속 baseline 대비 개선 실패. 진입 최적화 수확 체감 한계 도달",
+            "suggested_action": "VPIN 진입 연구 종료 선언. VPIN은 현재 파라미터(c165+c168+c174) 고정 유지"
+          },
+          {
+            "type": "explore",
+            "target": "Funding rate / perpetual basis 전략",
+            "reason": "현재 전 전략이 spot 가격 기반. Funding rate는 VPIN/BB와 구조적 비상관이며, 크립토 고유 알파 소스",
+            "suggested_action": "Upbit 선물 미지원이므로 Binance funding rate 데이터를 외부 시그널로 활용 — funding rate > 0.05% 시 spot short bias, < -0.03% 시 long bias. 240m 캔들 ETH/BTC 3-fold WF"
+          },
+          {
+            "type": "explore",
+            "target": "RSI mean-reversion BEAR 전용 전략",
+            "reason": "평가자 이전 지시(c175)에서 미착수. 현재 daemon 전략 대부분 BULL 편향(active_regimes=[bull]). BEAR 구간 수익원 부재",
+            "suggested_action": "RSI<25 진입 → RSI>45 청산, 60m/240m, ETH/BTC, BTC gate 반전(SMA200 아래만), 3-fold WF. MDD 제한 엄격 적용"
+          },
+          {
+            "type": "monitor",
+            "target": "vpin_sol/xrp/doge paper wallet 거래 축적",
+            "reason": "c170-172에서 배포된 paper wallet들의 실거래 데이터가 백테스트 성과와 일치하는지 확인 필요. vpin_sol(과거 실패 이력 있음)은 특히 주의",
+            "suggested_action": "paper-trades.jsonl에서 vpin_sol/xrp/doge 최근 20거래 추출, 실제 WR/avg_return vs 백테스트 비교. 괴리 > 50%면 조기 경고"
+          }
+        ],
+        "blockers": [
+          "bb_squeeze_independent 전략 클래스가 src/crypto_trader/strategy/에 미구현 — daemon 배포 전 구현 필수",
+          "c182 인접 파라미터 로버스트니스 미검증 — 과적합 가능성 배제 안 됨",
+          "VPIN vs BB_squeeze 신호 겹침 비율 미측정 — 분산 효과 미확인"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 완료 (사이클 179)\n\n✅ c182 BB Squeeze Independent: Sharpe +12.3 | WR 61% | n=336\n→ 비-VPIN 독립 전략 확보 성공! 통계적 신뢰도 압도적\n→ ETH/DOGE 최강 (Sharpe +23), SOL 양호, XRP/AVAX 제외\n\n🚀 다음 단계:\n1. bb_squeeze_independent 전략 클래스 구현 → daemon paper 배포\n2. 인접 파라미터 로버스트니스 검증 (과적합 체크)\n3. VPIN↔BB 신호 겹침 분석 (비상관 확인)\n\n⛔ VPIN 진입 최적화 종료 선언 (3연속 개선 실패)\n🔍 신규 탐색: Funding rate 전략 + RSI MR BEAR 전용"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-572e0bfc",
+      "timestamp": "2026-04-05T06:22:20.462007+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 184,
+        "new_backtests_since_last": 2,
+        "cycles_since_last": 5,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "rsi_mr_bear",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "promising",
+        "key_findings": [
+          "c188 OBV+MACD: Sharpe -27.6% vs c179 베이스라인(15.3 vs 42.9) — 명확한 REJECT. XRP 거래 0건으로 심볼 커버리지도 실패",
+          "c190 vol_mom_gate: Sharpe +29.3 (c186 대비 +2.8 개선)이나 n=26으로 통계 불충분(n<30). SOL Fold1 거래 0건은 구조적 약점",
+          "BB squeeze 729조합 100% 로버스트 확인 + VPIN Jaccard 13.2% 비상관 → 포트폴리오 분산 효과 유효",
+          "RSI MR BEAR n=60 Sharpe +12.193 — 통계 충분하나 F3 Sharpe 6.634로 Fold간 편차 큼(CV~40%). BEAR 전용 전략으로 조건부 PASS",
+          "volspike_btc n=15 / accumulation n=36 Sharpe 4.682 — daemon 내 약체 전략. 교체 또는 제거 검토 필요",
+          "c190 train Sharpe(19.2) < OOS Sharpe(29.3): 역과적합 징후 또는 OOS 윈도우 편향 가능성 — 추가 Fold 검증 필요"
+        ],
+        "direction": "c190 vol_mom_gate는 n≥45 확보를 위한 5-fold WF 재검증이 우선. c188 OBV+MACD는 폐기. accumulation/volspike 약체 전략은 RSI MR BEAR 또는 BB squeeze로 슬롯 교체 검토. 다음 연구 방향은 (1) 시간대 분산(4h→1h 멀티프레임), (2) 펀딩레이트 기반 신규 메커니즘, (3) regime-adaptive 가중치 동적 조정.",
+        "directives": [
+          {
+            "type": "investigate",
+            "target": "c190 vol_mom_gate (vLB=10, vMin=0.05, tpB=1.0)",
+            "reason": "n=26 통계 불충분 + SOL Fold1 거래 0건 + train<OOS 역전현상",
+            "suggested_action": "5-fold WF로 재검증하여 n≥45 확보. SOL 거래 0건 원인 분석(필터 과다 여부). train>OOS 정상화 확인 후 daemon 반영 판단"
+          },
+          {
+            "type": "avoid",
+            "target": "c188 OBV+MACD (obvE=30, mcF=16, mcSl=30, mcSg=9)",
+            "reason": "c179 대비 Sharpe -64% 악화, XRP 전 Fold 거래 0건, 추가 탐색 가치 없음",
+            "suggested_action": "OBV/MACD 이중확인 방향 폐기. 연구 자원을 다른 방향에 집중"
+          },
+          {
+            "type": "monitor",
+            "target": "RSI MR BEAR (rsiE=25, rsiX=50, sl=2%, mh=24)",
+            "reason": "Fold간 Sharpe 편차 큼(F1=13.6, F2=16.3, F3=6.6). BEAR 레짐 의존도 높아 BULL 전환 시 성과 급락 가능",
+            "suggested_action": "20거래 축적 후 실제 WR vs 백테스트 42.2% 괴리 점검. BULL 레짐 진입 시 자동 비활성화 로직 확인"
+          },
+          {
+            "type": "investigate",
+            "target": "accumulation_breakout (ONG/RAY) + volspike_btc",
+            "reason": "accumulation Sharpe 4.682(n=36), volspike n=15 — daemon 내 최약체. 자본 비효율",
+            "suggested_action": "20거래 추가 축적 후 Sharpe<5 지속 시 해당 슬롯을 BB squeeze 또는 RSI MR BEAR 심볼 확장으로 교체"
+          },
+          {
+            "type": "explore",
+            "target": "멀티타임프레임 신호 합성 (1h+4h)",
+            "reason": "현재 전 전략 단일 타임프레임. 1h 노이즈 필터링 + 4h 방향성 결합으로 n_trades 유지하며 WR 개선 가능",
+            "suggested_action": "VPIN 또는 BB squeeze 기반 1h entry + 4h trend confirmation 백테스트 설계"
+          },
+          {
+            "type": "explore",
+            "target": "펀딩레이트 / 거래소간 베이시스",
+            "reason": "현재 전략 모두 가격 기반 기술적 신호. 펀딩레이트는 비상관 수익원으로 포트폴리오 분산 극대화",
+            "suggested_action": "Upbit 현물 + Binance 선물 펀딩레이트 데이터 수집 파이프라인 구축 → 백테스트"
+          },
+          {
+            "type": "explore",
+            "target": "regime-adaptive 전략 가중치 동적 조정",
+            "reason": "BULL용(VPIN/BB) + BEAR용(RSI MR) 전략이 공존하나 자본 배분이 고정. 레짐별 자동 가중치 전환으로 효율 개선 가능",
+            "suggested_action": "macro regime signal 기반 wallet capital 동적 재배분 로직 설계. BULL시 VPIN/BB 비중↑, BEAR시 RSI MR 비중↑"
+          }
+        ],
+        "blockers": [
+          "c190 vol_mom_gate n<30 — daemon 반영 전 5-fold 재검증 필수",
+          "volspike_btc n=15로 성과 판단 불가 — 최소 30거래 축적 또는 교체 결정 필요",
+          "RSI MR BEAR 실거래 데이터 미축적 — 20거래 전까지 paper 유지"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 리포트 (사이클 184)\n\n✅ BB squeeze: 729/729 로버스트, VPIN과 13% 비상관 → 포트폴리오 분산 유효\n⚠️ c190 vol_mom_gate: Sharpe 29.3 유망하나 n=26 부족, 5-fold 재검증 필요\n❌ c188 OBV+MACD: Sharpe -64% 악화 → 폐기\n🔍 RSI MR BEAR: Sharpe 12.2 배포됨, Fold편차 주의 → 20거래 모니터링\n⚡ 약체 전략: accumulation(4.7) / volspike(n=15) → 교체 검토\n🎯 다음 방향: MTF 합성 | 펀딩레이트 | 레짐별 자본 동적 배분"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-5ab85e8d",
+      "timestamp": "2026-04-05T07:10:21.542386+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 192,
+        "new_backtests_since_last": 2,
+        "cycles_since_last": 8,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "rsi_mr_bear",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "investigate",
+        "key_findings": [
+          "VPIN ETH 핵심 전략(c192) n=26으로 통계적 유의성 미달 — Sharpe +30.947이지만 신뢰구간 극히 넓음",
+          "BB Squeeze가 유일한 통계+로버스트 완전 검증 전략 (n=336, 729/729 인접조합 100% PASS)",
+          "RSI MR BEAR ETH/BTC 전용 확정 — 알트코인 확장 전면 FAIL (c193), BEAR 보완재로 유효",
+          "VPIN exit 최적화 라인 포화 확정 (c194: 27/27 동일 결과) — 진입 메커니즘 전환 필요",
+          "활성 15개 지갑 중 live-eligible은 vpin_eth 1개뿐, 나머지 전부 paper 또는 BULL-gated → 실질 수익 창출 경로 극히 제한",
+          "volspike_btc Sharpe 0.66 — 포트폴리오 내 최약 전략, 자본 ₩1M 점유 대비 기여도 의문",
+          "c193 Q-score 진입게이트: 유망 태그(Sharpe +42.878)는 XRP Fold3 단일값 — 실제 avg OOS +17.271로 c179 대비 -25.607 악화"
+        ],
+        "direction": "VPIN exit 최적화는 종료. 다음 Ralph 사이클은 (1) 멀티타임프레임 1h+4h 앙상블 진입 또는 (2) 펀딩레이트 기반 신규 메커니즘 중 하나로 전환해야 함. 동시에 volspike_btc(Sharpe 0.66)의 자본을 BB squeeze 또는 RSI MR BEAR로 재배분하는 것을 검토할 것. paper 지갑 30거래 축적 후 live 전환 파이프라인을 체계화해야 실제 수익 경로가 열림.",
+        "directives": [
+          {
+            "type": "explore",
+            "target": "멀티타임프레임 앙상블 (1h 진입 + 4h 확인)",
+            "reason": "VPIN/BB squeeze 모두 단일 타임프레임(240m/60m) — 상위 프레임 확인 필터가 없어 노이즈 진입 구조적 한계",
+            "suggested_action": "VPIN ETH에 4h 트렌드 확인 게이트 추가 → 1h 진입 시 4h EMA/ADX 정합성 검사. n 증가 + 노이즈 필터 동시 기대"
+          },
+          {
+            "type": "explore",
+            "target": "펀딩레이트 기반 역추세/순추세 메커니즘",
+            "reason": "현재 전략 전부 가격/거래량 기반 — 시장 미시구조(funding rate) 미활용. Upbit는 현물이지만 Binance funding rate를 외부 신호로 활용 가능",
+            "suggested_action": "Binance perpetual funding rate API 연동 → funding 음수 극단(과매도) 시 현물 매수 진입 전략 백테스트"
+          },
+          {
+            "type": "explore",
+            "target": "regime-adaptive 전략 가중치 동적 조정",
+            "reason": "현재 전략별 고정 자본 배분 — BEAR 시 BULL-gated 전략 자본이 유휴. regime에 따라 RSI MR BEAR ↔ VPIN/BB squeeze 간 자본 동적 이동 시 자본 효율 증가",
+            "suggested_action": "macro regime 신호 기반 자본 재배분 로직 설계 → BEAR 시 RSI MR BEAR 비중 확대, BULL 시 momentum/VPIN 비중 확대"
+          },
+          {
+            "type": "investigate",
+            "target": "VPIN ETH (c192) 통계적 유의성",
+            "reason": "n=26 (fold당 4~11건)은 Sharpe +30.947의 신뢰구간을 ±15 이상으로 확대 — 실전 성과 예측 불가 수준",
+            "suggested_action": "VPIN ETH를 더 긴 기간(2021~) 또는 더 짧은 타임프레임(60m)으로 n≥60 확보 백테스트 재실행. 현재 Sharpe는 참고값으로만 취급"
+          },
+          {
+            "type": "avoid",
+            "target": "VPIN exit 파라미터 추가 탐색",
+            "reason": "c194에서 27/27 전 조합이 c192와 동일 결과 — 구조적 상한선 확정. trail stage2, hold extend 모두 발동 없음",
+            "suggested_action": "exit 최적화 라인 영구 종료. 향후 VPIN 개선은 진입 조건 또는 타임프레임 변경으로만 접근"
+          },
+          {
+            "type": "investigate",
+            "target": "volspike_btc_wallet 존속 여부",
+            "reason": "Sharpe 0.66, WR 47%, 15 trades/90d — 포트폴리오 내 최저 성과. ₩1M(17.5%) 자본 점유 대비 기여 미미. BULL-gated이므로 현재 BEAR에서 완전 유휴",
+            "suggested_action": "volspike_btc paper 실적 검토 → Sharpe < 1.0 지속 시 자본을 bb_squeeze_eth(검증 완료, 로버스트 100%)로 이전"
+          },
+          {
+            "type": "monitor",
+            "target": "vpin_sol/xrp/doge/avax paper 지갑",
+            "reason": "4개 신규 VPIN 확장 지갑 paper 모드 — 30거래 축적 기준 미달. 특히 XRP(n=27), AVAX(fold n=8~19) 통계적 경계",
+            "suggested_action": "paper 거래 수 주간 모니터링. n≥30 달성 지갑부터 순차 live 전환 심사. AVAX/XRP는 max_position_pct=0.05 유지"
+          },
+          {
+            "type": "monitor",
+            "target": "RSI MR BEAR ETH/BTC 실전 성과",
+            "reason": "c189 로버스트 검증(225조합 97.8% PASS) 후 daemon 배포 완료 — 백테스트 Sharpe +12.193 대비 실전 괴리 모니터링 필요",
+            "suggested_action": "paper 20거래 후 백테스트 WR(42.2%), avg_ret, MDD와 비교. 편차 >30% 시 파라미터 재검토"
+          }
+        ],
+        "blockers": [
+          "VPIN ETH n=26 통계 불충분 — live 자본 ₩2M 배치 중이나 성과 신뢰도 낮음. 긴급하지 않으나 n 확보 백테스트 병행 권고",
+          "paper→live 전환 기준 미정립 — 30거래 축적 기준만 존재, Sharpe/WR/MDD 실전 임계값 미설정",
+          "BEAR 레짐에서 수익 창출 가능 전략이 RSI MR BEAR(신규 배포, 미검증) 단 1개 — 포트폴리오 BEAR 노출 취약"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 보고 (c192 기준)\n\n🔴 VPIN ETH: Sharpe +30.9 BUT n=26 통계 불충분 — exit 최적화 포화 확정(c194)\n🟢 BB Squeeze: 729조합 100% PASS, n=336 — 가장 신뢰할 수 있는 전략\n🟡 RSI MR BEAR: Sharpe +12.2, ETH/BTC 전용 확정 — 알트 확장 불가\n⚠️ volspike_btc: Sharpe 0.66 — 자본 재배분 검토 필요\n\n📌 다음 방향:\n1️⃣ 멀티타임프레임 1h+4h 앙상블\n2️⃣ 펀딩레이트 기반 신규 메커니즘\n3️⃣ regime-adaptive 자본 동적 재배분\n\n🚧 블로커: paper→live 전환 기준 체계화 필요"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-92710b5f",
+      "timestamp": "2026-04-05T08:45:18.269688+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 196,
+        "new_backtests_since_last": 2,
+        "cycles_since_last": 4,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "rsi_mr_bear",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "investigate",
+        "key_findings": [
+          "VPIN 전방위 최적화 완전 소진 — 진입(c190-192), 출구(c192), 60m 이식(c197), MTF 앙상블(c198), RoC+RSI 필터(c198) 전부 baseline 대비 개선 불가 또는 n 부족",
+          "c198 VPIN RoC+RSI divergence avg Sharpe +30.947이나 n=26 (통계 불충분, fold당 4~11건) — deploy 불가, 추가 필터가 신호를 소멸시키는 구조적 한계 재확인",
+          "펀딩레이트 역추세 전략(c200) 영구 FAIL — ETH 음수 펀딩 극단 136건/4년, 신호 밀도 구조적 부족으로 단독 alpha 불가",
+          "VPIN ETH는 240m(4h) 단일 TF에 구조적 귀속 확정 — 60m에서 Sharpe -13.340, WR 15.1%로 랜덤 이하",
+          "평가자 제안 3대 축(VPIN 최적화, MTF 앙상블, 펀딩레이트) 모두 소진 — 완전히 새로운 alpha 소스 탐색 전환 필수",
+          "현행 daemon 전략 중 live 가동은 vpin_eth(₩2M) + momentum_sol(₩1.2M) + volspike_btc(₩1M) = ₩4.2M만 실질 운용, 나머지 ₩1.5M+ paper 대기 중"
+        ],
+        "direction": "VPIN/펀딩레이트 두 축 모두 소진됨. 다음 사이클은 기존 daemon 전략의 실전 성과 모니터링 강화와 동시에 완전 신규 alpha 3방향 탐색으로 전환해야 함: (1) 김프(kimchi premium) 기반 Upbit-Binance 괴리 역추세, (2) 크로스심볼 페어트레이딩(ETH/SOL 스프레드), (3) macro regime-adaptive 자본 동적 재배분(BEAR시 rsi_mr_bear 비중 확대 + BULL 전환 시 momentum 즉시 활성화). 특히 현재 BEAR 레짐에서 대부분 wallet이 유휴 상태이므로 regime-adaptive 재배분이 단기 ROI 개선에 가장 직접적.",
+        "directives": [
+          {
+            "type": "explore",
+            "target": "김프(kimchi premium) 기반 진입 전략",
+            "reason": "Upbit 현물 vs Binance 현물 가격 괴리는 한국 시장 고유 alpha로, 기존 기술적 지표와 완전 비상관. 김프 축소 시점 매수 → 김프 확대 시 매도의 평균회귀 구조",
+            "suggested_action": "Binance+Upbit 실시간 가격 데이터로 김프 히스토리 구축 → 240m 기준 김프 z-score 역추세 백테스트. 진입: 김프 < -1σ + BTC>SMA200, 청산: 김프 > 0 또는 max_hold"
+          },
+          {
+            "type": "explore",
+            "target": "크로스심볼 스프레드 트레이딩 (ETH/SOL ratio)",
+            "reason": "단일 심볼 추세/역추세 alpha가 포화된 상태에서 상대가치(pair) 전략은 새로운 차원의 alpha 제공 가능. ETH/SOL 비율의 평균회귀 특성 검증 필요",
+            "suggested_action": "ETH/SOL 가격비율 240m 시계열 구축 → Bollinger Band 또는 z-score 기반 스프레드 역추세. 한쪽만 long(Upbit 현물 제약) → ratio 저점에서 SOL 매수, 고점에서 ETH 매수"
+          },
+          {
+            "type": "explore",
+            "target": "regime-adaptive 자본 동적 재배분",
+            "reason": "현재 BEAR 레짐에서 momentum_sol/volspike_btc/accumulation wallet 전부 유휴(active_regimes=[bull]). rsi_mr_bear만 BEAR에서 작동(Sharpe +12.193) — BEAR시 유휴 자본을 rsi_mr_bear로 이동하면 자본 효율 즉시 개선",
+            "suggested_action": "capital_allocator.py에 regime 연동 재배분 로직 추가: BEAR 진입 시 momentum_sol ₩1.2M → rsi_mr_bear로 임시 이전, BULL 복귀 시 자동 환원. 백테스트로 재배분 빈도/비용 검증"
+          },
+          {
+            "type": "monitor",
+            "target": "vpin_sol/xrp/doge/avax paper wallets",
+            "reason": "c165-172에서 배포된 4개 paper wallet이 30거래 미축적 상태. 실전 성과 확인 없이 live 전환 불가",
+            "suggested_action": "paper 거래 n≥30 도달 시점에서 backtest 대비 Sharpe 괴리율 점검. 괴리 > 30%면 파라미터 재검증"
+          },
+          {
+            "type": "avoid",
+            "target": "VPIN ETH 추가 필터/파라미터 최적화",
+            "reason": "c165→c200까지 35사이클에 걸쳐 진입필터(body/RSI/stealth/vol_regime/VPIN_RoC), 출구(trailing/regime_hold/graduated), TF 이식(60m/1h), MTF 앙상블 전부 실패 또는 baseline 미개선. 과적합 위험 극대화 구간",
+            "suggested_action": "VPIN ETH는 현행 c168 파라미터로 동결. 추가 최적화 시도 금지"
+          },
+          {
+            "type": "avoid",
+            "target": "펀딩레이트 단독 전략",
+            "reason": "c200에서 실제 Binance 데이터 4667건으로 검증 — ETH 음수 극단 136건/4년, Sharpe +0.505로 alpha 부재 확정",
+            "suggested_action": "단독 전략 영구 종료. 향후 기존 전략의 보조 확인 필터로만 재검토 가능"
+          },
+          {
+            "type": "investigate",
+            "target": "volspike_btc 실전 vs 백테스트 괴리",
+            "reason": "c199 재검증에서 BULL Sharpe +15.862이나 F3(BEAR) -3.310. 현재 BEAR 레짐에서 active_regimes=[bull]로 비활성이므로 당장 손실은 없으나, BULL 전환 시 F2(Sharpe +4.724, WR 37.5%) 수준의 저성과 가능성 존재",
+            "suggested_action": "BULL 전환 초기 10거래까지 paper 유지 후 Sharpe > 3.0 확인 시 live 전환"
+          }
+        ],
+        "blockers": [
+          "BEAR 레짐 유휴 자본 ₩2.2M+(momentum_sol+volspike_btc) 무수익 방치 — regime-adaptive 재배분 미구현",
+          "paper wallet 4개(vpin_sol/xrp/doge/avax) 실전 검증 미완 — live 전환 판단 불가",
+          "신규 alpha 소스(김프/페어트레이딩) 데이터 파이프라인 미구축"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 사이클 196 전략 평가 완료\n\n🔴 VPIN 최적화 35사이클 전방위 소진 확정\n🔴 펀딩레이트 역추세 FAIL (Sharpe +0.5, n=19)\n🔴 VPIN 60m 이식 CATASTROPHIC FAIL (Sharpe -13.3)\n\n⚠️ 현재 BEAR 레짐 — 유휴자본 ₩2.2M+ 무수익\n✅ rsi_mr_bear(Sharpe +12.2) BEAR 전용 가동 중\n\n🔍 다음 방향 3축:\n1️⃣ 김프(kimchi premium) 역추세 — 한국 고유 alpha\n2️⃣ ETH/SOL 크로스심볼 스프레드 트레이딩\n3️⃣ regime-adaptive 자본 동적 재배분 (BEAR→rsi_mr_bear 집중)\n\n📌 VPIN ETH c168 파라미터 동결, 추가 최적화 금지"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-21a115c1",
+      "timestamp": "2026-04-05T09:32:52.871920+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 200,
+        "new_backtests_since_last": 3,
+        "cycles_since_last": 4,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "rsi_mr_bear",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "poor",
+        "key_findings": [
+          "5연속 사이클(c196~c200) c179 베이스라인(+42.878) 돌파 실패 — 탐색 축 고갈 심각",
+          "c203 ADX DI 방향성 게이트: 유효 조합 0/27, 완전 무효. DI+>DI- 조건이 VPIN 역추세 진입을 100% 차단",
+          "c205 Donchian Breakout: avg OOS +9.542로 threshold(5.0) 통과하나 F3 +0.776 급감쇠 — 최근 4개월 횡보장에서 추세추종 alpha 소멸",
+          "c205 F3 n=17(통계 불충분) — 17거래로 Sharpe 유의성 판단 불가, 실전 배포 근거 부재",
+          "김프(+1.895), 스프레드(+0.642), regime-adaptive(-0.158), 펀딩레이트(+0.505), CMF gate(+13.083 but 악화) — 5개 신규 alpha 축 모두 소진",
+          "c179 vpin_multi vol regime adaptive가 여전히 유일한 daemon-grade 전략. 단일 전략 의존도 위험"
+        ],
+        "direction": "5사이클 연속 실패로 기존 탐색 축(필터 추가, 신규 독립전략, 크로스심볼) 모두 소진. 다음은 인프라 레벨 변경이 필요: (1) 60m 타임프레임으로 c179 VPIN 재검증(신호 밀도 4배, n 확보), (2) VWAP anchored deviation으로 역추세 가격 앵커 교체, (3) 기존 daemon 8전략 포트폴리오 상관관계 분석으로 자본 효율 개선. 신규 필터/게이트 추가는 중단하고 구조적 변경에 집중할 것.",
+        "directives": [
+          {
+            "type": "explore",
+            "target": "60m 타임프레임 c179 VPIN 재검증",
+            "reason": "c179 파라미터를 240m→60m 이식 시 신호 밀도 4배 증가, F3 n 부족 문제 해결 가능. 인프라 변경 최소(캔들 간격만 변경)",
+            "suggested_action": "c179 최적 파라미터(VPIN=0.35, MOM=0.0007, Hold=20×4=80봉 조정, CD=4) 60m 캔들로 3-fold WF 백테스트. Hold/CD를 60m 스케일로 재조정(×4) 후 별도 그리드 서치"
+          },
+          {
+            "type": "explore",
+            "target": "VWAP anchored deviation 역추세",
+            "reason": "기존 VPIN은 volume-price 기반, VWAP은 가격-거래량 가중평균 이탈 기반 — 다른 alpha 축. Donchian(추세추종) 실패 후 역추세 내 새 앵커 필요",
+            "suggested_action": "VWAP 누적 편차 z-score 기반 역추세 전략 설계. anchored VWAP(일/주 시작점) + 표준편차 밴드 이탈 진입. 240m ETH/SOL/XRP 3-fold WF"
+          },
+          {
+            "type": "investigate",
+            "target": "daemon 8전략 포트폴리오 상관관계",
+            "reason": "개별 전략 최적화는 포화. 8전략 간 수익률 상관계수 미검증 — 중복 전략 제거만으로 MDD 개선 + 자본 효율 향상 가능",
+            "suggested_action": "daemon 8전략의 과거 12개월 일별 수익률 상관행렬 산출. 상관 > 0.7인 쌍 식별 → 약한 쪽 비활성화 또는 자본 재배분"
+          },
+          {
+            "type": "avoid",
+            "target": "ADX/DI 기반 추가 게이트",
+            "reason": "c203에서 DI+>DI- 조건이 VPIN 역추세와 구조적 충돌 확인 — 추세 확인 필터는 역추세 전략에 적용 불가",
+            "suggested_action": "ADX/DI 관련 게이트 탐색 영구 중단. 추세 확인 지표(ADX, DI, Aroon 등)는 역추세 전략에 사용하지 말 것"
+          },
+          {
+            "type": "avoid",
+            "target": "신규 독립 전략 단독 백테스트 (김프, 스프레드, 펀딩레이트 등)",
+            "reason": "5개 신규 alpha 축 모두 daemon 기준 미달. Upbit 현물 롱 전용 제약 하에서 신규 단독 alpha 발굴 ROI 극히 낮음",
+            "suggested_action": "신규 독립 전략 탐색 일시 중단. 기존 c179 기반 구조 변경(타임프레임, 앵커 교체)에 집중"
+          },
+          {
+            "type": "monitor",
+            "target": "c179 daemon 실전 성과 vs 백테스트 괴리",
+            "reason": "c205 F3 횡보장 alpha 감쇠가 c179에도 영향 가능. 최근 4개월 daemon 실제 Sharpe 확인 필요",
+            "suggested_action": "daemon PnL 로그에서 최근 4개월(2025-12~2026-03) 실제 Sharpe/WR 산출 → c179 F3 OOS 대비 괴리 > 30%이면 파라미터 재최적화 트리거"
+          }
+        ],
+        "blockers": [
+          "c179 daemon 실전 4개월 성과 데이터 미확인 — 백테스트 F3 구간과 실전 괴리 검증 필요",
+          "60m 캔들 데이터 파이프라인 미구축 — 60m VPIN 백테스트 전 데이터 수집/캐시 인프라 선행 필요",
+          "포트폴리오 상관관계 분석 도구 미구현 — 8전략 동시 수익률 추출 기능 필요"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 평가자 리포트 — 사이클 196~200\n\n🔴 5연속 사이클 c179(+42.878) 돌파 실패\n⚠️ c205 Donchian +9.542 통과하나 F3 +0.776 감쇠 → 배포불가\n❌ c203 ADX DI gate 완전 무효 (0/27 유효)\n❌ 김프/스프레드/펀딩/regime 4축 모두 소진\n\n🔜 다음 방향:\n1️⃣ 60m VPIN 재검증 (신호밀도 4배, 최우선)\n2️⃣ VWAP deviation 역추세 (새 가격앵커)\n3️⃣ 8전략 포트폴리오 상관분석 (중복 제거)\n\n⛔ ADX/DI gate + 신규 독립전략 탐색 중단"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-4d95d814",
+      "timestamp": "2026-04-05T10:29:24.781087+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 204,
+        "new_backtests_since_last": 3,
+        "cycles_since_last": 4,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "rsi_mr_bear",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "investigate",
+        "key_findings": [
+          "7사이클 연속 c179(+42.878) 미돌파 — 필터/게이트/TP-SL/타임프레임/앵커 축 모두 구조적 한계 도달",
+          "c207 Donchian F3 Sharpe +175.202는 n=2 통계 환각 (ETH 2거래만으로 WR 100%) — 실제 avg OOS +15.410으로 c179 대비 -27.5 열세",
+          "c210 slTighten=0.0 + c207 동일 결론: SL 동적 축소는 일관되게 유해 — fat-tail 수익 구조에서 조기손절이 양의 기대값 파괴",
+          "c209 n=13, c207 F3 n=9 — 최근 실험들의 OOS 거래수가 통계적 유의성 임계(n≥30) 미달, Sharpe 신뢰구간 극도로 넓음",
+          "현 daemon 8전략 포트폴리오 상관관계 미검증 — 개별 최적화 7사이클 소진했으나 포트폴리오 수준 자본효율 분석은 0회 수행",
+          "슬리피지 내성은 양호: c210 0.05%→0.20% 구간 Sharpe 17.7→14.4 (선형 감소, 급락 없음)"
+        ],
+        "direction": "단일 전략 파라미터 최적화는 구조적 한계에 도달했습니다. 다음 단계는 (1) daemon 8전략 포트폴리오 상관관계 분석으로 자본 재배분 효율을 검증하고, (2) 완전히 새로운 alpha 축(multi-TF ensemble 또는 cross-asset lead-lag)을 탐색해야 합니다. c179/c199를 건드리지 말고 포트폴리오 레벨로 시야를 올리세요.",
+        "directives": [
+          {
+            "type": "investigate",
+            "target": "daemon 8전략 포트폴리오 상관관계",
+            "reason": "개별 전략 7사이클 최적화 소진, 포트폴리오 수준 분석 0회 — 전략 간 수익 상관계수, 동시 드로다운 확률, 자본 가중치 최적화 미검증",
+            "suggested_action": "8전략 일별 수익률 시계열 추출 → 상관행렬 + 동시 MDD 분석 → mean-variance 최적 가중치 산출. 상관>0.7인 전략 쌍 식별하여 잉여 자본 재배분"
+          },
+          {
+            "type": "explore",
+            "target": "Cross-asset lead-lag (BTC→ALT 선행지표)",
+            "reason": "현재 모든 전략이 단일 심볼 내 시그널만 사용 — BTC 가격/거래량이 ALT 4~12시간 선행하는 패턴은 미탐색 alpha 축",
+            "suggested_action": "BTC 240m 캔들 vs ETH/SOL/XRP 수익률 cross-correlation 분석 → lag 4~12시간 구간에서 유의미한 선행성 발견 시 BTC-gated 진입 시그널 설계"
+          },
+          {
+            "type": "explore",
+            "target": "Multi-timeframe ensemble (240m+60m 이중 확인)",
+            "reason": "60m 단독(c208 FAIL)과 240m 단독 모두 한계 — 240m 방향성 + 60m 타이밍 결합은 미탐색. 상위TF 추세확인+하위TF 정밀진입은 고전적이나 본 시스템에서 미검증",
+            "suggested_action": "240m VPIN 시그널 발생 시 60m 캔들에서 pullback 진입 타이밍 최적화. c179 파라미터 고정 + 60m entry refinement만 변수로 WF 실행"
+          },
+          {
+            "type": "avoid",
+            "target": "c179 기반 추가 필터/게이트/TP-SL 변형",
+            "reason": "7사이클(c204~c210) 연속 실패 — squeeze/vol surge/VWAP/Donchian/adaptive TP-SL/60m 단독 모두 소진. 동일 축 반복은 시간 낭비",
+            "suggested_action": "c179 파라미터를 frozen baseline으로 확정. 향후 c179 직접 변형 실험 금지"
+          },
+          {
+            "type": "monitor",
+            "target": "c199 BB squeeze independent (daemon 활성)",
+            "reason": "c199 OOS +51.425가 현 최고이나 n=14, XRP 0 trades — 실전에서 XRP 자본 유휴화 발생 중일 가능성",
+            "suggested_action": "daemon bb_squeeze_independent의 최근 30일 실거래 수/심볼별 분포 확인. XRP 미거래 확인 시 해당 자본을 다른 전략으로 재배분"
+          },
+          {
+            "type": "explore",
+            "target": "비대칭 포지션 사이징 (Kelly/half-Kelly)",
+            "reason": "현재 고정 포지션 사이징 — 전략별 edge 크기에 비례한 자본 배분은 미적용. Sharpe 개선 없이 기대수익률 향상 가능한 유일한 축",
+            "suggested_action": "c179/c199 OOS 거래별 수익률 분포로 Kelly fraction 산출 → half-Kelly 적용 시 포트폴리오 CAGR/MDD 변화 시뮬레이션"
+          }
+        ],
+        "blockers": [
+          "포트폴리오 상관관계 분석 미완료 — 8전략 동시 운용의 실제 분산효과 불명, 자본 재배분 근거 없음",
+          "c199 XRP 0 trades 문제 — daemon에서 bb_squeeze가 XRP 자본을 유휴화하고 있을 가능성 확인 필요",
+          "c207 Donchian F3 n=9, c209 n=13 — 통계적 유의성 미달로 daemon 배포 판단 불가"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 리포트 (사이클 204)\n\n🔴 7사이클 연속 c179(+42.878) 미돌파\n→ 필터/게이트/TP-SL 모든 축 구조적 한계 도달\n\n⚠️ c210 시그널강도 TP/SL: Sharpe +17.655 (c179 대비 -58%)\n→ SL 축소 유해, TP 확대도 기존 calibration 파괴\n\n📉 최근 실험 n<30 다수 — 통계적 신뢰도 부족\n\n🔄 다음 방향 전환 필요:\n1️⃣ daemon 8전략 포트폴리오 상관관계 분석 (최우선)\n2️⃣ Cross-asset BTC→ALT lead-lag 탐색\n3️⃣ Multi-TF ensemble (240m방향+60m타이밍)\n\n🚫 c179 직접 변형 실험 중단 권고"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-d5a5e0c7",
+      "timestamp": "2026-04-05T11:35:46.238749+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 208,
+        "new_backtests_since_last": 3,
+        "cycles_since_last": 4,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "rsi_mr_bear",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "promising",
+        "key_findings": [
+          "c213 Entry Quality Score(7-component) avg OOS Sharpe +37.362 — c179(+42.878) 이후 가장 근접(-5.5)이나 **n=26(통계 불충분, <30)**, Fold 1 n=4 극소 표본 → 헤드라인 Sharpe 신뢰도 낮음",
+          "8사이클 연속 c179(+42.878) 미돌파 확정 — 래칫 스탑(c212 +17.408), CMF/OBV(c203 +13.083), 스프레드(c204 +0.642), regime realloc(c201 -0.705) 전부 FAIL. 단일 전략 파라미터 최적화 구조적 한계 도달",
+          "c211 포트폴리오 분석 기반 자본 재배분 실행됨: bb_squeeze_eth 500K→2.3M(+360%), vpin_eth 2M→800K(-60%), vpin_avax 비활성화. bb_squeeze_eth(Sharpe +12.291, n=336, WR 60.9%)가 포트폴리오 앵커로 승격",
+          "Half-Kelly 시뮬레이션: 고정 5%→Half-Kelly 18.5% 시 CAGR +27.4%p 개선, MDD 0.4%, 파산 0% — 그러나 SAFE_DEFAULT_MAX_POSITION_PCT=10% 하드 한도와 충돌, b-ratio=2.0 근사 검증 필요",
+          "vpin_sol↔vpin_avax 상관 0.834 중복 — vpin_avax 비활성화로 해소됐으나, vpin_sol(paper)/vpin_doge(paper)/vpin_xrp(paper) 3개 지갑 모두 실거래 데이터 0건, forward 검증 미착수",
+          "cross-asset lead-lag(c213): BTC→ETH lag11 r=0.04, WR 57.2% — 독립 알파 불충분(r<0.05), 보조 게이트 가치만 존재"
+        ],
+        "direction": "c179 단일 전략 최적화는 구조적 한계 확정(8사이클 연속 미돌파). 다음 가치 창출 축은 (1) 포트폴리오 수준 최적화 — Half-Kelly 포지션 사이징 SAFE_MAX 상수 조정 여부 결정 후 적용, (2) c213 Entry Quality Score를 n≥50 확보 조건으로 재검증(OOS 윈도우 확장 또는 심볼 추가), (3) paper 지갑 3개(vpin_sol/xrp/doge)의 forward 검증 데이터 축적이 선행되어야 실질 포트폴리오 분산 효과 실현 가능.",
+        "directives": [
+          {
+            "type": "investigate",
+            "target": "Half-Kelly 포지션 사이징 적용 여부 (SAFE_DEFAULT_MAX_POSITION_PCT 10%→22%)",
+            "reason": "시뮬레이션 CAGR +27.4%p 개선이나 b-ratio=2.0 근사, 슬리피지 이상적 가정, 파산 0%는 몬테카를로 상한. 안전 상수 변경은 사용자 승인 필수(CLAUDE.md 규칙)",
+            "suggested_action": "실제 avg_win/avg_loss 비율로 b-ratio 검증 → half-Kelly 값 재계산. 상한 15%(보수적)으로 단계적 적용 검토. 10%→15%→22% 3단계 시뮬레이션 비교"
+          },
+          {
+            "type": "investigate",
+            "target": "c213 Entry Quality Score 7-component (scMin=1.5 tpSM=0.0 slSM=0.10 trSM=0.00)",
+            "reason": "avg OOS +37.362로 c179 이후 최근접이나 n=26 통계 불충분. Fold 1 n=4, Fold 2/3 n=11 — 모든 fold n<15. 헤드라인 Sharpe가 극소 표본에서 추출된 고분산 추정치",
+            "suggested_action": "심볼 추가(DOGE/AVAX/LINK) 또는 OOS 윈도우 12개월→18개월 확장으로 n≥50 확보 후 재검증. n≥30 통과 시 c179 교체 후보로 승격"
+          },
+          {
+            "type": "monitor",
+            "target": "paper 지갑 3개 (vpin_sol/xrp/doge) forward 검증",
+            "reason": "c165 3-fold WF 통과했으나 실거래 데이터 0건. vpin_sol 과적합 전례(P0에서 비활성화). paper 30거래 미축적 상태에서 live 전환 불가",
+            "suggested_action": "각 지갑 paper 30거래 축적 후 live Sharpe / backtest Sharpe 비율 산출. 비율 <0.5이면 파라미터 재보정, <0.3이면 비활성화"
+          },
+          {
+            "type": "deploy",
+            "target": "bb_squeeze_eth ₩2.3M 유지 (현 배분 승인)",
+            "reason": "c182 3-fold WF PASS, n=336, WR 60.9%, Sharpe +12.291. c185 729/729(100%) 인접조합 Sharpe>5 ROBUST 확인. c211 Kelly 분석 최적 23%(현 24.2% 근접). 포트폴리오에서 유일한 비-VPIN 분산 전략",
+            "suggested_action": "현 ₩2.3M 배분 유지. 2주 실거래 Sharpe/WR 추적 후 live vs backtest 괴리 측정"
+          },
+          {
+            "type": "explore",
+            "target": "Multi-timeframe ensemble (240m + 60m VPIN 합성 시그널)",
+            "reason": "전 사이클에서 단일 TF(240m) 파라미터 최적화 한계 확정. 60m에서 lead-lag 음의상관(mean reversion) 발견(c213). 240m 추세 + 60m 역추세 합성은 미탐색 영역",
+            "suggested_action": "240m VPIN 진입 + 60m RSI/VPIN 타이밍 보조 시그널. c165 base에 60m 확인 게이트 추가, 3-fold WF 검증. 슬리피지 0.10~0.20% 스트레스 포함"
+          },
+          {
+            "type": "explore",
+            "target": "ML feature importance (XGBoost/LightGBM) — 7 entry component 가중치 최적화",
+            "reason": "c213 EQS 7-component가 +37.362로 유망하나 scMin 임계값이 수동 설정. ML feature selection으로 VPIN/mom/RSI_vel/vol/regime/body/squeeze 최적 가중치를 데이터 드리븐으로 결정 가능",
+            "suggested_action": "2022-2025 학습 + 2025-2026 OOS 검증. Feature importance 상위 3개 + 하위 2개 제거 후 WF 비교. 과적합 방지: 5-fold CV + early stopping"
+          },
+          {
+            "type": "explore",
+            "target": "bb_squeeze 심볼 확장 (ETH→SOL/DOGE 이미 배포, XRP/LINK 추가 스크리닝)",
+            "reason": "bb_squeeze가 포트폴리오 앵커(₩2.3M). SOL/DOGE ₩500K씩 이미 추가됐으나 WF 검증 결과 미보고. 추가 심볼로 분산 강화 가능",
+            "suggested_action": "bb_squeeze_sol/doge 3-fold WF 결과 확인. XRP/LINK/AVAX에 동일 파라미터 적용 스크리닝 → Sharpe>8, n≥30 통과 심볼 추가"
+          },
+          {
+            "type": "avoid",
+            "target": "c179 vpin_multi 단일 전략 파라미터 변형 재탐색",
+            "reason": "8사이클 연속 미돌파(c200~c212). 래칫 스탑, CMF/OBV, signal strength, MACD slope, 진입필터 전부 소진. 구조적 한계 확정",
+            "suggested_action": "c179 파라미터 변형 사이클 실행 금지. 포트폴리오 수준 또는 완전 새 알파(multi-TF, ML, EQS 확장)로만 탐색"
+          }
+        ],
+        "blockers": [
+          "Half-Kelly SAFE_MAX 충돌: 시뮬레이션 권장 18.5% vs 하드 한도 10% — 사용자 승인 없이 안전 상수 변경 불가",
+          "paper 지갑(vpin_sol/xrp/doge) 실거래 0건: forward 검증 미착수, live 전환 전 최소 30거래 필요",
+          "c213 EQS n=26 통계 불충분: Fold별 n=4~11로 Sharpe 추정치 고분산. 심볼/윈도우 확장 검증 전 배포 불가",
+          "bb_squeeze_sol/doge WF 검증 결과 미보고: daemon에 ₩500K씩 배분됐으나 별도 3-fold WF 미실시"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 **전략 평가 리포트 (c208, 사이클 204-208)**\n\n🔴 c179 8사이클 연속 미돌파 — 단일전략 최적화 한계 확정\n🟡 c213 EQS 7-component Sharpe +37.4 (c179 -5.5) — n=26 통계부족, 재검증 필요\n✅ bb_squeeze_eth ₩2.3M 앵커 승격 (Sharpe +12.3, n=336, 100% ROBUST)\n💰 Half-Kelly: CAGR +27.4%p 개선 가능 — SAFE_MAX 10% 충돌 해결 필요\n\n📌 **다음 우선순위**\n1️⃣ Half-Kelly b-ratio 실측 + 단계적 적용(10%→15%→22%)\n2️⃣ c213 EQS 심볼 확장 n≥50 재검증\n3️⃣ Multi-TF ensemble (240m+60m) 미탐색 영역\n\n⚠️ paper 3지갑 실거래 0건 — forward 검증 시급"
+      },
+      "adopted_by_ralph": null
+    },
+    {
+      "id": "eval-5ee8f74f",
+      "timestamp": "2026-04-05T12:15:01.395210+00:00",
+      "input_summary": {
+        "ralph_cycle_at_eval": 212,
+        "new_backtests_since_last": 4,
+        "cycles_since_last": 4,
+        "strategies_in_daemon": [
+          "volume_spike",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "momentum",
+          "accumulation_breakout",
+          "vpin",
+          "rsi_mr_bear",
+          "bollinger_mr"
+        ],
+        "traits_activated": [
+          "statistical_auditor",
+          "comparative_analyst",
+          "live_monitor",
+          "opportunity_scout"
+        ]
+      },
+      "verdict": {
+        "overall_grade": "investigate",
+        "key_findings": [
+          "c217 score ablation: 헤드라인 Sharpe +51.596은 SOL 단일 폴드(n=4) 체리픽. 실제 avg OOS +37.362이며 총 26거래로 통계 불충분. c199 대비 -14.063 악화.",
+          "c217 Fold1에서 SOL/XRP n=0 (nan Sharpe) — OOS 윈도우가 시그널 미생성 구간과 겹침. 3-fold 중 1개가 무효이므로 2-fold 결과에 불과.",
+          "c220 래칫 스탑 +3.436은 c216/c220 2회 일관 확인. slip=0.0020에서도 +18.273 PASS. 배포 가능 수준.",
+          "분할익절은 전략 특성 의존적 — donchian(추세추종) +4.893 vs vpin(주문흐름) 0. trailing stop이 이미 최적 청산 역할.",
+          "Half-Kelly 포지션 사이징이 c210→c211→c212 3사이클 연속 [investigate] 상태로 미결. 포트폴리오 리스크 최적화의 핵심 블로커.",
+          "bb_squeeze_link paper 배포 완료(c210)되었으나 forward 30거래 미달. 모니터링 진행 중."
+        ],
+        "direction": "c217 score ablation은 n=26으로 통계적 신뢰 불가, 추가 탐색 보류. 래칫 스탑 src/ 구현을 최우선으로 vpin_eth daemon 반영하고, Half-Kelly 사이징 시뮬레이션을 더 이상 미루지 말고 실행해야 함. bb_squeeze_link paper 30거래 축적 후 live 전환 판단 필요.",
+        "directives": [
+          {
+            "type": "deploy",
+            "target": "래칫 스탑 (RiskManager ratchet_be_trigger/lock_trigger/lock_pct)",
+            "reason": "c216+c220 2회 검증, +3.436 안정적, slip=0.0020 robust. 구현 리스크 낮음",
+            "suggested_action": "RiskManager에 래칫 파라미터 추가 → vpin_eth daemon.toml 반영 → paper 검증 1주"
+          },
+          {
+            "type": "investigate",
+            "target": "Half-Kelly 포지션 사이징 SAFE_MAX",
+            "reason": "3사이클 연속 미결. 현재 일률 10% 배분은 Sharpe/승률 차이를 무시. 자본 효율성 핵심 개선점",
+            "suggested_action": "현 포트폴리오 기준 half-Kelly 시뮬레이션 실행. 15% 상한 1단계 적용 후 결과 비교"
+          },
+          {
+            "type": "avoid",
+            "target": "c217 score ablation + adaptive hold 방향",
+            "reason": "총 26거래, Fold1 SOL/XRP n=0, c199 대비 -14.063 악화. 통계적으로 무의미한 결과에 추가 사이클 투입은 낭비",
+            "suggested_action": "score 기반 동적 홀드는 n≥100 확보 가능한 더 짧은 타임프레임이나 멀티심볼 풀에서 재시도하거나, 현재로서는 보류"
+          },
+          {
+            "type": "monitor",
+            "target": "bb_squeeze_link paper",
+            "reason": "Sharpe +7.151, n=42, slip robust이나 forward 데이터 미축적. 배포 판단은 30거래 후",
+            "suggested_action": "2주간 paper WR/Sharpe 추적. live Sharpe/backtest Sharpe 비율 0.7 이상이면 live 전환"
+          },
+          {
+            "type": "explore",
+            "target": "Multi-timeframe ensemble (240m VPIN + 60m RSI/VPIN)",
+            "reason": "평가자 [explore] 항목으로 미탐색. 진입 정밀도 향상 가능성. vpin 단일 타임프레임의 노이즈 필터링 기대",
+            "suggested_action": "60m VPIN/RSI를 보조 확인 시그널로 추가하는 2-timeframe 전략 프로토타입 백테스트"
+          },
+          {
+            "type": "explore",
+            "target": "donchian 분할익절 daemon 배포 (c219 결과)",
+            "reason": "c219 avg OOS +23.575, n=86 충분, WR 66.0%. 분할익절이 donchian에서 +4.893 확인됨",
+            "suggested_action": "분할익절 로직 src/ 구현 → donchian 지갑에 적용. SOL은 c215 파라미터 유지"
+          },
+          {
+            "type": "explore",
+            "target": "크로스 전략 상관관계 분석",
+            "reason": "8개 활성 전략 간 수익 상관관계 미분석. 동시 드로다운 리스크 미파악 상태",
+            "suggested_action": "활성 전략 8개의 일별 수익률 상관행렬 산출. 상관 0.7+ 쌍이 있으면 자본 재배분 검토"
+          }
+        ],
+        "blockers": [
+          "래칫 스탑 src/ 미구현 — RiskManager 수정 필요 (c216/c220 검증 완료, 코드만 남음)",
+          "Half-Kelly 시뮬레이션 미실행 — 3사이클 연속 대기 중, 사용자 승인 or 자율 실행 판단 필요",
+          "bb_squeeze_link forward 30거래 미달 — live 전환 판단 불가"
+        ],
+        "actionable": true,
+        "telegram_summary": "📊 전략 평가 리포트 (사이클 212)\n\n🔴 c217 score ablation: Sharpe +51.6은 체리픽(SOL n=4). 실제 26거래, c199 대비 -14 악화 → 보류\n✅ c220 래칫 스탑: +3.436 2회 검증, slip robust → src/ 구현 후 배포 최우선\n⚠️ Half-Kelly 사이징: 3사이클 연속 미결 → 즉시 시뮬레이션 필요\n📈 c219 donchian 분할익절: +23.575(n=86) 유망 → src/ 구현 대기\n👀 bb_squeeze_link: paper 모니터링 중 (30거래 대기)\n🔍 다음 탐색: 멀티타임프레임 앙상블, 크로스전략 상관분석"
+      },
+      "adopted_by_ralph": null
     }
   ],
   "self_review": {
-    "total_evaluations": 3,
+    "total_evaluations": 15,
     "actionable_rate": 1.0,
     "last_threshold_adjustment": null
   }

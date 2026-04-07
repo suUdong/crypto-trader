@@ -15691,3 +15691,549 @@ Top 3 OOS (3-fold WF):
 **결론**: 배포 완료. 1주간 paper 결과 모니터링 후 live 전환 판단.
 
 ---
+
+## 2026-04-05 12:19 UTC — c215최적+2tier분할익절(TP1조기확보)+ATR레짐적응형TP/SL배수(고변동TP확대+저변동SL타이트) 81조합 3-fold WF [ralph:c219_partial_tp_atr_regime_adaptive] 🌟[promising]
+
+**결과**: Sharpe +158.891 | WR 100.0% | trades 86
+
+
+<details><summary>raw output</summary>
+
+```
+KRW-SOL F3: Sharpe=-1.988  WR=33.3%  n=3  avg=-0.19%  MDD=-4.60%
+  KRW-SOL 평균: Sharpe=+7.658  총 trades=32
+  KRW-XRP F1: Sharpe=+23.826  WR=64.3%  n=14  avg=+6.25%  MDD=-12.12%
+  KRW-XRP F2: Sharpe=+27.906  WR=70.0%  n=10  avg=+3.23%  MDD=-2.53%
+  KRW-XRP F3: Sharpe=+158.891  WR=100.0%  n=3  avg=+3.52%  MDD=+0.00%
+  KRW-XRP 평균: Sharpe=+70.208  총 trades=27
+
+================================================================================
+=== c215 베이스라인 대비 비교 ===
+  c215 기준: avg_OOS=+18.682 F3=+15.099 SOL_avg=+10.482 F1_MDD=-13.03%
+  c219 최적: avg_OOS=+23.575 F3=+29.650 SOL_avg=+7.658 worst_MDD=-12.12%
+  Δ avg: +4.893 (개선)
+  Δ F3: +14.551 (개선)
+  Δ SOL: -2.824 (악화)
+  Δ MDD: +0.91%p (개선)
+
+================================================================================
+=== 분할익절 효과 분석 (partRatio별) ===
+  pRat=0.3: top10 avg Sharpe=+21.602  avg worst MDD=-12.12%
+  pRat=0.5: top10 avg Sharpe=+21.919  avg worst MDD=-12.12%
+  pRat=0.7: top10 avg Sharpe=+21.937  avg worst MDD=-12.12%
+
+=== ATR 레짐 적응 효과 분석 ===
+  hiTPBonus=0.0: top10 avg Sharpe=+23.263
+  hiTPBonus=0.5: top10 avg Sharpe=+18.926
+  hiTPBonus=1.0: top10 avg Sharpe=+16.652
+
+  loSLScale=0.70: top10 avg Sharpe=+21.866  SOL=+7.477
+  loSLScale=0.85: top10 avg Sharpe=+21.866  SOL=+7.477
+  loSLScale=1.00: top10 avg Sharpe=+21.827  SOL=+7.477
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: tp1M=2.5 pRat=0.7 hiTP=0.0 loSL=0.70
+  (c205 고정: dcU=30 dcL=10 adx=25)
+  (c207 고정: aPLB=30 vRat=1.0 vSMA=20 rsiC=100 tpVS=0.5)
+  (c210 고정: trail=2.5 tpM=3.0 slM=1.5 mH=30 aPTh=30 hDec=0)
+  (c215 고정: slSOL=0.7 slXRP=0.85)
+  avg OOS Sharpe: +23.575 PASS
+  F3 Sharpe: +29.650 PASS
+  SOL avg Sharpe: +7.658 FAIL
+  worst MDD: -12.12% PASS(개선)
+  total trades: 86
+  F1: Sharpe=+20.492  WR=61.5%  trades=39  avg=+3.87%  MDD=-12.12%
+  F2: Sharpe=+20.584  WR=61.5%  trades=39  avg=+2.35%  MDD=-11.57%
+  F3: Sharpe=+29.650  WR=75.0%  trades=8  avg=+2.25%  MDD=-4.60%
+
+Sharpe: +23.575
+WR: 66.0%
+trades: 86
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 12:37 UTC — 모멘텀지속성+심볼별hold+레짐cooldown 72조합 3-fold WF (c199 기반) [ralph:c220_mom_persist_sym_hold_regime_cd] 🌟[promising]
+
+**결과**: Sharpe +51.425 | WR 75.0% | trades 4200
+
+
+<details><summary>raw output</summary>
+
+```
+DD=-0.35%
+  KRW-SOL Fold 2024-04-01~2025-01-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-XRP Fold 2024-04-01~2025-01-31: Sharpe=+nan  WR=0.0%  n=0  avg=+0.00%  MDD=+0.00%
+  KRW-ETH Fold 2024-10-01~2025-07-31: Sharpe=+30.644  WR=75.0%  n=4  avg=+2.71%  MDD=-0.93%
+  KRW-SOL Fold 2024-10-01~2025-07-31: Sharpe=+48.355  WR=75.0%  n=4  avg=+3.60%  MDD=-0.74%
+  KRW-XRP Fold 2024-10-01~2025-07-31: Sharpe=+7.403  WR=33.3%  n=3  avg=+0.25%  MDD=-0.38%
+  KRW-ETH Fold 2025-04-01~2026-04-05: Sharpe=+25.408  WR=50.0%  n=4  avg=+2.34%  MDD=-1.26%
+  KRW-SOL Fold 2025-04-01~2026-04-05: Sharpe=+51.425  WR=75.0%  n=4  avg=+3.69%  MDD=-0.43%
+  KRW-XRP Fold 2025-04-01~2026-04-05: Sharpe=+42.770  WR=66.7%  n=3  avg=+1.49%  MDD=-0.38%
+  KRW-ETH 평균: Sharpe=+31.119  총 trades=12
+  KRW-SOL 평균: Sharpe=+49.890  총 trades=8
+  KRW-XRP 평균: Sharpe=+25.087  총 trades=6
+
+================================================================================
+=== c199 베이스라인 대비 비교 ===
+  c199 기준 (regime dual exit): avg_OOS=+51.425
+  c217 기준 (score ablation): avg_OOS=+37.362
+  c220 최적: avg_OOS=+35.324
+  Δ vs c199: -16.101 (악화)
+  Δ vs c217: -2.038 (악화)
+
+================================================================================
+=== 최종 요약 ===
+★ OOS 최적: mP=1 rCD=1.0 sH=1.0 xH=0.7 mTP=0.5
+  (c199 고정: rTh=60 hiTP=1.0 hiTr=2.0 loSL=0.2)
+  (c192 고정: ttA=6 ttF=3.0)
+  (c190 고정: vMomLB=10 vMomMin=0.05 tpBonus=1.0)
+  (c186 고정: body=0.5 rsiD=6 sLB=10 sPth=50)
+  (c182 고정: vPth=60 vPLB=60)
+  (c176 고정: atrLB=60 atrTh=30)
+  (c165 고정: VPIN=0.35 MOM=0.0007 Hold=20 CD=4)
+  (c164 고정: dLB=3 SL=0.4-0.2 vMul=0.8)
+  (TP/Trail: TP=4.0+2.0 Trail=0.3+0.2 minP=1.5 BTC_SMA=200)
+  (BB 고정: bbP=20 bbS=2.0 sqTh=20 sqLB=30 expB=2)
+  avg OOS Sharpe: +35.324 PASS
+  train Sharpe: +19.631
+  Fold 1: Sharpe=+37.304  WR=75.0%  trades=4  avg=+2.23%  MDD=-0.35%
+  Fold 2: Sharpe=+28.801  WR=61.1%  trades=11  avg=+2.19%  MDD=-0.69%
+  Fold 3: Sharpe=+39.868  WR=63.9%  trades=11  avg=+2.51%  MDD=-0.69%
+
+Sharpe: +35.324
+WR: 64.4%
+trades: 26
+
+```
+
+</details>
+
+---
+
+## 2026-04-05 12:44 UTC — stealth_3gate 전체 마켓 스캔 (GPU) [ralph:stealth_sol_sweep] 🔶[marginal]
+
+**결과**: Sharpe +0.700 | WR 52.6% | trades 347536
+
+
+<details><summary>raw output</summary>
+
+```
+7536  mean= -0.498%  wr=43.7%
+  all_stealth            n=45008  mean= -0.443%  wr=43.4%
+
+======================================================================
+  [2] Threshold Grid  (top 10 by edge)
+======================================================================
+    RS<   Acc>       N      Mean       WR      Edge
+    0.7    1.0      20   +8.415%   65.0%   +8.907%
+    0.7    1.2      10   +4.641%   60.0%   +5.133%
+    0.9    2.0      16   +2.962%   56.2%   +3.454%
+    0.8    1.5      11   +0.686%   45.5%   +1.178%
+    1.0    2.0     513   +0.045%   43.7%   +0.537%
+    1.0    1.5    5743   -0.142%   43.9%   +0.355%
+    1.0    1.2   22402   -0.360%   43.8%   +0.140%
+    0.9    1.5     230   -0.357%   43.9%   +0.135%
+    1.0    1.0   45008   -0.443%   43.4%   +0.055%
+    0.9    1.0    2939   -0.599%   43.3%   -0.108%
+
+======================================================================
+  [3] Signal Strength Quartiles
+======================================================================
+  Q4 (strongest)          n=11252  mean= -0.449%  wr=43.2%
+  Q3                      n=11252  mean= -0.273%  wr=43.8%
+  Q2                      n=11252  mean= -0.495%  wr=43.4%
+  Q1 (weakest)            n=11252  mean= -0.556%  wr=43.2%
+
+======================================================================
+  [4] Joint BTC × Alt Stealth Quadrants  (fwd=T+12봉)
+======================================================================
+  Quadrant                    Win    AltMean    AltWR    BTCMean    BTCWR
+  BTC+Alt stealth             270    -0.634%   42.8%    -0.172%   52.6%
+  BTC only stealth              2    -4.887%    9.2%    -0.612%   50.0%
+  Alt only stealth           2419    -0.507%   43.5%    -0.143%   47.5%
+  No stealth                   93    +0.399%   52.2%    +0.675%   62.4%
+
+  [BTC Stealth Self-Performance]
+  BTC stealth ON         n=  272  mean= -0.175%  wr=52.6%
+  BTC stealth OFF        n= 2512  mean= -0.113%  wr=48.0%
+
+Report saved → artifacts/stealth-deep-result.md
+
+```
+
+</details>
+
+---
+
+## 2026-04-06 22:54 UTC — TruthSeeker 전략 파라미터 스윕 [ralph:truth_seeker_sweep] 🔻[poor]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+
+
+<details><summary>raw output</summary>
+
+```
+--- Starting Full Profitability Backtest: Truth-Seeker (ETH) ---
+Initializing backtest engine...
+
+```
+
+</details>
+
+---
+
+## 2026-04-06 23:41 UTC — vpin_eth 파라미터 그리드 [ralph:vpin_eth_grid] 🌟[promising]
+
+**결과**: Sharpe +7.461 | WR 27.6% | trades 446
+
+
+<details><summary>raw output</summary>
+
+```
+=== vpin_eth 4h 그리드 탐색 ===
+심볼: KRW-ETH  기간: 2022-01-01 ~ 2026-12-31
+데이터: 8585행
+총 조합: 432개
+
+=== Top 15 (Sharpe 기준) ===
+   vh      vm  hold    TP     SL |  Sharpe     WR    avg%  trades
+------------------------------------------------------------------------
+ 0.55  0.0005    18 0.060  0.008 |  +7.461 27.6%  +0.45%     446
+ 0.60  0.0005    18 0.060  0.008 |  +7.461 27.6%  +0.45%     446
+ 0.65  0.0005    18 0.060  0.008 |  +7.461 27.6%  +0.45%     446
+ 0.70  0.0005    18 0.060  0.008 |  +7.461 27.6%  +0.45%     446
+ 0.55  0.0005    18 0.050  0.008 |  +7.461 28.2%  +0.42%     468
+ 0.60  0.0005    18 0.050  0.008 |  +7.461 28.2%  +0.42%     468
+ 0.65  0.0005    18 0.050  0.008 |  +7.461 28.2%  +0.42%     468
+ 0.70  0.0005    18 0.050  0.008 |  +7.461 28.2%  +0.42%     468
+ 0.55  0.0003    18 0.050  0.008 |  +7.366 28.1%  +0.41%     469
+ 0.60  0.0003    18 0.050  0.008 |  +7.366 28.1%  +0.41%     469
+ 0.65  0.0003    18 0.050  0.008 |  +7.366 28.1%  +0.41%     469
+ 0.70  0.0003    18 0.050  0.008 |  +7.366 28.1%  +0.41%     469
+ 0.55  0.0001    18 0.060  0.008 |  +7.364 27.5%  +0.44%     447
+ 0.55  0.0003    18 0.060  0.008 |  +7.364 27.5%  +0.44%     447
+ 0.60  0.0001    18 0.060  0.008 |  +7.364 27.5%  +0.44%     447
+
+★ 최적: vpin_high=0.55 vpin_mom=0.0005 max_hold=18 TP=0.06 SL=0.008
+  Sharpe=+7.461  WR=27.6%  avg=+0.45%  trades=446
+
+현재 daemon.toml: vpin_high=0.65 vpin_mom=0.0003 max_hold=24 TP=0.04 SL=0.012
+
+```
+
+</details>
+
+---
+
+## 2026-04-07 00:45 UTC — momentum_sol 파라미터 그리드 [ralph:momentum_sol_grid] 🌟[promising]
+
+**결과**: Sharpe +14.367 | WR 46.8% | trades 79
+
+
+<details><summary>raw output</summary>
+
+```
+=== momentum_sol 4h 그리드 탐색 ===
+심볼: KRW-SOL  기간: 2022-01-01 ~ 2026-12-31
+데이터: 8585행
+총 조합: 540개
+
+=== Top 15 (Sharpe 기준) ===
+lookback   adx   vol    TP    SL |  Sharpe     WR    avg%  trades
+---------------------------------------------------------------------------
+      20    25   2.0  0.12  0.04 | +14.367 46.8%  +2.77%      79
+      28    20   2.0  0.12  0.02 | +13.913 33.6%  +2.24%     113
+      12    25   2.0  0.12  0.04 | +13.851 47.0%  +2.67%      83
+      24    20   2.0  0.12  0.02 | +13.529 33.6%  +2.16%     116
+      20    20   2.0  0.12  0.02 | +13.123 33.1%  +2.07%     118
+      28    25   2.0  0.12  0.03 | +13.121 40.0%  +2.35%      80
+      20    25   2.0  0.10  0.04 | +12.858 47.0%  +2.23%      83
+      28    20   2.0  0.10  0.02 | +12.847 34.5%  +1.81%     116
+      28    25   2.0  0.10  0.03 | +12.810 41.0%  +2.06%      83
+      28    25   2.0  0.12  0.02 | +12.757 31.3%  +2.03%      83
+      12    25   2.0  0.10  0.04 | +12.724 47.7%  +2.21%      86
+      24    25   2.0  0.12  0.02 | +12.599 31.0%  +2.00%      87
+      20    25   2.0  0.12  0.02 | +12.437 31.0%  +1.96%      87
+      24    25   2.0  0.12  0.03 | +12.426 39.3%  +2.19%      84
+      28    25   2.0  0.10  0.02 | +12.374 32.6%  +1.75%      86
+
+★ 최적: lookback=20 adx=25.0 vol=2.0 TP=0.12 SL=0.04
+  Sharpe=+14.367  WR=46.8%  avg=+2.77%  trades=79
+
+현재 daemon.toml: lookback=20 adx=20.0 vol=1.5 TP=0.08 SL=0.03
+
+```
+
+</details>
+
+---
+
+## 2026-04-07 01:48 UTC — BTC 레짐 + Stealth 2-Factor 백테스트
+
+| 조합 | avg_sharpe | win_rate | avg_ret | n_symbols |
+|---|:---:|:---:|:---:|:---:|
+| TP=20%/SL=8% | -0.465 | 35.6% | +0.07% | 7 |
+| TP=15%/SL=5% | -1.179 | 34.5% | -0.51% | 9 |
+| TP=10%/SL=8% | -1.206 | 39.0% | -0.86% | 5 |
+| TP=15%/SL=3% | -1.416 | 27.5% | -0.59% | 3 |
+| TP=10%/SL=3% | -1.672 | 33.2% | -0.75% | 6 |
+
+**최적**: TP=20% / SL=8%  Sharpe=-0.465  WR=35.6%
+
+**레짐 필터 효과**: combined -0.465 vs stealth_only +0.027
+
+## 2026-04-07 02:23 UTC — BTC 레짐 + 스텔스 2-Factor 백테스트 [ralph:regime_stealth] 🔻[poor]
+
+**결과**: Sharpe N/A | WR 40.0% | trades N/A
+
+
+<details><summary>raw output</summary>
+
+```
+
+=================================================================
+  BTC 레짐 + 알트 Stealth 2-Factor 백테스트  |  2026-04-07 01:48 UTC
+=================================================================
+
+[1/3] BTC 일봉 fetch & 레짐 계산 (SMA100)...
+  OK: 3117봉 | 불장 비율 51.7%
+
+[2/3] 그리드 탐색 (TP×SL: 4×3=12조합)
+      알트 25종목 × 각 조합...
+  TP=5% SL=3%  |  stealth Sh=-2.19 WR=36%  |  combine Sh=-2.43 WR=36%
+  TP=5% SL=5%  |  stealth Sh=-2.97 WR=37%  |  combine Sh=-4.75 WR=32%
+  TP=5% SL=8%  |  stealth Sh=-3.99 WR=37%  |  combine Sh=-6.55 WR=37%
+  TP=10% SL=3%  |  stealth Sh=+0.03 WR=37%  |  combine Sh=-1.67 WR=33%
+  TP=10% SL=5%  |  stealth Sh=-2.85 WR=36%  |  combine Sh=-4.20 WR=30%
+  TP=10% SL=8%  |  stealth Sh=-1.15 WR=40%  |  combine Sh=-1.21 WR=39%
+  TP=15% SL=3%  |  stealth Sh=-1.37 WR=29%  |  combine Sh=-1.42 WR=27%
+  TP=15% SL=5%  |  stealth Sh=-1.29 WR=35%  |  combine Sh=-1.18 WR=35%
+  TP=15% SL=8%  |  stealth Sh=-2.82 WR=32%  |  combine Sh=-3.17 WR=34%
+  TP=20% SL=3%  |  stealth Sh=-2.32 WR=27%  |  combine Sh=-5.22 WR=23%
+  TP=20% SL=5%  |  stealth Sh=-1.28 WR=35%  |  combine Sh=-3.08 WR=33%
+  TP=20% SL=8%  |  stealth Sh=-0.40 WR=37%  |  combine Sh=-0.47 WR=36%
+
+[3/3] 최적 파라미터 (combined Sharpe 기준)
+     TP    SL    Sharpe   WinRate   AvgRet   nSym
+  ──────────────────────────────────────────────
+    20%     8%    -0.465      35.6%     0.07%      7
+    15%     5%    -1.179      34.5%    -0.51%      9
+    10%     8%    -1.206      39.0%    -0.86%      5
+    15%     3%    -1.416      27.5%    -0.59%      3
+    10%     3%    -1.672      33.2%    -0.75%      6
+
+결과 저장: artifacts/regime_stealth_backtest.json
+
+```
+
+</details>
+
+---
+
+## 2026-04-07 03:26 UTC — GPU Alpha filter 백테스트 [ralph:alpha_backtest] 🔻[poor]
+
+**결과**: Sharpe -0.101 | WR N/A | trades 141
+
+
+<details><summary>raw output</summary>
+
+```
+87     -0.163      0.104      -1.201
+KRW-TT          -0.016     -0.111     -0.749      -1.469
+KRW-UNI          0.241      0.472      0.820       1.582
+KRW-USDC        -0.079     -0.154     -0.094      -0.259
+KRW-USDT        -0.059     -0.078     -0.106      -0.135
+KRW-VANA         0.231      0.161     -0.038       0.491
+KRW-VET          0.098      0.171      0.381       0.338
+KRW-W           -0.099      0.041     -0.201       0.707
+KRW-WAVES       -0.171     -0.547     -1.453      -2.252
+KRW-WAXP        -0.155     -0.402     -0.767      -1.282
+KRW-XEC          0.042     -0.301     -1.364      -1.666
+KRW-XLM          0.316      1.139      2.098       4.855
+KRW-XRP          0.153      0.408      0.543       1.537
+KRW-XTZ         -0.148     -0.536     -0.753      -0.579
+KRW-ZETA        -0.148     -0.219     -1.189      -1.739
+KRW-ZIL         -0.150     -0.446     -1.120      -1.069
+KRW-ZRO         -0.077     -0.160     -0.212       0.417
+KRW-ZRX         -0.023     -0.130     -0.496      -0.848
+
+평균 엣지: {'edge_1b_%': -0.058375886524822694, 'edge_3b_%': -0.15106382978723404, 'edge_6b_%': -0.49000709219858163, 'edge_12b_%': -0.6390921985815603}
+
+======================================================================
+  [결론]
+❌ Alpha Score 예측력 불충분 → 가중치 재조정 또는 다른 지표 검토 필요
+======================================================================
+
+[Optimizer] Searching best weights + threshold on GPU components...
+  Best: rs=0.3 acc=0.35 cvd=0.35  threshold=0.5  edge=-0.101%  corr=-0.021
+  Calibration saved → artifacts/alpha-calibration.json  verdict=invalid
+
+[LOOKBACK Grid Search] Testing lookback windows on all fetched symbols...
+  LB= 6 ( 24h): edge=+nan%  corr=+nan  n=0
+  LB=12 ( 48h): edge=-0.5564%  corr=-0.0341  n=141
+  LB=18 ( 72h): edge=-0.5570%  corr=-0.0366  n=141
+  LB=24 ( 96h): edge=-0.4921%  corr=-0.0303  n=141
+  LB=30 (120h): edge=-0.4900%  corr=-0.0246  n=141
+
+  ★ 최적 LOOKBACK: 30봉 (120h) edge=-0.4900%  corr=-0.0246
+  Report saved → artifacts/alpha-backtest-result.md
+
+```
+
+</details>
+
+---
+
+## 2026-04-07 04:30 UTC — GPU Strategy Tournament [ralph:strategy_tournament] 🌟[promising]
+
+**결과**: Sharpe +6.195 | WR N/A | trades 9950
+
+
+<details><summary>raw output</summary>
+
+```
+
+================================================================
+  GPU Strategy Tournament  |  2026-04-07 04:29 UTC
+  Device: CUDA  |  Mode: full (all KRW)
+================================================================
+
+[1/4] Getting KRW symbols...
+  Target: 244 symbols
+
+[2/4] Fetching 244 symbols (4h × 180)...
+  OK: 233/244 in 41.2s
+
+[3/4] Building GPU tensors...
+  Tensor shape: torch.Size([231, 162]) | GPU time: 2.17s
+
+[4/4] Evaluating 9 strategies...
+  stealth_3gate          signals=277    trades=277   Sharpe=+6.195
+  volume_breakout        signals=2557   trades=2255  Sharpe=-10.392
+  rsi_oversold           signals=4658   trades=4426  Sharpe=+0.481
+  btc_bull_momentum      signals=11215  trades=9950  Sharpe=-10.420
+  dip_in_uptrend         signals=2525   trades=2166  Sharpe=-10.427
+  accumulation_only      signals=6822   trades=6152  Sharpe=-3.047
+  low_rs_high_acc        signals=5118   trades=4408  Sharpe=+3.281
+  ema_cross_bull         signals=868    trades=771   Sharpe=-0.398
+  volatility_squeeze     signals=593    trades=556   Sharpe=-0.340
+
+────────────────────────────────────────────────────────────────────────
+#   Strategy                Sharpe  WinRate    Ret%    DD%  Trades  Syms
+────────────────────────────────────────────────────────────────────────
+1st stealth_3gate            6.195    70.0%   2.08%  20.9%     277   185
+2nd low_rs_high_acc          3.281    49.5%   0.26%  33.5%    4408   230
+3rd rsi_oversold             0.481    46.9%   0.04%  45.7%    4426   225
+ 4. volatility_squeeze      -0.340    49.1%  -0.06%  59.2%     556   207
+ 5. ema_cross_bull          -0.398    46.6%  -0.08%  61.9%     771   230
+ 6. accumulation_only       -3.047    46.1%  -0.22%  72.3%    6152   231
+ 7. volume_breakout        -10.392    36.6%  -1.36%  98.4%    2255   231
+ 8. btc_bull_momentum      -10.420    40.0%  -0.64%  66.9%    9950   230
+ 9. dip_in_uptrend         -10.427    33.6%  -1.25%  97.7%    2166   226
+
+Leaderboard → docs/strategy_leaderboard.md
+
+```
+
+</details>
+
+---
+
+## 2026-04-07 05:34 UTC — BTC 급락+acc≈1.0 → 48h 회복 패턴 [ralph:btc_dip_recovery] 🔻[poor]
+
+**결과**: Sharpe N/A | WR 70.0% | trades N/A
+
+
+<details><summary>raw output</summary>
+
+```
+=== BTC 급락 + acc≥1.0 → 48h 회복 패턴 검증 ===
+데이터: 8585봉 (2022-01-01~2026-04-03)
+
+조건                                   N  fwd48h avg      WR   best 1%
+----------------------------------------------------------------------
+ret1<-1% acc≥1.0                   309      -0.12%  51.8%     +8.1%
+ret1<-2% acc≥1.0                    65      +0.11%  58.5%     +8.5%
+ret6<-3% acc≥1.0                   116      -0.15%  54.3%     +8.8%
+ret6<-5% acc≥1.0 below SMA          33      -0.05%  48.5%     +8.8%
+ret1<-2% acc≥0.98                   82      +0.02%  59.8%     +8.1%
+base (all bars)                      0
+
+=== 현재 시나리오 분석: ret1≤-2% AND acc∈[0.95,1.05] ===
+발생 횟수: 20
+24h 이후: avg=-0.00%  WR=55.0%
+48h 이후: avg=-0.08%  WR=70.0%
+48h 최악: -4.88%  최선: +4.37%
+
+```
+
+</details>
+
+---
+
+## 2026-04-07 06:37 UTC — BTC 급락 후 알트 진입 전략 (LINK/ADA/XRP) [ralph:btc_dip_alt_entry] 🔻[poor]
+
+**결과**: Sharpe N/A | WR 42.9% | trades 19
+
+
+<details><summary>raw output</summary>
+
+```
+=== BTC 급락+acc 이후 알트 진입 전략 백테스트 ===
+기간: 2022-01-01~2026-04-03  FWD=12봉(48h)
+
+BTC 신호 발생: 44회
+
+심볼                N   avg 48h      WR |  N(st)    st avg   st WR
+----------------------------------------------------------------------
+KRW-SUI          14    +2.30%  42.9% |      0       n/a     n/a
+KRW-APT          25    +1.52%  52.0% |      0       n/a     n/a
+KRW-LINK         44    +1.09%  56.8% |      0       n/a     n/a
+KRW-ADA          44    +0.82%  52.3% |      0       n/a     n/a
+KRW-XRP          44    +0.75%  54.5% |      0       n/a     n/a
+KRW-MANA         44    +0.53%  45.5% |     25    -0.42%   48.0%
+KRW-AVAX         44    +0.38%  52.3% |      0       n/a     n/a
+KRW-STX          44    +0.18%  45.5% |      0       n/a     n/a
+KRW-SAND         44    +0.16%  52.3% |     19    +0.23%   42.1%
+KRW-ARB          17    +0.03%  47.1% |      0       n/a     n/a
+KRW-ETH          44    -0.10%  50.0% |     17    -0.78%   29.4%
+KRW-SOL          44    -0.18%  38.6% |      0       n/a     n/a
+KRW-AXS          44    -0.24%  47.7% |     21    -0.22%   33.3%
+KRW-DOT          44    -0.32%  36.4% |      0       n/a     n/a
+KRW-ATOM         44    -0.44%  43.2% |     13    -0.34%   46.2%
+KRW-NEAR         44    -1.41%  31.8% |      0       n/a     n/a
+
+★ 최고 성과 알트: KRW-SUI  avg=+2.30%  WR=42.9%  n=14
+
+Stealth 필터 개선 심볼: 3/16
+  Best: KRW-SAND  stealth_avg=+0.23%  WR=42.1%  n=19
+
+```
+
+</details>
+
+---
+
+## 2026-04-07 07:41 UTC — Claude 신규 전략 가설 생성 [ralph:new_strategy_hypothesis] ✅[ok]
+
+**결과**: Sharpe N/A | WR N/A | trades N/A
+**메모**: Claude 가설 (미검증)
+
+<details><summary>raw output</summary>
+
+```
+전략명: vpin_eth_partial_tp_atr_regime
+가설: c219의 2-tier 분할익절+ATR 레짐 적응형 로직(Sharpe+158.89)을 vpin_eth_grid(Sharpe+7.46) 베이스에 이식하면 vpin 엣지와 레짐 적응형 출구가 결합되어 추가 Sharpe 개선 가능.
+탐색 파라미터: tp1_atr_mult(0.8/1.2/1.6), tp2_atr_mult(2.0/2.8/3.6), regime_vol_threshold(저변동/고변동 분기점 ATR%값 2개)
+예상 스크립트: scripts/backtest_cycle221_vpin_eth_partial_tp_regime.py
+근거: 유망 결과 2개(c219 분할익절 레짐 적응형 + vpin_eth_grid)의 직교 결합. c220에서 분할익절 단독 스태킹은 무효였지만 ATR 레짐 적응형 분기는 c219에서 검증됨 — vpin_eth는 아직 레짐 적응형 출구 미적용. poor 그룹(btc_dip 계열, truth_seeker)은 진입 신호 자체가 약해 회피.
+```
+
+</details>
+
+---

@@ -13,8 +13,26 @@
 set -uo pipefail
 
 PROJ_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+THROTTLE_FILE="$PROJ_ROOT/config/loop_throttle.toml"
 COOLDOWN_MINUTES="${1:-3}"
 COOLDOWN_SECS=$(( COOLDOWN_MINUTES * 60 ))
+
+# loop_throttle.toml에서 ralph.cooldown_minutes 읽기 (매 사이클 호출)
+read_throttle_cooldown() {
+    if [[ -f "$THROTTLE_FILE" ]]; then
+        local val
+        val=$(python3 -c "
+import tomllib, pathlib
+d = tomllib.loads(pathlib.Path('$THROTTLE_FILE').read_text())
+print(d.get('ralph', {}).get('cooldown_minutes', $COOLDOWN_MINUTES))
+" 2>/dev/null)
+        if [[ -n "$val" ]]; then
+            echo "$val"
+            return
+        fi
+    fi
+    echo "$COOLDOWN_MINUTES"
+}
 STATE_FILE="$PROJ_ROOT/ralph-loop.state.json"
 LOG_FILE="$PROJ_ROOT/logs/crypto_ralph.log"
 CLAUDE_CMD="claude --dangerously-skip-permissions"
@@ -264,8 +282,10 @@ WF fold 중 최소 1개는 BEAR 구간이어야 배포 검토 가능.
     save_done "$CYCLE" "$SUMMARY" "$DETAIL"
     save_cycle "$CYCLE"
 
-    log "=== RALPH CYCLE ${CYCLE} END === (${COOLDOWN_MINUTES}분 쿨다운 후 다음 사이클)"
+    THROTTLE_CD=$(read_throttle_cooldown)
+    THROTTLE_CD_SECS=$(( THROTTLE_CD * 60 ))
+    log "=== RALPH CYCLE ${CYCLE} END === (${THROTTLE_CD}분 쿨다운 후 다음 사이클)"
     log ""
 
-    sleep "$COOLDOWN_SECS"
+    sleep "$THROTTLE_CD_SECS"
 done

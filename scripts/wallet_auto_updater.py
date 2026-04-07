@@ -197,43 +197,34 @@ def parse_best_params(strategy_id: str, output: str) -> dict | None:
 
 def restart_daemon() -> int | None:
     """
-    현재 실행 중인 daemon을 SIGTERM으로 종료하고 재시작.
-    새 PID 반환, 실패 시 None.
+    scripts/restart_daemon.sh 를 호출해 daemon을 재시작.
+    systemd-managed 환경을 고려해 systemctl 경로를 타도록 위임한다.
+    2026-04-07: 직접 Popen 하던 구현이 systemd daemon과 이중 실행을 유발해 수정.
+    성공 시 0, 실패 시 None.
     """
-    # 현재 PID 찾기
+    script = ROOT / "scripts" / "restart_daemon.sh"
+    if not script.exists():
+        print(f"[updater] restart_daemon.sh 없음: {script}")
+        return None
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "crypto_trader.cli"],
-            capture_output=True, text=True,
+            ["bash", str(script), "config/daemon.toml"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
-        pids = [int(p) for p in result.stdout.strip().splitlines() if p.strip()]
-    except Exception:
-        pids = []
-
-    for pid in pids:
-        try:
-            os.kill(pid, signal.SIGTERM)
-            print(f"[updater] daemon SIGTERM → PID {pid}")
-        except ProcessLookupError:
-            pass
-
-    # 잠시 대기 후 재시작
-    import time
-    time.sleep(3)
-
-    venv_python = ROOT / ".venv" / "bin" / "python3"
-    python = str(venv_python) if venv_python.exists() else "python3"
-    log_path = ROOT / "artifacts" / "daemon.log"
-
-    proc = subprocess.Popen(
-        [python, "-m", "crypto_trader.cli", "run-multi", "--config", str(ROOT / "config" / "daemon.toml")],
-        stdout=open(log_path, "a"),
-        stderr=subprocess.STDOUT,
-        cwd=ROOT,
-        start_new_session=True,
-    )
-    print(f"[updater] daemon 재시작 PID={proc.pid}")
-    return proc.pid
+        if result.returncode != 0:
+            print(f"[updater] restart_daemon.sh 실패 (rc={result.returncode}): {result.stderr[-400:]}")
+            return None
+        print("[updater] daemon 재시작 완료 (systemctl 경유)")
+        return 0
+    except subprocess.TimeoutExpired:
+        print("[updater] restart_daemon.sh 타임아웃")
+        return None
+    except Exception as exc:
+        print(f"[updater] restart_daemon.sh 호출 오류: {exc}")
+        return None
 
 
 # ── 히스토리 기록 ──────────────────────────────────────────────────────────────

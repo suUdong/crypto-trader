@@ -46,6 +46,7 @@ from crypto_trader.strategy.momentum_pullback import MomentumPullbackStrategy
 from crypto_trader.strategy.obi import OBIStrategy
 from crypto_trader.strategy.bb_squeeze_independent import BBSqueezeIndependentStrategy
 from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
+from crypto_trader.strategy.rsi_mr_bear import RsiMrBearStrategy
 from crypto_trader.strategy.stealth_3gate import Stealth3GateStrategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
@@ -297,6 +298,16 @@ def create_strategy(
             max_hold=int(params.get("max_hold", 20)),
             btc_sma_period=int(params.get("btc_sma_period", 200)),
         )
+    if strategy_type == "rsi_mr_bear":
+        return RsiMrBearStrategy(
+            strategy_config,
+            rsi_entry=float(params.get("rsi_entry", 25.0)),
+            rsi_exit=float(params.get("rsi_exit", 50.0)),
+            sl_pct=float(params.get("sl_pct", 0.02)),
+            max_hold=int(params.get("max_hold", 24)),
+            rsi_period=int(params.get("rsi_period", 14)),
+            btc_sma_period=int(params.get("btc_sma_period", 200)),
+        )
     return CompositeStrategy(strategy_config, regime_config)
 
 
@@ -368,6 +379,13 @@ class StrategyWallet:
         )
         self._execution_cost_multiplier = float(
             wallet_config.strategy_overrides.get("execution_cost_multiplier", 1.1)
+        )
+        _fg_raw = wallet_config.strategy_overrides.get("fear_greed_block_threshold")
+        self._fear_greed_block_threshold: int | None = (
+            int(_fg_raw) if _fg_raw is not None else None
+        )
+        self._crypto_confidence_threshold: float = float(
+            wallet_config.strategy_overrides.get("crypto_confidence_threshold", 0.65)
         )
 
     def set_macro_multiplier(self, multiplier: float) -> None:
@@ -605,6 +623,8 @@ class StrategyWallet:
                 strategy_type=self.strategy_type,
                 force_fear_buy=force_fear_buy,
                 btc_bull_regime=self._read_btc_regime(),
+                fear_greed_block_threshold=self._fear_greed_block_threshold,
+                crypto_confidence_threshold=self._crypto_confidence_threshold,
             )
             effective_min_confidence = self._macro_adapter.confidence_floor(
                 self._macro_snapshot, self.risk_manager.effective_min_confidence,

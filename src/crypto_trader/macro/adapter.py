@@ -176,13 +176,15 @@ class MacroRegimeAdapter:
         strategy_type: str = "",
         force_fear_buy: bool = False,
         btc_bull_regime: bool | None = None,
+        fear_greed_block_threshold: int | None = None,
+        crypto_confidence_threshold: float = 0.65,
     ) -> tuple[bool, str]:
         """Return (blocked, reason) for entry gating based on macro regime.
 
         Rules:
         - Contractionary overall regime  -> block all entries
         - Contractionary crypto layer with high confidence -> block entries
-        - Extreme fear (F&G <= 15) -> block entries (capitulation risk)
+        - F&G <= fear_greed_block_threshold -> block entries
           - Exception: if force_fear_buy is True (for specific contrarian strategies)
         """
         # BTC SMA20 regime gate (backtest-validated 2026-04-02: stealth only works in bull)
@@ -201,16 +203,21 @@ class MacroRegimeAdapter:
             )
 
         crypto_regime = self.normalize_overall_regime(snapshot.crypto_regime)
-        if crypto_regime == "contractionary" and snapshot.crypto_confidence >= 0.65:
+        if crypto_regime == "contractionary" and snapshot.crypto_confidence >= crypto_confidence_threshold:
             return True, (
                 f"macro_regime_gate: crypto={crypto_regime} "
                 f"confidence={snapshot.crypto_confidence:.0%}"
             )
 
-        if snapshot.fear_greed_index is not None and snapshot.fear_greed_index <= 15:
+        if (
+            fear_greed_block_threshold is not None
+            and snapshot.fear_greed_index is not None
+            and snapshot.fear_greed_index <= fear_greed_block_threshold
+        ):
             if not force_fear_buy:
                 return True, (
                     f"macro_regime_gate: extreme_fear F&G={snapshot.fear_greed_index}"
+                    f" (threshold={fear_greed_block_threshold})"
                 )
 
         return False, ""
@@ -228,7 +235,15 @@ class MacroRegimeAdapter:
             return base_floor + self.NEUTRAL_CONFIDENCE_UPLIFT
         return base_floor
 
-    def compute(self, snapshot: MacroSnapshot | None) -> MacroAdjustment:
+    def compute(
+        self,
+        snapshot: MacroSnapshot | None,
+        *,
+        fg_greed_threshold: int = 80,
+        fg_fear_threshold: int = 20,
+        kimchi_premium_threshold: float = 5.0,
+        btc_dominance_threshold: float = 65.0,
+    ) -> MacroAdjustment:
         """Compute position sizing adjustment from macro snapshot."""
         if snapshot is None:
             return MacroAdjustment(
@@ -248,18 +263,18 @@ class MacroRegimeAdapter:
 
         # Crypto-specific signal adjustments
         if snapshot.fear_greed_index is not None:
-            if snapshot.fear_greed_index >= 80:
+            if snapshot.fear_greed_index >= fg_greed_threshold:
                 adjustment -= 0.1
                 reasons.append(f"extreme greed (F&G={snapshot.fear_greed_index}) -> -0.1")
-            elif snapshot.fear_greed_index <= 20:
+            elif snapshot.fear_greed_index <= fg_fear_threshold:
                 adjustment -= 0.1
                 reasons.append(f"extreme fear (F&G={snapshot.fear_greed_index}) -> -0.1")
 
-        if snapshot.kimchi_premium is not None and snapshot.kimchi_premium > 5.0:
+        if snapshot.kimchi_premium is not None and snapshot.kimchi_premium > kimchi_premium_threshold:
             adjustment -= 0.15
             reasons.append(f"high kimchi premium ({snapshot.kimchi_premium:.1f}%) -> -0.15")
 
-        if snapshot.btc_dominance is not None and snapshot.btc_dominance > 65.0:
+        if snapshot.btc_dominance is not None and snapshot.btc_dominance > btc_dominance_threshold:
             adjustment -= 0.1
             reasons.append(f"high BTC dominance ({snapshot.btc_dominance:.1f}%) -> -0.1 (risk-off)")
 

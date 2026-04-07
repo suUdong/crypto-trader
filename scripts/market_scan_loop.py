@@ -16,6 +16,17 @@ sys.path.insert(0, str(_project_root / "src"))
 from crypto_trader.strategy.alpha_calibrator import AlphaCalibration, load_calibration
 
 STATE_FILE = _project_root / "state" / "market_scan.state.json"
+THROTTLE_FILE = _project_root / "config" / "loop_throttle.toml"
+
+
+def _read_throttle_sleep() -> int:
+    """config/loop_throttle.toml에서 market_scan.sleep_seconds 읽기."""
+    try:
+        import tomllib
+        data = tomllib.loads(THROTTLE_FILE.read_text())
+        return int(data.get("market_scan", {}).get("sleep_seconds", 3600))
+    except Exception:
+        return 3600
 RESEARCH_DIR = Path("../crypto-strategy-research/research")
 
 FETCH_WORKERS = 5       # 업비트 rate limit 고려 (10 req/s)
@@ -364,27 +375,57 @@ def main() -> None:
             print(f"Watchlist saved: {[s['symbol'] for s in top_symbols]}")
 
             # ── 자동 심볼 교체: accumulation 지갑 ────────────────────────────
-            # top_symbols 상위 2개를 accumulation 지갑에 자동 배정
+            # 1순위: alpha-watchlist 상위 2개
+            # 2순위 fallback: alpha 부족 시 stealth-watchlist 상위 2개 사용
+            #   (2026-04-07 확장: alpha-watchlist가 자주 비기 때문에 stealth로 보강)
             ACCUM_WALLETS = [
                 "accumulation_dood_wallet",
                 "accumulation_tree_wallet",
             ]
+            rotation_source = None
+            rotation_pool: list[dict] = []
             if len(top_symbols) >= 2:
+                rotation_pool = top_symbols
+                rotation_source = "alpha"
+            else:
+                # Fallback: stealth-watchlist 사용
+                try:
+                    stealth_data = json.loads(
+                        Path("artifacts/stealth-watchlist.json").read_text()
+                    )
+                    stealth_coins = stealth_data.get("stealth_coins", [])
+                    if len(stealth_coins) >= 2:
+                        rotation_pool = stealth_coins
+                        rotation_source = "stealth"
+                    else:
+                        print(
+                            f"[AutoUpdate] alpha={len(top_symbols)} stealth={len(stealth_coins)} — 둘 다 부족, 스킵"
+                        )
+                except Exception as _e:
+                    print(f"[AutoUpdate] stealth fallback 로드 실패: {_e}")
+
+            if rotation_pool and rotation_source:
                 try:
                     sys.path.insert(0, str(_project_root / "scripts"))
                     from wallet_auto_updater import apply_symbol_rotation
                     assignments = [
-                        (ACCUM_WALLETS[0], top_symbols[0]["symbol"]),
-                        (ACCUM_WALLETS[1], top_symbols[1]["symbol"]),
+                        (ACCUM_WALLETS[0], rotation_pool[0]["symbol"]),
+                        (ACCUM_WALLETS[1], rotation_pool[1]["symbol"]),
                     ]
-                    trigger = f"cycle={cycle} alpha={top_symbols[0]['alpha']:.3f}"
+                    head_metric = (
+                        rotation_pool[0].get("alpha")
+                        if rotation_source == "alpha"
+                        else rotation_pool[0].get("alpha", rotation_pool[0].get("rs", 0))
+                    )
+                    trigger = (
+                        f"cycle={cycle} src={rotation_source} "
+                        f"top={rotation_pool[0]['symbol']}@{head_metric:.3f}"
+                    )
                     changed = apply_symbol_rotation(assignments, trigger=trigger, restart=True)
                     if changed:
-                        print(f"[AutoUpdate] 심볼 교체 완료 → daemon 재시작")
+                        print(f"[AutoUpdate] 심볼 교체 완료 ({rotation_source}) → daemon 재시작")
                 except Exception as _e:
                     print(f"[AutoUpdate] 심볼 교체 실패: {_e}")
-            else:
-                print("[AutoUpdate] top_symbols 부족 — 심볼 교체 스킵")
 
             # Pre-bull 시그널 저장 (시계열 누적)
             prebull_path = Path("artifacts/pre-bull-signals.json")
@@ -500,7 +541,7 @@ def main() -> None:
             update_state(cycle, f"Cycle {cycle} archived.")
             print(f"--- [Cycle {cycle} DONE] ---")
 
-            time.sleep(3600)  # 1시간 주기 (4h봉 데이터 갱신 주기에 맞춤)
+            time.sleep(_read_throttle_sleep())  # loop_throttle.toml 또는 기본 1시간
         except SystemExit:
             break
         except Exception as e:

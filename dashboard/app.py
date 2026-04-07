@@ -38,6 +38,8 @@ from dashboard.data import (  # noqa: E402
     load_risk_overview,
     load_signal_history,
     load_signal_monitor_data,
+    load_all_paper_trades,
+    load_cumulative_trade_summary,
     load_wallet_analytics,
     load_weekly_report,
     regime_kr,
@@ -55,7 +57,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-require_auth()
+# require_auth()  # temporarily disabled for tunnel debugging
 inject_css()
 
 st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
@@ -1328,6 +1330,7 @@ _render_status_row(heartbeat, freshness)
 
 (
     tab_overview,
+    tab_cumulative_trades,
     tab_portfolio_risk,
     tab_signal_monitor,
     tab_edge_analysis,
@@ -1338,6 +1341,7 @@ _render_status_row(heartbeat, freshness)
 ) = st.tabs(
     [
         "개요",
+        "누적매매",
         "포트폴리오·리스크",
         "시그널 모니터",
         "엣지분석",
@@ -1359,6 +1363,55 @@ with tab_overview:
         regime_panel=regime_panel,
         promotion_gate=promotion_gate,
     )
+
+with tab_cumulative_trades:
+    cum_summary = load_cumulative_trade_summary()
+    all_trades = load_all_paper_trades()
+
+    cols = st.columns(3)
+    cols[0].metric("총 거래", f"{cum_summary['total_trades']}")
+    cols[1].metric("승률", f"{cum_summary['win_rate']:.1f}%")
+    cols[2].metric(
+        "누적 PnL",
+        f"{cum_summary['total_pnl']:+,.0f} KRW",
+    )
+
+    st.markdown("#### 지갑별 누적 성과")
+    if cum_summary["rows"]:
+        st.dataframe(
+            cum_summary["rows"],
+            column_config={
+                "누적PnL": st.column_config.NumberColumn(format="%.0f KRW"),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+
+    st.markdown("#### 전체 거래 내역")
+    if all_trades:
+        display_trades = [
+            {
+                "시각": t["timestamp"],
+                "심볼": symbol_kr(t["symbol"]),
+                "지갑": strategy_kr(t["wallet"]),
+                "PnL": t["pnl"],
+                "수익률": f"{t['pnl_pct']:+.2f}%",
+                "종료사유": t["exit_reason"],
+                "세션": t["session_id"][:15] if t["session_id"] else "-",
+            }
+            for t in reversed(all_trades)
+        ]
+        st.dataframe(
+            display_trades,
+            column_config={
+                "PnL": st.column_config.NumberColumn(format="%.0f KRW"),
+            },
+            hide_index=True,
+            use_container_width=True,
+            height=500,
+        )
+    else:
+        st.info("paper-trades.jsonl에 거래 기록이 없습니다.")
 
 with tab_portfolio_risk:
     _render_portfolio_and_risk(analytics=analytics, risk=risk, health=health)

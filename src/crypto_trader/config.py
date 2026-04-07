@@ -102,6 +102,13 @@ class RiskConfig:
     ratchet_be_trigger: float = 0.0  # breakeven after N×ATR gain
     ratchet_lock_trigger: float = 0.0  # lock pct of peak gain after N×ATR
     ratchet_lock_pct: float = 0.0  # fraction of peak gain to lock (0.9=90%)
+    # Configurable thresholds (previously hardcoded in risk/manager.py)
+    decay_win_rate: float = 0.35  # rolling WR below this = is_decaying
+    auto_pause_pf_low: float = 0.7  # profit factor pause threshold
+    auto_pause_pf_high: float = 0.8  # profit factor resume threshold
+    time_decay_bar_ratio_1: float = 0.60  # exit if loss > 1.5% at this ratio
+    time_decay_bar_ratio_2: float = 0.75  # exit if any loss at this ratio
+    breakeven_watermark: float = 0.012  # watermark gain to activate breakeven stop
 
 
 @dataclass(slots=True)
@@ -178,6 +185,11 @@ class MacroConfig:
     db_path: str = ""
     base_url: str = ""
     timeout_seconds: float = 5.0
+    crypto_confidence_threshold: float = 0.65
+    fg_greed_threshold: int = 80
+    fg_fear_threshold: int = 20
+    kimchi_premium_threshold: float = 5.0
+    btc_dominance_threshold: float = 65.0
 
     @property
     def has_db(self) -> bool:
@@ -840,6 +852,21 @@ def load_config(
         timeout_seconds=float(
             _read_value(raw, env, "macro", "timeout_seconds", "CT_MACRO_TIMEOUT_SECONDS", 5.0)
         ),
+        crypto_confidence_threshold=float(
+            _read_value(raw, env, "macro", "crypto_confidence_threshold", "", 0.65)
+        ),
+        fg_greed_threshold=int(
+            _read_value(raw, env, "macro", "fg_greed_threshold", "", 80)
+        ),
+        fg_fear_threshold=int(
+            _read_value(raw, env, "macro", "fg_fear_threshold", "", 20)
+        ),
+        kimchi_premium_threshold=float(
+            _read_value(raw, env, "macro", "kimchi_premium_threshold", "", 5.0)
+        ),
+        btc_dominance_threshold=float(
+            _read_value(raw, env, "macro", "btc_dominance_threshold", "", 65.0)
+        ),
     )
     kill_switch = KillSwitchCfg(
         max_portfolio_drawdown_pct=float(
@@ -1250,19 +1277,20 @@ def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
             "Set CT_TELEGRAM_BOT_TOKEN and CT_TELEGRAM_CHAT_ID.",
         ))
 
-    # 3. Kill switch limits within hard caps
-    if config.kill_switch.max_daily_loss_pct > HARD_MAX_DAILY_LOSS_PCT:
-        results.append((
-            "ERROR",
-            f"kill_switch.max_daily_loss_pct ({config.kill_switch.max_daily_loss_pct:.2%}) "
-            f"exceeds hard cap ({HARD_MAX_DAILY_LOSS_PCT:.2%})",
-        ))
-    if config.kill_switch.max_consecutive_losses > SAFE_MAX_CONSECUTIVE_LOSSES:
-        results.append((
-            "ERROR",
-            f"kill_switch.max_consecutive_losses ({config.kill_switch.max_consecutive_losses}) "
-            f"exceeds hard cap ({SAFE_MAX_CONSECUTIVE_LOSSES})",
-        ))
+    # 3. Kill switch limits within hard caps (enforced for live trading only)
+    if not config.trading.paper_trading:
+        if config.kill_switch.max_daily_loss_pct > HARD_MAX_DAILY_LOSS_PCT:
+            results.append((
+                "ERROR",
+                f"kill_switch.max_daily_loss_pct ({config.kill_switch.max_daily_loss_pct:.2%}) "
+                f"exceeds hard cap ({HARD_MAX_DAILY_LOSS_PCT:.2%})",
+            ))
+        if config.kill_switch.max_consecutive_losses > SAFE_MAX_CONSECUTIVE_LOSSES:
+            results.append((
+                "ERROR",
+                f"kill_switch.max_consecutive_losses ({config.kill_switch.max_consecutive_losses}) "
+                f"exceeds hard cap ({SAFE_MAX_CONSECUTIVE_LOSSES})",
+            ))
 
     # 4. go_live_wallets validation
     if config.trading.go_live_wallets:

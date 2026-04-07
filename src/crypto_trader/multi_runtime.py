@@ -105,8 +105,8 @@ class MultiSymbolRuntime:
         self._session_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + f"-{os.getpid()}"
         self._config_path = getattr(config, "source_config_path", "")
         self._wallet_names = [w.name for w in wallets]
-        if kill_switch is None and not config.trading.paper_trading:
-            # Only auto-load kill switch state for live trading
+        if kill_switch is None:
+            # Load persisted kill switch state (both paper and live)
             self._kill_switch.load(self._kill_switch_path)
 
         # Run preflight safety checks for live mode
@@ -350,12 +350,17 @@ class MultiSymbolRuntime:
         try:
             while not self._shutdown_requested:
                 if self._kill_switch.is_triggered:
+                    cooldown = self._config.kill_switch.cooldown_minutes * 60
                     self._logger.critical(
-                        "Kill switch active: %s — all trading halted",
+                        "Kill switch active: %s — sleeping %d min before retry",
                         self._kill_switch.state.trigger_reason,
+                        self._config.kill_switch.cooldown_minutes,
                     )
                     self._kill_switch.save(self._kill_switch_path)
-                    break
+                    time.sleep(cooldown)
+                    self._kill_switch.reset()
+                    self._logger.info("Kill switch cooldown expired, resuming trading")
+                    continue
 
                 self._begin_tick()
                 tick_started = time.monotonic()
@@ -924,7 +929,14 @@ class MultiSymbolRuntime:
             }
             return
         self._propagate_macro_snapshot(snapshot)
-        adjustment = self._macro_adapter.compute(snapshot)
+        macro_cfg = self._config.macro
+        adjustment = self._macro_adapter.compute(
+            snapshot,
+            fg_greed_threshold=macro_cfg.fg_greed_threshold,
+            fg_fear_threshold=macro_cfg.fg_fear_threshold,
+            kimchi_premium_threshold=macro_cfg.kimchi_premium_threshold,
+            btc_dominance_threshold=macro_cfg.btc_dominance_threshold,
+        )
         overall_regime = (
             self._macro_adapter.normalize_overall_regime(snapshot.overall_regime)
             if snapshot is not None

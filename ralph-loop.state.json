@@ -1,14 +1,6 @@
 {
-  "current_cycle": 212,
+  "current_cycle": 213,
   "history": [
-    {
-      "cycle": 163,
-      "timestamp": "2026-04-05T10:40:34.643944"
-    },
-    {
-      "cycle": 164,
-      "timestamp": "2026-04-05T10:50:45.547434"
-    },
     {
       "cycle": 165,
       "timestamp": "2026-04-05T11:00:34.392981"
@@ -200,22 +192,18 @@
     {
       "cycle": 211,
       "timestamp": "2026-04-05T20:55:50.221223"
+    },
+    {
+      "cycle": 212,
+      "timestamp": "2026-04-05T21:12:29.773487"
+    },
+    {
+      "cycle": 213,
+      "timestamp": "2026-04-05T21:19:55.804078"
     }
   ],
   "ralph_cycle": 0,
   "ralph_done": [
-    {
-      "cycle": 182,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 427s \ud6c4 \uc885\ub8cc",
-      "detail": "\n\nExplorer agent \uc644\ub8cc \u2014 \uc774\ubbf8 \ud544\uc694\ud55c \uc815\ubcf4\ub294 \ud65c\uc6a9 \uc644\ub8cc. \uc0ac\uc774\ud074 182 \uc791\uc5c5 \uc644\ub8cc \ubcf4\uace0 \uc704\uc5d0 \ucd9c\ub825\ub428.",
-      "timestamp": "2026-04-05T14:38:59.194218"
-    },
-    {
-      "cycle": 183,
-      "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 218s \ud6c4 \uc885\ub8cc",
-      "detail": "c188 OBV/MACD \ubc31\uadf8\ub77c\uc6b4\ub4dc \ud0dc\uc2a4\ud06c \uc644\ub8cc \ud655\uc778. \uacb0\uacfc(c179 \ub300\ube44 -27.6 \uc545\ud654, \ucc44\ud0dd\ubd88\uac00)\ub294 \uc774\ubbf8 \uae30\ub85d \ubc0f \ucee4\ubc0b \uc644\ub8cc. \uc0ac\uc774\ud074 183 4\uac74 \uc804\ubd80 \uc644\uacb0.",
-      "timestamp": "2026-04-05T14:45:43.969328"
-    },
     {
       "cycle": 184,
       "summary": "DONE \uc2e0\ud638 \uc5c6\uc74c \u2014 1889s \ud6c4 \uc885\ub8cc",
@@ -383,9 +371,21 @@
       "summary": "\uc791\uc5c5: c219 2-tier \ubd84\ud560\uc775\uc808(tp1M=2.5, 70% \uc870\uae30\uccad\uc0b0) + ATR \ub808\uc9d0 \uc801\uc751\ud615 TP/SL \u2014 c215 \ucd5c\uc801 \uc704 81\uc870\ud569 3-fold WF | \uacb0\uacfc: **avg OOS Sharpe +23.575 PASS** (c215 +18.682 \ub300\ube44 +4.893 \uac1c\uc120), F3 +29.650, WR 66.0%, trades 86, MDD -12.12%(\uac1c\uc120). ATR \ub808\uc9d0 \uc801\uc751 \ud6a8\uacfc \uc5c6\uc74c(hiTP=0 \ucd5c\uc801), SOL avg +7.658 FAIL(-2.824 \uc545\ud654) | \ub2e4\uc74c\uc81c\uc548: **(A) c219 \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130\ub97c donchian \uc804\ub7b5 daemon \uc9c0\uac11\uc5d0 \uc801\uc6a9** \u2014 Sharpe +23.575, n=86 \ucda9\ubd84, \ubd84\ud560\uc775\uc808 \ub85c\uc9c1 src/ \uad6c\ud604 \ud544\uc694. \ub2e8 SOL \uae30\uc5ec \uc57d\ud654\ub85c SOL \uc9c0\uac11\uc740 c215 \ud30c\ub77c\ubbf8\ud130 \uc720\uc9c0 \uad8c\uc7a5. **(B) c220 SOL \uc804\uc6a9 \ubd84\ud560\uc775\uc808 \ucd5c\uc801\ud654** \u2014 SOL\uc740 \uc9e7\uc740 \ucd94\uc138 \ud2b9\uc131\uc0c1 pRat=0.3(30% \uc870\uae30) + \ub0ae\uc740 tp1M\uc774 \ub354 \uc801\ud569\ud560 \uc218 \uc788\uc74c. SOL \ub2e8\ub3c5 \uadf8\ub9ac\ub4dc \ud0d0\uc0c9\uc73c\ub85c SOL avg Sharpe 10+ \ubcf5\uc6d0 \uc2dc\ub3c4. **(C) Half-Kelly \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 SAFE_MAX \uacb0\uc815** \u2014 \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 [investigate], \uc0ac\uc6a9\uc790 \uc2b9\uc778 \ub300\uae30 \uc911",
       "detail": "[RALPH CYCLE 211 DONE] \uc791\uc5c5: c219 2-tier \ubd84\ud560\uc775\uc808(tp1M=2.5, 70% \uc870\uae30\uccad\uc0b0) + ATR \ub808\uc9d0 \uc801\uc751\ud615 TP/SL \u2014 c215 \ucd5c\uc801 \uc704 81\uc870\ud569 3-fold WF | \uacb0\uacfc: **avg OOS Sharpe +23.575 PASS** (c215 +18.682 \ub300\ube44 +4.893 \uac1c\uc120), F3 +29.650, WR 66.0%, trades 86, MDD -12.12%(\uac1c\uc120). ATR \ub808\uc9d0 \uc801\uc751 \ud6a8\uacfc \uc5c6\uc74c(hiTP=0 \ucd5c\uc801), SOL avg +7.658 FAIL(-2.824 \uc545\ud654) | \ub2e4\uc74c\uc81c\uc548: **(A) c219 \ucd5c\uc801 \ud30c\ub77c\ubbf8\ud130\ub97c donchian \uc804\ub7b5 daemon \uc9c0\uac11\uc5d0 \uc801\uc6a9** \u2014 Sharpe +23.575, n=86 \ucda9\ubd84, \ubd84\ud560\uc775\uc808 \ub85c\uc9c1 src/ \uad6c\ud604 \ud544\uc694. \ub2e8 SOL \uae30\uc5ec \uc57d\ud654\ub85c SOL \uc9c0\uac11\uc740 c215 \ud30c\ub77c\ubbf8\ud130 \uc720\uc9c0 \uad8c\uc7a5. **(B) c220 SOL \uc804\uc6a9 \ubd84\ud560\uc775\uc808 \ucd5c\uc801\ud654** \u2014 SOL\uc740 \uc9e7\uc740 \ucd94\uc138 \ud2b9\uc131\uc0c1 pRat=0.3(30% \uc870\uae30) + \ub0ae\uc740 tp1M\uc774 \ub354 \uc801\ud569\ud560 \uc218 \uc788\uc74c. SOL \ub2e8\ub3c5 \uadf8\ub9ac\ub4dc \ud0d0\uc0c9\uc73c\ub85c SOL avg Sharpe 10+ \ubcf5\uc6d0 \uc2dc\ub3c4. **(C) Half-Kelly \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 SAFE_MAX \uacb0\uc815** \u2014 \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 [investigate], \uc0ac\uc6a9\uc790 \uc2b9\uc778 \ub300\uae30 \uc911",
       "timestamp": "2026-04-05T20:55:50.200816"
+    },
+    {
+      "cycle": 212,
+      "summary": "\uc791\uc5c5: c220 vpin_multi \ub798\uce6b \uc2a4\ud0d1 + 2-tier \ubd84\ud560\uc775\uc808 \uc2a4\ud0dc\ud0b9 \uac80\uc99d \u2014 c216 \ub798\uce6b(+3.436)\uacfc c219 \ubd84\ud560\uc775\uc808(+4.893 donchian) \uc870\ud569 \ud6a8\uacfc \uce21\uc815 | \uacb0\uacfc: **\ubd84\ud560\uc775\uc808\uc740 vpin\uc5d0 \ubb34\ud6a8** (\ucd5c\uc801 tp1M=0.0, \ubd84\ud560 OFF). \ub798\uce6b \uc2a4\ud0d1\ub9cc \uc720\ud6a8 \u2014 avg OOS Sharpe +20.707 (baseline +17.271 \ub300\ube44 +3.436). \uc2a4\ud0dc\ud0b9 \uc2dc\ub108\uc9c0 0. \uc6d0\uc778: vpin\uc758 trailing stop\uc774 \uc774\ubbf8 \uc870\uae30 \uccad\uc0b0 \uc5ed\ud560\uc744 \ub300\uccb4. slip=0.0020\uc5d0\uc11c\ub3c4 +18.273 PASS | \ub2e4\uc74c\uc81c\uc548: **(A) \ub798\uce6b \uc2a4\ud0d1 src/ \uad6c\ud604 \ud6c4 vpin_eth daemon \ubc30\ud3ec** \u2014 c216/c220 2\ud68c \uac80\uc99d\uc73c\ub85c +3.436 \uc548\uc815\uc801 \ud655\uc778, RiskManager\uc5d0 ratchet_be_trigger/lock_trigger/lock_pct \ud30c\ub77c\ubbf8\ud130 \ucd94\uac00. **(B) Multi-timeframe ensemble (240m + 60m)** \u2014 \ud3c9\uac00\uc790 [explore] \ud56d\ubaa9, \uc544\uc9c1 \ubbf8\ud0d0\uc0c9. 240m VPIN \uc9c4\uc785 + 60m RSI/VPIN \ud0c0\uc774\ubc0d \ubcf4\uc870 \uc2dc\uadf8\ub110\ub85c \uc9c4\uc785 \uc815\ubc00\ub3c4 \ud5a5\uc0c1 \uac00\ub2a5. **(C) Half-Kelly \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 SAFE_MAX \uacb0\uc815** \u2014 \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 [investigate], \uc0ac\uc6a9\uc790 \uc2b9\uc778 \ub300\uae30 \uc911",
+      "detail": "[RALPH CYCLE 212 DONE] \uc791\uc5c5: c220 vpin_multi \ub798\uce6b \uc2a4\ud0d1 + 2-tier \ubd84\ud560\uc775\uc808 \uc2a4\ud0dc\ud0b9 \uac80\uc99d \u2014 c216 \ub798\uce6b(+3.436)\uacfc c219 \ubd84\ud560\uc775\uc808(+4.893 donchian) \uc870\ud569 \ud6a8\uacfc \uce21\uc815 | \uacb0\uacfc: **\ubd84\ud560\uc775\uc808\uc740 vpin\uc5d0 \ubb34\ud6a8** (\ucd5c\uc801 tp1M=0.0, \ubd84\ud560 OFF). \ub798\uce6b \uc2a4\ud0d1\ub9cc \uc720\ud6a8 \u2014 avg OOS Sharpe +20.707 (baseline +17.271 \ub300\ube44 +3.436). \uc2a4\ud0dc\ud0b9 \uc2dc\ub108\uc9c0 0. \uc6d0\uc778: vpin\uc758 trailing stop\uc774 \uc774\ubbf8 \uc870\uae30 \uccad\uc0b0 \uc5ed\ud560\uc744 \ub300\uccb4. slip=0.0020\uc5d0\uc11c\ub3c4 +18.273 PASS | \ub2e4\uc74c\uc81c\uc548: **(A) \ub798\uce6b \uc2a4\ud0d1 src/ \uad6c\ud604 \ud6c4 vpin_eth daemon \ubc30\ud3ec** \u2014 c216/c220 2\ud68c \uac80\uc99d\uc73c\ub85c +3.436 \uc548\uc815\uc801 \ud655\uc778, RiskManager\uc5d0 ratchet_be_trigger/lock_trigger/lock_pct \ud30c\ub77c\ubbf8\ud130 \ucd94\uac00. **(B) Multi-timeframe ensemble (240m + 60m)** \u2014 \ud3c9\uac00\uc790 [explore] \ud56d\ubaa9, \uc544\uc9c1 \ubbf8\ud0d0\uc0c9. 240m VPIN \uc9c4\uc785 + 60m RSI/VPIN \ud0c0\uc774\ubc0d \ubcf4\uc870 \uc2dc\uadf8\ub110\ub85c \uc9c4\uc785 \uc815\ubc00\ub3c4 \ud5a5\uc0c1 \uac00\ub2a5. **(C) Half-Kelly \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 SAFE_MAX \uacb0\uc815** \u2014 \ud3c9\uac00\uc790 \ucd5c\uc6b0\uc120 [investigate], \uc0ac\uc6a9\uc790 \uc2b9\uc778 \ub300\uae30 \uc911",
+      "timestamp": "2026-04-05T21:12:29.752250"
+    },
+    {
+      "cycle": 213,
+      "summary": "\uc791\uc5c5: \ub798\uce6b \uc2a4\ud0d1 RiskManager src/ \uad6c\ud604 + vpin_eth daemon.toml \ubc30\ud3ec (c216/c220 \uac80\uc99d \uae30\ubc18) | \uacb0\uacfc: RiskConfig 3\uac1c \ud30c\ub77c\ubbf8\ud130(ratchet_be_trigger=0.5, lock_trigger=1.5, lock_pct=0.90) \ucd94\uac00, exit_reason\uc5d0 ATR \uae30\ubc18 \ub798\uce6b \ub85c\uc9c1 \uad6c\ud604, 7 unit tests PASS, mypy strict PASS, 382 tests PASS | \ub2e4\uc74c\uc81c\uc548: **(A) Half-Kelly \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 SAFE_MAX \uc2dc\ubbac\ub808\uc774\uc158** \u2014 \ud3c9\uac00\uc790 3\uc0ac\uc774\ud074 \uc5f0\uc18d \ucd5c\uc6b0\uc120 [investigate], 15% \uc0c1\ud55c 1\ub2e8\uacc4 \uc801\uc6a9 \ube44\uad50. **(B) vpin_eth ratchet paper 1\uc8fc \ubaa8\ub2c8\ud130\ub9c1** \u2014 paper WR/Sharpe \ucd94\uc801, live Sharpe/backtest \ube44\uc728 0.7+ \ud655\uc778. **(C) Multi-timeframe ensemble (240m + 60m)** \u2014 \ud3c9\uac00\uc790 [explore], \ubbf8\ud0d0\uc0c9. **(D) research_loop c220 score_ablation_adaptive_hold \uacb0\uacfc \uac80\ud1a0** \u2014 Sharpe +51.596 / trades 4200 \uacb0\uacfc \uc0c1\uc138 \ud655\uc778 \ud544\uc694 (n \uacfc\ub2e4 \uc758\uc2ec)",
+      "detail": "[RALPH CYCLE 213 DONE] \uc791\uc5c5: \ub798\uce6b \uc2a4\ud0d1 RiskManager src/ \uad6c\ud604 + vpin_eth daemon.toml \ubc30\ud3ec (c216/c220 \uac80\uc99d \uae30\ubc18) | \uacb0\uacfc: RiskConfig 3\uac1c \ud30c\ub77c\ubbf8\ud130(ratchet_be_trigger=0.5, lock_trigger=1.5, lock_pct=0.90) \ucd94\uac00, exit_reason\uc5d0 ATR \uae30\ubc18 \ub798\uce6b \ub85c\uc9c1 \uad6c\ud604, 7 unit tests PASS, mypy strict PASS, 382 tests PASS | \ub2e4\uc74c\uc81c\uc548: **(A) Half-Kelly \ud3ec\uc9c0\uc158 \uc0ac\uc774\uc9d5 SAFE_MAX \uc2dc\ubbac\ub808\uc774\uc158** \u2014 \ud3c9\uac00\uc790 3\uc0ac\uc774\ud074 \uc5f0\uc18d \ucd5c\uc6b0\uc120 [investigate], 15% \uc0c1\ud55c 1\ub2e8\uacc4 \uc801\uc6a9 \ube44\uad50. **(B) vpin_eth ratchet paper 1\uc8fc \ubaa8\ub2c8\ud130\ub9c1** \u2014 paper WR/Sharpe \ucd94\uc801, live Sharpe/backtest \ube44\uc728 0.7+ \ud655\uc778. **(C) Multi-timeframe ensemble (240m + 60m)** \u2014 \ud3c9\uac00\uc790 [explore], \ubbf8\ud0d0\uc0c9. **(D) research_loop c220 score_ablation_adaptive_hold \uacb0\uacfc \uac80\ud1a0** \u2014 Sharpe +51.596 / trades 4200 \uacb0\uacfc \uc0c1\uc138 \ud655\uc778 \ud544\uc694 (n \uacfc\ub2e4 \uc758\uc2ec)",
+      "timestamp": "2026-04-05T21:19:55.782733"
     }
   ],
-  "ralph_last_run": "2026-04-05T20:55:50.200827",
+  "ralph_last_run": "2026-04-05T21:19:55.782745",
   "engine_bias_note": "\u26a0\ufe0f \uc0ac\uc774\ud074 94~144 Sharpe \uc218\uce58\ub294 1\ubd09 \uc120\ud589\ud3b8\ud5a5 \uc5d4\uc9c4 \uacb0\uacfc (\ubb34\ud6a8). \uc218\uc815: 22fa9ed (2026-04-04 10:35). \uc0ac\uc774\ud074 145\ubd80\ud130 \uc218\uc815\ub41c \uc5d4\uc9c4 \uae30\uc900.",
   "revalidated_baselines": {
     "stealth_3gate": {
