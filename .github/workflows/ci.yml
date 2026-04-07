@@ -40,96 +40,26 @@ jobs:
         run: mypy src/
         continue-on-error: true
 
-      - name: Test (whitelist)
+      - name: Test (all except blacklist)
+        # Run entire test suite except slow research/lab/report code paths.
+        # Blacklist (not whitelist) so new core tests are picked up automatically —
+        # prevents drift where new trading-core tests silently miss CI.
         run: |
-          pytest \
-            tests/test_risk_hardening.py \
-            tests/test_risk_manager.py \
-            tests/test_kill_switch.py \
-            tests/test_kill_switch_consecutive.py \
-            tests/test_kill_switch_runtime.py \
-            tests/test_pipeline.py \
-            tests/test_runtime.py \
-            tests/test_runtime_state.py \
-            tests/test_multi_symbol.py \
-            tests/test_wallet.py \
-            tests/test_wallet_health.py \
-            tests/test_wallet_performance.py \
-            tests/test_capital_allocator.py \
-            tests/test_config.py \
-            tests/test_paper_broker.py \
-            tests/test_live_broker.py \
-            tests/test_broker_selection.py \
-            tests/test_daemon_heartbeat.py \
-            tests/test_daemon_supervisor.py \
-            tests/test_circuit_breaker.py \
-            tests/test_cooldown.py \
-            tests/test_watchdog.py \
-            tests/test_alert_manager.py \
-            tests/test_monitoring.py \
-            tests/test_preflight.py \
-            tests/test_auto_pause.py \
-            tests/test_min_trade_filter.py \
-            tests/test_correlation_guard.py \
-            tests/test_drawdown_sizing.py \
-            tests/test_kelly_sizing.py \
-            tests/test_partial_take_profit.py \
-            tests/test_trailing_stop.py \
-            tests/test_trailing_after_partial_tp.py \
-            tests/test_time_decay_exit.py \
-            tests/test_macro_adapter.py \
-            tests/test_macro_bonus.py \
-            tests/test_macro_client.py \
-            tests/test_regime.py \
-            tests/test_regime_gate.py \
-            tests/test_regime_weights.py \
-            tests/test_weekend_regime.py \
-            tests/test_strategy.py \
-            tests/test_strategy_evaluator.py \
-            tests/test_indicators.py \
-            tests/test_adx_indicator.py \
-            tests/test_stealth_3gate.py \
-            tests/test_vpin_strategy.py \
-            tests/test_momentum_strategy.py \
-            tests/test_momentum_pullback_strategy.py \
-            tests/test_bollinger_mean_reversion.py \
-            tests/test_bollinger_rsi_strategy.py \
-            tests/test_mean_reversion_strategy.py \
-            tests/test_mean_reversion_rsi_filter.py \
-            tests/test_volume_spike_strategy.py \
-            tests/test_volume_filter.py \
-            tests/test_volatility_breakout.py \
-            tests/test_consensus_strategy.py \
-            tests/test_consensus_enhanced.py \
-            tests/test_weighted_consensus.py \
-            tests/test_session11_wave2.py \
-            tests/test_session11_wave3.py \
-            tests/test_session11_wave4.py \
-            tests/test_session11_wave5.py \
-            tests/test_session11_wave6.py \
-            tests/test_session11_wave7.py \
-            tests/test_session11_wave8.py \
-            tests/test_session11_wave9.py \
-            tests/test_session11_wave10.py \
-            tests/test_session11_wave11.py \
-            tests/test_session11_wave12.py \
-            tests/test_session11_wave14.py \
-            tests/test_session11_wave15.py \
-            tests/test_session11_wave16.py \
-            tests/test_session11_wave17.py \
-            tests/test_session12_wave12.py \
-            tests/test_session12_wave13.py \
-            tests/test_session12_wave14.py \
-            tests/test_session12_wave15.py \
-            tests/test_session12_wave16.py \
-            tests/test_session12_wave17.py \
-            tests/test_session12_wave18.py \
-            tests/test_session12_wave19.py \
-            tests/test_session12_wave19b.py \
-            tests/test_session12_wave20.py \
-            tests/test_session12_wave21.py \
-            tests/test_session12_wave22.py \
-            tests/test_pyupbit_client.py \
-            tests/test_data_clients.py \
-            tests/test_candle_cache.py \
+          pytest tests/ \
+            --ignore=tests/test_backtest_all_cli.py \
+            --ignore=tests/test_backtest_engine.py \
+            --ignore=tests/test_backtest_engine_entry.py \
+            --ignore=tests/test_backtest_strategy_sweep.py \
+            --ignore=tests/test_walk_forward.py \
+            --ignore=tests/test_walk_forward_cli.py \
+            --ignore=tests/test_walk_forward_summary.py \
+            --ignore=tests/test_default_walk_forward_all.py \
+            --ignore=tests/test_grid_search.py \
+            --ignore=tests/test_grid_wf.py \
+            --ignore=tests/test_gpu_backtest.py \
+            --ignore=tests/test_gpu_correlation.py \
+            --ignore=tests/test_gpu_features.py \
+            --ignore=tests/test_extended_alpha.py \
+            --ignore=tests/test_dashboard.py \
+            --ignore=tests/test_regime_report.py \
             -q
