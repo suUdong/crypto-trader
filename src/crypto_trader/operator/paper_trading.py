@@ -12,6 +12,7 @@ from crypto_trader.models import (
     PositionStatus,
     TradeRecord,
 )
+from crypto_trader.storage import SqliteStore, TradeRow
 
 
 class PaperTradeJournal:
@@ -75,15 +76,45 @@ class PaperTradingOperations:
         trade_journal_path: str | Path,
         position_snapshot_path: str | Path,
         daily_performance_path: str | Path,
+        *,
+        sqlite_store_path: str | Path | None = None,
+        wallet_name: str = "",
+        session_id: str = "",
     ) -> None:
         self._trade_journal = PaperTradeJournal(trade_journal_path)
         self._position_snapshot_store = PositionSnapshotStore(position_snapshot_path)
         self._daily_performance_store = DailyPerformanceStore(daily_performance_path)
         self._persisted_trade_count = 0
+        self._wallet_name = wallet_name
+        self._session_id = session_id
+        self._sqlite_store: SqliteStore | None = (
+            SqliteStore(sqlite_store_path) if sqlite_store_path else None
+        )
 
     def sync(self, broker: PaperBroker, latest_prices: dict[str, float]) -> None:
         new_trades = broker.closed_trades[self._persisted_trade_count :]
-        self._trade_journal.append_many(new_trades)
+        self._trade_journal.append_many(
+            new_trades,
+            wallet_name=self._wallet_name,
+            session_id=self._session_id,
+        )
+        if self._sqlite_store is not None and new_trades:
+            for trade in new_trades:
+                self._sqlite_store.insert_trade(
+                    TradeRow(
+                        wallet=self._wallet_name,
+                        symbol=trade.symbol,
+                        entry_time=trade.entry_time.isoformat(),
+                        exit_time=trade.exit_time.isoformat(),
+                        entry_price=trade.entry_price,
+                        exit_price=trade.exit_price,
+                        quantity=trade.quantity,
+                        pnl=trade.pnl,
+                        pnl_pct=trade.pnl_pct,
+                        exit_reason=trade.exit_reason,
+                        session_id=self._session_id,
+                    )
+                )
         self._persisted_trade_count = len(broker.closed_trades)
         trades = self._trade_journal.load_all()
         snapshot = build_position_snapshot(broker, latest_prices)
