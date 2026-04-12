@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED: Use strategy_evaluator_v2.py instead.
+# This script is kept for reference only.
 """
 strategy_evaluator_loop.py — 자율 전략 평가자 v1.0
 
