@@ -1,5 +1,7 @@
 """Strategy package."""
 
+from crypto_trader.strategy import pdh_pdl_sweep_reclaim as _pdh_pdl_reg  # noqa: F401
+from crypto_trader.strategy import volume_weighted_momentum as _vwm_reg  # noqa: F401
 from crypto_trader.strategy.bb_squeeze_independent import BBSqueezeIndependentStrategy
 from crypto_trader.strategy.etf_flow_admission import EtfFlowAdmissionStrategy
 from crypto_trader.strategy.rsi_mr_bear import RsiMrBearStrategy

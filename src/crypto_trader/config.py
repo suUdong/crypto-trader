@@ -237,6 +237,37 @@ class AppConfig:
 
 _STRATEGY_FIELD_NAMES = {field.name for field in fields(StrategyConfig)}
 _RISK_FIELD_NAMES = {field.name for field in fields(RiskConfig)}
+_VPIN_OVERRIDE_FIELDS = {
+    "bucket_count",
+    "vpin_high_threshold",
+    "vpin_low_threshold",
+    "vpin_momentum_threshold",
+    "vpin_rsi_ceiling",
+    "vpin_rsi_floor",
+    "ema_trend_period",
+    "ema_weight",
+    "adx_threshold",
+    "btc_stealth_gate",
+    "btc_30bar_gate",
+}
+
+_VPIN_V2_ONLY_OVERRIDE_FIELDS = {
+    "entry_score_threshold",
+    "vpin_roc_lookback",
+    "vpin_roc_min",
+    "rsi_delta_lookback",
+    "rsi_delta_min",
+    "ema_slope_lookback",
+    "ema_slope_min",
+}
+
+_ACCUMULATION_MARKET_DATA_OVERRIDE_FIELDS = {
+    "use_scan_rs",
+    "market_data_interval",
+    "market_data_count",
+    "market_data_closed_only",
+}
+
 _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
     "mean_reversion": {
         "weekend_bollinger_window",
@@ -275,19 +306,8 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "min_body_ratio",
     },
     "volume_spike": {"spike_mult", "volume_window", "min_body_ratio", "btc_stealth_gate"},
-    "vpin": {
-        "bucket_count",
-        "vpin_high_threshold",
-        "vpin_low_threshold",
-        "vpin_momentum_threshold",
-        "vpin_rsi_ceiling",
-        "vpin_rsi_floor",
-        "ema_trend_period",
-        "ema_weight",
-        "adx_threshold",
-        "btc_stealth_gate",
-        "btc_30bar_gate",
-    },
+    "vpin": set(_VPIN_OVERRIDE_FIELDS),
+    "vpin_v2": _VPIN_OVERRIDE_FIELDS | _VPIN_V2_ONLY_OVERRIDE_FIELDS,
     "funding_rate": {
         "high_funding_threshold",
         "extreme_funding_threshold",
@@ -309,7 +329,8 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
         "stealth_rs_low",
         "stealth_rs_high",
         "stealth_sma_period",
-    },
+    }
+    | _ACCUMULATION_MARKET_DATA_OVERRIDE_FIELDS,
     "truth_seeker": {
         "vpin_threshold",
         "obi_threshold",
@@ -1032,10 +1053,13 @@ def _read_wallet_override_map(raw_wallet: dict[str, Any], key: str) -> dict[str,
 
 
 def _strategy_override_names(strategy_name: str) -> set[str]:
+    from crypto_trader.strategy import registry as _strategy_registry
+
     return (
         _STRATEGY_FIELD_NAMES
         | _STRATEGY_EXTRA_OVERRIDE_FIELDS.get(strategy_name, set())
         | _COMMON_WALLET_OVERRIDE_FIELDS
+        | _strategy_registry.known_override_fields(strategy_name)
     )
 
 
@@ -1169,6 +1193,8 @@ def _validate_config(
         if not sym.startswith("KRW-"):
             errors.append(f"trading.symbols: '{sym}' must start with 'KRW-'")
 
+    from crypto_trader.strategy import registry as _strategy_registry
+
     valid_strategies = {
         "momentum",
         "momentum_pullback",
@@ -1178,6 +1204,7 @@ def _validate_config(
         "kimchi_premium",
         "obi",
         "vpin",
+        "vpin_v2",
         "volatility_breakout",
         "ema_crossover",
         "consensus",
@@ -1190,7 +1217,7 @@ def _validate_config(
         "etf_flow_admission",
         "stealth_3gate",
         "bb_squeeze_independent",
-    }
+    } | _strategy_registry.known_names()
     for wc in config.wallets:
         if not wc.name.strip():
             errors.append("wallet name must not be empty")

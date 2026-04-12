@@ -5,8 +5,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC
-from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
 
 from crypto_trader.config import (
     AppConfig,
@@ -27,10 +26,10 @@ from crypto_trader.models import (
     OrderSide,
     OrderType,
     PipelineResult,
-    Position,
     Signal,
     SignalAction,
 )
+from crypto_trader.operator.stealth_watchlist import read_stealth_watchlist_bool
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.strategy.bb_squeeze_independent import BBSqueezeIndependentStrategy
 from crypto_trader.strategy.bollinger_mean_reversion import BollingerMeanReversionStrategy
@@ -57,16 +56,37 @@ from crypto_trader.strategy.truth_seeker_v2 import TruthSeekerV2Strategy
 from crypto_trader.strategy.volatility_breakout import VolatilityBreakoutStrategy
 from crypto_trader.strategy.volume_spike import VolumeSpikeStrategy
 from crypto_trader.strategy.vpin import VPINStrategy
+from crypto_trader.strategy.vpin_v2 import VPINV2Strategy
 
 
 class StrategyProtocol(Protocol):
-    def evaluate(
-        self,
-        candles: list[Candle],
-        position: Position | None = None,
-        *,
-        symbol: str = "",
-    ) -> Signal: ...
+    def evaluate(self, candles: list[Candle], *args: Any, **kwargs: Any) -> Signal: ...
+
+
+class _VpinSharedParams(TypedDict):
+    vpin_high_threshold: float
+    vpin_low_threshold: float
+    bucket_count: int
+    vpin_momentum_threshold: float
+    vpin_rsi_ceiling: float
+    vpin_rsi_floor: float
+    ema_trend_period: int
+    adx_threshold: float
+    ema_weight: float
+
+
+def _vpin_shared_params(params: Mapping[str, Any]) -> _VpinSharedParams:
+    return {
+        "vpin_high_threshold": float(params.get("vpin_high_threshold", 0.7)),
+        "vpin_low_threshold": float(params.get("vpin_low_threshold", 0.45)),
+        "bucket_count": int(params.get("bucket_count", 20)),
+        "vpin_momentum_threshold": float(params.get("vpin_momentum_threshold", 0.01)),
+        "vpin_rsi_ceiling": float(params.get("vpin_rsi_ceiling", 70.0)),
+        "vpin_rsi_floor": float(params.get("vpin_rsi_floor", 30.0)),
+        "ema_trend_period": int(params.get("ema_trend_period", 20)),
+        "adx_threshold": float(params.get("adx_threshold", 15.0)),
+        "ema_weight": float(params.get("ema_weight", 0.5)),
+    }
 
 
 def create_strategy(
@@ -76,6 +96,12 @@ def create_strategy(
     extra_params: Mapping[str, Any] | None = None,
 ) -> StrategyProtocol:
     params = extra_params or {}
+    # Check plugin registry first (new strategies self-register via @register)
+    from crypto_trader.strategy import registry
+
+    spec = registry.get_spec(strategy_type)
+    if spec is not None:
+        return spec.factory(strategy_config, regime_config, params)
     if strategy_type == "momentum":
         fg_block = (
             int(params["fear_greed_block_threshold"])
@@ -167,17 +193,20 @@ def create_strategy(
         )
     if strategy_type == "obi":
         return OBIStrategy(strategy_config)
-    if strategy_type == "vpin":
-        return VPINStrategy(
+    if strategy_type in {"vpin", "vpin_v2"}:
+        shared_params = _vpin_shared_params(params)
+        if strategy_type == "vpin":
+            return VPINStrategy(strategy_config, **shared_params)
+        return VPINV2Strategy(
             strategy_config,
-            vpin_high_threshold=float(params.get("vpin_high_threshold", 0.7)),
-            vpin_low_threshold=float(params.get("vpin_low_threshold", 0.45)),
-            bucket_count=int(params.get("bucket_count", 20)),
-            vpin_momentum_threshold=float(params.get("vpin_momentum_threshold", 0.01)),
-            vpin_rsi_ceiling=float(params.get("vpin_rsi_ceiling", 70.0)),
-            vpin_rsi_floor=float(params.get("vpin_rsi_floor", 30.0)),
-            ema_trend_period=int(params.get("ema_trend_period", 20)),
-            adx_threshold=float(params.get("adx_threshold", 15.0)),
+            **shared_params,
+            entry_score_threshold=float(params.get("entry_score_threshold", 3.0)),
+            vpin_roc_lookback=int(params.get("vpin_roc_lookback", 3)),
+            vpin_roc_min=float(params.get("vpin_roc_min", 0.0)),
+            rsi_delta_lookback=int(params.get("rsi_delta_lookback", 3)),
+            rsi_delta_min=float(params.get("rsi_delta_min", 0.0)),
+            ema_slope_lookback=int(params.get("ema_slope_lookback", 3)),
+            ema_slope_min=float(params.get("ema_slope_min", 0.0)),
         )
     if strategy_type == "truth_seeker":
         return TruthSeekerStrategy(
@@ -198,6 +227,7 @@ def create_strategy(
             vpin_threshold=float(params.get("vpin_threshold", 0.55)),
             cvd_slope_threshold=float(params.get("cvd_slope_threshold", 10.0)),
             volatility_ceiling=float(params.get("volatility_ceiling", 0.015)),
+            use_scan_rs=bool(params.get("use_scan_rs", False)),
             stealth_lookback=int(params.get("stealth_lookback", 36)),
             stealth_rs_low=float(params.get("stealth_rs_low", 0.5)),
             stealth_rs_high=float(params.get("stealth_rs_high", 1.0)),
@@ -340,6 +370,19 @@ class StrategyWallet:
         self.allowed_symbols: set[str] = (
             set(wallet_config.symbols) if wallet_config.symbols else set()
         )
+        raw_market_data_interval = wallet_config.strategy_overrides.get("market_data_interval")
+        self.market_data_interval: str | None = (
+            str(raw_market_data_interval).strip()
+            if raw_market_data_interval not in (None, "")
+            else None
+        )
+        raw_market_data_count = wallet_config.strategy_overrides.get("market_data_count")
+        self.market_data_count: int | None = (
+            int(raw_market_data_count) if raw_market_data_count is not None else None
+        )
+        self.market_data_closed_only: bool = bool(
+            wallet_config.strategy_overrides.get("market_data_closed_only", False)
+        )
         self.config_initial_capital = wallet_config.initial_capital
         self.session_starting_equity = broker.cash
         self._logger = logging.getLogger(f"{__name__}.{self.name}")
@@ -387,6 +430,15 @@ class StrategyWallet:
         self._crypto_confidence_threshold: float = float(
             wallet_config.strategy_overrides.get("crypto_confidence_threshold", 0.65)
         )
+
+    def market_data_spec(
+        self,
+        default_interval: str,
+        default_count: int,
+    ) -> tuple[str, int, bool]:
+        interval = self.market_data_interval or default_interval
+        count = self.market_data_count or default_count
+        return interval, count, self.market_data_closed_only
 
     def set_macro_multiplier(self, multiplier: float) -> None:
         self._macro_multiplier = multiplier
@@ -483,20 +535,7 @@ class StrategyWallet:
         """
         if not self._btc_stealth_gate:
             return None
-        import json as _json
-        from datetime import datetime as _dt
-        path = Path("artifacts/stealth-watchlist.json")
-        try:
-            data = _json.loads(path.read_text())
-            updated_at = _dt.fromisoformat(data["updated_at"])
-            if updated_at.tzinfo is None:
-                updated_at = updated_at.replace(tzinfo=UTC)
-            age_hours = (_dt.now(UTC) - updated_at).total_seconds() / 3600
-            if age_hours > 3.0:
-                return None  # stale — don't gate on old data
-            return bool(data.get("btc_bull_regime", True))
-        except Exception:
-            return None  # fail open
+        return read_stealth_watchlist_bool("btc_bull_regime")
 
     def _read_btc_30bar_pos(self) -> bool | None:
         """Read BTC 30-bar momentum from stealth-watchlist.json.
@@ -506,20 +545,7 @@ class StrategyWallet:
         """
         if not self._btc_30bar_gate:
             return None
-        import json as _json
-        from datetime import datetime as _dt
-        path = Path("artifacts/stealth-watchlist.json")
-        try:
-            data = _json.loads(path.read_text())
-            updated_at = _dt.fromisoformat(data["updated_at"])
-            if updated_at.tzinfo is None:
-                updated_at = updated_at.replace(tzinfo=UTC)
-            age_hours = (_dt.now(UTC) - updated_at).total_seconds() / 3600
-            if age_hours > 3.0:
-                return None  # stale — don't gate on old data
-            return bool(data.get("btc_30bar_pos", True))
-        except Exception:
-            return None  # fail open
+        return read_stealth_watchlist_bool("btc_30bar_pos")
 
     @staticmethod
     def _volume_ratio(candles: list[Candle], window: int = 20) -> float:
