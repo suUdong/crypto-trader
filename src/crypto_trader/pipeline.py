@@ -102,6 +102,10 @@ class TradingPipeline:
                             ),
                             latest_price,
                         )
+                        # Freeze ATR at entry for consistent stop-loss calculation
+                        new_pos = self._broker.positions.get(symbol)
+                        if new_pos is not None and order is not None and order.status == "filled":
+                            new_pos.entry_atr = self._risk_manager._current_atr
             elif position is not None:
                 marked_equity = self._broker.equity({symbol: latest_price})
                 if self._risk_manager.should_force_exit(

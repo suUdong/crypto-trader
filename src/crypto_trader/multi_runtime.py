@@ -42,7 +42,17 @@ from crypto_trader.operator.paper_trading import PaperTradeJournal
 from crypto_trader.operator.pnl_report import PnLReportGenerator
 from crypto_trader.operator.regime_report import RegimeReportGenerator
 from crypto_trader.operator.report import OperatorReportBuilder
+from crypto_trader.operator.runtime_market_data import (
+    RuntimeCandleCache,
+    wallet_candles_for,
+    wallet_market_data_spec,
+)
 from crypto_trader.operator.runtime_state import RuntimeCheckpointStore
+from crypto_trader.operator.runtime_symbol_routing import (
+    apply_config_symbol_reload,
+    build_active_symbols,
+    sync_alpha_watchlist,
+)
 from crypto_trader.operator.services import generate_operator_artifacts
 from crypto_trader.operator.strategy_report import StrategyComparisonReport
 from crypto_trader.risk.correlation_guard import CorrelationGuard
@@ -178,6 +188,7 @@ class MultiSymbolRuntime:
         self._alpha_watchlist_path = Path("artifacts/alpha-watchlist.json")
         self._alpha_watchlist_mtime: float = 0.0
         self._active_symbols: list[str] = list(config.trading.symbols)
+        self._excluded_symbols: set[str] = set()
         self._last_health_check: float = 0.0
         self._health_check_interval = 86400  # 24h
         self._notified_disabled_wallets: set[str] = set()
@@ -258,6 +269,23 @@ class MultiSymbolRuntime:
         self._logger.info("Received SIGHUP, will reload wallet symbols at next tick.")
         self._reload_requested = True
 
+    def _refresh_active_symbols(self, preferred_symbols: list[str] | None = None) -> list[str]:
+        """Rebuild the effective symbol loop from config, wallet routing, and open positions."""
+        base_symbols = (
+            self._config.trading.symbols
+            if preferred_symbols is None
+            else preferred_symbols
+        )
+        ordered = build_active_symbols(
+            base_symbols,
+            self._wallets,
+            excluded_symbols=self._excluded_symbols,
+            fallback_symbol=self._config.trading.symbol,
+        )
+        self._config.trading.symbols = list(ordered)
+        self._active_symbols = list(ordered)
+        return self._active_symbols
+
     def _apply_pending_reload(self) -> None:
         """Hot-reload wallet symbol assignments from daemon.toml on SIGHUP.
 
@@ -284,23 +312,19 @@ class MultiSymbolRuntime:
             if wcfg.symbols:
                 new_wallet_symbols[wcfg.name] = set(wcfg.symbols)
 
-        changes: list[str] = []
-        for wallet in self._wallets:
-            new_syms = new_wallet_symbols.get(wallet.name)
-            if new_syms is None:
-                continue
-            if new_syms != wallet.allowed_symbols:
-                before = sorted(wallet.allowed_symbols)
-                after = sorted(new_syms)
-                wallet.allowed_symbols = new_syms
-                changes.append(f"{wallet.name}: {before} -> {after}")
-
-        old_global = list(self._config.trading.symbols)
-        new_global = list(new_config.trading.symbols)
-        if old_global != new_global:
-            self._config.trading.symbols = new_global
-            self._active_symbols = list(new_global)
-            changes.append(f"trading.symbols: {old_global} -> {new_global}")
+        previous_active = list(self._active_symbols)
+        reload_result = apply_config_symbol_reload(
+            self._wallets,
+            new_wallet_symbols,
+            excluded_symbols=self._excluded_symbols,
+            preferred_symbols=list(new_config.trading.symbols),
+            fallback_symbol=self._config.trading.symbol,
+        )
+        self._config.trading.symbols = list(reload_result.active_symbols)
+        self._active_symbols = list(reload_result.active_symbols)
+        changes = list(reload_result.changes)
+        if previous_active != self._active_symbols:
+            changes.append(f"active_symbols: {previous_active} -> {self._active_symbols}")
 
         if changes:
             self._logger.info("Hot-reload applied: %s", " | ".join(changes))
@@ -347,6 +371,18 @@ class MultiSymbolRuntime:
         self._last_error = str(exc)
         self._last_error_type = type(exc).__name__
         self._last_failure_at = datetime.now(UTC).isoformat()
+        if symbol and recoverable and "no ohlcv data returned" in str(exc).lower():
+            symbol_has_open_position = any(
+                symbol in wallet.broker.positions for wallet in self._wallets
+            )
+            if not symbol_has_open_position and symbol not in self._excluded_symbols:
+                self._excluded_symbols.add(symbol)
+                self._refresh_active_symbols(self._config.trading.symbols)
+                self._logger.warning(
+                    "Quarantined symbol with no OHLCV data: %s; active_symbols=%s",
+                    symbol,
+                    self._active_symbols,
+                )
         self._logger.warning("Tick error detected: %s", exc)
 
     def _mark_symbol_recovered(self, symbol: str) -> None:
@@ -412,7 +448,7 @@ class MultiSymbolRuntime:
         signal.signal(signal.SIGTERM, self._handle_signal)
         signal.signal(signal.SIGHUP, self._handle_reload_signal)
 
-        self._active_symbols = list(self._config.trading.symbols)
+        self._refresh_active_symbols(self._config.trading.symbols)
         max_iter = self._config.runtime.max_iterations
         daemon = self._config.runtime.daemon_mode
         poll = self._config.runtime.poll_interval_seconds
@@ -483,25 +519,32 @@ class MultiSymbolRuntime:
 
     def _run_tick(self, symbols: list[str]) -> list[PipelineResult]:
         results: list[PipelineResult] = []
-        candle_cache: dict[str, Any] = {}
+        default_interval = self._config.trading.interval
+        default_count = self._config.trading.candle_count
+        candle_cache = RuntimeCandleCache(self._market_data)
+
+        def fetch_candles(symbol: str, interval: str, count: int) -> list[Any]:
+            return candle_cache.get(symbol, interval, count)
+
+        def default_candles_for(symbol: str) -> list[Any]:
+            return candle_cache.peek(symbol, default_interval, default_count)
+
+        def default_candle_map() -> dict[str, list[Any]]:
+            return candle_cache.default_map(symbols, default_interval, default_count)
 
         # Pre-fetch first symbol to detect regime before processing
         first = symbols[0]
         try:
-            candle_cache[first] = self._market_data.get_ohlcv(
-                symbol=first,
-                interval=self._config.trading.interval,
-                count=self._config.trading.candle_count,
-            )
-            if candle_cache[first]:
-                analysis = self._regime_detector.analyze(candle_cache[first])
+            first_candles = fetch_candles(first, default_interval, default_count)
+            if first_candles:
+                analysis = self._regime_detector.analyze(first_candles)
                 self._current_market_regime = analysis.regime.value
                 self._is_weekend = analysis.is_weekend
         except Exception as exc:
             self._logger.error("Failed to fetch candles for %s: %s", first, exc)
             if self._is_recoverable_error(exc):
                 self._record_tick_error(exc, symbol=first)
-                candle_cache[first] = []
+                candle_cache.set(first, default_interval, default_count, [])
             else:
                 raise
 
@@ -510,22 +553,18 @@ class MultiSymbolRuntime:
                 continue
             time.sleep(self._OHLCV_FETCH_PACING_SECONDS)
             try:
-                candle_cache[symbol] = self._market_data.get_ohlcv(
-                    symbol=symbol,
-                    interval=self._config.trading.interval,
-                    count=self._config.trading.candle_count,
-                )
+                fetch_candles(symbol, default_interval, default_count)
             except Exception as exc:
                 self._logger.error("Failed to fetch candles for %s: %s", symbol, exc)
                 if self._is_recoverable_error(exc):
                     self._record_tick_error(exc, symbol=symbol)
-                    candle_cache[symbol] = []
+                    candle_cache.set(symbol, default_interval, default_count, [])
                     continue
                 raise
 
         latest_prices = {
-            cached_symbol: symbol_candles[-1].close
-            for cached_symbol, symbol_candles in candle_cache.items()
+            symbol: symbol_candles[-1].close
+            for symbol, symbol_candles in default_candle_map().items()
             if symbol_candles
         }
         # Refresh macro/regime-aware multipliers after regime detection and price collection.
@@ -533,23 +572,18 @@ class MultiSymbolRuntime:
         self._propagate_market_regime()
         self._apply_kill_switch_penalty()
         self._latest_prices = dict(latest_prices)
-        self._maybe_rebalance_for_macro_regime_change(candle_cache, latest_prices)
+        self._maybe_rebalance_for_macro_regime_change(default_candle_map(), latest_prices)
         portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
-        if self._maybe_reduce_positions_for_drawdown(candle_cache, latest_prices):
+        if self._maybe_reduce_positions_for_drawdown(default_candle_map(), latest_prices):
             portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
         self._apply_portfolio_risk_penalty()
 
         for symbol in symbols:
-            candles = candle_cache[symbol]
+            candles = default_candles_for(symbol)
             if not candles:
                 time.sleep(self._OHLCV_FETCH_PACING_SECONDS)
                 try:
-                    candles = self._market_data.get_ohlcv(
-                        symbol=symbol,
-                        interval=self._config.trading.interval,
-                        count=self._config.trading.candle_count,
-                    )
-                    candle_cache[symbol] = candles
+                    candles = fetch_candles(symbol, default_interval, default_count)
                     if candles:
                         latest_prices[symbol] = candles[-1].close
                         portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
@@ -568,12 +602,43 @@ class MultiSymbolRuntime:
                     continue
                 if self._wallet_health.is_disabled(wallet.name):
                     continue
+                wallet_interval, wallet_count, _wallet_closed_only = wallet_market_data_spec(
+                    wallet,
+                    default_interval,
+                    default_count,
+                )
+                if wallet_interval != default_interval or wallet_count != default_count:
+                    time.sleep(self._OHLCV_FETCH_PACING_SECONDS)
+                try:
+                    wallet_candles = wallet_candles_for(
+                        candle_cache,
+                        wallet,
+                        symbol,
+                        default_interval=default_interval,
+                        default_count=default_count,
+                        default_candles=candles,
+                    )
+                except Exception as exc:
+                    self._logger.error(
+                        "Failed to fetch wallet candles for %s %s (%s/%s): %s",
+                        wallet.name,
+                        symbol,
+                        wallet_interval,
+                        wallet_count,
+                        exc,
+                    )
+                    if self._is_recoverable_error(exc):
+                        self._record_tick_error(exc, symbol=symbol)
+                        continue
+                    raise
+                if not wallet_candles:
+                    continue
                 if symbol not in wallet.broker.positions:
                     positions_list = [
                         (w.name, sym) for w in self._wallets for sym in w.broker.positions
                     ]
                     correlation_snapshot = self._correlation_guard.build_snapshot(
-                        candle_cache,
+                        default_candle_map(),
                         positions_list,
                         lookback_bars=self._CORRELATION_LOOKBACK_BARS,
                     )
@@ -604,7 +669,7 @@ class MultiSymbolRuntime:
                         )
                         continue
                 try:
-                    result = wallet.run_once(symbol, candles)
+                    result = wallet.run_once(symbol, wallet_candles)
                 except Exception as exc:
                     self._logger.exception(
                         "Wallet execution failed for %s %s",
@@ -1650,15 +1715,7 @@ class MultiSymbolRuntime:
             # Restore cash and realized PnL
             wallet.broker.cash = ws.get("cash", wallet.broker.cash)
             wallet.broker.realized_pnl = ws.get("realized_pnl", 0.0)
-            wallet.session_starting_equity = ws.get(
-                "initial_capital",
-                ws.get("cash", wallet.broker.cash)
-                + sum(
-                    p.get("quantity", 0) * p.get("entry_price", 0)
-                    for p in ws.get("positions", {}).values()
-                )
-                - ws.get("realized_pnl", 0.0),
-            )
+            wallet.session_starting_equity = wallet.config_initial_capital
 
             # Restore open positions
             positions_data = ws.get("positions", {})
@@ -1686,6 +1743,7 @@ class MultiSymbolRuntime:
                     entry_fee_rate=pos_data.get("entry_fee_rate", 0.0),
                     high_watermark=pos_data.get("high_watermark", 0.0),
                     partial_tp_taken=pos_data.get("partial_tp_taken", False),
+                    entry_atr=pos_data.get("entry_atr", 0.0),
                 )
                 wallet.broker.positions[symbol] = position
                 market_price = pos_data.get("market_price")
@@ -1752,7 +1810,7 @@ class MultiSymbolRuntime:
         for wallet in self._wallets:
             wallet_states[wallet.name] = {
                 "strategy_type": wallet.strategy_type,
-                "initial_capital": wallet.session_starting_equity,
+                "initial_capital": wallet.config_initial_capital,
                 "cash": wallet.broker.cash,
                 "realized_pnl": wallet.broker.realized_pnl,
                 "open_positions": len(wallet.broker.positions),
@@ -1786,6 +1844,7 @@ class MultiSymbolRuntime:
                         "entry_fee_rate": pos.entry_fee_rate,
                         "high_watermark": pos.high_watermark,
                         "partial_tp_taken": pos.partial_tp_taken,
+                        "entry_atr": pos.entry_atr,
                     }
                     for symbol, pos in wallet.broker.positions.items()
                 },
@@ -1852,36 +1911,21 @@ class MultiSymbolRuntime:
     def _maybe_reload_alpha_watchlist(self) -> None:
         """alpha-watchlist.json 변경 감지 시 accumulation 지갑 심볼을 동적 교체."""
         try:
-            if not self._alpha_watchlist_path.exists():
+            result = sync_alpha_watchlist(
+                self._alpha_watchlist_path,
+                self._alpha_watchlist_mtime,
+                self._wallets,
+                excluded_symbols=self._excluded_symbols,
+                base_symbols=self._config.trading.symbols,
+                fallback_symbol=self._config.trading.symbol,
+            )
+            if result is None:
                 return
-            mtime = self._alpha_watchlist_path.stat().st_mtime
-            if mtime <= self._alpha_watchlist_mtime:
-                return
-            with self._alpha_watchlist_path.open() as f:
-                data = json.load(f)
-            # calibration threshold 동적 로드
-            from crypto_trader.strategy.alpha_calibrator import load_calibration as _load_cal
-            _cal = _load_cal()
-            _threshold = _cal.threshold if _cal.is_usable else 1.0
-            new_symbols = [
-                s["symbol"] for s in data.get("top_symbols", [])
-                if s.get("alpha", 0) >= _threshold
-            ]
-            if not new_symbols:
-                return
-            acc_wallets = [w for w in self._wallets if "accumulation" in w.name]
-            for i, wallet in enumerate(acc_wallets):
-                sym = new_symbols[i % len(new_symbols)]
-                old = wallet.allowed_symbols.copy()
-                wallet.allowed_symbols = {sym}
-                if sym not in self._active_symbols:
-                    self._active_symbols.append(sym)
-                if old != wallet.allowed_symbols:
-                    self._logger.info(
-                        "Alpha watchlist: %s symbol %s → %s",
-                        wallet.name, old, sym,
-                    )
-            self._alpha_watchlist_mtime = mtime
+            self._alpha_watchlist_mtime = result.alpha_watchlist_mtime
+            self._config.trading.symbols = list(result.active_symbols)
+            self._active_symbols = list(result.active_symbols)
+            for message in result.changes:
+                self._logger.info(message)
         except Exception as exc:
             self._logger.warning("Alpha watchlist reload failed: %s", exc)
 

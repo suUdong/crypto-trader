@@ -57,6 +57,7 @@ class TestDaemonHeartbeat(unittest.TestCase):
         wallet.name = "test_wallet"
         wallet.strategy_type = "momentum"
         wallet.session_starting_equity = 1_000_000.0
+        wallet.config_initial_capital = 1_000_000.0
         wallet.allowed_symbols = []
         wallet.broker.cash = 1_000_000.0
         wallet.broker.realized_pnl = 0.0

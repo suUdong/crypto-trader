@@ -99,6 +99,7 @@ class BacktestEngine:
                             entry_index=index,
                             entry_fee_paid=fee,
                             side=pending_entry_side,
+                            entry_atr=self._risk_manager._current_atr,
                         )
                     elif total_cost <= cash:
                         cash -= total_cost
@@ -113,6 +114,7 @@ class BacktestEngine:
                             entry_index=index,
                             entry_fee_paid=fee,
                             side=pending_entry_side,
+                            entry_atr=self._risk_manager._current_atr,
                         )
                 pending_entry_side = None
                 pending_entry_confidence = 0.0

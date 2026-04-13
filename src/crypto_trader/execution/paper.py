@@ -181,6 +181,7 @@ class PaperBroker:
                 entry_reference_price=position.entry_reference_price,
                 entry_slippage_pct=position.entry_slippage_pct,
                 entry_fee_rate=position.entry_fee_rate,
+                entry_atr=position.entry_atr,
             )
 
         return OrderResult(
