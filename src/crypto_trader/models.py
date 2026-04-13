@@ -81,6 +81,7 @@ class Position:
     entry_reference_price: float = 0.0
     entry_slippage_pct: float = 0.0
     entry_fee_rate: float = 0.0
+    entry_atr: float = 0.0
 
     def __post_init__(self) -> None:
         if self.high_watermark <= 0:
