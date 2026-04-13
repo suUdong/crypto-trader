@@ -446,10 +446,13 @@ class RiskManager:
 
         # Regime-adaptive ATR stops (separate TP/SL multipliers)
         cfg = self._config
-        if cfg.atr_tp_multiplier > 0 and cfg.atr_sl_multiplier > 0 and self._current_atr > 0:
+        effective_atr = (
+            position.entry_atr if position.entry_atr > 0 else self._current_atr
+        )
+        if cfg.atr_tp_multiplier > 0 and cfg.atr_sl_multiplier > 0 and effective_atr > 0:
             sl_mult, tp_mult = self._regime_atr_multipliers()
-            atr_sl_dist = self._current_atr * sl_mult
-            atr_tp_dist = self._current_atr * tp_mult
+            atr_sl_dist = effective_atr * sl_mult
+            atr_tp_dist = effective_atr * tp_mult
             if position.is_short:
                 stop_hit = price >= position.entry_price + atr_sl_dist
                 tp_hit = price <= position.entry_price - atr_tp_dist
@@ -460,9 +463,9 @@ class RiskManager:
                 return "atr_stop_loss"
             if tp_hit:
                 return "atr_take_profit"
-        elif self._atr_stop_multiplier > 0 and self._current_atr > 0:
+        elif self._atr_stop_multiplier > 0 and effective_atr > 0:
             # Legacy: single multiplier with 2:1 reward:risk
-            atr_stop_distance = self._current_atr * self._atr_stop_multiplier
+            atr_stop_distance = effective_atr * self._atr_stop_multiplier
             if position.is_short:
                 stop_hit = price >= position.entry_price + atr_stop_distance
                 tp_hit = price <= position.entry_price - atr_stop_distance * 2.0
