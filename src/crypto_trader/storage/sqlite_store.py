@@ -211,14 +211,6 @@ class SqliteStore:
             with self.connection() as conn:
                 conn.execute("PRAGMA journal_mode=WAL;")
                 conn.execute("PRAGMA synchronous=NORMAL;")
-                result = conn.execute("PRAGMA integrity_check").fetchone()
-                if result and result[0] != "ok":
-                    import logging
-
-                    logging.getLogger(__name__).error(
-                        "SQLite integrity check failed: %s — rebuild from JSONL",
-                        result[0],
-                    )
                 conn.execute(_TRADES_DDL)
                 for stmt in _TRADES_INDEXES:
                     conn.execute(stmt)

@@ -1075,9 +1075,7 @@ def load_paper_trades() -> list[dict[str, Any]]:
     checkpoint = load_checkpoint() or {}
     wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
     session_meta = _active_session_metadata(wallet_states)
-    all_trades = load_all_paper_trades() if callable(load_all_paper_trades) else []
-    if not isinstance(all_trades, list):
-        all_trades = []
+    all_trades = load_all_paper_trades() or []
     return [
         trade
         for trade in all_trades
@@ -1147,15 +1145,7 @@ def load_wallet_analytics() -> dict[str, Any]:
         if _is_current_session_run(run, wallet_states, session_meta)
     ]
     # Use ALL trades (not just current session) for accurate equity calculation
-    all_trades = load_all_paper_trades() if callable(load_all_paper_trades) else []
-    if not isinstance(all_trades, list):
-        all_trades = []
-    # Also keep session-only trades for display purposes
-    paper_trades = [
-        trade
-        for trade in load_paper_trades()
-        if _is_current_session_trade(trade, wallet_states, session_meta)
-    ]
+    all_trades = load_all_paper_trades() or []
 
     trades_by_wallet: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for trade in all_trades:
@@ -1602,6 +1592,7 @@ def _load_trades_from_sqlite(db_path: Path) -> list[dict[str, Any]]:
     import sqlite3
 
     conn = sqlite3.connect(str(db_path), timeout=5.0)
+    conn.execute("PRAGMA busy_timeout=5000;")
     conn.row_factory = sqlite3.Row
     try:
         rows = conn.execute(
