@@ -27,6 +27,8 @@ from crypto_trader.strategy.kimchi_premium import KimchiPremiumStrategy
 from crypto_trader.strategy.mean_reversion import MeanReversionStrategy
 from crypto_trader.strategy.momentum import MomentumStrategy
 from crypto_trader.strategy.momentum_pullback import MomentumPullbackStrategy
+from crypto_trader.strategy.vpin import VPINStrategy
+from crypto_trader.strategy.vpin_v2 import VPINV2Strategy
 from crypto_trader.wallet import StrategyWallet, build_wallets, create_strategy
 
 
@@ -145,6 +147,82 @@ class TestCreateStrategy(unittest.TestCase):
     def test_create_strategy_funding_rate(self) -> None:
         strategy = create_strategy("funding_rate", self.strategy_config, self.regime_config)
         self.assertIsInstance(strategy, FundingRateStrategy)
+
+    def test_create_strategy_vpin_v2(self) -> None:
+        strategy = create_strategy("vpin_v2", self.strategy_config, self.regime_config)
+        self.assertIsInstance(strategy, VPINV2Strategy)
+
+    def test_create_strategy_vpin_forwards_shared_params(self) -> None:
+        strategy = create_strategy(
+            "vpin",
+            self.strategy_config,
+            self.regime_config,
+            extra_params={
+                "vpin_high_threshold": 0.81,
+                "vpin_low_threshold": 0.22,
+                "bucket_count": 34,
+                "vpin_momentum_threshold": 0.07,
+                "vpin_rsi_ceiling": 66.0,
+                "vpin_rsi_floor": 24.0,
+                "ema_trend_period": 55,
+                "adx_threshold": 18.0,
+                "ema_weight": 0.7,
+            },
+        )
+
+        assert isinstance(strategy, VPINStrategy)
+        self.assertEqual(strategy._vpin_high, 0.81)
+        self.assertEqual(strategy._vpin_low, 0.22)
+        self.assertEqual(strategy._bucket_count, 34)
+        self.assertEqual(strategy._vpin_momentum_threshold, 0.07)
+        self.assertEqual(strategy._vpin_rsi_ceiling, 66.0)
+        self.assertEqual(strategy._vpin_rsi_floor, 24.0)
+        self.assertEqual(strategy._ema_trend_period, 55)
+        self.assertEqual(strategy._adx_threshold, 18.0)
+        self.assertEqual(strategy._ema_weight, 0.7)
+
+    def test_create_strategy_vpin_v2_forwards_shared_and_score_params(self) -> None:
+        strategy = create_strategy(
+            "vpin_v2",
+            self.strategy_config,
+            self.regime_config,
+            extra_params={
+                "vpin_high_threshold": 0.79,
+                "vpin_low_threshold": 0.25,
+                "bucket_count": 30,
+                "vpin_momentum_threshold": 0.05,
+                "vpin_rsi_ceiling": 64.0,
+                "vpin_rsi_floor": 26.0,
+                "ema_trend_period": 40,
+                "adx_threshold": 17.0,
+                "ema_weight": 0.6,
+                "entry_score_threshold": 3.4,
+                "vpin_roc_lookback": 5,
+                "vpin_roc_min": 0.03,
+                "rsi_delta_lookback": 4,
+                "rsi_delta_min": 1.5,
+                "ema_slope_lookback": 6,
+                "ema_slope_min": 0.002,
+            },
+        )
+
+        assert isinstance(strategy, VPINV2Strategy)
+        self.assertEqual(strategy._vpin_high, 0.79)
+        self.assertEqual(strategy._vpin_low, 0.25)
+        self.assertEqual(strategy._bucket_count, 30)
+        self.assertEqual(strategy._vpin_momentum_threshold, 0.05)
+        self.assertEqual(strategy._vpin_rsi_ceiling, 64.0)
+        self.assertEqual(strategy._vpin_rsi_floor, 26.0)
+        self.assertEqual(strategy._ema_trend_period, 40)
+        self.assertEqual(strategy._adx_threshold, 17.0)
+        self.assertEqual(strategy._ema_weight, 0.6)
+        self.assertEqual(strategy._entry_score_threshold, 3.4)
+        self.assertEqual(strategy._vpin_roc_lookback, 5)
+        self.assertEqual(strategy._vpin_roc_min, 0.03)
+        self.assertEqual(strategy._rsi_delta_lookback, 4)
+        self.assertEqual(strategy._rsi_delta_min, 1.5)
+        self.assertEqual(strategy._ema_slope_lookback, 6)
+        self.assertEqual(strategy._ema_slope_min, 0.002)
 
     def test_create_strategy_unknown_defaults_to_composite(self) -> None:
         strategy = create_strategy("unknown_type", self.strategy_config, self.regime_config)
@@ -486,7 +564,7 @@ class TestBuildWallets(unittest.TestCase):
 
         wallets = build_wallets(config)
 
-        self.assertEqual(wallets[0].risk_manager._config.max_position_pct, 0.10)
+        self.assertEqual(wallets[0].risk_manager._config.max_position_pct, 0.25)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+# loop_throttle.toml — 루프/랄프 주기 설정 (토큰 절약용)
+# 각 루프가 매 사이클 시작 시 이 파일을 re-read하므로 런타임 중 수정 즉시 반영.
+# 주중 사용자 작업 예산 확보를 위해 보수적 설정 (46% 잔여 / 86h)
+
+[ralph]
+cooldown_minutes = 30        # 기본 3 → 30분 (시간당 2회)
+
+[research]
+cycle_sleep_seconds = 3600   # 2026-04-07 사용자 지시: 1시간 주기
+
+[evaluator]
+poll_interval_seconds = 600  # 기본 120 → 10분
+
+[improvement]
+cycle_hours = 8              # 기본 4 → 8시간
+
+[market_scan]
+sleep_seconds = 3600         # 기본 3600 (변경 없음, Claude 안 씀)

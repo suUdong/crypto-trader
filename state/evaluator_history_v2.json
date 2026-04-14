@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "evaluations": [
+    {
+      "eval_id": "eval-7cf41f73",
+      "timestamp": "2026-04-12T16:23:39.255477+00:00",
+      "overall_grade": "fail",
+      "overall_score": 0.5664,
+      "trigger_reason": "manual",
+      "check_summary": {
+        "backtest_quality": "fail",
+        "portfolio_risk": "warn",
+        "research_progress": "pass",
+        "strategy_health": "warn"
+      }
+    },
+    {
+      "eval_id": "eval-2061ed6f",
+      "timestamp": "2026-04-12T22:35:17.771969+00:00",
+      "overall_grade": "fail",
+      "overall_score": 0.6331,
+      "trigger_reason": "manual",
+      "check_summary": {
+        "backtest_quality": "fail",
+        "portfolio_risk": "warn",
+        "research_progress": "pass",
+        "strategy_health": "warn"
+      }
+    }
+  ]
+}

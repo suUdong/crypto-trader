@@ -1,0 +1,150 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-04-12T22:35:17.771969+00:00",
+  "eval_id": "eval-2061ed6f",
+  "trigger_reason": "manual",
+  "overall_grade": "fail",
+  "overall_score": 0.6331,
+  "check_results": [
+    {
+      "check_name": "backtest_quality",
+      "grade": "fail",
+      "score": 0.2667,
+      "findings": [
+        "n=0 < 10: 통계적으로 무의미",
+        "n=0 < 10: 통계적으로 무의미",
+        "n=22 < 30: 통계적 신뢰도 부족",
+        "n=22 < 30: 통계적 신뢰도 부족",
+        "n=21 < 30: 통계적 신뢰도 부족",
+        "n=21 < 30: 통계적 신뢰도 부족",
+        "n=20 < 30: 통계적 신뢰도 부족",
+        "n=20 < 30: 통계적 신뢰도 부족",
+        "n=21 < 30: 통계적 신뢰도 부족",
+        "n=19 < 30: 통계적 신뢰도 부족",
+        "n=0 < 10: 통계적으로 무의미",
+        "n=0 < 10: 통계적으로 무의미"
+      ],
+      "metrics": {
+        "entries_parsed": 12,
+        "avg_n_trades": 13.833333333333334
+      },
+      "suggestions": []
+    },
+    {
+      "check_name": "portfolio_risk",
+      "grade": "warn",
+      "score": 0.94,
+      "findings": [
+        "vpin: 자본 비중 43% > 40%"
+      ],
+      "metrics": {
+        "unique_strategies": 9,
+        "total_equity": 18748330.117480475,
+        "concentration": {
+          "accumulation_breakout": 0.031,
+          "momentum": 0.051,
+          "volume_spike": 0.05,
+          "vpin": 0.426,
+          "stealth_3gate": 0.059,
+          "bb_squeeze_independent": 0.142,
+          "bollinger_mr": 0.144,
+          "pdh_pdl_sweep_reclaim": 0.048,
+          "volume_weighted_momentum": 0.05
+        }
+      },
+      "suggestions": [
+        "vpin 비중 축소 또는 타 전략 자본 확대"
+      ]
+    },
+    {
+      "check_name": "research_progress",
+      "grade": "pass",
+      "score": 0.8,
+      "findings": [
+        "research 사이클 371, 완료 항목 100개",
+        "market scan 사이클 233"
+      ],
+      "metrics": {
+        "research_cycle": 371,
+        "entries_completed": 100,
+        "market_scan_cycle": 233
+      },
+      "suggestions": []
+    },
+    {
+      "check_name": "strategy_health",
+      "grade": "warn",
+      "score": 0.6092,
+      "findings": [
+        "accumulation_dood_wallet(accumulation_breakout): 거래 0건 — 유휴 상태",
+        "momentum_sol_wallet(momentum): 거래 0건 — 유휴 상태",
+        "volspike_btc_wallet(volume_spike): 거래 0건 — 유휴 상태",
+        "vpin_sol_wallet(vpin): 거래 0건 — 유휴 상태",
+        "vpin_xrp_wallet(vpin): 거래 0건 — 유휴 상태",
+        "vpin_avax_wallet(vpin): 거래 0건 — 유휴 상태",
+        "stealth_3gate_wallet_1(stealth_3gate): 거래 0건 — 유휴 상태",
+        "vpin_ondo_wallet(vpin): 거래 0건 — 유휴 상태",
+        "bb_squeeze_eth_wallet(bb_squeeze_independent): 거래 0건 — 유휴 상태",
+        "bb_squeeze_doge_wallet(bb_squeeze_independent): 거래 0건 — 유휴 상태",
+        "bb_squeeze_link_wallet(bb_squeeze_independent): 거래 0건 — 유휴 상태",
+        "vpin_mana_wallet(vpin): 거래 0건 — 유휴 상태",
+        "vpin_bat_wallet(vpin): 거래 0건 — 유휴 상태",
+        "vpin_pundix_wallet(vpin): 거래 0건 — 유휴 상태",
+        "bb_mr_doge_wallet(bollinger_mr): 거래 0건 — 유휴 상태",
+        "bb_mr_xrp_wallet(bollinger_mr): 거래 0건 — 유휴 상태",
+        "bb_mr_avax_wallet(bollinger_mr): 거래 0건 — 유휴 상태",
+        "pdh_pdl_btc_wallet(pdh_pdl_sweep_reclaim): 거래 0건 — 유휴 상태",
+        "vwm_btc_wallet(volume_weighted_momentum): 거래 0건 — 유휴 상태"
+      ],
+      "metrics": {
+        "wallet_count": 20,
+        "active_strategies": [
+          "momentum",
+          "bollinger_mr",
+          "stealth_3gate",
+          "bb_squeeze_independent",
+          "vpin",
+          "volume_weighted_momentum",
+          "volume_spike",
+          "pdh_pdl_sweep_reclaim",
+          "accumulation_breakout"
+        ]
+      },
+      "suggestions": [
+        "accumulation_dood_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "momentum_sol_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "volspike_btc_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vpin_sol_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vpin_xrp_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vpin_avax_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "stealth_3gate_wallet_1: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vpin_ondo_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "bb_squeeze_eth_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "bb_squeeze_doge_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "bb_squeeze_link_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vpin_mana_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vpin_bat_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vpin_pundix_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "bb_mr_doge_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "bb_mr_xrp_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "bb_mr_avax_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "pdh_pdl_btc_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+        "vwm_btc_wallet: 시그널 생성 조건 점검 또는 자본 재배분"
+      ]
+    }
+  ],
+  "data_sources_used": [
+    "entries_parsed",
+    "avg_n_trades",
+    "unique_strategies",
+    "total_equity",
+    "concentration",
+    "research_cycle",
+    "entries_completed",
+    "market_scan_cycle",
+    "wallet_count",
+    "active_strategies"
+  ],
+  "summary_for_human": "[평가 eval-2061ed6f] 2026-04-12T22:35\n종합: fail (score=0.63)\n  🔴 backtest_quality: fail — n=0 < 10: 통계적으로 무의미; n=0 < 10: 통계적으로 무의미\n  ⚠️ portfolio_risk: warn — vpin: 자본 비중 43% > 40%\n  ✅ research_progress: pass — research 사이클 371, 완료 항목 100개; market scan 사이클 233\n  ⚠️ strategy_health: warn — accumulation_dood_wallet(accumulation_breakout): 거래 0건 — 유휴 상태; momentum_sol_wallet(momentum): 거래 0건 — 유휴 상태\n제안:\n  • vpin 비중 축소 또는 타 전략 자본 확대\n  • accumulation_dood_wallet: 시그널 생성 조건 점검 또는 자본 재배분\n  • momentum_sol_wallet: 시그널 생성 조건 점검 또는 자본 재배분",
+  "telegram_summary": "[평가 eval-2061ed6f] 2026-04-12T22:35\n종합: fail (score=0.63)\n  🔴 backtest_quality: fail — n=0 < 10: 통계적으로 무의미; n=0 < 10: 통계적으로 무의미\n  ⚠️ portfolio_risk: warn — vpin: 자본 비중 43% > 40%\n  ✅ research_progress: pass — research 사이클 371, 완료 항목 100개; market scan 사이클 233\n  ⚠️ strategy_health: warn — accumulation_dood_wallet(accumulation_breakout): 거래 0건 — 유휴 상태; momentum_sol_wallet(momentum): 거래 0건 — 유휴 상태\n제안:\n  • vpin 비중 축소 또는 타 전략 자본 확대\n  • accumulation_dood_wallet: 시그널 생성 조건 점검 또는 자본 재배분\n  • momentum_sol_wallet: 시그널 생성 조건 점검 또는 자본 재배분"
+}

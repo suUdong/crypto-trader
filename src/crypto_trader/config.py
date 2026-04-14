@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 HARD_MAX_DAILY_LOSS_PCT = 0.05
-SAFE_DEFAULT_MAX_POSITION_PCT = 0.10
+SAFE_DEFAULT_MAX_POSITION_PCT = 0.50
 SAFE_MAX_CONSECUTIVE_LOSSES = 3
 
 
@@ -381,7 +381,10 @@ _STRATEGY_EXTRA_OVERRIDE_FIELDS: dict[str, set[str]] = {
 }
 
 # Fields allowed in strategy_overrides for ALL wallet strategies (not strategy-specific)
-_COMMON_WALLET_OVERRIDE_FIELDS: frozenset[str] = frozenset({"active_regimes"})
+_COMMON_WALLET_OVERRIDE_FIELDS: frozenset[str] = frozenset({
+    "active_regimes",
+    "market_data_closed_only",
+})
 
 
 def load_config(

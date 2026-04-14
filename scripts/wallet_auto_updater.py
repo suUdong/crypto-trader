@@ -17,8 +17,10 @@ import re
 import shutil
 import signal
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+
+from crypto_trader.operator.wallet_config_text import find_wallet_block
 
 ROOT = Path(__file__).resolve().parent.parent
 DAEMON_CONFIG = ROOT / "config" / "daemon.toml"
@@ -74,12 +76,14 @@ def _get_current_symbol(wallet_name: str) -> str | None:
     """daemon.toml에서 해당 지갑의 현재 symbol 반환."""
     content = _read_config()
     lines = content.splitlines()
-    in_wallet = False
-    for line in lines:
-        if f'name = "{wallet_name}"' in line:
-            in_wallet = True
-        if in_wallet and line.strip().startswith("symbols = ["):
-            m = re.search(r'"([^"]+)"', line)
+    block = find_wallet_block(lines, wallet_name)
+    if block is None:
+        return None
+    start, end = block
+    for line in lines[start + 1:end]:
+        stripped = line.strip()
+        if stripped.startswith("symbols = ["):
+            m = re.search(r'"([^"]+)"', stripped)
             return m.group(1) if m else None
     return None
 
@@ -90,20 +94,27 @@ def update_symbols(wallet_name: str, new_symbol: str) -> dict | None:
     변경이 없으면 None 반환, 변경 시 {"before": ..., "after": ...} 반환.
     """
     old_symbol = _get_current_symbol(wallet_name)
+    if old_symbol is None:
+        return None
     if old_symbol == new_symbol:
         return None
 
     content = _read_config()
     lines = content.splitlines()
-    in_wallet = False
-    for i, line in enumerate(lines):
-        if f'name = "{wallet_name}"' in line:
-            in_wallet = True
-        if in_wallet and line.strip().startswith("symbols = ["):
+    block = find_wallet_block(lines, wallet_name)
+    if block is None:
+        return None
+    start, end = block
+    updated = False
+    for i in range(start + 1, end):
+        line = lines[i]
+        if line.strip().startswith("symbols = ["):
             lines[i] = re.sub(r'symbols = \[.*?\]', f'symbols = ["{new_symbol}"]', line)
-            in_wallet = False
+            updated = True
             break
 
+    if not updated:
+        return None
     _write_config("\n".join(lines))
     return {"before": old_symbol, "after": new_symbol}
 
@@ -112,21 +123,25 @@ def _get_current_params(wallet_name: str) -> dict:
     """daemon.toml에서 해당 지갑의 strategy_overrides + risk_overrides 반환."""
     content = _read_config()
     lines = content.splitlines()
-    in_wallet = False
-    in_overrides = False
+    block = find_wallet_block(lines, wallet_name)
+    if block is None:
+        return {}
+    start, end = block
+    current_section: str | None = None
     params = {}
-    for line in lines:
-        if f'name = "{wallet_name}"' in line:
-            in_wallet = True
-        if in_wallet and ("[wallets.strategy_overrides]" in line or "[wallets.risk_overrides]" in line):
-            in_overrides = True
+    for line in lines[start + 1:end]:
+        stripped = line.strip()
+        if stripped in {"[wallets.strategy_overrides]", "[wallets.risk_overrides]"}:
+            current_section = stripped
             continue
-        if in_overrides:
-            if line.startswith("[[") or (line.startswith("[") and "wallets" not in line):
-                break
-            m = re.match(r"(\w+)\s*=\s*(.+)", line.strip())
-            if m:
-                params[m.group(1)] = m.group(2).strip()
+        if stripped.startswith("["):
+            current_section = None
+            continue
+        if not current_section:
+            continue
+        m = re.match(r"(\w+)\s*=\s*(.+)", stripped)
+        if m:
+            params[m.group(1)] = m.group(2).strip()
     return params
 
 
@@ -153,24 +168,28 @@ def update_strategy_params(wallet_name: str, new_params: dict) -> dict | None:
 
     content = _read_config()
     lines = content.splitlines()
-    in_wallet = False
-    in_overrides = False
+    block = find_wallet_block(lines, wallet_name)
+    if block is None:
+        return None
+    start, end = block
+    current_section: str | None = None
 
-    for i, line in enumerate(lines):
-        if f'name = "{wallet_name}"' in line:
-            in_wallet = True
-        if in_wallet and ("[wallets.strategy_overrides]" in line or "[wallets.risk_overrides]" in line):
-            in_overrides = True
+    for i in range(start + 1, end):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped in {"[wallets.strategy_overrides]", "[wallets.risk_overrides]"}:
+            current_section = stripped
             continue
-        if in_overrides:
-            if line.startswith("[[") or (line.startswith("[") and "wallets" not in line):
-                in_overrides = False
-                break
-            m = re.match(r"(\w+)\s*=\s*(.+)", line.strip())
-            if m and m.group(1) in mapped:
-                key = m.group(1)
-                indent = len(line) - len(line.lstrip())
-                lines[i] = " " * indent + f"{key} = {mapped[key]}"
+        if stripped.startswith("["):
+            current_section = None
+            continue
+        if not current_section:
+            continue
+        m = re.match(r"(\w+)\s*=\s*(.+)", stripped)
+        if m and m.group(1) in mapped:
+            key = m.group(1)
+            indent = len(line) - len(line.lstrip())
+            lines[i] = " " * indent + f"{key} = {mapped[key]}"
 
     _write_config("\n".join(lines))
     return {
@@ -238,7 +257,10 @@ def restart_daemon() -> int | None:
             timeout=120,
         )
         if result.returncode != 0:
-            print(f"[updater] restart_daemon.sh 실패 (rc={result.returncode}): {result.stderr[-400:]}")
+            print(
+                "[updater] restart_daemon.sh 실패 "
+                f"(rc={result.returncode}): {result.stderr[-400:]}"
+            )
             return None
         print("[updater] daemon 재시작 완료 (systemctl 경유)")
         return 0
@@ -256,7 +278,8 @@ def _ensure_md_header() -> None:
     if not CHANGES_MD.exists():
         CHANGES_MD.write_text(
             "# Wallet Change History\n\n"
-            "자동 업데이트 이력. market_scan_loop (심볼 교체) + strategy_research_loop (파라미터 갱신).\n\n"
+            "자동 업데이트 이력. market_scan_loop (심볼 교체) + "
+            "strategy_research_loop (파라미터 갱신).\n\n"
             "---\n\n",
             encoding="utf-8",
         )
@@ -275,8 +298,8 @@ def log_change(
     CHANGES_MD.parent.mkdir(parents=True, exist_ok=True)
     CHANGES_JSONL.parent.mkdir(parents=True, exist_ok=True)
 
-    ts = datetime.now(timezone.utc).isoformat()
-    ts_display = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    ts = datetime.now(UTC).isoformat()
+    ts_display = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
     record = {
         "ts": ts,
@@ -306,7 +329,10 @@ def log_change(
         before = diff.get("before", {})
         after = diff.get("after", {})
         changed = diff.get("changed", list(after.keys()))
-        diff_str = " | ".join(f"`{k}`: {before.get(k, '?')} → **{after.get(k, '?')}**" for k in changed)
+        diff_str = " | ".join(
+            f"`{k}`: {before.get(k, '?')} → **{after.get(k, '?')}**"
+            for k in changed
+        )
 
     restart_line = "✅ daemon 재시작됨" if daemon_restarted else "⚠️ daemon 재시작 안됨"
 
@@ -388,13 +414,19 @@ def apply_param_update(
     """
     # Gate 1: Sharpe 기준
     if best_sharpe < AUTO_APPLY_SHARPE:
-        print(f"[updater] {strategy_id}: Sharpe={best_sharpe:+.3f} < {AUTO_APPLY_SHARPE} — 자동 적용 스킵")
+        print(
+            f"[updater] {strategy_id}: Sharpe={best_sharpe:+.3f} < "
+            f"{AUTO_APPLY_SHARPE} — 자동 적용 스킵"
+        )
         return False
 
     # Gate 2: 최소 거래 수 (n<30 배포 차단 — Opus/Codex 리뷰)
     _MIN_DEPLOY_TRADES = 30
     if n_trades is not None and n_trades < _MIN_DEPLOY_TRADES:
-        print(f"[updater] {strategy_id}: n={n_trades} < {_MIN_DEPLOY_TRADES} — 샘플 부족, 배포 차단")
+        print(
+            f"[updater] {strategy_id}: n={n_trades} < {_MIN_DEPLOY_TRADES} "
+            "— 샘플 부족, 배포 차단"
+        )
         return False
 
     wallet_name = STRATEGY_TO_WALLET.get(strategy_id)

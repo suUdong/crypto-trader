@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from pathlib import Path
+
 import numpy as np
 
 from crypto_trader.config import StrategyConfig
@@ -11,6 +16,10 @@ from crypto_trader.models import (
 )
 from crypto_trader.strategy.indicators import rsi
 from crypto_trader.strategy.vpin import VPINStrategy
+
+_ALPHA_WATCHLIST_PATH = Path("artifacts/alpha-watchlist.json")
+_SCAN_SNAPSHOT_MAX_AGE_HOURS = 8.0
+_SCAN_CANDIDATE_KEYS = ("rotation_candidates", "accumulation_candidates", "top_symbols")
 
 
 class AccumulationBreakoutStrategy:
@@ -28,6 +37,7 @@ class AccumulationBreakoutStrategy:
         vpin_threshold: float = 0.55,
         cvd_slope_threshold: float = 10.0,
         volatility_ceiling: float = 0.015,  # 1.5% max volatility for accumulation
+        use_scan_rs: bool = False,
         stealth_lookback: int = 36,  # backtest 최적값 W=36 (Sharpe +4.682)
         stealth_rs_low: float = 0.5,  # RS 하한: 너무 약한 종목 제외
         stealth_rs_high: float = 1.0,  # RS 상한: 이미 오른 종목 제외 (< high)
@@ -36,6 +46,7 @@ class AccumulationBreakoutStrategy:
         self._vpin_threshold = vpin_threshold
         self._cvd_slope_threshold = cvd_slope_threshold
         self._volatility_ceiling = volatility_ceiling
+        self._use_scan_rs = use_scan_rs
         self._stealth_lookback = stealth_lookback
         self._stealth_rs_low = stealth_rs_low
         self._stealth_rs_high = stealth_rs_high
@@ -52,21 +63,33 @@ class AccumulationBreakoutStrategy:
             return Signal(action=SignalAction.HOLD, reason="insufficient_data", confidence=0.0)
 
         closes = [c.close for c in candles]
-        volatility = np.std(closes[-24:]) / (closes[-1] + 1e-9)
+        volatility = float(np.std(closes[-24:]) / (closes[-1] + 1e-9))
         vpin_val = self._vpin_strategy._calculate_vpin(candles)
         cvd_val = self._calculate_cvd_slope(candles)
         rsi_val = rsi(closes, self._config.rsi_period)
+        scan_candidate = self._load_scan_candidate(symbol)
+        scan_rs_score = self._extract_float(scan_candidate, "rs")
 
         # RS 게이트: W봉 수익률 정규화 (시그마 단위). rs_low~rs_high 범위만 진입
         # 백테스트 RS[0.5,1.0) ≈ 이미 강하게 오르지 않았지만 완전히 약하지도 않은 종목
         rs_score = self._calc_rs_score(closes)
-        indicators = {
+        if self._use_scan_rs and scan_rs_score is not None:
+            rs_score = scan_rs_score
+        indicators: dict[str, float] = {
             "volatility": volatility,
             "vpin": vpin_val,
             "cvd_slope": cvd_val,
             "rsi": rsi_val,
             "rs_score": rs_score,
         }
+        if scan_candidate is not None:
+            indicators["scan_rs"] = rs_score
+            scan_acc = self._extract_float(scan_candidate, "acc")
+            scan_alpha = self._extract_float(scan_candidate, "alpha")
+            if scan_acc is not None:
+                indicators["scan_acc"] = scan_acc
+            if scan_alpha is not None:
+                indicators["scan_alpha"] = scan_alpha
 
         if not (self._stealth_rs_low <= rs_score < self._stealth_rs_high):
             return Signal(
@@ -128,13 +151,56 @@ class AccumulationBreakoutStrategy:
             return 0.5
         return (closes[-1] - lo) / (hi - lo)
 
+    @staticmethod
+    def _extract_float(
+        candidate: Mapping[str, float | str] | None,
+        key: str,
+    ) -> float | None:
+        if candidate is None:
+            return None
+        try:
+            return float(candidate[key])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def _load_scan_candidate(self, symbol: str) -> dict[str, float | str] | None:
+        if not symbol or not _ALPHA_WATCHLIST_PATH.exists():
+            return None
+        try:
+            payload = json.loads(_ALPHA_WATCHLIST_PATH.read_text(encoding="utf-8"))
+            updated_at = datetime.fromisoformat(str(payload["updated_at"]))
+            if updated_at.tzinfo is None:
+                updated_at = updated_at.replace(tzinfo=UTC)
+            age_hours = (datetime.now(UTC) - updated_at).total_seconds() / 3600.0
+            if age_hours > _SCAN_SNAPSHOT_MAX_AGE_HOURS:
+                return None
+            for key in _SCAN_CANDIDATE_KEYS:
+                rows = payload.get(key, [])
+                if not isinstance(rows, list):
+                    continue
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                    row_symbol = str(row.get("symbol", ""))
+                    if row_symbol != symbol:
+                        continue
+                    normalized: dict[str, float | str] = {"symbol": row_symbol}
+                    for numeric_key in ("rs", "acc", "alpha", "cvd"):
+                        numeric_value = self._extract_float(row, numeric_key)
+                        if numeric_value is not None:
+                            normalized[numeric_key] = numeric_value
+                    return normalized
+        except Exception:
+            return None
+        return None
+
     def _calculate_cvd_slope(self, candles: list[Candle]) -> float:
         """Measure the acceleration of net buying volume."""
         recent = candles[-self._stealth_lookback:]
         deltas = [c.volume if c.close >= c.open else -c.volume for c in recent]
         cvd = np.cumsum(deltas)
         slope = (cvd[-1] - cvd[0]) / (np.mean([c.volume for c in recent]) + 1e-9)
-        return slope
+        return float(slope)
 
     def _evaluate_exit(self, position: Position, ind: dict[str, float], candles: list[Candle]) -> Signal:
         # Exit if RSI is overbought (Blow-off top)

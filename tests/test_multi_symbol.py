@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from crypto_trader.config import (
@@ -131,6 +132,21 @@ class FakeMarketData(MarketDataClient):
 
     def get_ohlcv(self, symbol: str, interval: str = "minute60", count: int = 200) -> list[Candle]:
         return self._candle_map.get(symbol, [])
+
+
+class RecordingMarketData(MarketDataClient):
+    def __init__(self, candle_map: dict[tuple[str, str, int], list[Candle]]) -> None:
+        self._candle_map = candle_map
+        self.calls: list[tuple[str, str, int]] = []
+
+    def get_ohlcv(
+        self,
+        symbol: str,
+        interval: str = "minute60",
+        count: int = 200,
+    ) -> list[Candle]:
+        self.calls.append((symbol, interval, count))
+        return self._candle_map.get((symbol, interval, count), [])
 
 
 class _RecordingNotifier:
@@ -356,6 +372,278 @@ class TestStrategyWallet(unittest.TestCase):
 
 
 class TestMultiSymbolRuntime(unittest.TestCase):
+    def test_accumulation_wallet_uses_market_data_override_interval(self) -> None:
+        candles_60m = _build_candles([100.0 + i * 0.1 for i in range(200)], "KRW-ONT")
+        candles_240m = _build_candles([100.0 + i * 0.4 for i in range(180)], "KRW-ONT")
+        market_data = RecordingMarketData(
+            {
+                ("KRW-ONT", "minute60", 200): candles_60m,
+                ("KRW-ONT", "minute240", 180): candles_240m,
+            }
+        )
+        config = _make_config(
+            symbols=["KRW-ONT"],
+            wallets=[
+                WalletConfig(
+                    "accumulation_dood_wallet",
+                    "accumulation_breakout",
+                    1_000_000.0,
+                    symbols=["KRW-ONT"],
+                    strategy_overrides={
+                        "market_data_interval": "minute240",
+                        "market_data_count": 180,
+                        "stealth_lookback": 36,
+                    },
+                )
+            ],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        runtime = MultiSymbolRuntime(
+            wallets=build_wallets(config),
+            market_data=market_data,
+            config=config,
+        )
+        runtime._alpha_watchlist_path = Path(tempfile.mkdtemp()) / "alpha-watchlist.json"
+
+        runtime.run()
+
+        self.assertIn(("KRW-ONT", "minute60", 200), market_data.calls)
+        self.assertIn(("KRW-ONT", "minute240", 180), market_data.calls)
+
+    def test_accumulation_wallet_trims_open_high_tf_candle_when_closed_only(self) -> None:
+        now = datetime.now(UTC).replace(microsecond=0)
+        candles_60m = [
+            Candle(
+                timestamp=now - timedelta(hours=3 - i),
+                open=100.0 + i,
+                high=101.0 + i,
+                low=99.0 + i,
+                close=100.5 + i,
+                volume=100.0 + i,
+            )
+            for i in range(4)
+        ]
+        closed_start = now - timedelta(hours=9)
+        candles_240m = [
+            Candle(
+                timestamp=closed_start + timedelta(hours=4 * i),
+                open=100.0 + i,
+                high=101.0 + i,
+                low=99.0 + i,
+                close=100.5 + i,
+                volume=100.0 + i,
+            )
+            for i in range(3)
+        ]
+        candles_240m.append(
+            Candle(
+                timestamp=now - timedelta(hours=1),
+                open=103.0,
+                high=104.0,
+                low=102.0,
+                close=103.5,
+                volume=103.0,
+            )
+        )
+        market_data = RecordingMarketData(
+            {
+                ("KRW-ONT", "minute60", 200): candles_60m,
+                ("KRW-ONT", "minute240", 4): candles_240m,
+            }
+        )
+        config = _make_config(
+            symbols=["KRW-ONT"],
+            wallets=[
+                WalletConfig(
+                    "accumulation_dood_wallet",
+                    "accumulation_breakout",
+                    1_000_000.0,
+                    symbols=["KRW-ONT"],
+                    strategy_overrides={
+                        "market_data_interval": "minute240",
+                        "market_data_count": 4,
+                        "market_data_closed_only": True,
+                        "stealth_lookback": 3,
+                    },
+                )
+            ],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        captured_lengths: list[int] = []
+        captured_last_timestamp: list[datetime] = []
+
+        def _recording_run_once(symbol: str, candles: list[Candle]) -> PipelineResult:
+            captured_lengths.append(len(candles))
+            captured_last_timestamp.append(candles[-1].timestamp)
+            return PipelineResult(
+                symbol=symbol,
+                signal=Signal(SignalAction.HOLD, "test", 0.0),
+                order=None,
+                message="test",
+                latest_price=candles[-1].close,
+            )
+
+        wallets[0].run_once = _recording_run_once  # type: ignore[method-assign]
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=market_data,
+            config=config,
+        )
+        runtime._alpha_watchlist_path = Path(tempfile.mkdtemp()) / "alpha-watchlist.json"
+
+        runtime.run()
+
+        self.assertIn(("KRW-ONT", "minute240", 4), market_data.calls)
+        self.assertEqual(captured_lengths, [3])
+        self.assertEqual(captured_last_timestamp[0], candles_240m[-2].timestamp)
+
+    def test_alpha_watchlist_reload_respects_persistent_rotation_gate(self) -> None:
+        config = _make_config(
+            symbols=["KRW-OLD"],
+            wallets=[
+                WalletConfig(
+                    "accumulation_dood_wallet",
+                    "accumulation_breakout",
+                    1_000_000.0,
+                    symbols=["KRW-OLD"],
+                )
+            ],
+        )
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-OLD": _build_candles([100.0] * 60, "KRW-OLD")}),
+            config=config,
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            watchlist_path = Path(temp_dir) / "alpha-watchlist.json"
+            watchlist_path.write_text(
+                json.dumps(
+                    {
+                        "rotation_candidates": [],
+                        "rotation_source": "alpha",
+                        "accumulation_candidates": [
+                            {"symbol": "KRW-NEW", "alpha": 1.4},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            runtime._alpha_watchlist_path = watchlist_path
+
+            with patch(
+                "crypto_trader.strategy.alpha_calibrator.load_calibration",
+                return_value=SimpleNamespace(threshold=1.0, is_usable=True),
+            ):
+                runtime._maybe_reload_alpha_watchlist()
+
+        self.assertEqual(wallets[0].allowed_symbols, {"KRW-OLD"})
+        self.assertEqual(runtime._active_symbols, ["KRW-OLD"])
+        self.assertGreater(runtime._alpha_watchlist_mtime, 0.0)
+
+    def test_alpha_watchlist_reload_accepts_approved_stealth_rotation_pool(self) -> None:
+        config = _make_config(
+            symbols=["KRW-OLD"],
+            wallets=[
+                WalletConfig(
+                    "accumulation_dood_wallet",
+                    "accumulation_breakout",
+                    1_000_000.0,
+                    symbols=["KRW-OLD"],
+                )
+            ],
+        )
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-OLD": _build_candles([100.0] * 60, "KRW-OLD")}),
+            config=config,
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            watchlist_path = Path(temp_dir) / "alpha-watchlist.json"
+            watchlist_path.write_text(
+                json.dumps(
+                    {
+                        "rotation_candidates": [
+                            {"symbol": "KRW-RED", "alpha": 0.82, "rs": 0.91},
+                        ],
+                        "rotation_source": "stealth",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            runtime._alpha_watchlist_path = watchlist_path
+
+            with patch(
+                "crypto_trader.strategy.alpha_calibrator.load_calibration",
+                return_value=SimpleNamespace(threshold=1.0, is_usable=True),
+            ):
+                runtime._maybe_reload_alpha_watchlist()
+
+        self.assertEqual(wallets[0].allowed_symbols, {"KRW-RED"})
+        self.assertEqual(runtime._active_symbols, ["KRW-OLD", "KRW-RED"])
+
+    def test_hot_reload_adds_wallet_symbols_to_active_loop(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0, symbols=["KRW-BTC"])],
+        )
+        wallets = build_wallets(config)
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 40)}),
+            config=config,
+        )
+        reloaded = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0, symbols=["KRW-MON"])],
+        )
+        runtime._config_path = "config/test.toml"
+        runtime._reload_requested = True
+
+        with patch("crypto_trader.config.load_config", return_value=reloaded):
+            runtime._apply_pending_reload()
+
+        self.assertEqual(wallets[0].allowed_symbols, {"KRW-MON"})
+        self.assertEqual(runtime._active_symbols, ["KRW-BTC", "KRW-MON"])
+        self.assertEqual(runtime._config.trading.symbols, ["KRW-BTC", "KRW-MON"])
+
+    def test_hot_reload_keeps_open_position_symbols_active(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0, symbols=["KRW-BTC"])],
+        )
+        wallets = build_wallets(config)
+        wallets[0].broker.positions["KRW-OLD"] = Position(
+            symbol="KRW-OLD",
+            quantity=1.0,
+            entry_price=100.0,
+            entry_time=datetime(2025, 1, 1, tzinfo=UTC),
+        )
+        runtime = MultiSymbolRuntime(
+            wallets=wallets,
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 40)}),
+            config=config,
+        )
+        reloaded = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0, symbols=["KRW-MON"])],
+        )
+        runtime._config_path = "config/test.toml"
+        runtime._reload_requested = True
+
+        with patch("crypto_trader.config.load_config", return_value=reloaded):
+            runtime._apply_pending_reload()
+
+        self.assertEqual(runtime._active_symbols, ["KRW-BTC", "KRW-MON", "KRW-OLD"])
+
     def test_refresh_macro_propagates_snapshot_to_mean_reversion_strategy(self) -> None:
         config = _make_config(
             symbols=["KRW-BTC"],
@@ -537,6 +825,34 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         self.assertEqual(health["failure_streak"], 0)
         self.assertIsNotNone(health["last_failure_at"])
         self.assertIsNotNone(health["last_success_at"])
+
+    def test_runtime_quarantines_no_ohlcv_symbol_without_open_position(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC", "KRW-BAD"],
+            daemon_mode=False,
+            max_iterations=2,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        market_data = MagicMock()
+        candles = _build_candles([100.0] * 240, "KRW-BTC")
+
+        def _get_ohlcv(symbol: str, interval: str = "minute60", count: int = 200) -> list[Candle]:
+            if symbol == "KRW-BAD":
+                raise RuntimeError("No OHLCV data returned for KRW-BAD")
+            return candles
+
+        market_data.get_ohlcv.side_effect = _get_ohlcv
+        runtime = MultiSymbolRuntime(wallets=wallets, market_data=market_data, config=config)
+
+        with patch("crypto_trader.multi_runtime.time.sleep"):
+            runtime.run()
+
+        self.assertIn("KRW-BAD", runtime._excluded_symbols)
+        self.assertEqual(runtime._active_symbols, ["KRW-BTC"])
+        health = json.loads(Path(config.runtime.healthcheck_path).read_text(encoding="utf-8"))
+        self.assertTrue(health["success"])
+        self.assertEqual(health["status"], "healthy")
 
     def test_runtime_re_raises_non_recoverable_fetch_errors(self) -> None:
         config = _make_config(

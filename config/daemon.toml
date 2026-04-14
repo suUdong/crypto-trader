@@ -43,17 +43,17 @@ sideways_error_rate_threshold = 0.20
 bear_error_rate_threshold = 0.10
 
 [risk]
-risk_per_trade_pct = 0.01
-stop_loss_pct = 0.03
+risk_per_trade_pct = 0.50
+stop_loss_pct = 0.05
 take_profit_pct = 0.08
-max_daily_loss_pct = 0.03
+max_daily_loss_pct = 0.05
 max_concurrent_positions = 3
 trailing_stop_pct = 0.0
-atr_stop_multiplier = 1.5
+atr_stop_multiplier = 3.0
 min_entry_confidence = 0.30
 partial_tp_pct = 0.5
 cooldown_bars = 3
-max_position_pct = 0.10
+max_position_pct = 0.50
 
 [kill_switch]
 max_portfolio_drawdown_pct = 0.30
@@ -63,7 +63,7 @@ max_strategy_drawdown_pct = 0.20
 cooldown_minutes = 10
 
 [backtest]
-initial_capital = 5_700_000.0
+initial_capital = 1_000_000.0
 fee_rate = 0.0005
 slippage_pct = 0.0005
 
@@ -121,9 +121,13 @@ strategy_report_path = "artifacts/strategy-report.md"
 [[wallets]]
 name = "accumulation_dood_wallet"
 strategy = "accumulation_breakout"
-initial_capital = 500_000.0
-symbols = ["KRW-ONG"]
+initial_capital = 1_000_000.0
+symbols = ["KRW-NEW"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
+market_data_interval = "minute240"
+market_data_count = 180
+use_scan_rs = true
 vpin_threshold = 0.45
 cvd_slope_threshold = 7.0
 volatility_ceiling = 0.03
@@ -138,30 +142,41 @@ stealth_sma_period = 20
 stop_loss_pct = 0.03
 take_profit_pct = 0.15
 risk_per_trade_pct = 0.02
+atr_stop_multiplier = 0.0
+breakeven_watermark = 1.0
 
 # accumulation_tree_wallet: Lab Mode Alpha Hunter (2026-03-30)
 # 2026-04-02: TP/SL updated — stealth_3gate Sharpe +1.862 (TP=15%/SL=3%)
 # 2026-04-03: W=36 확정 — 정밀 탐색 W=32~42 결과 W=36 피크 Sharpe +4.682 WR=31.1% avg=+2.41%
-[[wallets]]
-name = "accumulation_tree_wallet"
-strategy = "accumulation_breakout"
-initial_capital = 500_000.0
-symbols = ["KRW-SAFE"]
-[wallets.strategy_overrides]
-vpin_threshold = 0.45
-cvd_slope_threshold = 7.0
-volatility_ceiling = 0.03
-max_holding_bars = 24
-btc_stealth_gate = true
-active_regimes = ["bull", "sideways", "bear"]
-stealth_lookback = 36
-stealth_rs_low = 0.5
-stealth_rs_high = 1.0
-stealth_sma_period = 20
-[wallets.risk_overrides]
-stop_loss_pct = 0.03
-take_profit_pct = 0.15
-risk_per_trade_pct = 0.02
+# DISABLED 2026-04-08 — accumulation_tree_wallet
+# 12일 paper 6건 / WR 0% / PnL -₩5,083 — 통계적으로 실패 확정
+# [[wallets]]
+# name = "accumulation_tree_wallet"
+# strategy = "accumulation_breakout"
+# initial_capital = 1_000_000.0
+# symbols = ["KRW-MMT"]
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# market_data_interval = "minute240"
+# market_data_count = 180
+# market_data_closed_only = true
+# use_scan_rs = true
+# vpin_threshold = 0.45
+# cvd_slope_threshold = 7.0
+# volatility_ceiling = 0.03
+# max_holding_bars = 24
+# btc_stealth_gate = true
+# active_regimes = ["bull", "sideways", "bear"]
+# stealth_lookback = 36
+# stealth_rs_low = 0.5
+# stealth_rs_high = 1.0
+# stealth_sma_period = 20
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.03
+# take_profit_pct = 0.15
+# risk_per_trade_pct = 0.02
+# atr_stop_multiplier = 0.0
+# breakeven_watermark = 1.0
 
 # momentum_sol_wallet: 사이클 73-74 walk-forward+sliding 검증 확정 (2026-04-03)
 # OOS Sharpe: lb=12 → W1(2024)=+23.781, W2(2025)=+18.049 (2/3 통과)
@@ -172,9 +187,10 @@ risk_per_trade_pct = 0.02
 [[wallets]]
 name = "momentum_sol_wallet"
 strategy = "momentum"
-initial_capital = 1_200_000.0
-symbols = ["KRW-SOL"]
+initial_capital = 1_000_000.0
+symbols = ["KRW-RED"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 momentum_lookback = 20
 momentum_entry_threshold = 0.005
 rsi_period = 14
@@ -204,9 +220,10 @@ max_position_pct = 0.10
 # [[wallets]]
 # name = "momentum_eth_wallet"
 # strategy = "momentum"
-# initial_capital = 500_000.0
+# initial_capital = 1_000_000.0
 # symbols = ["KRW-ETH"]
 # [wallets.strategy_overrides]
+# market_data_closed_only = true
 # momentum_lookback = 12
 # momentum_entry_threshold = 0.005
 # rsi_period = 14
@@ -234,9 +251,10 @@ max_position_pct = 0.10
 # [[wallets]]
 # name = "momentum_xrp_wallet"
 # strategy = "momentum"
-# initial_capital = 500_000.0
+# initial_capital = 1_000_000.0
 # symbols = ["KRW-XRP"]
 # [wallets.strategy_overrides]
+# market_data_closed_only = true
 # momentum_lookback = 8
 # momentum_entry_threshold = 0.005
 # rsi_period = 14
@@ -263,6 +281,7 @@ max_position_pct = 0.10
 # initial_capital = 2_200_000.0
 # symbols = ["KRW-SOL"]
 # [wallets.strategy_overrides]
+# market_data_closed_only = true
 # rsi_period = 14
 # momentum_lookback = 10
 # max_holding_bars = 36
@@ -293,6 +312,7 @@ strategy = "volume_spike"
 initial_capital = 1_000_000.0
 symbols = ["KRW-BTC"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 spike_mult = 2.0
 volume_window = 20
 min_body_ratio = 0.2
@@ -316,54 +336,53 @@ partial_tp_pct = 0.5
 #   avg OOS Sharpe +14.111, F3 BEAR(BH=-46%) Sharpe +9.443
 #   슬리피지 0.20%에서도 +12.2 유지
 #   이전값: fixed TP=7% SL=0.8% atr_stop_multiplier=1.5 max_hold=18
-[[wallets]]
-name = "vpin_eth_wallet"
-strategy = "vpin"
-initial_capital = 800_000.0
-symbols = ["KRW-ETH"]
-[wallets.strategy_overrides]
-rsi_period = 14
-momentum_lookback = 8
-max_holding_bars = 18
-vpin_low_threshold = 0.35
-vpin_high_threshold = 0.55
-vpin_momentum_threshold = 0.0005
-vpin_rsi_ceiling = 65.0
-vpin_rsi_floor = 20.0
-rsi_overbought = 75.0
-bucket_count = 24
-ema_trend_period = 20
-ema_weight = 0.5
-adx_threshold = 15.0
-btc_stealth_gate = false
-active_regimes = ["bull", "sideways", "bear"]
-[wallets.risk_overrides]
-stop_loss_pct = 0.008
-take_profit_pct = 0.06
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-cooldown_bars = 4
-atr_stop_multiplier = 0.0
-# c168 regime-adaptive ATR TP/SL (BASE + regime offset)
-atr_tp_multiplier = 3.0
-atr_sl_multiplier = 1.2  # 2026-04-07 0.5→1.2: DOGE 노이즈 청산 이슈 대응, R:R 2.5:1
-# c174 vol_regime 사이징 (3-fold WF 27/27 통과, MDD -4.71% +32% 개선)
-vol_regime_lookback = 120
-vol_regime_threshold = 40
-hv_size_mult = 0.5
-hv_hold_bars = 24
-lv_hold_bars = 12
-hv_tp_offset = 1.0
-hv_sl_offset = 0.2
-lv_tp_offset = -0.5
-lv_sl_offset = -0.1
-# c168 ATR trailing stop (activate after 1.8×ATR profit, trail at 0.4×ATR)
-trail_activate_atr_mult = 1.8
-trail_sl_atr_mult = 0.4
-# c216/c220 ratchet stop (+3.436 Sharpe, 2회 검증)
-ratchet_be_trigger = 0.5
-ratchet_lock_trigger = 1.5
-ratchet_lock_pct = 0.90
+# DISABLED 2026-04-08 — vpin_eth_wallet
+# 12일 paper 21건 / WR 19% / PnL -₩4,772 — VPIN이 대형코인(ETH)에서 일관되게 실패
+# [[wallets]]
+# name = "vpin_eth_wallet"
+# strategy = "vpin"
+# initial_capital = 800_000.0
+# symbols = ["KRW-ETH"]
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# rsi_period = 14
+# momentum_lookback = 8
+# max_holding_bars = 18
+# vpin_low_threshold = 0.35
+# vpin_high_threshold = 0.55
+# vpin_momentum_threshold = 0.0005
+# vpin_rsi_ceiling = 65.0
+# vpin_rsi_floor = 20.0
+# rsi_overbought = 75.0
+# bucket_count = 24
+# ema_trend_period = 20
+# ema_weight = 0.5
+# adx_threshold = 15.0
+# btc_stealth_gate = false
+# active_regimes = ["bull", "sideways", "bear"]
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.008
+# take_profit_pct = 0.06
+# risk_per_trade_pct = 0.01
+# partial_tp_pct = 0.5
+# cooldown_bars = 4
+# atr_stop_multiplier = 0.0
+# atr_tp_multiplier = 3.0
+# atr_sl_multiplier = 1.2
+# vol_regime_lookback = 120
+# vol_regime_threshold = 40
+# hv_size_mult = 0.5
+# hv_hold_bars = 24
+# lv_hold_bars = 12
+# hv_tp_offset = 1.0
+# hv_sl_offset = 0.2
+# lv_tp_offset = -0.5
+# lv_sl_offset = -0.1
+# trail_activate_atr_mult = 1.8
+# trail_sl_atr_mult = 0.4
+# ratchet_be_trigger = 0.5
+# ratchet_lock_trigger = 1.5
+# ratchet_lock_pct = 0.90
 
 # vpin_sol_wallet: c165 vpin_multi 3-fold WF 검증 확정 (2026-04-05 사이클 170)
 # 근거: c165 3-fold avg OOS Sharpe +13.254 (SOL 전 fold 최안정)
@@ -375,10 +394,11 @@ ratchet_lock_pct = 0.90
 [[wallets]]
 name = "vpin_sol_wallet"
 strategy = "vpin"
-initial_capital = 500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-SOL"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 20
@@ -401,8 +421,8 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
-atr_tp_multiplier = 5.0
-atr_sl_multiplier = 1.0  # 2026-04-07 0.3→1.0: DOGE 11회 반복 손실(-0.85%) 대응, R:R 5:1
+atr_tp_multiplier = 0.0
+atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 
@@ -414,10 +434,11 @@ trail_sl_atr_mult = 0.4
 [[wallets]]
 name = "vpin_xrp_wallet"
 strategy = "vpin"
-initial_capital = 500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-XRP"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 20
@@ -440,8 +461,8 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
-atr_tp_multiplier = 5.0
-atr_sl_multiplier = 1.0  # 2026-04-07 0.3→1.0: DOGE 11회 반복 손실(-0.85%) 대응, R:R 5:1
+atr_tp_multiplier = 0.0
+atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 max_position_pct = 0.05
@@ -467,10 +488,11 @@ max_position_pct = 0.05
 # [[wallets]]
 # name = "vpin_doge_wallet"
 # strategy = "vpin"
-# initial_capital = 500_000.0
+# initial_capital = 1_000_000.0
 # paper_trading = true
 # symbols = ["KRW-DOGE"]
 # [wallets.strategy_overrides]
+# market_data_closed_only = true
 # rsi_period = 14
 # momentum_lookback = 8
 # max_holding_bars = 20
@@ -510,10 +532,11 @@ max_position_pct = 0.05
 [[wallets]]
 name = "vpin_avax_wallet"
 strategy = "vpin"
-initial_capital = 500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-AVAX"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 20
@@ -536,8 +559,8 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
-atr_tp_multiplier = 5.0
-atr_sl_multiplier = 1.0  # 2026-04-07 0.3→1.0: DOGE 11회 반복 손실(-0.85%) 대응, R:R 5:1
+atr_tp_multiplier = 0.0
+atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 max_position_pct = 0.05
@@ -584,6 +607,7 @@ max_position_pct = 0.05
 # symbols = ["KRW-BTC"]
 #
 # [wallets.strategy_overrides]
+# market_data_closed_only = true
 # bollinger_window = 20
 # bollinger_stddev = 2.0
 # rsi_period = 14
@@ -641,15 +665,20 @@ max_position_pct = 0.05
 #   SUI vs 포트폴리오: 0.709 / SUI 변동성: 87.4% (포트폴리오 58.7%) → 추가 시 변동성 +0.9%
 #   활성화 조건: pre_bull_score ≥ 0.90 + BTC>SMA20 확인 후 symbols에 "KRW-SUI" 추가
 #   주의: Sharpe 5.0 기준 미달(최고 +3.990) — BULL 레짐 진입 후 재검증 권장
+# 2026-04-08 RETAINED — stealth_3gate_wallet_1 (레짐 분산용)
+# Gate2(btc_ret_w<1.0)는 BUG 아닌 의도된 설계 — BTC 조정/횡보장 매집 전략.
+# 최근 12일 paper 성적(61건 WR 15% -₩6,296)은 BULL 추세장 약점 구간 반영.
+# 다음 횡보/조정장 진입 시 자동 활성화 예상 → 포트폴리오 레짐 분산 위해 유지.
 [[wallets]]
 name = "stealth_3gate_wallet_1"
 strategy = "stealth_3gate"
-initial_capital = 750_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 # 2026-04-06: PEPE(-399K), CELO(OHLCV에러), THETA(OHLCV에러) 제거 — paper 60건 기반 판단
 symbols = ["KRW-AVAX", "KRW-LINK", "KRW-APT", "KRW-XRP", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-ASTR"]
 
 [wallets.strategy_overrides]
+market_data_closed_only = true
 stealth_window = 36
 stealth_sma_period = 10
 rs_low = 0.4
@@ -676,9 +705,10 @@ risk_per_trade_pct = 0.02
 [[wallets]]
 name = "vpin_ondo_wallet"
 strategy = "vpin"
-initial_capital = 500_000.0
+initial_capital = 1_000_000.0
 symbols = ["KRW-ONDO"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 18
@@ -711,9 +741,10 @@ atr_stop_multiplier = 1.5
 [[wallets]]
 name = "bb_squeeze_eth_wallet"
 strategy = "bb_squeeze_independent"
-initial_capital = 2_300_000.0
+initial_capital = 1_000_000.0
 symbols = ["KRW-ETH"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 squeeze_pctile_th = 40.0
 squeeze_lb = 15
 upper_ratio = 0.97
@@ -723,6 +754,7 @@ sl_atr = 2.0
 max_hold = 20
 btc_stealth_gate = true
 [wallets.risk_overrides]
+atr_stop_multiplier = 0.0
 stop_loss_pct = 0.04
 take_profit_pct = 0.15
 risk_per_trade_pct = 0.02
@@ -730,9 +762,10 @@ risk_per_trade_pct = 0.02
 [[wallets]]
 name = "bb_squeeze_doge_wallet"
 strategy = "bb_squeeze_independent"
-initial_capital = 500_000.0
+initial_capital = 1_000_000.0
 symbols = ["KRW-DOGE"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 squeeze_pctile_th = 40.0
 squeeze_lb = 15
 upper_ratio = 0.97
@@ -742,6 +775,7 @@ sl_atr = 2.0
 max_hold = 20
 btc_stealth_gate = true
 [wallets.risk_overrides]
+atr_stop_multiplier = 0.0
 stop_loss_pct = 0.04
 take_profit_pct = 0.15
 risk_per_trade_pct = 0.02
@@ -751,9 +785,10 @@ risk_per_trade_pct = 0.02
 # [[wallets]]
 # name = "bb_squeeze_sol_wallet"
 # strategy = "bb_squeeze_independent"
-# initial_capital = 500_000.0
+# initial_capital = 1_000_000.0
 # symbols = ["KRW-SOL"]
 # [wallets.strategy_overrides]
+# market_data_closed_only = true
 # squeeze_pctile_th = 40.0
 # squeeze_lb = 15
 # upper_ratio = 0.97
@@ -775,10 +810,11 @@ risk_per_trade_pct = 0.02
 [[wallets]]
 name = "bb_squeeze_link_wallet"
 strategy = "bb_squeeze_independent"
-initial_capital = 500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-LINK"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 squeeze_pctile_th = 40.0
 squeeze_lb = 15
 upper_ratio = 0.97
@@ -788,6 +824,7 @@ sl_atr = 2.0
 max_hold = 20
 btc_stealth_gate = true
 [wallets.risk_overrides]
+atr_stop_multiplier = 0.0
 stop_loss_pct = 0.04
 take_profit_pct = 0.15
 risk_per_trade_pct = 0.02
@@ -809,10 +846,11 @@ risk_per_trade_pct = 0.02
 [[wallets]]
 name = "vpin_mana_wallet"
 strategy = "vpin"
-initial_capital = 1_500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-MANA"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 20
@@ -835,18 +873,19 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
-atr_tp_multiplier = 5.0
-atr_sl_multiplier = 1.0
+atr_tp_multiplier = 0.0
+atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 
 [[wallets]]
 name = "vpin_bat_wallet"
 strategy = "vpin"
-initial_capital = 1_500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-BAT"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 20
@@ -869,8 +908,8 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
-atr_tp_multiplier = 5.0
-atr_sl_multiplier = 1.0
+atr_tp_multiplier = 0.0
+atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 
@@ -881,6 +920,7 @@ initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-PUNDIX"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 20
@@ -903,8 +943,8 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
-atr_tp_multiplier = 5.0
-atr_sl_multiplier = 1.0
+atr_tp_multiplier = 0.0
+atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 
@@ -915,6 +955,7 @@ initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-ORBS"]
 [wallets.strategy_overrides]
+market_data_closed_only = true
 rsi_period = 14
 momentum_lookback = 8
 max_holding_bars = 20
@@ -937,8 +978,8 @@ risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
-atr_tp_multiplier = 5.0
-atr_sl_multiplier = 1.0
+atr_tp_multiplier = 0.0
+atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 
@@ -946,10 +987,13 @@ trail_sl_atr_mult = 0.4
 [[wallets]]
 name = "bb_mr_doge_wallet"
 strategy = "bollinger_mr"
-initial_capital = 1_500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-DOGE"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
 [wallets.risk_overrides]
+atr_stop_multiplier = 0.0
 stop_loss_pct = 0.015
 take_profit_pct = 0.04
 risk_per_trade_pct = 0.01
@@ -958,10 +1002,13 @@ cooldown_bars = 4
 [[wallets]]
 name = "bb_mr_xrp_wallet"
 strategy = "bollinger_mr"
-initial_capital = 1_500_000.0
+initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-XRP"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
 [wallets.risk_overrides]
+atr_stop_multiplier = 0.0
 stop_loss_pct = 0.015
 take_profit_pct = 0.04
 risk_per_trade_pct = 0.01
@@ -973,7 +1020,10 @@ strategy = "bollinger_mr"
 initial_capital = 1_000_000.0
 paper_trading = true
 symbols = ["KRW-AVAX"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
 [wallets.risk_overrides]
+atr_stop_multiplier = 0.0
 stop_loss_pct = 0.015
 take_profit_pct = 0.04
 risk_per_trade_pct = 0.01
@@ -982,6 +1032,55 @@ cooldown_bars = 4
 # [[wallets]]
 # name = "rsi_mr_bear_btc_wallet"
 # strategy = "rsi_mr_bear"
+
+# ── pdh_pdl_sweep_reclaim (ARE Candidate A) — paper-only ──
+[[wallets]]
+name = "pdh_pdl_btc_wallet"
+strategy = "pdh_pdl_sweep_reclaim"
+initial_capital = 1_000_000.0
+paper_trading = true
+symbols = ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-XRP", "KRW-DOGE", "KRW-LINK", "KRW-ONDO", "KRW-AVAX", "KRW-APT", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-PEPE", "KRW-THETA"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
+use_prev_day = true
+n = 22
+eps = 0.0018262133038232326
+L = 93
+clv_min = 0.6868883402451547
+rvol_min = 2.076067713758879
+hold_bars = 3
+btc_sma_period = 251
+liquidity_min_krw_24h = 1000000000.0
+trail_pct = 0.08183584818420675
+activation_pct = 0.032930819383335294
+max_holding_bars = 68
+[wallets.risk_overrides]
+atr_stop_multiplier = 0.0
+stop_loss_pct = 0.082
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.01
+
+# ── volume_weighted_momentum (ARE Candidate A) — paper-only ──
+[[wallets]]
+name = "vwm_btc_wallet"
+strategy = "volume_weighted_momentum"
+initial_capital = 1_000_000.0
+paper_trading = true
+symbols = ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-XRP", "KRW-DOGE", "KRW-LINK", "KRW-ONDO", "KRW-AVAX", "KRW-APT", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-PEPE", "KRW-THETA"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
+period = 24
+alpha = 264.8908943094896
+btc_sma_period = 221
+liquidity_min_krw_24h = 975695489.5449693
+tp_pct = 0.09956445995940857
+sl_pct = 0.04054993005364031
+max_holding_bars = 28
+[wallets.risk_overrides]
+atr_stop_multiplier = 0.0
+stop_loss_pct = 0.041
+take_profit_pct = 0.10
+risk_per_trade_pct = 0.01
 
 [credentials]
 upbit_access_key = ""

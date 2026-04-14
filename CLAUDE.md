@@ -62,6 +62,37 @@ tests/               # pytest suite
 - `SAFE_DEFAULT_MAX_POSITION_PCT = 0.10`
 - kill switch: warn(50%) → reduce(75%) → halt(100%)
 
+## Harness (Hooks)
+
+`.claude/settings.json` 프로젝트 훅:
+- **SessionStart** → `scripts/hooks/session_start.py` — `SESSION_HANDOFF.md` 읽어서 세션 컨텍스트 주입
+- **PreCompact** → `scripts/hooks/pre_compact.py` — 컨텍스트 압축 전 handoff에 commit sha/timestamp 자동 갱신
+- **PreToolUse Bash** → `scripts/hooks/verify_before_commit.py` — git commit 감지 시 `pytest -x -q` 강제, `--no-verify` 차단
+
+### Session Handoff
+
+- 파일: `SESSION_HANDOFF.md`
+- 역할: ephemeral task state (실행 상태, 다음 할 일, 블로커)
+- SessionStart hook이 매 세션 시작 시 자동 주입
+- PreCompact hook이 컨텍스트 90% 시 자동 스냅샷
+- `ㄱ` 입력 = 새 세션 시작 → handoff 읽고 요약
+
+## Workflow Protocol
+
+모든 non-trivial task은 반드시 다음 순서:
+
+1. `superpowers:brainstorming` skill 호출
+2. 승인된 설계 기록
+3. `superpowers:writing-plans` skill 호출
+4. 계획 기록
+5. TDD로 구현 (test first)
+6. `pytest` + `mypy src/` + `ruff check` GREEN
+7. `superpowers:requesting-code-review` → code-reviewer subagent 리뷰
+8. 커밋
+9. 단계 전환 시 `SESSION_HANDOFF.md` 업데이트
+
+Trivial task = 1줄 수정, 오타, 파일 읽기. 애매하면 non-trivial.
+
 ## Coding Rules
 
 - Line length: 100 chars (ruff)
@@ -121,6 +152,16 @@ pre_bull_score_adjusted = pre_bull_score + macro_bonus
 | 탐색적 분석 | `/codex:rescue 결과만 보고` |
 
 금지: safety 상수 변경, daemon.toml 수정, API 키 — Claude 직접 처리.
+
+## 신규 전략 배포
+
+`docs/new-strategy-deployment-guide.md` 참조. 핵심 규칙:
+- auto-research-engine parity spec 기반으로만 구현
+- parity 테스트 1e-6 tolerance PASS 필수
+- `initial_capital = 1_000_000.0` 고정
+- `paper_trading = true` 필수, 30건 축적 후 평가
+- `dashboard/data.py` STRATEGY_KR에 한글 이름 등록
+- forward 결과를 ARE optimizer에 피드백 금지 (P15)
 
 ## Backtest Rules
 

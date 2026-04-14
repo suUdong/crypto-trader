@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -36,7 +37,9 @@ class TestDataLoaders(unittest.TestCase):
     def setUp(self) -> None:
         self.tmpdir = tempfile.mkdtemp()
         self._orig_dir = data_mod.ARTIFACTS_DIR
+        self._orig_config_dir = data_mod.CONFIG_DIR
         data_mod.ARTIFACTS_DIR = Path(self.tmpdir)
+        data_mod.CONFIG_DIR = Path(self.tmpdir)
         # Clear st.cache_data between tests
         try:
             import streamlit as st
@@ -47,6 +50,7 @@ class TestDataLoaders(unittest.TestCase):
 
     def tearDown(self) -> None:
         data_mod.ARTIFACTS_DIR = self._orig_dir
+        data_mod.CONFIG_DIR = self._orig_config_dir
         import shutil
 
         shutil.rmtree(self.tmpdir, ignore_errors=True)
@@ -92,6 +96,91 @@ class TestDataLoaders(unittest.TestCase):
         path.write_text("# Hello\nWorld")
         result = data_mod._load_md("memo.md")
         self.assertEqual(result, "# Hello\nWorld")
+
+    def test_load_recent_rotations_returns_latest_symbol_rotation_in_window(self) -> None:
+        now = datetime.now(UTC)
+        path = Path(self.tmpdir) / "wallet_changes.jsonl"
+        path.write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "ts": (now - timedelta(hours=2)).isoformat(),
+                            "type": "symbol_rotation",
+                            "wallet": "acc_wallet",
+                            "diff": {"before": "KRW-OLD", "after": "KRW-NEW"},
+                            "trigger": "cycle=1",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "ts": (now - timedelta(hours=1)).isoformat(),
+                            "type": "symbol_rotation",
+                            "wallet": "acc_wallet",
+                            "diff": {"before": "KRW-NEW", "after": "KRW-NEXT"},
+                            "trigger": "cycle=2",
+                        }
+                    ),
+                ]
+            ),
+            encoding="utf-8",
+        )
+        result = data_mod.load_recent_rotations()
+
+        self.assertIn("acc_wallet", result)
+        self.assertEqual(result["acc_wallet"]["before"], "KRW-NEW")
+        self.assertEqual(result["acc_wallet"]["after"], "KRW-NEXT")
+
+    def test_load_trading_mode_reads_daemon_config(self) -> None:
+        config_dir = Path(self.tmpdir).parent / "config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        daemon_path = config_dir / "daemon.toml"
+        daemon_path.write_text("paper_trading = false\n", encoding="utf-8")
+
+        with patch("dashboard.data.Path.resolve") as mock_resolve:
+            mock_resolve.return_value = Path(self.tmpdir) / "dummy.py"
+            result = data_mod.load_trading_mode()
+
+        self.assertEqual(result, ("🔴 LIVE 실거래", "mode-live"))
+
+    def test_load_wallet_risk_targets_reads_wallet_specific_caps(self) -> None:
+        (Path(self.tmpdir) / "daemon.toml").write_text(
+            """
+[trading]
+[strategy]
+[regime]
+[drift]
+[risk]
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.03
+max_concurrent_positions = 1
+max_position_pct = 0.10
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "vpin_xrp_wallet"
+strategy = "vpin"
+initial_capital = 500000.0
+[wallets.risk_overrides]
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.008
+max_position_pct = 0.05
+""".strip()
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_wallet_risk_targets()
+
+        self.assertIn("vpin_xrp_wallet", result)
+        self.assertAlmostEqual(result["vpin_xrp_wallet"]["risk_per_trade_pct"], 1.0)
+        self.assertAlmostEqual(result["vpin_xrp_wallet"]["stop_loss_pct"], 0.8)
+        self.assertAlmostEqual(result["vpin_xrp_wallet"]["max_position_pct"], 5.0)
+        self.assertAlmostEqual(result["vpin_xrp_wallet"]["theoretical_position_pct"], 5.0)
+        self.assertEqual(result["vpin_xrp_wallet"]["sizing_driver"], "max_position_cap")
 
     def test_load_checkpoint(self) -> None:
         path = Path(self.tmpdir) / "runtime-checkpoint.json"
@@ -731,9 +820,11 @@ class TestDashboardAggregates(unittest.TestCase):
         self.docsdir = tempfile.mkdtemp()
         self.reportsdir = tempfile.mkdtemp()
         self._orig_artifacts_dir = data_mod.ARTIFACTS_DIR
+        self._orig_config_dir = data_mod.CONFIG_DIR
         self._orig_docs_dir = data_mod.DOCS_DIR
         self._orig_reports_dir = data_mod.REPORTS_DIR
         data_mod.ARTIFACTS_DIR = Path(self.tmpdir)
+        data_mod.CONFIG_DIR = Path(self.tmpdir)
         data_mod.DOCS_DIR = Path(self.docsdir)
         data_mod.REPORTS_DIR = Path(self.reportsdir)
         try:
@@ -745,6 +836,7 @@ class TestDashboardAggregates(unittest.TestCase):
 
     def tearDown(self) -> None:
         data_mod.ARTIFACTS_DIR = self._orig_artifacts_dir
+        data_mod.CONFIG_DIR = self._orig_config_dir
         data_mod.DOCS_DIR = self._orig_docs_dir
         data_mod.REPORTS_DIR = self._orig_reports_dir
         import shutil
@@ -766,7 +858,11 @@ class TestDashboardAggregates(unittest.TestCase):
                             "trade_count": 2,
                             "open_positions": 1,
                             "positions": {
-                                "KRW-BTC": {"entry_price": 90_000_000, "quantity": 0.001}
+                                "KRW-BTC": {
+                                    "entry_price": 90_000_000,
+                                    "quantity": 0.001,
+                                    "market_price": 91_000_000,
+                                }
                             },
                             "strategy_type": "momentum",
                         },
@@ -820,7 +916,7 @@ class TestDashboardAggregates(unittest.TestCase):
                 [
                     json.dumps(
                         {
-                            "wallet": "momentum_wallet",
+                            "wallet": "momentum_btc_wallet",
                             "symbol": "KRW-BTC",
                             "pnl": 7_000,
                             "pnl_pct": 0.7,
@@ -857,8 +953,15 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(result["wallets"][0]["wallet_name"], "momentum_btc_wallet")
         self.assertEqual(result["wallets"][0]["trade_count"], 2)
         self.assertEqual(result["wallets"][0]["latest_signal_action"], "buy")
+        self.assertAlmostEqual(result["wallets"][0]["gross_position_value"], 91_000.0)
+        expected_equity = 1_000_000 + 12_000 + 1_000  # initial + realized + unrealized
+        self.assertAlmostEqual(
+            result["wallets"][0]["capital_utilization_pct"],
+            91_000.0 / expected_equity * 100.0,
+        )
         self.assertGreaterEqual(result["wallets"][0]["max_drawdown_pct"], 0.0)
         self.assertGreaterEqual(len(result["wallets"][0]["timeline"]), 2)
+        self.assertAlmostEqual(result["portfolio"]["total_gross_position_value"], 91_000.0)
         self.assertEqual(result["portfolio"]["portfolio_sharpe"], 1.23)
         self.assertEqual(result["portfolio"]["portfolio_mdd"], 2.34)
 
@@ -999,6 +1102,226 @@ class TestDashboardAggregates(unittest.TestCase):
         self.assertEqual(result["portfolio"]["portfolio_sharpe"], 1.91)
         self.assertEqual(result["portfolio"]["portfolio_mdd"], 2.72)
 
+    def test_load_live_pnl_summary_prefers_wallet_analytics_over_stale_pnl_report(self) -> None:
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "equity": 1_020_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 12_000,
+                            "trade_count": 2,
+                            "open_positions": 1,
+                            "positions": {
+                                "KRW-BTC": {"entry_price": 90_000_000, "quantity": 0.001, "market_price": 98_000_000}
+                            },
+                            "strategy_type": "momentum",
+                        }
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "positions.json").write_text(
+            json.dumps(
+                {
+                    "open_position_count": 1,
+                    "total_unrealized_pnl": 8_000,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
+            json.dumps(
+                {
+                    "wallet": "momentum_btc_wallet",
+                    "symbol": "KRW-BTC",
+                    "pnl": 5_000,
+                    "pnl_pct": 0.5,
+                    "exit_time": "2026-03-27T04:00:00+00:00",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "wallet": "momentum_btc_wallet",
+                    "symbol": "KRW-BTC",
+                    "pnl": 7_000,
+                    "pnl_pct": 0.7,
+                    "exit_time": "2026-03-27T06:00:00+00:00",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "pnl-report.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-01T00:00:00+00:00",
+                    "total_realized_pnl": 2_000,
+                    "portfolio_return_pct": 0.2,
+                    "total_trades": 99,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_live_pnl_summary()
+
+        self.assertEqual(result["total_realized_pnl"], 12_000)
+        self.assertEqual(result["total_unrealized_pnl"], 8_000)
+        self.assertEqual(result["total_pnl"], 20_000)
+        self.assertEqual(result["total_trades"], 2)
+        self.assertEqual(result["open_position_count"], 1)
+        self.assertEqual(result["today_realized_pnl"], 12_000)
+        self.assertEqual(result["today_trade_count"], 2)
+        self.assertAlmostEqual(result["total_gross_position_value"], 90_000.0)
+        self.assertAlmostEqual(result["capital_utilization_pct"], 90_000.0 / 1_020_000 * 100.0)
+        self.assertEqual(result["realized_source"], "wallet_analytics")
+        self.assertEqual(result["unrealized_source"], "wallet_analytics")
+
+    def test_load_live_pnl_summary_falls_back_to_pnl_report_without_wallet_analytics(self) -> None:
+        (Path(self.tmpdir) / "pnl-report.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-01T00:00:00+00:00",
+                    "total_realized_pnl": 2_500,
+                    "portfolio_return_pct": 0.25,
+                    "total_trades": 7,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "positions.json").write_text(
+            json.dumps(
+                {
+                    "open_position_count": 2,
+                    "total_unrealized_pnl": 500,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_live_pnl_summary()
+
+        self.assertEqual(result["total_realized_pnl"], 2_500)
+        self.assertEqual(result["total_unrealized_pnl"], 500)
+        self.assertEqual(result["total_pnl"], 3_000)
+        self.assertEqual(result["open_position_count"], 2)
+        self.assertEqual(result["today_realized_pnl"], 0.0)
+        self.assertEqual(result["today_trade_count"], 0)
+        self.assertEqual(result["realized_source"], "pnl_report")
+        self.assertEqual(result["unrealized_source"], "positions")
+
+    def test_load_capital_utilization_diagnostics_summarizes_idle_capital(self) -> None:
+        (Path(self.tmpdir) / "daemon.toml").write_text(
+            """
+[trading]
+[strategy]
+[regime]
+[drift]
+[risk]
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.03
+max_concurrent_positions = 1
+max_position_pct = 0.10
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "momentum_btc_wallet"
+strategy = "momentum"
+initial_capital = 1000000.0
+[wallets.risk_overrides]
+risk_per_trade_pct = 0.02
+stop_loss_pct = 0.04
+max_position_pct = 0.10
+
+[[wallets]]
+name = "idle_wallet"
+strategy = "vpin"
+initial_capital = 500000.0
+[wallets.risk_overrides]
+risk_per_trade_pct = 0.01
+stop_loss_pct = 0.02
+max_position_pct = 0.05
+""".strip()
+            + "\n",
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-27T08:00:00+00:00",
+                    "wallet_states": {
+                        "momentum_btc_wallet": {
+                            "equity": 1_020_000,
+                            "initial_capital": 1_000_000,
+                            "realized_pnl": 12_000,
+                            "trade_count": 2,
+                            "open_positions": 1,
+                            "positions": {
+                                "KRW-BTC": {"entry_price": 90_000_000, "quantity": 0.001, "market_price": 98_000_000}
+                            },
+                            "strategy_type": "momentum",
+                        },
+                        "idle_wallet": {
+                            "equity": 500_000,
+                            "initial_capital": 500_000,
+                            "realized_pnl": 0,
+                            "trade_count": 0,
+                            "open_positions": 0,
+                            "positions": {},
+                            "strategy_type": "vpin",
+                        },
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "positions.json").write_text(
+            json.dumps(
+                {
+                    "open_position_count": 1,
+                    "total_unrealized_pnl": 8_000,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
+            json.dumps(
+                {
+                    "wallet": "momentum_btc_wallet",
+                    "symbol": "KRW-BTC",
+                    "pnl": 12_000,
+                    "pnl_pct": 1.2,
+                    "exit_time": "2026-03-27T06:00:00+00:00",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = data_mod.load_capital_utilization_diagnostics()
+
+        self.assertEqual(result["utilization_label"], "낮음")
+        self.assertEqual(result["idle_wallet_count"], 1)
+        self.assertEqual(result["active_wallet_count"], 1)
+        self.assertAlmostEqual(result["gross_position_value"], 90_000.0)
+        # equity = initial(1M) + realized(12k) + unrealized(8k) + idle(500k) - position(90k)
+        self.assertAlmostEqual(result["idle_capital"], 1_430_000.0)
+        self.assertEqual(result["cap_limited_count"], 1)
+        self.assertEqual(result["idle_no_position_count"], 1)
+        self.assertEqual(len(result["underutilized_wallets"]), 1)
+        self.assertEqual(result["underutilized_wallets"][0]["wallet_name"], "idle_wallet")
+        self.assertAlmostEqual(result["underutilized_wallets"][0]["theoretical_position_pct"], 5.0)
+        self.assertEqual(result["underutilized_wallets"][0]["sizing_driver"], "max_position_cap")
+        self.assertTrue(result["notes"])
+
     def test_load_wallet_analytics_infers_initial_capital_when_missing(self) -> None:
         (Path(self.tmpdir) / "runtime-checkpoint.json").write_text(
             json.dumps(
@@ -1030,6 +1353,18 @@ class TestDashboardAggregates(unittest.TestCase):
                     "latest_price": 91_000_000,
                     "symbol": "KRW-BTC",
                     "market_regime": "bull",
+                }
+            )
+            + "\n"
+        )
+        (Path(self.tmpdir) / "paper-trades.jsonl").write_text(
+            json.dumps(
+                {
+                    "wallet": "momentum_btc_wallet",
+                    "symbol": "KRW-BTC",
+                    "pnl": 10_000,
+                    "pnl_pct": 1.0,
+                    "exit_time": "2026-03-27T06:00:00+00:00",
                 }
             )
             + "\n"

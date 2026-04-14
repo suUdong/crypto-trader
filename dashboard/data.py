@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 DEFAULT_INITIAL_CAPITAL = 1_000_000.0
 
 # Phase-1 DB introduction: dashboard is transitioning from paper-trades.jsonl
@@ -81,6 +82,66 @@ def load_data_freshness() -> dict[str, Any]:
     return {"files": files_info, "overall_fresh": primary_fresh}
 
 
+@st.cache_data(ttl=300)
+def load_recent_rotations(window_hours: int = 24) -> dict[str, dict[str, Any]]:
+    path = ARTIFACTS_DIR / "wallet_changes.jsonl"
+    if not path.exists():
+        return {}
+    cutoff = datetime.now(UTC).timestamp() - window_hours * 3600
+    latest: dict[str, dict[str, Any]] = {}
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except Exception:
+                continue
+            if record.get("type") != "symbol_rotation":
+                continue
+            ts = record.get("ts")
+            if not ts:
+                continue
+            try:
+                ts_dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+            except Exception:
+                continue
+            if ts_dt.timestamp() < cutoff:
+                continue
+            wallet_name = str(record.get("wallet", ""))
+            previous = latest.get(wallet_name)
+            if previous is None or ts_dt.timestamp() > float(previous["_ts"]):
+                latest[wallet_name] = {
+                    "_ts": ts_dt.timestamp(),
+                    "ts_dt": ts_dt,
+                    "before": record.get("diff", {}).get("before"),
+                    "after": record.get("diff", {}).get("after"),
+                    "trigger": record.get("trigger", ""),
+                }
+    except Exception:
+        return {}
+    return latest
+
+
+@st.cache_data(ttl=60)
+def load_trading_mode() -> tuple[str, str]:
+    cfg_path = Path(__file__).resolve().parent.parent / "config" / "daemon.toml"
+    try:
+        text = cfg_path.read_text(encoding="utf-8")
+    except Exception:
+        return ("UNKNOWN", "mode-paper")
+    paper = True
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("paper_trading"):
+            paper = "true" in stripped.lower()
+            break
+    if paper:
+        return ("🟡 PAPER 모의거래", "mode-paper")
+    return ("🔴 LIVE 실거래", "mode-live")
+
+
 SYMBOL_KR: dict[str, str] = {
     "KRW-BTC": "비트코인",
     "KRW-ETH": "이더리움",
@@ -122,6 +183,12 @@ STRATEGY_KR: dict[str, str] = {
     "ema_crossover": "EMA크로스",
     "consensus": "합의전략",
     "volume_spike": "거래량급등",
+    "pdh_pdl_sweep_reclaim": "전일고저스윕",
+    "volume_weighted_momentum": "거래량가중모멘텀",
+    "accumulation_breakout": "매집돌파",
+    "stealth_3gate": "스텔스3게이트",
+    "bb_squeeze_independent": "BB스퀴즈",
+    "bollinger_mr": "볼린저MR",
 }
 
 REGIME_KR: dict[str, str] = {
@@ -136,10 +203,29 @@ REGIME_KR: dict[str, str] = {
 }
 
 
+@st.cache_data(ttl=86400)
+def _upbit_market_kr_names() -> dict[str, str]:
+    """Fetch KRW market Korean names from pyupbit (cached 24h)."""
+    try:
+        import pyupbit
+        markets = pyupbit.get_market_all()
+        if not markets:
+            return {}
+        return {
+            m["market"]: m.get("korean_name", "")
+            for m in markets
+            if str(m.get("market", "")).startswith("KRW-")
+        }
+    except Exception:
+        return {}
+
+
 def symbol_kr(code: str) -> str:
-    """KRW-BTC -> '비트코인 (BTC)'."""
+    """KRW-BTC -> '비트코인 (BTC)'. Falls back to pyupbit market metadata."""
     ticker = code.replace("KRW-", "")
-    name = SYMBOL_KR.get(code, ticker)
+    name = SYMBOL_KR.get(code) or _upbit_market_kr_names().get(code) or ticker
+    if name == ticker:
+        return ticker  # 한글명 없으면 ticker만 (중복 방지)
     return f"{name} ({ticker})"
 
 
@@ -589,6 +675,24 @@ def load_positions() -> dict[str, Any] | None:
     return _load_json("positions.json")
 
 
+@st.cache_data(ttl=10)
+def fetch_live_prices(symbols: tuple[str, ...]) -> dict[str, float]:
+    """Fetch current prices from Upbit for the given symbols."""
+    if not symbols:
+        return {}
+    try:
+        import pyupbit
+
+        prices = pyupbit.get_current_price(list(symbols))
+        if isinstance(prices, dict):
+            return {k: float(v) for k, v in prices.items() if v is not None}
+        if isinstance(prices, (int, float)) and len(symbols) == 1:
+            return {symbols[0]: float(prices)}
+    except Exception:
+        logger.warning("Failed to fetch live prices from Upbit")
+    return {}
+
+
 @st.cache_data(ttl=30)
 def load_health() -> dict[str, Any] | None:
     health = _load_json("health.json")
@@ -742,6 +846,45 @@ def load_operator_report() -> str | None:
     return _load_md("operator-report.md")
 
 
+@st.cache_data(ttl=60)
+def load_wallet_risk_targets() -> dict[str, dict[str, Any]]:
+    config_path = CONFIG_DIR / "daemon.toml"
+    if not config_path.exists():
+        return {}
+    try:
+        from crypto_trader.config import _apply_risk_overrides, load_config
+
+        config = load_config(config_path, {}, allow_missing_live_credentials=True)
+    except Exception:
+        return {}
+
+    targets: dict[str, dict[str, Any]] = {}
+    for wallet in config.wallets:
+        risk = _apply_risk_overrides(config.risk, wallet.risk_overrides)
+        uncapped_position_pct = (
+            (risk.risk_per_trade_pct / risk.stop_loss_pct) * 100.0
+            if risk.stop_loss_pct > 0
+            else 0.0
+        )
+        max_position_pct = risk.max_position_pct * 100.0
+        theoretical_position_pct = min(uncapped_position_pct, max_position_pct)
+        sizing_driver = (
+            "max_position_cap"
+            if uncapped_position_pct > max_position_pct + 1e-9
+            else "risk_budget"
+        )
+        targets[wallet.name] = {
+            "risk_per_trade_pct": risk.risk_per_trade_pct * 100.0,
+            "stop_loss_pct": risk.stop_loss_pct * 100.0,
+            "max_position_pct": max_position_pct,
+            "max_concurrent_positions": risk.max_concurrent_positions,
+            "uncapped_position_pct": uncapped_position_pct,
+            "theoretical_position_pct": theoretical_position_pct,
+            "sizing_driver": sizing_driver,
+        }
+    return targets
+
+
 @st.cache_data(ttl=15)
 def load_daemon_heartbeat() -> dict[str, Any] | None:
     return _load_json("daemon-heartbeat.json")
@@ -755,6 +898,176 @@ def load_kill_switch() -> dict[str, Any] | None:
 @st.cache_data(ttl=30)
 def load_pnl_report() -> dict[str, Any] | None:
     return _load_json("pnl-report.json")
+
+
+@st.cache_data(ttl=30)
+def load_live_pnl_summary() -> dict[str, Any]:
+    analytics = load_wallet_analytics() or {}
+    portfolio = cast(dict[str, Any], analytics.get("portfolio", {}))
+    wallets = cast(list[dict[str, Any]], analytics.get("wallets", []))
+    positions = load_positions() or {}
+    pnl_report = load_pnl_report() or {}
+
+    total_trades = sum(int(wallet.get("trade_count", 0) or 0) for wallet in wallets)
+    realized_source = (
+        "wallet_analytics" if portfolio.get("total_realized_pnl") is not None else "pnl_report"
+    )
+    realized = _numeric_value(
+        portfolio.get("total_realized_pnl"),
+        fallback=pnl_report.get("total_realized_pnl"),
+    )
+    unrealized_source = (
+        "wallet_analytics"
+        if portfolio.get("total_unrealized_pnl") is not None
+        else "positions"
+    )
+    unrealized = _numeric_value(
+        portfolio.get("total_unrealized_pnl"),
+        fallback=positions.get("total_unrealized_pnl"),
+    )
+    open_position_count = int(
+        positions.get(
+            "open_position_count",
+            sum(int(wallet.get("open_positions", 0) or 0) for wallet in wallets),
+        )
+        or 0
+    )
+    summary_dt = _parse_dt(portfolio.get("generated_at")) or datetime.now(UTC)
+    today = summary_dt.date()
+    today_realized_pnl = 0.0
+    today_trade_count = 0
+    for trade in load_all_paper_trades() or []:
+        ts = trade.get("exit_time") or trade.get("entry_time")
+        trade_dt = _parse_dt(ts)
+        if trade_dt is None or trade_dt.date() != today:
+            continue
+        today_realized_pnl += _numeric_value(trade.get("pnl"))
+        today_trade_count += 1
+    return {
+        "total_realized_pnl": realized,
+        "total_unrealized_pnl": unrealized,
+        "total_pnl": realized + unrealized,
+        "total_trades": total_trades,
+        "open_position_count": open_position_count,
+        "today_realized_pnl": today_realized_pnl,
+        "today_trade_count": today_trade_count,
+        "total_gross_position_value": _numeric_value(
+            portfolio.get("total_gross_position_value"),
+        ),
+        "capital_utilization_pct": _numeric_value(
+            portfolio.get("capital_utilization_pct"),
+        ),
+        "portfolio_return_pct": _numeric_value(
+            portfolio.get("portfolio_return_pct"),
+            fallback=pnl_report.get("portfolio_return_pct"),
+        ),
+        "generated_at": portfolio.get("generated_at") or pnl_report.get("generated_at"),
+        "realized_source": realized_source,
+        "unrealized_source": unrealized_source,
+    }
+
+
+@st.cache_data(ttl=30)
+def load_capital_utilization_diagnostics() -> dict[str, Any]:
+    analytics = load_wallet_analytics() or {}
+    wallets = cast(list[dict[str, Any]], analytics.get("wallets", []))
+    pnl_summary = load_live_pnl_summary() or {}
+
+    utilization_pct = _numeric_value(pnl_summary.get("capital_utilization_pct"))
+    gross_position_value = _numeric_value(pnl_summary.get("total_gross_position_value"))
+    total_equity = _numeric_value((analytics.get("portfolio") or {}).get("total_equity"))
+    idle_capital = max(0.0, total_equity - gross_position_value)
+
+    if utilization_pct < 5.0:
+        utilization_label = "매우 낮음"
+    elif utilization_pct < 15.0:
+        utilization_label = "낮음"
+    elif utilization_pct < 35.0:
+        utilization_label = "보통"
+    else:
+        utilization_label = "높음"
+
+    idle_wallets = [
+        str(wallet.get("wallet_name") or wallet.get("display_name") or "")
+        for wallet in wallets
+        if int(wallet.get("open_positions", 0) or 0) == 0
+    ]
+    active_wallets = [
+        str(wallet.get("wallet_name") or wallet.get("display_name") or "")
+        for wallet in wallets
+        if int(wallet.get("open_positions", 0) or 0) > 0
+    ]
+    top_utilized = sorted(
+        wallets,
+        key=lambda wallet: float(wallet.get("capital_utilization_pct", 0.0) or 0.0),
+        reverse=True,
+    )[:3]
+    underutilized_wallets = sorted(
+        [
+            {
+                "wallet_name": str(wallet.get("wallet_name") or wallet.get("display_name") or ""),
+                "display_name": str(wallet.get("display_name") or wallet.get("wallet_name") or ""),
+                "symbol_display": str(wallet.get("symbol_display") or wallet.get("symbol") or "-"),
+                "capital_utilization_pct": float(wallet.get("capital_utilization_pct", 0.0) or 0.0),
+                "gross_position_value": float(wallet.get("gross_position_value", 0.0) or 0.0),
+                "equity": float(wallet.get("equity", 0.0) or 0.0),
+                "realized_pnl": float(wallet.get("realized_pnl", 0.0) or 0.0),
+                "open_positions": int(wallet.get("open_positions", 0) or 0),
+                "theoretical_position_pct": float(
+                    wallet.get("theoretical_position_pct", 0.0) or 0.0
+                ),
+                "sizing_driver": str(wallet.get("sizing_driver", "")),
+            }
+            for wallet in wallets
+            if float(wallet.get("capital_utilization_pct", 0.0) or 0.0) < 5.0
+        ],
+        key=lambda wallet: (
+            _numeric_value(wallet["capital_utilization_pct"]),
+            _numeric_value(wallet["realized_pnl"]),
+        ),
+    )
+    cap_limited_count = 0
+    idle_no_position_count = 0
+    for wallet in underutilized_wallets:
+        if str(wallet.get("sizing_driver", "")) == "max_position_cap":
+            cap_limited_count += 1
+        if _numeric_value(wallet.get("open_positions")) == 0:
+            idle_no_position_count += 1
+
+    notes = [
+        f"총 자본 대비 실제 포지션 점유액은 {utilization_pct:.1f}%입니다.",
+        f"미투입 자본은 약 {idle_capital:,.0f} KRW입니다.",
+    ]
+    if idle_wallets:
+        notes.append(f"현재 포지션이 없는 지갑 {len(idle_wallets)}개가 대기 중입니다.")
+    if top_utilized:
+        notes.append(
+            "활용률 상위 지갑: "
+            + ", ".join(
+                f"{str(wallet.get('wallet_name') or wallet.get('display_name') or '?')} "
+                f"{float(wallet.get('capital_utilization_pct', 0.0) or 0.0):.1f}%"
+                for wallet in top_utilized
+            )
+        )
+    if underutilized_wallets:
+        notes.append(
+            f"저활용 지갑 {len(underutilized_wallets)}개 중 "
+            f"{cap_limited_count}개는 포지션 캡 기반, "
+            f"{idle_no_position_count}개는 현재 포지션이 없습니다."
+        )
+
+    return {
+        "utilization_pct": utilization_pct,
+        "utilization_label": utilization_label,
+        "gross_position_value": gross_position_value,
+        "idle_capital": idle_capital,
+        "idle_wallet_count": len(idle_wallets),
+        "active_wallet_count": len(active_wallets),
+        "cap_limited_count": cap_limited_count,
+        "idle_no_position_count": idle_no_position_count,
+        "underutilized_wallets": underutilized_wallets,
+        "notes": notes,
+    }
 
 
 @st.cache_data(ttl=30)
@@ -824,11 +1137,17 @@ def load_wallet_analytics() -> dict[str, Any]:
     generated_at = _parse_dt(checkpoint.get("generated_at")) or datetime.now(UTC)
     wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
     session_meta = _active_session_metadata(wallet_states)
+    wallet_risk_targets = load_wallet_risk_targets()
     strategy_runs = [
         run
         for run in load_strategy_runs()
         if _is_current_session_run(run, wallet_states, session_meta)
     ]
+    # Use ALL trades (not just current session) for accurate equity calculation
+    all_trades = load_all_paper_trades() if callable(load_all_paper_trades) else []
+    if not isinstance(all_trades, list):
+        all_trades = []
+    # Also keep session-only trades for display purposes
     paper_trades = [
         trade
         for trade in load_paper_trades()
@@ -836,7 +1155,7 @@ def load_wallet_analytics() -> dict[str, Any]:
     ]
 
     trades_by_wallet: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for trade in paper_trades:
+    for trade in all_trades:
         trades_by_wallet[_trade_wallet_name(trade, wallet_states)].append(trade)
 
     latest_runs: dict[str, dict[str, Any]] = {}
@@ -864,18 +1183,23 @@ def load_wallet_analytics() -> dict[str, Any]:
     portfolio_initial = 0.0
     portfolio_realized = 0.0
     portfolio_unrealized = 0.0
+    portfolio_total_gross_position_value = 0.0
 
     timeline_events: list[tuple[datetime, float]] = []
 
     for wallet_name, state in wallet_states.items():
         initial_capital = _wallet_initial_capital(state)
-        equity = float(state.get("equity", initial_capital))
-        realized_pnl = float(state.get("realized_pnl", 0.0))
-        unrealized_pnl = equity - initial_capital - realized_pnl
-        trade_count = int(state.get("trade_count", 0))
-        position_map = cast(dict[str, dict[str, Any]], state.get("positions", {}))
-        open_positions = int(state.get("open_positions", len(position_map)))
         wallet_trades = trades_by_wallet.get(wallet_name, [])
+        realized_pnl = sum(float(t.get("pnl", 0.0)) for t in wallet_trades)
+        position_map = cast(dict[str, dict[str, Any]], state.get("positions", {}))
+        unrealized_pnl = sum(
+            (float(p.get("market_price", p.get("entry_price", 0))) - float(p.get("entry_price", 0)))
+            * float(p.get("quantity", 0))
+            for p in position_map.values()
+        )
+        equity = initial_capital + realized_pnl + unrealized_pnl
+        trade_count = len(wallet_trades)
+        open_positions = int(state.get("open_positions", len(position_map)))
         win_count = sum(1 for trade in wallet_trades if float(trade.get("pnl", 0.0)) > 0)
         loss_count = sum(1 for trade in wallet_trades if float(trade.get("pnl", 0.0)) <= 0)
         win_rate = win_count / max(1, win_count + loss_count)
@@ -888,6 +1212,28 @@ def load_wallet_analytics() -> dict[str, Any]:
         curve_values = [float(point["equity"]) for point in equity_curve]
         latest_run = latest_runs.get(wallet_name, {})
         inferred_symbol = _infer_symbol_code(wallet_name, state)
+        positions = [
+            {
+                "symbol": symbol,
+                "symbol_display": symbol_kr(symbol),
+                "entry_price": float(position.get("entry_price", 0.0)),
+                "quantity": float(position.get("quantity", 0.0)),
+                "latest_price": latest_prices_by_wallet_symbol.get(
+                    (wallet_name, symbol),
+                    (generated_at, float(position.get("entry_price", 0.0))),
+                )[1],
+            }
+            for symbol, position in position_map.items()
+        ]
+        gross_position_value = 0.0
+        for position in positions:
+            gross_position_value += _numeric_value(position["latest_price"]) * _numeric_value(
+                position["quantity"]
+            )
+        capital_utilization_pct = (
+            (gross_position_value / equity) * 100.0 if equity > 0 else 0.0
+        )
+        risk_target = wallet_risk_targets.get(wallet_name, {})
 
         wallet_summary = {
             "wallet_name": wallet_name,
@@ -899,7 +1245,9 @@ def load_wallet_analytics() -> dict[str, Any]:
             "initial_capital": initial_capital,
             "realized_pnl": realized_pnl,
             "unrealized_pnl": unrealized_pnl,
-            "return_pct": ((equity - initial_capital) / initial_capital * 100.0)
+            "return_pct": (
+                (realized_pnl + unrealized_pnl) / initial_capital * 100.0
+            )
             if initial_capital > 0
             else 0.0,
             "trade_count": trade_count,
@@ -910,19 +1258,18 @@ def load_wallet_analytics() -> dict[str, Any]:
             "sharpe": _compute_sharpe_ratio(curve_values),
             "max_drawdown_pct": _compute_max_drawdown_pct(curve_values),
             "open_positions": open_positions,
-            "positions": [
-                {
-                    "symbol": symbol,
-                    "symbol_display": symbol_kr(symbol),
-                    "entry_price": float(position.get("entry_price", 0.0)),
-                    "quantity": float(position.get("quantity", 0.0)),
-                    "latest_price": latest_prices_by_wallet_symbol.get(
-                        (wallet_name, symbol),
-                        (generated_at, float(position.get("entry_price", 0.0))),
-                    )[1],
-                }
-                for symbol, position in position_map.items()
-            ],
+            "gross_position_value": gross_position_value,
+            "capital_utilization_pct": capital_utilization_pct,
+            "risk_per_trade_pct": _numeric_value(risk_target.get("risk_per_trade_pct")),
+            "stop_loss_pct": _numeric_value(risk_target.get("stop_loss_pct")),
+            "max_position_pct": _numeric_value(risk_target.get("max_position_pct")),
+            "max_concurrent_positions": int(risk_target.get("max_concurrent_positions", 0) or 0),
+            "uncapped_position_pct": _numeric_value(risk_target.get("uncapped_position_pct")),
+            "theoretical_position_pct": _numeric_value(
+                risk_target.get("theoretical_position_pct")
+            ),
+            "sizing_driver": str(risk_target.get("sizing_driver", "")),
+            "positions": positions,
             "latest_signal_action": latest_run.get("signal_action", "hold"),
             "latest_signal_reason": latest_run.get("signal_reason", ""),
             "latest_signal_confidence": float(latest_run.get("signal_confidence", 0.0)),
@@ -941,6 +1288,7 @@ def load_wallet_analytics() -> dict[str, Any]:
         portfolio_initial += initial_capital
         portfolio_realized += realized_pnl
         portfolio_unrealized += unrealized_pnl
+        portfolio_total_gross_position_value += gross_position_value
 
     wallets.sort(key=lambda wallet: wallet["return_pct"], reverse=True)
 
@@ -952,6 +1300,12 @@ def load_wallet_analytics() -> dict[str, Any]:
         "total_initial_capital": portfolio_initial,
         "total_realized_pnl": portfolio_realized,
         "total_unrealized_pnl": portfolio_unrealized,
+        "total_gross_position_value": portfolio_total_gross_position_value,
+        "capital_utilization_pct": (
+            (portfolio_total_gross_position_value / portfolio_total_equity) * 100.0
+            if portfolio_total_equity > 0
+            else 0.0
+        ),
         "portfolio_return_pct": (
             ((portfolio_total_equity - portfolio_initial) / portfolio_initial) * 100.0
             if portfolio_initial > 0
@@ -1248,6 +1602,10 @@ def load_all_paper_trades() -> list[dict[str, Any]]:
             "exit_reason": str(trade.get("exit_reason", "")),
             "session_id": str(trade.get("session_id", "")),
             "win": pnl > 0,
+            "entry_price": _numeric_value(trade.get("entry_price")),
+            "exit_price": _numeric_value(trade.get("exit_price")),
+            "entry_time": trade.get("entry_time"),
+            "exit_time": trade.get("exit_time"),
         })
     return trades
 

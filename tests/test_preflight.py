@@ -107,7 +107,7 @@ def test_go_live_wallets_valid_name():
 
 def test_max_position_pct_exceeds_limit():
     config = _make_config(
-        risk=RiskConfig(max_position_pct=0.20),
+        risk=RiskConfig(max_position_pct=0.60),
         telegram=TelegramConfig(bot_token="tok", chat_id="123"),
     )
     results = preflight_check(config)

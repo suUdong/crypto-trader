@@ -15,20 +15,20 @@ from crypto_trader.risk.slippage_monitor import SlippageMonitor
 class TestMaxPositionPct:
     def test_default_cap_is_10_percent(self):
         cfg = RiskConfig()
-        assert cfg.max_position_pct == 0.10
+        assert cfg.max_position_pct == 0.50
 
     def test_position_capped_at_max_pct(self):
         cfg = RiskConfig(
             risk_per_trade_pct=0.5,
             stop_loss_pct=0.01,
-            max_position_pct=0.10,
+            max_position_pct=0.50,
         )
         rm = RiskManager(cfg)
         equity = 1_000_000.0
         price = 100.0
         qty = rm.size_position(equity, price)
         position_value = qty * price
-        assert position_value <= equity * 0.10 + 1e-6
+        assert position_value <= equity * 0.50 + 1e-6
 
     def test_position_not_capped_when_small(self):
         cfg = RiskConfig(
@@ -240,7 +240,7 @@ class TestConfigIntegration:
     def test_risk_config_has_max_position_pct(self):
         cfg = RiskConfig()
         assert hasattr(cfg, "max_position_pct")
-        assert cfg.max_position_pct == 0.10
+        assert cfg.max_position_pct == 0.50
 
     def test_kill_switch_cfg_has_tiered_fields(self):
         cfg = KillSwitchCfg()

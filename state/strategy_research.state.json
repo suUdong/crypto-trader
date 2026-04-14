@@ -1,5 +1,5 @@
 {
-  "cycle": 262,
+  "cycle": 386,
   "done": [
     "stealth_sol_sweep",
     "truth_seeker_sweep",
@@ -10,503 +10,603 @@
     "strategy_tournament",
     "btc_dip_recovery",
     "btc_dip_alt_entry",
-    "new_strategy_hypothesis"
+    "new_strategy_hypothesis",
+    "c185_mom_accel_atr_adaptive_exit",
+    "c186_entry_relax_ema_slope",
+    "c190_vol_mom_gate_adaptive_tp",
+    "c191_adaptive_sl_relaxed_entry",
+    "c192_time_decay_trail_atr_tp_scale",
+    "c198_vpin_roc_rsi_divergence",
+    "c199_regime_dual_exit",
+    "c202_adx_obv_entry_gate",
+    "c203_adx_di_direction_gate",
+    "c206_vpin_bb_squeeze_expansion",
+    "c207_donchian_vol_regime_filter",
+    "c209_squeeze_soft_gate_vol_surge",
+    "donchian_trailing_tpsl_hold_opt",
+    "c213_entry_quality_score_tpsl",
+    "c215_donchian_ema_slope_sym_sl",
+    "score_ablation_adaptive_hold",
+    "c219_partial_tp_atr_regime_adaptive",
+    "c220_mom_persist_sym_hold_regime_cd",
+    "c221_sol_entry_quality_filter",
+    "c222_sym_vpin_volprice_conv_dyn_rsi",
+    "vpin_eth_grid_3fold_wf",
+    "momentum_sol_grid_wf",
+    "stealth3gate_param_expansion",
+    "cycle190_c186_adx_refine",
+    "cycle192_vpin_relax_finer_grid",
+    "c200_vpin_trail_atrtp_finer_extend",
+    "cycle210_vpin_hold_mom_refine",
+    "c200_entry_refine_c192_base",
+    "cycle203_vpin_adx_obv_lower_bound",
+    "c207_bb_squeeze_oou_validation",
+    "c223_donchian_c207_refine_btc_mom_ptp",
+    "c210_vpin_squeeze_tp_hold_sweep",
+    "c211_donchian_refine_be_partial",
+    "c214_c199_robustness_extended",
+    "cycle216_c215_refine_btc_mom",
+    "cycle224_sym_partial_tp_refine",
+    "cycle225_mdd_tighten",
+    "c226_c222_refine_fine_vpin",
+    "vpin_eth_btc_gate_5fold_robustness",
+    "c192_vpin_multi_c191_fine_grid",
+    "cycle203_vpin_entry_refine_expand",
+    "c203_holdout_unseen_symbols",
+    "c227_c223_refine_adx_trail",
+    "c212_donchian_regime_filters",
+    "c217_btc_mom_lb_sol_tighten",
+    "c228_sol_entry_gate",
+    "cycle229_c221_sym_trail_fine_grid",
+    "c230_xrp_unlock_vpconv",
+    "vpin_eth_atr_regime_5fold",
+    "c200_vpin_mom_microgrid",
+    "c204_vpin_multi_lowvpin_finer",
+    "c228_f3_fix_trail_rsi",
+    "c213_vol_rsi_be_grid",
+    "c218_sol_exit_tuning",
+    "c231_mdd_control",
+    "c230_sym_entry_gate_grid",
+    "c232_sym_exit_scaling",
+    "c193_tp_trail_exit_grid",
+    "c205_vpin_atr_adaptive_threshold",
+    "c229_loosen_partial_tp",
+    "c214_structural_reopt",
+    "c234_sol_entry_exit_combo",
+    "c232_entry_filter_tune",
+    "c236_sym_trail_minprofit",
+    "c194_btc_sma_rsi_bounds_grid",
+    "c206_vpin_atr_adaptive_exit",
+    "c230_exit_finetune",
+    "c215_exit_mechanics_tuning",
+    "c233_exit_tune_f2",
+    "c238_sym_trail_timedecay",
+    "c195_core_indicator_periods",
+    "c231_trail_tighten_timedecay",
+    "c239_atr_regime_exit_adapt",
+    "c240_ablation_sym_layers",
+    "c196_entry_filter_relaxation",
+    "c232_tight_trail_atr_sl_scale",
+    "c241_entry_momentum_filter",
+    "c197_core_entry_gate_retune",
+    "c243_btc_quality_breakout_margin",
+    "c244_vol_accel_breakout_confirm",
+    "c245_rsi_dynamic_exit_regime_tp",
+    "c246_candle_quality_entry",
+    "c247_stall_exit_breakeven_stop",
+    "c248_pullback_entry_after_breakout",
+    "c249_multi_mom_consensus",
+    "c250_f3_entry_relaxation_grid",
+    "c251_dynamic_tpsl_atr_regime",
+    "c252_hold_decay_trail_tighten",
+    "c253_vwap_support_entry_gate",
+    "c254_keltner_expansion_mom_accel",
+    "c255_adaptive_mom_threshold",
+    "c256_adx_rsi_ceiling_adapt",
+    "c257_lowvol_exit_adapt",
+    "c258_breakout_quality_filter",
+    "c259_atr_trend_exit_adapt",
+    "c260_candle_body_ratio_filter",
+    "c261_momentum_accel_filter",
+    "c262_volume_momentum_divergence",
+    "c263_adx_adaptive_hold_tp",
+    "c264_obv_trend_entry_gate"
   ],
-  "last_run": "2026-04-07T07:41:22.257857+00:00",
+  "last_run": "2026-04-13T13:15:16.184583+00:00",
   "quality_log": [
     {
-      "id": "vpin_eth_w2_reopt",
+      "id": "c200_vpin_mom_microgrid",
       "grade": "promising",
-      "sharpe": 11.128,
-      "reason": "Sharpe +11.128 — 유의미한 엣지 확인",
-      "cycle": 205
+      "sharpe": 42.354,
+      "reason": "Sharpe +42.354 — 유의미한 엣지 확인",
+      "cycle": 312
     },
     {
-      "id": "momentum_sol_mdd",
+      "id": "c204_vpin_multi_lowvpin_finer",
       "grade": "promising",
-      "sharpe": 17.315,
-      "reason": "Sharpe +17.315 — 유의미한 엣지 확인",
-      "cycle": 206
+      "sharpe": 75.845,
+      "reason": "Sharpe +75.845 — 유의미한 엣지 확인",
+      "cycle": 313
     },
     {
-      "id": "cycle149_vpin_eth_regime_vol",
+      "id": "c228_f3_fix_trail_rsi",
       "grade": "promising",
-      "sharpe": 19.378,
-      "reason": "Sharpe +19.378 — 유의미한 엣지 확인",
-      "cycle": 207
+      "sharpe": 22.259,
+      "reason": "Sharpe +22.259 — 유의미한 엣지 확인",
+      "cycle": 314
     },
     {
-      "id": "cycle150_momentum_sol_regime_cooldown",
+      "id": "c213_vol_rsi_be_grid",
       "grade": "promising",
-      "sharpe": 10.546,
-      "reason": "Sharpe +10.546 — 유의미한 엣지 확인",
-      "cycle": 208
+      "sharpe": 25.949,
+      "reason": "Sharpe +25.949 — 유의미한 엣지 확인",
+      "cycle": 315
     },
     {
-      "id": "cycle151_vpin_eth_atr_exit",
+      "id": "c218_sol_exit_tuning",
       "grade": "promising",
-      "sharpe": 14.285,
-      "reason": "Sharpe +14.285 — 유의미한 엣지 확인",
-      "cycle": 209
+      "sharpe": 81.983,
+      "reason": "Sharpe +81.983 — 유의미한 엣지 확인",
+      "cycle": 316
     },
     {
-      "id": "cycle153_momentum_sol_atr_exit",
+      "id": "c231_mdd_control",
       "grade": "promising",
-      "sharpe": 15.9,
-      "reason": "Sharpe +15.900 — 유의미한 엣지 확인",
-      "cycle": 210
+      "sharpe": 43.081,
+      "reason": "Sharpe +43.081 — 유의미한 엣지 확인",
+      "cycle": 317
     },
     {
-      "id": "vpin_eth_vol_regime_adaptive",
-      "grade": "promising",
-      "sharpe": 18.879,
-      "reason": "Sharpe +18.879 — 유의미한 엣지 확인",
-      "cycle": 211
-    },
-    {
-      "id": "cycle156_momentum_sol_atr_vol_filter",
-      "grade": "promising",
-      "sharpe": 24.861,
-      "reason": "Sharpe +24.861 — 유의미한 엣지 확인",
-      "cycle": 212
-    },
-    {
-      "id": "cycle159_regime_tier_dynamic",
-      "grade": "promising",
-      "sharpe": 35.133,
-      "reason": "Sharpe +35.133 — 유의미한 엣지 확인",
-      "cycle": 214
-    },
-    {
-      "id": "momentum_sol_btc_dual_gate_adaptive",
-      "grade": "promising",
-      "sharpe": 49.323,
-      "reason": "Sharpe +49.323 — 유의미한 엣지 확인",
-      "cycle": 215
-    },
-    {
-      "id": "cycle165_momentum_sol_ema_gate_adx_relax",
-      "grade": "promising",
-      "sharpe": 49.323,
-      "reason": "Sharpe +49.323 — 유의미한 엣지 확인",
-      "cycle": 216
-    },
-    {
-      "id": "cycle167_momentum_sol_bb_squeeze_breakout",
-      "grade": "promising",
-      "sharpe": 51.048,
-      "reason": "Sharpe +51.048 — 유의미한 엣지 확인",
-      "cycle": 218
-    },
-    {
-      "id": "cycle168_vpin_eth_trailing_regime_hold",
-      "grade": "promising",
-      "sharpe": 16.161,
-      "reason": "Sharpe +16.161 — 유의미한 엣지 확인",
-      "cycle": 219
-    },
-    {
-      "id": "c170_vpin_eth_rsi_vel_vol_confirm",
-      "grade": "promising",
-      "sharpe": 34.391,
-      "reason": "Sharpe +34.391 — 유의미한 엣지 확인",
-      "cycle": 220
-    },
-    {
-      "id": "c171_vpin_eth_adaptive_rsi_vel_regime",
-      "grade": "promising",
-      "sharpe": 29.249,
-      "reason": "Sharpe +29.249 — 유의미한 엣지 확인",
-      "cycle": 221
-    },
-    {
-      "id": "c172_momentum_sol_atr_zscore_rapid_exit",
-      "grade": "promising",
-      "sharpe": 26.241,
-      "reason": "Sharpe +26.241 — 유의미한 엣지 확인",
-      "cycle": 223
-    },
-    {
-      "id": "c173_vpin_eth_rsi_vel_regime_trail",
-      "grade": "promising",
-      "sharpe": 13.855,
-      "reason": "Sharpe +13.855 — 유의미한 엣지 확인",
-      "cycle": 224
-    },
-    {
-      "id": "c177_vpin_multi_obv_divergence_filter",
-      "grade": "promising",
-      "sharpe": 28.072,
-      "reason": "Sharpe +28.072 — 유의미한 엣지 확인",
-      "cycle": 226
-    },
-    {
-      "id": "c178_vpin_multi_bb_squeeze_breakout",
-      "grade": "promising",
-      "sharpe": 125.126,
-      "reason": "Sharpe +125.126 — 유의미한 엣지 확인",
-      "cycle": 227
-    },
-    {
-      "id": "c179_obv_div_reject_adaptive_atr",
-      "grade": "promising",
-      "sharpe": 33.856,
-      "reason": "Sharpe +33.856 — 유의미한 엣지 확인",
-      "cycle": 228
-    },
-    {
-      "id": "c181_bb_squeeze_adx_relax",
-      "grade": "promising",
-      "sharpe": 39.087,
-      "reason": "Sharpe +39.087 — 유의미한 엣지 확인",
-      "cycle": 229
-    },
-    {
-      "id": "c180_vol_mom_confirm_multibar",
-      "grade": "promising",
-      "sharpe": 36.554,
-      "reason": "Sharpe +36.554 — 유의미한 엣지 확인",
-      "cycle": 230
-    },
-    {
-      "id": "c182_bb_squeeze_rsi_mom_vol_pctile",
-      "grade": "promising",
-      "sharpe": 36.311,
-      "reason": "Sharpe +36.311 — 유의미한 엣지 확인",
-      "cycle": 231
-    },
-    {
-      "id": "c185_mom_accel_atr_adaptive_exit",
-      "grade": "promising",
-      "sharpe": 36.554,
-      "reason": "Sharpe +36.554 — 유의미한 엣지 확인",
-      "cycle": 232
-    },
-    {
-      "id": "c186_entry_relax_ema_slope",
-      "grade": "promising",
-      "sharpe": 36.309,
-      "reason": "Sharpe +36.309 — 유의미한 엣지 확인",
-      "cycle": 233
-    },
-    {
-      "id": "c190_vol_mom_gate_adaptive_tp",
-      "grade": "promising",
-      "sharpe": 36.841,
-      "reason": "Sharpe +36.841 — 유의미한 엣지 확인",
-      "cycle": 234
-    },
-    {
-      "id": "c191_adaptive_sl_relaxed_entry",
-      "grade": "promising",
-      "sharpe": 36.169,
-      "reason": "Sharpe +36.169 — 유의미한 엣지 확인",
-      "cycle": 235
-    },
-    {
-      "id": "c192_time_decay_trail_atr_tp_scale",
-      "grade": "promising",
-      "sharpe": 47.314,
-      "reason": "Sharpe +47.314 — 유의미한 엣지 확인",
-      "cycle": 236
-    },
-    {
-      "id": "c198_vpin_roc_rsi_divergence",
-      "grade": "promising",
-      "sharpe": 47.314,
-      "reason": "Sharpe +47.314 — 유의미한 엣지 확인",
-      "cycle": 239
-    },
-    {
-      "id": "c199_regime_dual_exit",
-      "grade": "promising",
-      "sharpe": 51.425,
-      "reason": "Sharpe +51.425 — 유의미한 엣지 확인",
-      "cycle": 240
-    },
-    {
-      "id": "c202_adx_obv_entry_gate",
-      "grade": "promising",
-      "sharpe": 49.658,
-      "reason": "Sharpe +49.658 — 유의미한 엣지 확인",
-      "cycle": 241
-    },
-    {
-      "id": "c203_adx_di_direction_gate",
-      "grade": "poor",
-      "sharpe": null,
-      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
-      "cycle": 242
-    },
-    {
-      "id": "c206_vpin_bb_squeeze_expansion",
-      "grade": "promising",
-      "sharpe": 84.225,
-      "reason": "Sharpe +84.225 — 유의미한 엣지 확인",
-      "cycle": 244
-    },
-    {
-      "id": "c207_donchian_vol_regime_filter",
-      "grade": "promising",
-      "sharpe": 175.202,
-      "reason": "Sharpe +175.202 — 유의미한 엣지 확인",
-      "cycle": 245
-    },
-    {
-      "id": "c209_squeeze_soft_gate_vol_surge",
-      "grade": "promising",
-      "sharpe": 60.126,
-      "reason": "Sharpe +60.126 — 유의미한 엣지 확인",
-      "cycle": 246
-    },
-    {
-      "id": "donchian_trailing_tpsl_hold_opt",
-      "grade": "promising",
-      "sharpe": 175.202,
-      "reason": "Sharpe +175.202 — 유의미한 엣지 확인",
-      "cycle": 247
-    },
-    {
-      "id": "c213_entry_quality_score_tpsl",
-      "grade": "promising",
-      "sharpe": 51.596,
-      "reason": "Sharpe +51.596 — 유의미한 엣지 확인",
-      "cycle": 248
-    },
-    {
-      "id": "c215_donchian_ema_slope_sym_sl",
-      "grade": "promising",
-      "sharpe": 175.202,
-      "reason": "Sharpe +175.202 — 유의미한 엣지 확인",
-      "cycle": 249
-    },
-    {
-      "id": "score_ablation_adaptive_hold",
-      "grade": "promising",
-      "sharpe": 51.596,
-      "reason": "Sharpe +51.596 — 유의미한 엣지 확인",
-      "cycle": 250
-    },
-    {
-      "id": "c219_partial_tp_atr_regime_adaptive",
+      "id": "c230_sym_entry_gate_grid",
       "grade": "promising",
       "sharpe": 158.891,
       "reason": "Sharpe +158.891 — 유의미한 엣지 확인",
-      "cycle": 251
+      "cycle": 318
     },
     {
-      "id": "c220_mom_persist_sym_hold_regime_cd",
+      "id": "c232_sym_exit_scaling",
       "grade": "promising",
       "sharpe": 51.425,
       "reason": "Sharpe +51.425 — 유의미한 엣지 확인",
-      "cycle": 252
+      "cycle": 319
     },
     {
-      "id": "stealth_sol_sweep",
-      "grade": "marginal",
-      "sharpe": 0.7,
-      "reason": "Sharpe +0.700 — 추가 검증 필요",
-      "cycle": 253
-    },
-    {
-      "id": "truth_seeker_sweep",
-      "grade": "poor",
-      "sharpe": null,
-      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
-      "cycle": 254
-    },
-    {
-      "id": "vpin_eth_grid",
+      "id": "c193_tp_trail_exit_grid",
       "grade": "promising",
-      "sharpe": 7.461,
-      "reason": "Sharpe +7.461 — 유의미한 엣지 확인",
-      "cycle": 255
+      "sharpe": 35.191,
+      "reason": "Sharpe +35.191 — 유의미한 엣지 확인",
+      "cycle": 320
     },
     {
-      "id": "momentum_sol_grid",
+      "id": "c205_vpin_atr_adaptive_threshold",
       "grade": "promising",
-      "sharpe": 14.367,
-      "reason": "Sharpe +14.367 — 유의미한 엣지 확인",
-      "cycle": 256
+      "sharpe": 77.933,
+      "reason": "Sharpe +77.933 — 유의미한 엣지 확인",
+      "cycle": 321
     },
     {
-      "id": "regime_stealth",
-      "grade": "poor",
-      "sharpe": null,
-      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
-      "cycle": 257
-    },
-    {
-      "id": "alpha_backtest",
-      "grade": "poor",
-      "sharpe": -0.101,
-      "reason": "Sharpe -0.101 — 엣지 부족",
-      "cycle": 258
-    },
-    {
-      "id": "strategy_tournament",
+      "id": "c229_loosen_partial_tp",
       "grade": "promising",
-      "sharpe": 6.195,
-      "reason": "Sharpe +6.195 — 유의미한 엣지 확인",
-      "cycle": 259
+      "sharpe": 20.335,
+      "reason": "Sharpe +20.335 — 유의미한 엣지 확인",
+      "cycle": 322
     },
     {
-      "id": "btc_dip_recovery",
-      "grade": "poor",
-      "sharpe": null,
-      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
-      "cycle": 260
+      "id": "c214_structural_reopt",
+      "grade": "promising",
+      "sharpe": 25.097,
+      "reason": "Sharpe +25.097 — 유의미한 엣지 확인",
+      "cycle": 323
     },
     {
-      "id": "btc_dip_alt_entry",
+      "id": "c234_sol_entry_exit_combo",
+      "grade": "promising",
+      "sharpe": 81.983,
+      "reason": "Sharpe +81.983 — 유의미한 엣지 확인",
+      "cycle": 324
+    },
+    {
+      "id": "c232_entry_filter_tune",
+      "grade": "promising",
+      "sharpe": 43.081,
+      "reason": "Sharpe +43.081 — 유의미한 엣지 확인",
+      "cycle": 325
+    },
+    {
+      "id": "c236_sym_trail_minprofit",
+      "grade": "promising",
+      "sharpe": 51.425,
+      "reason": "Sharpe +51.425 — 유의미한 엣지 확인",
+      "cycle": 326
+    },
+    {
+      "id": "c194_btc_sma_rsi_bounds_grid",
+      "grade": "promising",
+      "sharpe": 50.403,
+      "reason": "Sharpe +50.403 — 유의미한 엣지 확인",
+      "cycle": 327
+    },
+    {
+      "id": "c206_vpin_atr_adaptive_exit",
+      "grade": "promising",
+      "sharpe": 57.904,
+      "reason": "Sharpe +57.904 — 유의미한 엣지 확인",
+      "cycle": 328
+    },
+    {
+      "id": "c230_exit_finetune",
+      "grade": "promising",
+      "sharpe": 26.156,
+      "reason": "Sharpe +26.156 — 유의미한 엣지 확인",
+      "cycle": 329
+    },
+    {
+      "id": "c215_exit_mechanics_tuning",
+      "grade": "promising",
+      "sharpe": 26.548,
+      "reason": "Sharpe +26.548 — 유의미한 엣지 확인",
+      "cycle": 330
+    },
+    {
+      "id": "c233_exit_tune_f2",
+      "grade": "promising",
+      "sharpe": 43.081,
+      "reason": "Sharpe +43.081 — 유의미한 엣지 확인",
+      "cycle": 331
+    },
+    {
+      "id": "c238_sym_trail_timedecay",
+      "grade": "promising",
+      "sharpe": 39.124,
+      "reason": "Sharpe +39.124 — 유의미한 엣지 확인",
+      "cycle": 332
+    },
+    {
+      "id": "c195_core_indicator_periods",
+      "grade": "promising",
+      "sharpe": 48.619,
+      "reason": "Sharpe +48.619 — 유의미한 엣지 확인",
+      "cycle": 333
+    },
+    {
+      "id": "c231_trail_tighten_timedecay",
+      "grade": "promising",
+      "sharpe": 30.076,
+      "reason": "Sharpe +30.076 — 유의미한 엣지 확인",
+      "cycle": 334
+    },
+    {
+      "id": "c239_atr_regime_exit_adapt",
+      "grade": "promising",
+      "sharpe": 43.081,
+      "reason": "Sharpe +43.081 — 유의미한 엣지 확인",
+      "cycle": 335
+    },
+    {
+      "id": "c240_ablation_sym_layers",
       "grade": "poor",
-      "sharpe": null,
-      "reason": "Sharpe 없음 — 스크립트 실패 또는 거래 없음",
-      "cycle": 261
+      "sharpe": 51.425,
+      "reason": "거래 수 부족: 20 < 30",
+      "cycle": 336
+    },
+    {
+      "id": "c196_entry_filter_relaxation",
+      "grade": "promising",
+      "sharpe": 48.619,
+      "reason": "Sharpe +48.619 — 유의미한 엣지 확인",
+      "cycle": 337
+    },
+    {
+      "id": "c232_tight_trail_atr_sl_scale",
+      "grade": "promising",
+      "sharpe": 30.076,
+      "reason": "Sharpe +30.076 — 유의미한 엣지 확인",
+      "cycle": 338
+    },
+    {
+      "id": "c241_entry_momentum_filter",
+      "grade": "promising",
+      "sharpe": 35.11,
+      "reason": "Sharpe +35.110 — 유의미한 엣지 확인",
+      "cycle": 339
+    },
+    {
+      "id": "c197_core_entry_gate_retune",
+      "grade": "promising",
+      "sharpe": 48.499,
+      "reason": "Sharpe +48.499 — 유의미한 엣지 확인",
+      "cycle": 340
+    },
+    {
+      "id": "c243_btc_quality_breakout_margin",
+      "grade": "promising",
+      "sharpe": 48.363,
+      "reason": "Sharpe +48.363 — 유의미한 엣지 확인",
+      "cycle": 341
+    },
+    {
+      "id": "c244_vol_accel_breakout_confirm",
+      "grade": "poor",
+      "sharpe": 48.363,
+      "reason": "거래 수 부족: 27 < 30",
+      "cycle": 357
+    },
+    {
+      "id": "c245_rsi_dynamic_exit_regime_tp",
+      "grade": "poor",
+      "sharpe": 44.057,
+      "reason": "거래 수 부족: 27 < 30",
+      "cycle": 358
+    },
+    {
+      "id": "c246_candle_quality_entry",
+      "grade": "poor",
+      "sharpe": 2820848503.295,
+      "reason": "거래 수 부족: 27 < 30",
+      "cycle": 360
+    },
+    {
+      "id": "c247_stall_exit_breakeven_stop",
+      "grade": "poor",
+      "sharpe": 43.597,
+      "reason": "거래 수 부족: 27 < 30",
+      "cycle": 361
+    },
+    {
+      "id": "c248_pullback_entry_after_breakout",
+      "grade": "poor",
+      "sharpe": 48.363,
+      "reason": "거래 수 부족: 27 < 30",
+      "cycle": 363
+    },
+    {
+      "id": "c249_multi_mom_consensus",
+      "grade": "poor",
+      "sharpe": 48.363,
+      "reason": "거래 수 부족: 27 < 30",
+      "cycle": 364
+    },
+    {
+      "id": "c250_f3_entry_relaxation_grid",
+      "grade": "promising",
+      "sharpe": 47.482,
+      "reason": "Sharpe +47.482 — 유의미한 엣지 확인",
+      "cycle": 366
+    },
+    {
+      "id": "c251_dynamic_tpsl_atr_regime",
+      "grade": "poor",
+      "sharpe": 52.177,
+      "reason": "거래 수 부족: 27 < 30",
+      "cycle": 367
+    },
+    {
+      "id": "c252_hold_decay_trail_tighten",
+      "grade": "poor",
+      "sharpe": 43.88,
+      "reason": "거래 수 부족: 28 < 30",
+      "cycle": 368
+    },
+    {
+      "id": "c253_vwap_support_entry_gate",
+      "grade": "poor",
+      "sharpe": 56.521,
+      "reason": "거래 수 부족: 28 < 30",
+      "cycle": 370
+    },
+    {
+      "id": "c254_keltner_expansion_mom_accel",
+      "grade": "poor",
+      "sharpe": 5780378031.697,
+      "reason": "거래 수 부족: 28 < 30",
+      "cycle": 371
+    },
+    {
+      "id": "c255_adaptive_mom_threshold",
+      "grade": "promising",
+      "sharpe": 46.146,
+      "reason": "Sharpe +46.146 — 유의미한 엣지 확인",
+      "cycle": 373
+    },
+    {
+      "id": "c256_adx_rsi_ceiling_adapt",
+      "grade": "poor",
+      "sharpe": 18575917376.061,
+      "reason": "거래 수 부족: 28 < 30",
+      "cycle": 374
+    },
+    {
+      "id": "c257_lowvol_exit_adapt",
+      "grade": "promising",
+      "sharpe": 46.263,
+      "reason": "Sharpe +46.263 — 유의미한 엣지 확인",
+      "cycle": 375
+    },
+    {
+      "id": "c258_breakout_quality_filter",
+      "grade": "promising",
+      "sharpe": 42.038,
+      "reason": "Sharpe +42.038 — 유의미한 엣지 확인",
+      "cycle": 376
+    },
+    {
+      "id": "c259_atr_trend_exit_adapt",
+      "grade": "poor",
+      "sharpe": 36.44,
+      "reason": "거래 수 부족: 28 < 30",
+      "cycle": 377
+    },
+    {
+      "id": "c260_candle_body_ratio_filter",
+      "grade": "poor",
+      "sharpe": 2820848493.375,
+      "reason": "거래 수 부족: 28 < 30",
+      "cycle": 380
+    },
+    {
+      "id": "c261_momentum_accel_filter",
+      "grade": "poor",
+      "sharpe": 39.076,
+      "reason": "거래 수 부족: 28 < 30",
+      "cycle": 381
+    },
+    {
+      "id": "c262_volume_momentum_divergence",
+      "grade": "poor",
+      "sharpe": 2820848475.315,
+      "reason": "거래 수 부족: 24 < 30",
+      "cycle": 383
+    },
+    {
+      "id": "c263_adx_adaptive_hold_tp",
+      "grade": "poor",
+      "sharpe": 2820848475.315,
+      "reason": "거래 수 부족: 24 < 30",
+      "cycle": 384
     }
   ],
   "interval_last_run": {
-    "daily_quality_review": "2026-04-04T20:19:47.394420+00:00"
+    "daily_quality_review": "2026-04-13T04:18:46.230658+00:00"
   },
   "dynamic_tasks": [
     {
-      "id": "c191_adaptive_sl_relaxed_entry",
+      "id": "c246_candle_quality_entry",
       "type": "backtest",
-      "desc": "c190고정+EMA slope적응형SL확대+볼륨모멘텀강세시body/rsiDelta완화 27조합 3-fold WF — Sharpe>=29 trades>=30 목표",
-      "script": "backtest_cycle191_vpin_multi_adaptive_sl_relaxed_entry.py",
+      "desc": "c243고정+캔들몸통비율/종가위치/거래량스파이크진입필터(36조합)",
+      "script": "backtest_cycle246_candle_quality_entry.py",
       "notify_on_significant": true
     },
     {
-      "id": "c192_time_decay_trail_atr_tp_scale",
+      "id": "c247_stall_exit_breakeven_stop",
       "type": "backtest",
-      "desc": "c190베이스+시간감쇠트레일(보유N바후축소)+ATR레짐TP스케일링(고변동성TP확대) 27조합 3-fold WF",
-      "script": "backtest_cycle192_vpin_multi_time_decay_trail_atr_tp_scale.py",
+      "desc": "c243고정+모멘텀정체조기청산+브레이크이븐스탑(48조합)",
+      "script": "backtest_cycle247_stall_exit_breakeven_stop.py",
       "notify_on_significant": true
     },
     {
-      "id": "c198_vpin_roc_rsi_divergence",
+      "id": "c248_pullback_entry_after_breakout",
       "type": "backtest",
-      "desc": "VPIN RoC(변화율) + RSI 약세다이버전스 필터 — c192 base 36조합 3-fold WF",
-      "script": "backtest_cycle198_vpin_multi_vpin_roc_rsi_divergence.py",
+      "desc": "c243고정+돌파후풀백대기진입(ATR깊이×대기봉수×재진입확인=36조합)",
+      "script": "backtest_cycle248_pullback_entry_after_breakout.py",
       "notify_on_significant": true
     },
     {
-      "id": "c199_regime_dual_exit",
+      "id": "c249_multi_mom_consensus",
       "type": "backtest",
-      "desc": "ATR pctile 기반 고/저변동 레짐별 TP/Trail/SL/Hold 분리 — c192 base 81조합 3-fold WF",
-      "script": "backtest_cycle199_vpin_multi_regime_dual_exit.py",
+      "desc": "c243고정+다중기간모멘텀합의+가속도필터(LB2×MIN2×ACCEL=36조합)",
+      "script": "backtest_cycle249_multi_mom_consensus.py",
       "notify_on_significant": true
     },
     {
-      "id": "c202_adx_obv_entry_gate",
+      "id": "c250_f3_entry_relaxation_grid",
       "type": "backtest",
-      "desc": "c199 base + ADX추세강도(15/20/25) + OBV방향확인(EMA slope) 진입게이트 27조합 3-fold WF",
-      "script": "backtest_cycle202_vpin_adx_obv_entry_gate.py",
+      "desc": "c243고정+진입완화4차원그리드(boMgn×aPct×vRat×btcMM=81조합)_F3거래수증가노림",
+      "script": "backtest_cycle250_f3_entry_relaxation_grid.py",
       "notify_on_significant": true
     },
     {
-      "id": "c203_adx_di_direction_gate",
+      "id": "c251_dynamic_tpsl_atr_regime",
       "type": "backtest",
-      "desc": "ADX방향성(DI+>DI-)+ADX상승률 복합게이트 27조합 3-fold WF (c202 OBV무효→DI방향정보 활용)",
-      "script": "backtest_cycle203_vpin_adx_di_direction_gate.py",
+      "desc": "c243고정+ATR_pctile기반동적TP/SL스케일링(tpLo×tpHi×slLo=48조합)_저vol구간타이트목표가",
+      "script": "backtest_cycle251_dynamic_tpsl_atr_regime.py",
       "notify_on_significant": true
     },
     {
-      "id": "c206_vpin_bb_squeeze_expansion",
+      "id": "c252_hold_decay_trail_tighten",
       "type": "backtest",
-      "desc": "VPIN체인(c199 Sharpe+51.4) BB squeeze→expansion 진입타이밍 최적화 216조합 3-fold WF",
-      "script": "backtest_cycle206_vpin_bb_squeeze_expansion.py",
+      "desc": "c250최적고정+시간경과트레일타이트닝(hdStart×hdRate×minTrail×rsiSlope=81조합)_F2복원노림",
+      "script": "backtest_cycle252_hold_decay_trail_tighten.py",
       "notify_on_significant": true
     },
     {
-      "id": "c207_donchian_vol_regime_filter",
+      "id": "c253_vwap_support_entry_gate",
       "type": "backtest",
-      "desc": "Donchian breakout(c205) ATR변동성레짐+거래량확인+RSI필터 576조합 3-fold WF F3감쇠 해결",
-      "script": "backtest_cycle207_donchian_vol_regime_filter.py",
+      "desc": "c250최적고정+VWAP지지진입게이트(vLB×vDev×vSlb=36조합)_볼륨가중가격지지확인",
+      "script": "backtest_cycle253_vwap_support_entry_gate.py",
       "notify_on_significant": true
     },
     {
-      "id": "c209_squeeze_soft_gate_vol_surge",
+      "id": "c254_keltner_expansion_mom_accel",
       "type": "backtest",
-      "desc": "BB squeeze soft gate(TP only) + volume surge 타이밍 조합 486개 3-fold WF",
-      "script": "backtest_cycle209_vpin_squeeze_soft_gate_vol_surge.py",
+      "desc": "c250최적고정+Keltner채널확장+모멘텀가속도(kcP×kcM×kcE×mAcl=54조합)_추세강도이중확인",
+      "script": "backtest_cycle254_keltner_expansion_mom_accel.py",
       "notify_on_significant": true
     },
     {
-      "id": "donchian_trailing_tpsl_hold_opt",
+      "id": "c255_adaptive_mom_threshold",
       "type": "backtest",
-      "desc": "c207 필터 고정 + trailing stop/TP·SL 재최적화/hold decay 288조합 3-fold WF — F3 수익 보호 개선",
-      "script": "backtest_cycle210_donchian_trailing_tpsl_hold.py",
+      "desc": "c250고정+ATR레짐적응형모멘텀임계값(저변동시MOM/BTC_MOM완화)_F2거래포착률향상",
+      "script": "backtest_cycle255_adaptive_mom_threshold.py",
       "notify_on_significant": true
     },
     {
-      "id": "c213_entry_quality_score_tpsl",
+      "id": "c256_adx_rsi_ceiling_adapt",
       "type": "backtest",
-      "desc": "Entry Quality Score(VPIN+mom+RSI_vel+vol+regime+body+squeeze 7컴포넌트 점수화) → 점수 기반 적응형 TP확대/SL타이트닝/Trail조정, 180조합 3-fold WF",
-      "script": "backtest_cycle213_vpin_entry_quality_score_tpsl.py",
+      "desc": "c250고정+ADX비례RSI상한완화+ATR적응형breakout_margin_강추세RSI허용+저변동진입완화",
+      "script": "backtest_cycle256_adx_rsi_ceiling_adapt.py",
       "notify_on_significant": true
     },
     {
-      "id": "c215_donchian_ema_slope_sym_sl",
+      "id": "c257_lowvol_exit_adapt",
       "type": "backtest",
-      "desc": "c210+EMA slope 모멘텀확인(거짓브레이크아웃필터)+심볼별SL스케일(SOL타이트) 324조합 3-fold WF",
-      "script": "backtest_cycle215_donchian_momentum_confirm_sym_sl.py",
+      "desc": "c255고정+저변동성레짐적응형출구(SL축소/Trail축소/MH단축)_F2_MDD개선_81조합",
+      "script": "backtest_cycle257_lowvol_exit_adapt.py",
       "notify_on_significant": true
     },
     {
-      "id": "score_ablation_adaptive_hold",
+      "id": "c258_breakout_quality_filter",
       "type": "backtest",
-      "desc": "7컴포넌트 ablation(예측력 검증) + 스코어 기반 동적 홀드 기간(고확신=장기, 저확신=단기) 144조합 3-fold WF",
-      "script": "backtest_cycle217_score_ablation_adaptive_hold.py",
+      "desc": "c257고정+브레이크아웃품질필터(ADX상승게이트+DC연속종가확인+볼륨스파이크강화)_F2_Sharpe개선_54조합",
+      "script": "backtest_cycle258_breakout_quality_filter.py",
       "notify_on_significant": true
     },
     {
-      "id": "c219_partial_tp_atr_regime_adaptive",
+      "id": "c259_atr_trend_exit_adapt",
       "type": "backtest",
-      "desc": "c215최적+2tier분할익절(TP1조기확보)+ATR레짐적응형TP/SL배수(고변동TP확대+저변동SL타이트) 81조합 3-fold WF",
-      "script": "backtest_cycle219_partial_tp_atr_regime_adaptive.py",
+      "desc": "c258고정+ATR추세기반출구동적조절(ATR상승→TP2확대/trail완화,ATR하락→trail강화)_F2_avg_return개선_54조합",
+      "script": "backtest_cycle259_atr_trend_exit_adapt.py",
       "notify_on_significant": true
     },
     {
-      "id": "c220_mom_persist_sym_hold_regime_cd",
+      "id": "c260_candle_body_ratio_filter",
       "type": "backtest",
-      "desc": "모멘텀지속성+심볼별hold+레짐cooldown 72조합 3-fold WF (c199 기반)",
-      "script": "backtest_cycle220_mom_persist_sym_hold_regime_cd.py",
+      "desc": "c259고정+breakout캔들body비율(close-open/range)필터_약한breakout제거_F2진입선택개선_24조합",
+      "script": "backtest_cycle260_candle_body_ratio_filter.py",
       "notify_on_significant": true
     },
     {
-      "id": "c221_sol_entry_quality_filter",
+      "id": "c261_momentum_accel_filter",
       "type": "backtest",
-      "desc": "c219최적고정+SOL전용진입필터(ADX강화/RSI하한/거래량강화/ATR강화) 81조합 3-fold WF — SOL Sharpe>=10.0 목표",
-      "script": "backtest_cycle221_sol_entry_quality_filter.py",
+      "desc": "c259고정+단기/중기모멘텀가속비율필터_감속breakout제거+가속시TP2보너스_F2개선_24조합",
+      "script": "backtest_cycle261_momentum_accel_filter.py",
       "notify_on_significant": true
     },
     {
-      "id": "c222_sym_vpin_volprice_conv_dyn_rsi",
+      "id": "c262_volume_momentum_divergence",
       "type": "backtest",
-      "desc": "심볼별VPIN문턱+볼륨가격수렴필터+동적RSI상한 108조합 3-fold WF (c199 +51.425 개선 목표)",
-      "script": "backtest_cycle222_sym_vpin_volprice_conv_dyn_rsi.py",
+      "desc": "c260고정+거래량-모멘텀다이버전스필터_허위돌파차단+convergenceTP2보너스_48조합",
+      "script": "backtest_cycle262_volume_momentum_divergence.py",
       "notify_on_significant": true
     },
     {
-      "id": "vpin_eth_grid_3fold_wf",
+      "id": "c263_adx_adaptive_hold_tp",
       "type": "backtest",
-      "desc": "직전 Sharpe+7.461 최적 이웃 파라미터 180조합을 3-fold walk-forward로 재검증해 과적합 여부 판정",
-      "script": "backtest_vpin_eth_grid_3fold_wf.py",
+      "desc": "c260고정+ADX강도기반적응형보유기간TP2스케일링_강추세확장+약추세축소_81조합",
+      "script": "backtest_cycle263_adx_adaptive_hold_tp.py",
       "notify_on_significant": true
     },
     {
-      "id": "momentum_sol_grid_wf",
+      "id": "c264_obv_trend_entry_gate",
       "type": "backtest",
-      "desc": "그리드_Top5_3폴드_OOS로_풀스팬_+14.367_오버피팅_여부_검증",
-      "script": "backtest_cycle160_momentum_sol_grid_wf.py",
+      "desc": "c262고정+OBV누적매수세기울기진입게이트_강한OBV시TP2보너스_27조합",
+      "script": "backtest_cycle264_obv_trend_entry_gate.py",
       "notify_on_significant": true
     },
     {
-      "id": "stealth3gate_param_expansion",
+      "id": "c265_rsi_exit_acceleration",
       "type": "backtest",
-      "desc": "stealth_3gate BTC레짐/RSI/볼륨 파라미터 27조합 스윕(2025-2026 4h 전체 KRW)",
-      "script": "backtest_stealth3gate_param_expansion.py",
+      "desc": "c262고정+RSI과매수이탈트레일가속출구_과매도조기청산옵션_36조합",
+      "script": "backtest_cycle265_rsi_exit_acceleration.py",
       "notify_on_significant": true
     }
   ]

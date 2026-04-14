@@ -77,16 +77,22 @@ src/crypto_trader/
 
 config/                 # TOML 설정 파일
 dashboard/              # Streamlit 대시보드
-scripts/                # 운영 스크립트
+scripts/                # 운영 진입점 + 연구 유틸 + 역사적 실험 스크립트
 artifacts/              # 런타임 아티팩트 (heartbeat, health, checkpoint, 리포트)
 ```
+
+운영/연구 스크립트 표면 분류는 [scripts/README.md](scripts/README.md)를 기준으로 관리합니다.
 
 ## 개발
 
 ```bash
 python3 -m unittest discover -s tests -t . -v   # 테스트
-ruff check .                                      # 린트
-mypy src                                          # 타입 체크
+ruff check src/ tests/                            # CI 기준 린트
+mypy src                                          # 애플리케이션 패키지 타입 체크
 ```
+
+참고:
+- 현재 레포는 전역 정적검사 적체가 있어, 대규모 정리 전까지는 changed-file 기준 `ruff`/`mypy` 검사를 병행합니다.
+- `scripts/`는 운영 표면과 역사적 실험 자산이 섞여 있으므로, 변경 시 [scripts/README.md](scripts/README.md)의 분류를 먼저 확인합니다.
 
 자세한 운영 가이드는 [docs/operations.md](docs/operations.md)를 참조하세요.

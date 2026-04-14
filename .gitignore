@@ -34,3 +34,7 @@ data/historical/url_list.txt
 daemon.log
 lab-stable.log
 MagicMock/
+config/daemon.toml.bak.*
+docs/SESSION_HANDOFF.md
+docs/session-handoff-*.md
+.claude/worktrees/

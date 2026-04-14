@@ -202,6 +202,52 @@ take_profit_pct = 0.04
         self.assertEqual(momentum_wallet.strategy_overrides["momentum_lookback"], 15)
         self.assertEqual(momentum_wallet.risk_overrides["take_profit_pct"], 0.04)
 
+    def test_accumulation_wallet_accepts_market_data_overrides(self) -> None:
+        toml_content = """
+[trading]
+symbol = "KRW-BTC"
+symbols = ["KRW-BTC"]
+paper_trading = true
+
+[strategy]
+[regime]
+[drift]
+[risk]
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "accumulation_wallet"
+strategy = "accumulation_breakout"
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+market_data_interval = "minute240"
+market_data_count = 180
+market_data_closed_only = true
+use_scan_rs = true
+stealth_lookback = 36
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                config = load_config(f.name, {})
+            finally:
+                os.unlink(f.name)
+
+        accumulation_wallet = config.wallets[0]
+        self.assertEqual(
+            accumulation_wallet.strategy_overrides["market_data_interval"],
+            "minute240",
+        )
+        self.assertEqual(accumulation_wallet.strategy_overrides["market_data_count"], 180)
+        self.assertTrue(accumulation_wallet.strategy_overrides["market_data_closed_only"])
+        self.assertTrue(accumulation_wallet.strategy_overrides["use_scan_rs"])
+        self.assertEqual(accumulation_wallet.strategy_overrides["stealth_lookback"], 36)
+
     def test_loads_session7_strategy_fields(self) -> None:
         config = load_config(
             ROOT / "config" / "example.toml",
@@ -297,10 +343,10 @@ max_position_pct = 0.25
                 os.unlink(f.name)
 
         self.assertEqual(config.risk.max_daily_loss_pct, 0.05)
-        self.assertEqual(config.risk.max_position_pct, 0.10)
+        self.assertEqual(config.risk.max_position_pct, 0.25)
         self.assertEqual(config.kill_switch.max_daily_loss_pct, 0.05)
         self.assertEqual(config.wallets[0].risk_overrides["max_daily_loss_pct"], 0.05)
-        self.assertEqual(config.wallets[0].risk_overrides["max_position_pct"], 0.10)
+        self.assertEqual(config.wallets[0].risk_overrides["max_position_pct"], 0.25)
 
     def test_optimized_toml_bollinger_wallet_has_extra_params(self) -> None:
         config = load_config(ROOT / "config" / "optimized.toml", {})
@@ -425,3 +471,58 @@ adx_threshold = 15.0
         self.assertEqual(vpin_wallet.strategy_overrides["vpin_rsi_floor"], 24.0)
         self.assertEqual(vpin_wallet.strategy_overrides["ema_trend_period"], 20)
         self.assertEqual(vpin_wallet.strategy_overrides["adx_threshold"], 15.0)
+
+    def test_vpin_v2_wallet_accepts_strategy_specific_overrides(self) -> None:
+        toml_content = """
+[trading]
+[strategy]
+[regime]
+[drift]
+[risk]
+[backtest]
+[telegram]
+[runtime]
+[credentials]
+
+[[wallets]]
+name = "vpin_v2_wallet"
+strategy = "vpin_v2"
+initial_capital = 1000000.0
+
+[wallets.strategy_overrides]
+bucket_count = 24
+vpin_high_threshold = 0.70
+vpin_low_threshold = 0.35
+vpin_momentum_threshold = 0.005
+vpin_rsi_ceiling = 68.0
+vpin_rsi_floor = 24.0
+ema_trend_period = 20
+adx_threshold = 15.0
+entry_score_threshold = 3.2
+vpin_roc_lookback = 4
+vpin_roc_min = -0.01
+rsi_delta_lookback = 3
+rsi_delta_min = 1.5
+ema_slope_lookback = 5
+ema_slope_min = 0.0003
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+            f.write(toml_content)
+            f.flush()
+            try:
+                config = load_config(f.name, {})
+            finally:
+                os.unlink(f.name)
+
+        vpin_wallet = config.wallets[0]
+        self.assertEqual(vpin_wallet.strategy_overrides["bucket_count"], 24)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_high_threshold"], 0.70)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_low_threshold"], 0.35)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_momentum_threshold"], 0.005)
+        self.assertEqual(vpin_wallet.strategy_overrides["entry_score_threshold"], 3.2)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_roc_lookback"], 4)
+        self.assertEqual(vpin_wallet.strategy_overrides["vpin_roc_min"], -0.01)
+        self.assertEqual(vpin_wallet.strategy_overrides["rsi_delta_lookback"], 3)
+        self.assertEqual(vpin_wallet.strategy_overrides["rsi_delta_min"], 1.5)
+        self.assertEqual(vpin_wallet.strategy_overrides["ema_slope_lookback"], 5)
+        self.assertEqual(vpin_wallet.strategy_overrides["ema_slope_min"], 0.0003)

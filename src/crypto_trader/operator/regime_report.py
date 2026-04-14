@@ -52,20 +52,20 @@ class RegimeReportGenerator:
     ) -> list[str]:
         if regime is MarketRegime.BULL:
             return [
-                f"short return is positive at {short_return_pct:.2%}",
-                f"long return is positive at {long_return_pct:.2%}",
-                "strategy can tolerate a longer hold and slightly looser recovery ceiling",
+                f"단기 수익률 상승 ({short_return_pct:.2%})",
+                f"장기 수익률 상승 ({long_return_pct:.2%})",
+                "전략: 보유 기간을 늘리고 회복 한도를 약간 완화",
             ]
         if regime is MarketRegime.BEAR:
             return [
-                f"short return is negative at {short_return_pct:.2%}",
-                f"long return is negative at {long_return_pct:.2%}",
-                "strategy should tighten entries and shorten holds",
+                f"단기 수익률 하락 ({short_return_pct:.2%})",
+                f"장기 수익률 하락 ({long_return_pct:.2%})",
+                "전략: 진입 조건 강화 및 보유 기간 단축",
             ]
         return [
-            f"short return is mixed at {short_return_pct:.2%}",
-            f"long return is mixed at {long_return_pct:.2%}",
-            "strategy stays near baseline parameters in sideways conditions",
+            f"단기 수익률 혼조 ({short_return_pct:.2%})",
+            f"장기 수익률 혼조 ({long_return_pct:.2%})",
+            "전략: 횡보 국면, 기본 파라미터 유지",
         ]
 
 
