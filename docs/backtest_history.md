@@ -3,6 +3,23 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-14 — 인프라: 대시보드 SQLite 전환 + 프로덕션 하드닝
+
+**변경**: 대시보드 데이터 소스를 JSONL → SQLite (`paper-trades.db`)로 전환.
+
+**구현 내역**:
+- `load_all_paper_trades()` → SQLite 우선 읽기, JSONL fallback 유지
+- `load_paper_trades()` → `load_all_paper_trades()` 경유
+- `PRAGMA busy_timeout=5000` — 데몬 쓰기 중 대시보드 읽기 lock 방지
+- 복합 인덱스: `(wallet, exit_time)`, `(session_id)` 추가
+- 3-agent 코드 리뷰 실행: HIGH 이슈 1건(busy_timeout), MEDIUM 3건 수정 완료
+
+**검증**: SQLite 293건 로딩 확인, 테스트 124 passed (storage + dashboard)
+
+**결론**: JSONL 320건 vs SQLite 293건 (차이는 UNIQUE constraint 중복 제거). 프로덕션 배포 준비 완료.
+
+---
+
 ## 2026-04-13 — ARE Tier 1 전략 2종 paper 배포 + 전체 paper 현황 리뷰
 
 **배포 전략 (auto-research-engine Candidate A)**:
