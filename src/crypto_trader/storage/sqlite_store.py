@@ -116,6 +116,8 @@ _TRADES_INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_trades_wallet      ON trades(wallet);",
     "CREATE INDEX IF NOT EXISTS idx_trades_exit_time   ON trades(exit_time);",
     "CREATE INDEX IF NOT EXISTS idx_trades_exit_reason ON trades(exit_reason);",
+    "CREATE INDEX IF NOT EXISTS idx_trades_wallet_exit ON trades(wallet, exit_time);",
+    "CREATE INDEX IF NOT EXISTS idx_trades_session     ON trades(session_id);",
 )
 
 
@@ -209,6 +211,14 @@ class SqliteStore:
             with self.connection() as conn:
                 conn.execute("PRAGMA journal_mode=WAL;")
                 conn.execute("PRAGMA synchronous=NORMAL;")
+                result = conn.execute("PRAGMA integrity_check").fetchone()
+                if result and result[0] != "ok":
+                    import logging
+
+                    logging.getLogger(__name__).error(
+                        "SQLite integrity check failed: %s — rebuild from JSONL",
+                        result[0],
+                    )
                 conn.execute(_TRADES_DDL)
                 for stmt in _TRADES_INDEXES:
                     conn.execute(stmt)

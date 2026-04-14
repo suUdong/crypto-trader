@@ -1075,9 +1075,12 @@ def load_paper_trades() -> list[dict[str, Any]]:
     checkpoint = load_checkpoint() or {}
     wallet_states = cast(dict[str, dict[str, Any]], checkpoint.get("wallet_states", {}))
     session_meta = _active_session_metadata(wallet_states)
+    all_trades = load_all_paper_trades() if callable(load_all_paper_trades) else []
+    if not isinstance(all_trades, list):
+        all_trades = []
     return [
         trade
-        for trade in _load_jsonl("paper-trades.jsonl")
+        for trade in all_trades
         if _is_current_session_trade(trade, wallet_states, session_meta)
     ]
 
@@ -1585,7 +1588,53 @@ def load_funding_rate_research() -> dict[str, Any] | None:
 
 @st.cache_data(ttl=30)
 def load_all_paper_trades() -> list[dict[str, Any]]:
-    """Load ALL paper trades without session filtering."""
+    """Load ALL paper trades from SQLite (fallback to JSONL)."""
+    db_path = _resolve_sqlite_trades_path()
+    if db_path.exists():
+        try:
+            return _load_trades_from_sqlite(db_path)
+        except Exception:
+            logger.warning("SQLite read failed, falling back to JSONL")
+    return _load_trades_from_jsonl()
+
+
+def _load_trades_from_sqlite(db_path: Path) -> list[dict[str, Any]]:
+    import sqlite3
+
+    conn = sqlite3.connect(str(db_path), timeout=5.0)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            "SELECT * FROM trades ORDER BY exit_time ASC"
+        ).fetchall()
+    finally:
+        conn.close()
+    trades = []
+    for row in rows:
+        d = dict(row)
+        pnl = float(d.get("pnl", 0) or 0)
+        pnl_pct = float(d.get("pnl_pct", 0) or 0)
+        exit_dt = _parse_dt(d.get("exit_time"))
+        entry_dt = _parse_dt(d.get("entry_time"))
+        ts = exit_dt or entry_dt
+        trades.append({
+            "timestamp": ts.astimezone(_KST).strftime("%m/%d %H:%M") if ts else "-",
+            "symbol": str(d.get("symbol", "")),
+            "wallet": str(d.get("wallet", "")),
+            "pnl": pnl,
+            "pnl_pct": pnl_pct * 100,
+            "exit_reason": str(d.get("exit_reason", "")),
+            "session_id": str(d.get("session_id", "")),
+            "win": pnl > 0,
+            "entry_price": float(d.get("entry_price", 0) or 0),
+            "exit_price": float(d.get("exit_price", 0) or 0),
+            "entry_time": d.get("entry_time"),
+            "exit_time": d.get("exit_time"),
+        })
+    return trades
+
+
+def _load_trades_from_jsonl() -> list[dict[str, Any]]:
     trades = []
     for trade in _load_jsonl("paper-trades.jsonl"):
         pnl = _numeric_value(trade.get("pnl"))
