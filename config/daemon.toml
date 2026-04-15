@@ -13,7 +13,7 @@ candle_count = 200
 paper_trading = true
 # Staged rollout: only these wallets go live when paper_trading=false.
 # Empty list = all wallets go live. Start with smallest wallet first.
-go_live_wallets = ["vpin_eth_wallet"]
+go_live_wallets = []
 
 [strategy]
 momentum_lookback = 12
