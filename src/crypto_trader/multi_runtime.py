@@ -468,16 +468,31 @@ class MultiSymbolRuntime:
             while not self._shutdown_requested:
                 self._apply_pending_reload()
                 if self._kill_switch.is_triggered:
-                    cooldown = self._config.kill_switch.cooldown_minutes * 60
-                    self._logger.critical(
-                        "Kill switch active: %s — sleeping %d min before retry",
-                        self._kill_switch.state.trigger_reason,
-                        self._config.kill_switch.cooldown_minutes,
-                    )
                     self._kill_switch.save(self._kill_switch_path)
-                    time.sleep(cooldown)
-                    self._kill_switch.reset()
-                    self._logger.info("Kill switch cooldown expired, resuming trading")
+                    if self._config.trading.paper_trading:
+                        cooldown = self._config.kill_switch.cooldown_minutes * 60
+                        self._logger.critical(
+                            "Kill switch active: %s — sleeping %d min before retry",
+                            self._kill_switch.state.trigger_reason,
+                            self._config.kill_switch.cooldown_minutes,
+                        )
+                        time.sleep(cooldown)
+                        self._kill_switch.reset()
+                        self._logger.info("kill switch cooldown expired (paper mode) — resuming")
+                    else:
+                        reset_file = Path(self._kill_switch_path).with_suffix(".reset")
+                        self._logger.critical(
+                            "kill switch triggered — waiting for manual reset. "
+                            "Create file to resume: touch %s",
+                            reset_file,
+                        )
+                        while not reset_file.exists():
+                            time.sleep(30)
+                        reset_file.unlink(missing_ok=True)
+                        self._kill_switch.reset()
+                        self._logger.info(
+                            "kill switch manually reset by operator — resuming"
+                        )
                     continue
 
                 self._begin_tick()
@@ -578,7 +593,10 @@ class MultiSymbolRuntime:
             portfolio_risk = self._compute_portfolio_risk_state(latest_prices)
         self._apply_portfolio_risk_penalty()
 
+        _kill_switch_mid_tick = False
         for symbol in symbols:
+            if _kill_switch_mid_tick:
+                break
             candles = default_candles_for(symbol)
             if not candles:
                 time.sleep(self._OHLCV_FETCH_PACING_SECONDS)
@@ -804,6 +822,12 @@ class MultiSymbolRuntime:
                     order_type=result.order.order_type.value if result.order else None,
                 )
                 self._strategy_run_journal.append(record)
+                if self._kill_switch.is_triggered:
+                    self._logger.critical(
+                        "kill switch triggered mid-tick — skipping remaining wallets"
+                    )
+                    _kill_switch_mid_tick = True
+                    break
 
         return results
 

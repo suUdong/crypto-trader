@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import time
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC
@@ -500,6 +501,21 @@ class StrategyWallet:
             return None
         if sell_qty >= position.quantity - 1e-8:
             sell_qty = position.quantity
+        sell_notional = sell_qty * latest_price
+        if sell_notional < self._MIN_NOTIONAL:
+            # Dust position — too small to sell. Sell entire position instead
+            # to avoid leaving residual exposure.
+            sell_qty = position.quantity
+            sell_notional = sell_qty * latest_price
+            if sell_notional < self._MIN_NOTIONAL:
+                self._logger.warning(
+                    "[%s] dust position %s worth ₩%.0f < min ₩%.0f — cannot sell",
+                    self._config.name,
+                    symbol,
+                    sell_notional,
+                    self._MIN_NOTIONAL,
+                )
+                return None
         order = self.broker.submit_order(
             OrderRequest(
                 symbol=symbol,
