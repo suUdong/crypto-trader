@@ -3,6 +3,24 @@
 모든 백테스트 결과를 누적 기록. CLAUDE.md 토큰 절약 목적.
 새 테스트 완료 시 반드시 이 파일에 추가할 것.
 
+## 2026-04-15 — ATR 스탑 전면 비활성화 (paper 데이터 기반 결정)
+
+**변경**: 글로벌 `atr_stop_multiplier` 3.0 → 0.0, 개별 지갑 4개(momentum_sol, volspike_btc, vpin_ondo, stealth_3gate) 1.5/3.0 → 0.0. 전 지갑 고정 % 스탑(`stop_loss_pct`)으로 전환.
+
+**근거 (paper 실적 247건 분석)**:
+- `atr_stop_loss` 청산: **101건 중 0승** (WR 0%), 총 PnL ₩-149,908 — 전체 손실의 75%
+- 46%가 진입 후 1시간 이내 손절, 84%가 6시간 이내 — ATR 스탑이 자연 변동성에 즉시 트리거
+- 재진입 21건 중 12건(57%)이 또 atr_stop_loss — 손절-재진입-재손절 루프
+- ATR 스탑이 켜지면 고정 % 스탑(⑥)이 완전히 무시되는 코드 구조 (manager.py:466 elif)
+- 수익 청산 사유는 건전: trailing_stop 94% WR, atr_take_profit 100% WR, rsi_overbought 73% WR
+- legacy ATR 경로의 비대칭 R:R (SL=ATR×N, TP=ATR×N×2)이 수익 도달 확률을 극히 낮춤
+
+**변경 파일**: `config/daemon.toml` — `[risk]` 글로벌 + 4개 지갑 `risk_overrides`
+
+**결론**: ATR 스탑은 진입 방향은 맞지만 자연 변동성에 너무 빨리 잘려 손실만 누적. 고정 % 스탑으로 전환하여 포지션 유지 시간 확보 기대.
+
+---
+
 ## 2026-04-14 — 인프라: 대시보드 SQLite 전환 + 프로덕션 하드닝
 
 **변경**: 대시보드 데이터 소스를 JSONL → SQLite (`paper-trades.db`)로 전환.
