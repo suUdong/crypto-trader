@@ -400,6 +400,52 @@ class LiveBroker:
             "paid_fee": float(order.get("paid_fee", 0)),
         }
 
+    def reconcile_with_exchange(self) -> dict[str, Any]:
+        """Query Upbit and compare with internal state. Returns report dict."""
+        report: dict[str, Any] = {"ok": True, "warnings": []}
+        try:
+            # 1. Check KRW balance
+            actual_krw = self._upbit.get_balance("KRW")
+            if actual_krw is not None:
+                report["actual_krw"] = float(actual_krw)
+                report["internal_cash"] = self.cash
+
+            # 2. Check coin holdings
+            balances = self._upbit.get_balances()
+            if balances:
+                exchange_holdings: dict[str, float] = {}
+                for entry in balances:
+                    currency = entry.get("currency", "")
+                    if currency == "KRW":
+                        continue
+                    balance = float(entry.get("balance", 0))
+                    locked = float(entry.get("locked", 0))
+                    total = balance + locked
+                    if total > 0:
+                        exchange_holdings[f"KRW-{currency}"] = total
+                report["exchange_holdings"] = exchange_holdings
+
+                # Compare internal positions with exchange
+                for symbol, position in self.positions.items():
+                    actual_qty = exchange_holdings.get(symbol, 0.0)
+                    if actual_qty == 0.0:
+                        report["ok"] = False
+                        report["warnings"].append(
+                            f"PHANTOM: {symbol} qty={position.quantity:.6f} "
+                            f"exists internally but NOT on exchange"
+                        )
+                    elif abs(actual_qty - position.quantity) / max(position.quantity, 1e-12) > 0.01:
+                        report["ok"] = False
+                        report["warnings"].append(
+                            f"DRIFT: {symbol} internal={position.quantity:.6f} "
+                            f"exchange={actual_qty:.6f}"
+                        )
+        except Exception as exc:
+            report["ok"] = False
+            report["warnings"].append(f"reconciliation failed: {exc}")
+
+        return report
+
     def _rejected(
         self,
         request: OrderRequest,

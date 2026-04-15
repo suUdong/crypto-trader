@@ -463,6 +463,7 @@ class MultiSymbolRuntime:
 
         self._notify_systemd_ready()
         self._restore_from_checkpoint()
+        self._reconcile_live_wallets()
 
         try:
             while not self._shutdown_requested:
@@ -486,8 +487,11 @@ class MultiSymbolRuntime:
                             "Create file to resume: touch %s",
                             reset_file,
                         )
-                        while not reset_file.exists():
+                        while not reset_file.exists() and not self._shutdown_requested:
                             time.sleep(30)
+                        if self._shutdown_requested:
+                            self._logger.info("shutdown requested during kill switch wait")
+                            break
                         reset_file.unlink(missing_ok=True)
                         self._kill_switch.reset()
                         self._logger.info(
@@ -1696,6 +1700,50 @@ class MultiSymbolRuntime:
                 self._current_market_regime,
             )
             self._set_wallet_macro_multiplier(wallet, regime_weight * weekend_mult)
+
+    def _reconcile_live_wallets(self) -> None:
+        """Verify live wallet state matches actual exchange balances."""
+        from crypto_trader.execution.live import LiveBroker
+
+        live_wallets = [w for w in self._wallets if isinstance(w.broker, LiveBroker)]
+        if not live_wallets:
+            return
+
+        self._logger.info("reconciling %d live wallet(s) with exchange", len(live_wallets))
+
+        # Use first live broker to query KRW (all share same account)
+        broker = live_wallets[0].broker
+        report = broker.reconcile_with_exchange()
+
+        if report.get("actual_krw") is not None:
+            total_internal_cash = sum(w.broker.cash for w in live_wallets)
+            actual_krw = report["actual_krw"]
+            drift_pct = abs(total_internal_cash - actual_krw) / max(actual_krw, 1) * 100
+            self._logger.info(
+                "KRW balance: exchange=%.0f internal_total=%.0f drift=%.1f%%",
+                actual_krw,
+                total_internal_cash,
+                drift_pct,
+            )
+            if drift_pct > 5.0:
+                self._logger.warning(
+                    "KRW drift > 5%%: exchange=%.0f vs internal=%.0f",
+                    actual_krw,
+                    total_internal_cash,
+                )
+
+        # Check all live wallet positions
+        for wallet in live_wallets:
+            if not isinstance(wallet.broker, LiveBroker):
+                continue
+            wallet_report = wallet.broker.reconcile_with_exchange()
+            for warning in wallet_report.get("warnings", []):
+                self._logger.warning("[%s] %s", wallet.name, warning)
+
+        if report["ok"]:
+            self._logger.info("reconciliation OK — no discrepancies")
+        else:
+            self._logger.warning("reconciliation found issues — review warnings above")
 
     def _restore_from_checkpoint(self) -> None:
         """Restore wallet broker state from last checkpoint if available."""

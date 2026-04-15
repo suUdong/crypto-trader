@@ -206,6 +206,91 @@ def test_estimate_costs(broker, mock_upbit):
     assert broker.estimate_round_trip_cost_pct(OrderType.MARKET) == 0.001
 
 
+class TestReconcile:
+    """Tests for reconcile_with_exchange()."""
+
+    def test_reconcile_ok_when_positions_match(self, broker, mock_upbit):
+        """Reconciliation should be ok when exchange holdings match internal."""
+        from crypto_trader.models import Position
+
+        broker.positions["KRW-BTC"] = Position(
+            symbol="KRW-BTC",
+            quantity=0.001,
+            entry_price=50_000_000.0,
+            entry_time=datetime.now(UTC),
+        )
+        mock_upbit.get_balance.return_value = 950_000.0
+        mock_upbit.get_balances.return_value = [
+            {"currency": "KRW", "balance": "950000", "locked": "0"},
+            {"currency": "BTC", "balance": "0.001", "locked": "0"},
+        ]
+
+        report = broker.reconcile_with_exchange()
+        assert report["ok"] is True
+        assert report["warnings"] == []
+        assert report["actual_krw"] == 950_000.0
+        assert report["exchange_holdings"] == {"KRW-BTC": 0.001}
+
+    def test_reconcile_reports_phantom_position(self, broker, mock_upbit):
+        """Reconciliation should detect positions not on exchange."""
+        from crypto_trader.models import Position
+
+        broker.positions["KRW-BTC"] = Position(
+            symbol="KRW-BTC",
+            quantity=0.001,
+            entry_price=50_000_000.0,
+            entry_time=datetime.now(UTC),
+        )
+        mock_upbit.get_balance.return_value = 1_000_000.0
+        mock_upbit.get_balances.return_value = [
+            {"currency": "KRW", "balance": "1000000", "locked": "0"},
+        ]
+
+        report = broker.reconcile_with_exchange()
+        assert report["ok"] is False
+        assert any("PHANTOM" in w for w in report["warnings"])
+
+    def test_reconcile_reports_quantity_drift(self, broker, mock_upbit):
+        """Reconciliation should detect significant quantity drift."""
+        from crypto_trader.models import Position
+
+        broker.positions["KRW-BTC"] = Position(
+            symbol="KRW-BTC",
+            quantity=0.001,
+            entry_price=50_000_000.0,
+            entry_time=datetime.now(UTC),
+        )
+        mock_upbit.get_balance.return_value = 950_000.0
+        mock_upbit.get_balances.return_value = [
+            {"currency": "KRW", "balance": "950000", "locked": "0"},
+            # 5% drift — exchange has noticeably more than internal
+            {"currency": "BTC", "balance": "0.0015", "locked": "0"},
+        ]
+
+        report = broker.reconcile_with_exchange()
+        assert report["ok"] is False
+        assert any("DRIFT" in w for w in report["warnings"])
+
+    def test_reconcile_handles_exchange_error_gracefully(self, broker, mock_upbit):
+        """Reconciliation should catch exceptions and mark ok=False."""
+        mock_upbit.get_balance.side_effect = RuntimeError("network error")
+
+        report = broker.reconcile_with_exchange()
+        assert report["ok"] is False
+        assert any("reconciliation failed" in w for w in report["warnings"])
+
+    def test_reconcile_no_positions_no_warnings(self, broker, mock_upbit):
+        """Empty internal state with empty exchange should be ok."""
+        mock_upbit.get_balance.return_value = 1_000_000.0
+        mock_upbit.get_balances.return_value = [
+            {"currency": "KRW", "balance": "1000000", "locked": "0"},
+        ]
+
+        report = broker.reconcile_with_exchange()
+        assert report["ok"] is True
+        assert report["warnings"] == []
+
+
 class TestDryRun:
     """Dry-run mode: validates order logic without hitting the exchange."""
 
