@@ -2425,3 +2425,11 @@
 
 ---
 
+## 2026-04-15 14:20 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+

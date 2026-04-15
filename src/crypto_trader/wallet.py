@@ -769,6 +769,24 @@ class StrategyWallet:
                         latest_price,
                         volume_ratio=vol_ratio,
                     )
+                    if order is None:
+                        self._logger.warning(
+                            "[%s] protective exit circuit_breaker failed — retrying in 1s",
+                            self._config.name,
+                        )
+                        time.sleep(1)
+                        order = self.broker.submit_order(
+                            OrderRequest(
+                                symbol=symbol,
+                                side=OrderSide.SELL,
+                                quantity=position.quantity,
+                                requested_at=now,
+                                reason="circuit_breaker",
+                                order_type=OrderType.MARKET,
+                            ),
+                            latest_price,
+                            volume_ratio=vol_ratio,
+                        )
                     if order is not None and order.status == "filled":
                         entry_value = position.entry_price * position.quantity
                         if entry_value > 0:
@@ -826,6 +844,30 @@ class StrategyWallet:
                         latest_price,
                         volume_ratio=vol_ratio,
                     )
+                    if order is None and exit_reason in (
+                        "stop_loss",
+                        "atr_stop_loss",
+                        "kill_switch_liquidation",
+                        "circuit_breaker",
+                    ):
+                        self._logger.warning(
+                            "[%s] protective exit %s failed — retrying in 1s",
+                            self._config.name,
+                            exit_reason,
+                        )
+                        time.sleep(1)
+                        order = self.broker.submit_order(
+                            OrderRequest(
+                                symbol=symbol,
+                                side=OrderSide.SELL,
+                                quantity=sell_qty,
+                                requested_at=now,
+                                reason=exit_reason or signal.reason,
+                                order_type=OrderType.MARKET,
+                            ),
+                            latest_price,
+                            volume_ratio=vol_ratio,
+                        )
                     # Mark partial TP taken so it doesn't re-trigger
                     if (
                         exit_reason == "partial_take_profit"

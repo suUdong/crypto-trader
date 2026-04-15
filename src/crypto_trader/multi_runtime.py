@@ -923,6 +923,25 @@ class MultiSymbolRuntime:
                     keep_fraction=0.0,
                     reason=reason,
                 )
+                if order is None and reason in (
+                    "stop_loss",
+                    "atr_stop_loss",
+                    "kill_switch_liquidation",
+                    "circuit_breaker",
+                ):
+                    self._logger.warning(
+                        "[%s] protective exit %s failed — retrying in 1s",
+                        wallet.name,
+                        reason,
+                    )
+                    time.sleep(1)
+                    order = wallet.reduce_position(
+                        symbol,
+                        latest_price,
+                        now,
+                        keep_fraction=0.0,
+                        reason=reason,
+                    )
                 if order is None or order.status != "filled":
                     continue
                 executed_orders.append(
