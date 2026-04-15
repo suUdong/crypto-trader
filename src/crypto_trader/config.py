@@ -1124,9 +1124,6 @@ def _sanitize_risk_config(risk: RiskConfig) -> RiskConfig:
         risk,
         max_daily_loss_pct=_clamp_daily_loss_pct(risk.max_daily_loss_pct),
         max_position_pct=_clamp_runtime_max_position_pct(risk.max_position_pct),
-        risk_per_trade_pct=min(
-            max(0.0, risk.risk_per_trade_pct), HARD_MAX_RISK_PER_TRADE_PCT
-        ),
     )
 
 
@@ -1344,7 +1341,7 @@ def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
     if not config.telegram.enabled:
         if not config.trading.paper_trading:
             results.append((
-                "error",
+                "ERROR",
                 "telegram not configured — required for live trading alerts",
             ))
         else:
@@ -1389,13 +1386,13 @@ def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
     if not config.trading.paper_trading:
         if config.risk.max_position_pct > SAFE_LIVE_MAX_POSITION_PCT:
             results.append((
-                "error",
+                "ERROR",
                 f"risk.max_position_pct ({config.risk.max_position_pct:.2f}) exceeds "
                 f"live safety limit ({SAFE_LIVE_MAX_POSITION_PCT:.2f})",
             ))
         if config.risk.risk_per_trade_pct > HARD_MAX_RISK_PER_TRADE_PCT:
             results.append((
-                "error",
+                "ERROR",
                 f"risk.risk_per_trade_pct ({config.risk.risk_per_trade_pct:.2f}) exceeds "
                 f"hard limit ({HARD_MAX_RISK_PER_TRADE_PCT:.2f})",
             ))
@@ -1403,14 +1400,14 @@ def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
             wallet_rpt = wc.risk_overrides.get("risk_per_trade_pct")
             if wallet_rpt is not None and float(wallet_rpt) > HARD_MAX_RISK_PER_TRADE_PCT:
                 results.append((
-                    "error",
+                    "ERROR",
                     f"wallet '{wc.name}' risk_per_trade_pct ({wallet_rpt}) exceeds "
                     f"hard limit ({HARD_MAX_RISK_PER_TRADE_PCT})",
                 ))
             wallet_mpp = wc.risk_overrides.get("max_position_pct")
             if wallet_mpp is not None and float(wallet_mpp) > SAFE_LIVE_MAX_POSITION_PCT:
                 results.append((
-                    "error",
+                    "ERROR",
                     f"wallet '{wc.name}' max_position_pct ({wallet_mpp}) exceeds "
                     f"live limit ({SAFE_LIVE_MAX_POSITION_PCT})",
                 ))

@@ -373,6 +373,13 @@ class LiveBroker:
                 if state == "done":
                     return self._extract_fill(order)
                 if state == "cancel":
+                    fill = self._extract_fill(order)
+                    if fill and float(fill.get("volume", 0)) > 0:
+                        logger.warning(
+                            "order %s cancelled with partial fill: %s",
+                            uuid, fill,
+                        )
+                        return fill
                     logger.warning("order %s was cancelled by exchange", uuid)
                     return None
             except Exception as exc:
