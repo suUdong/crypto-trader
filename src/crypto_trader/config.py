@@ -9,6 +9,8 @@ from typing import Any
 HARD_MAX_DAILY_LOSS_PCT = 0.05
 SAFE_DEFAULT_MAX_POSITION_PCT = 0.50
 SAFE_MAX_CONSECUTIVE_LOSSES = 3
+HARD_MAX_RISK_PER_TRADE_PCT = 0.05
+SAFE_LIVE_MAX_POSITION_PCT = 0.10
 
 
 @dataclass(slots=True)
@@ -1122,6 +1124,9 @@ def _sanitize_risk_config(risk: RiskConfig) -> RiskConfig:
         risk,
         max_daily_loss_pct=_clamp_daily_loss_pct(risk.max_daily_loss_pct),
         max_position_pct=_clamp_runtime_max_position_pct(risk.max_position_pct),
+        risk_per_trade_pct=min(
+            max(0.0, risk.risk_per_trade_pct), HARD_MAX_RISK_PER_TRADE_PCT
+        ),
     )
 
 
@@ -1337,11 +1342,17 @@ def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
 
     # 2. Telegram alerts
     if not config.telegram.enabled:
-        results.append((
-            "WARNING",
-            "Telegram not configured — kill switch alerts won't be delivered. "
-            "Set CT_TELEGRAM_BOT_TOKEN and CT_TELEGRAM_CHAT_ID.",
-        ))
+        if not config.trading.paper_trading:
+            results.append((
+                "error",
+                "telegram not configured — required for live trading alerts",
+            ))
+        else:
+            results.append((
+                "WARNING",
+                "Telegram not configured — kill switch alerts won't be delivered. "
+                "Set CT_TELEGRAM_BOT_TOKEN and CT_TELEGRAM_CHAT_ID.",
+            ))
 
     # 3. Kill switch limits within hard caps (enforced for live trading only)
     if not config.trading.paper_trading:
@@ -1375,5 +1386,33 @@ def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
             f"risk.max_position_pct ({config.risk.max_position_pct:.2%}) "
             f"exceeds safety limit ({SAFE_DEFAULT_MAX_POSITION_PCT:.2%})",
         ))
+    if not config.trading.paper_trading:
+        if config.risk.max_position_pct > SAFE_LIVE_MAX_POSITION_PCT:
+            results.append((
+                "error",
+                f"risk.max_position_pct ({config.risk.max_position_pct:.2f}) exceeds "
+                f"live safety limit ({SAFE_LIVE_MAX_POSITION_PCT:.2f})",
+            ))
+        if config.risk.risk_per_trade_pct > HARD_MAX_RISK_PER_TRADE_PCT:
+            results.append((
+                "error",
+                f"risk.risk_per_trade_pct ({config.risk.risk_per_trade_pct:.2f}) exceeds "
+                f"hard limit ({HARD_MAX_RISK_PER_TRADE_PCT:.2f})",
+            ))
+        for wc in config.wallets:
+            wallet_rpt = wc.risk_overrides.get("risk_per_trade_pct")
+            if wallet_rpt is not None and float(wallet_rpt) > HARD_MAX_RISK_PER_TRADE_PCT:
+                results.append((
+                    "error",
+                    f"wallet '{wc.name}' risk_per_trade_pct ({wallet_rpt}) exceeds "
+                    f"hard limit ({HARD_MAX_RISK_PER_TRADE_PCT})",
+                ))
+            wallet_mpp = wc.risk_overrides.get("max_position_pct")
+            if wallet_mpp is not None and float(wallet_mpp) > SAFE_LIVE_MAX_POSITION_PCT:
+                results.append((
+                    "error",
+                    f"wallet '{wc.name}' max_position_pct ({wallet_mpp}) exceeds "
+                    f"live limit ({SAFE_LIVE_MAX_POSITION_PCT})",
+                ))
 
     return results

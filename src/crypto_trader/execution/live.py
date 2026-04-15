@@ -127,6 +127,12 @@ class LiveBroker:
 
             upbit_uuid = upbit_resp.get("uuid", order_id)
             fill = self._poll_fill(upbit_uuid)
+            if fill is None:
+                logger.error(
+                    "BUY fill not confirmed for %s — aborting position creation",
+                    request.symbol,
+                )
+                return self._rejected(request, market_price, order_id, "fill_unconfirmed")
             fill_price = fill.get("price", market_price)
             fill_qty = fill.get("volume", request.quantity)
             actual_fee = fill.get("paid_fee", fee)
@@ -202,6 +208,12 @@ class LiveBroker:
 
             upbit_uuid = upbit_resp.get("uuid", order_id)
             fill = self._poll_fill(upbit_uuid)
+            if fill is None:
+                logger.error(
+                    "SELL fill not confirmed for %s — position NOT closed locally",
+                    request.symbol,
+                )
+                return self._rejected(request, market_price, order_id, "fill_unconfirmed")
             fill_price = fill.get("price", market_price)
             fill_qty = fill.get("volume", request.quantity)
             actual_fee = fill.get("paid_fee", self._fee_rate * fill_price * fill_qty)
@@ -290,63 +302,85 @@ class LiveBroker:
         symbol: str,
         side: str,
     ) -> dict[str, Any] | None:
-        """Submit order with retry on transient failures."""
+        """Submit order with retry on transient failures.
+
+        Retries only when the exchange clearly did NOT receive the order (None
+        response or explicit error dict).  On any exception we stop immediately
+        because the order may already have been placed — retrying would risk a
+        duplicate order.
+        """
+        last_error: str = ""
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
                 resp = submit_fn()
                 if resp is None:
+                    last_error = "None response"
                     logger.warning(
-                        "Upbit %s %s returned None (attempt %d/%d)",
+                        "%s %s attempt %d/%d: None response, retrying",
                         side,
                         symbol,
                         attempt,
                         _MAX_RETRIES,
                     )
-                    if attempt < _MAX_RETRIES:
-                        time.sleep(_RETRY_BACKOFF * attempt)
-                        continue
-                    return None
+                    time.sleep(_RETRY_BACKOFF * attempt)
+                    continue
                 if isinstance(resp, dict) and "error" in resp:
-                    logger.error(
-                        "Upbit %s %s error: %s (attempt %d/%d)",
+                    last_error = str(resp["error"])
+                    logger.warning(
+                        "%s %s attempt %d/%d: error=%s, retrying",
                         side,
                         symbol,
-                        resp["error"],
                         attempt,
                         _MAX_RETRIES,
+                        last_error,
                     )
-                    if attempt < _MAX_RETRIES:
-                        time.sleep(_RETRY_BACKOFF * attempt)
-                        continue
-                    return None
+                    time.sleep(_RETRY_BACKOFF * attempt)
+                    continue
                 result: dict[str, Any] = resp
                 return result
-            except Exception:
-                logger.exception(
-                    "Upbit %s %s exception (attempt %d/%d)",
+            except Exception as exc:
+                # Network error AFTER submit — order may have been placed.
+                # Do NOT retry to avoid a duplicate order.
+                logger.error(
+                    "%s %s attempt %d/%d: exception after submit — "
+                    "NOT retrying to avoid duplicate order: %s",
                     side,
                     symbol,
                     attempt,
                     _MAX_RETRIES,
+                    exc,
                 )
-                if attempt < _MAX_RETRIES:
-                    time.sleep(_RETRY_BACKOFF * attempt)
+                return None
+        logger.error(
+            "%s %s failed after %d attempts: %s", side, symbol, _MAX_RETRIES, last_error
+        )
         return None
 
-    def _poll_fill(self, uuid: str) -> dict[str, Any]:
-        """Poll Upbit for order fill details."""
+    def _poll_fill(self, uuid: str) -> dict[str, Any] | None:
+        """Poll Upbit for order fill details.
+
+        Returns the fill dict on success, or None if the order timed out or was
+        cancelled — callers must treat None as an unconfirmed fill and abort.
+        """
         deadline = time.monotonic() + _ORDER_POLL_TIMEOUT
         while time.monotonic() < deadline:
             try:
                 order = self._upbit.get_order(uuid)
-                if order and order.get("state") in ("done", "cancel"):
+                if not order:
+                    time.sleep(_ORDER_POLL_INTERVAL)
+                    continue
+                state = order.get("state")
+                if state == "done":
                     return self._extract_fill(order)
-            except Exception:
-                logger.warning("Poll order %s failed, retrying", uuid)
+                if state == "cancel":
+                    logger.warning("order %s was cancelled by exchange", uuid)
+                    return None
+            except Exception as exc:
+                logger.warning("poll_fill error: %s", exc)
             time.sleep(_ORDER_POLL_INTERVAL)
 
-        logger.warning("Order %s poll timed out after %.0fs", uuid, _ORDER_POLL_TIMEOUT)
-        return {}
+        logger.warning("fill poll timed out for %s — treating as unfilled", uuid)
+        return None
 
     def _extract_fill(self, order: dict[str, Any]) -> dict[str, Any]:
         """Extract fill price and volume from Upbit order response."""
