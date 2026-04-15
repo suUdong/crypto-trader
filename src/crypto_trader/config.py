@@ -985,7 +985,7 @@ def load_config(
         risk=risk,
         backtest=backtest,
         telegram=telegram,
-        runtime=runtime,
+        runtime=_resolve_artifacts_root(runtime, env),
         slack=slack,
         credentials=credentials,
         macro=macro,
@@ -1003,6 +1003,31 @@ def load_config(
 
 def _read_toml(path: Path) -> dict[str, Any]:
     return tomllib.loads(path.read_text(encoding="utf-8"))
+
+
+_ARTIFACTS_PREFIX = "artifacts/"
+
+
+def _resolve_artifacts_root(
+    runtime: RuntimeConfig, environ: dict[str, str]
+) -> RuntimeConfig:
+    """Replace ``artifacts/`` prefix in path fields with *CT_ARTIFACTS_ROOT*."""
+    root = environ.get("CT_ARTIFACTS_ROOT")
+    if not root:
+        return runtime
+    root = root.rstrip("/")
+    overrides: dict[str, str] = {}
+    for field_name in RuntimeConfig.__dataclass_fields__:
+        if not field_name.endswith("_path"):
+            continue
+        value = getattr(runtime, field_name)
+        if not value or value.startswith("/"):
+            continue
+        if value.startswith(_ARTIFACTS_PREFIX):
+            overrides[field_name] = root + "/" + value[len(_ARTIFACTS_PREFIX):]
+    if not overrides:
+        return runtime
+    return replace(runtime, **overrides)
 
 
 def _read_value(
