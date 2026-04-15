@@ -526,3 +526,52 @@ ema_slope_min = 0.0003
         self.assertEqual(vpin_wallet.strategy_overrides["rsi_delta_min"], 1.5)
         self.assertEqual(vpin_wallet.strategy_overrides["ema_slope_lookback"], 5)
         self.assertEqual(vpin_wallet.strategy_overrides["ema_slope_min"], 0.0003)
+
+    def test_artifacts_root_not_set_keeps_defaults(self) -> None:
+        config = load_config(ROOT / "config" / "example.toml", {})
+        self.assertEqual(
+            config.runtime.kill_switch_path, "artifacts/kill-switch.json"
+        )
+        self.assertEqual(
+            config.runtime.paper_trade_journal_path, "artifacts/paper-trades.jsonl"
+        )
+
+    def test_artifacts_root_overrides_prefix(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {"CT_ARTIFACTS_ROOT": "/var/lib/crypto-trader/artifacts"},
+        )
+        self.assertEqual(
+            config.runtime.kill_switch_path,
+            "/var/lib/crypto-trader/artifacts/kill-switch.json",
+        )
+        self.assertEqual(
+            config.runtime.paper_trade_journal_path,
+            "/var/lib/crypto-trader/artifacts/paper-trades.jsonl",
+        )
+        self.assertEqual(
+            config.runtime.position_snapshot_path,
+            "/var/lib/crypto-trader/artifacts/positions.json",
+        )
+        # trailing slash in env value should work the same
+        config2 = load_config(
+            ROOT / "config" / "example.toml",
+            {"CT_ARTIFACTS_ROOT": "/var/lib/crypto-trader/artifacts/"},
+        )
+        self.assertEqual(
+            config2.runtime.kill_switch_path,
+            "/var/lib/crypto-trader/artifacts/kill-switch.json",
+        )
+
+    def test_artifacts_root_skips_absolute_and_empty(self) -> None:
+        config = load_config(
+            ROOT / "config" / "example.toml",
+            {
+                "CT_ARTIFACTS_ROOT": "/srv/data",
+                "CT_KILL_SWITCH_PATH": "/custom/kill.json",
+            },
+        )
+        # absolute path set via env — should NOT be rewritten
+        self.assertEqual(config.runtime.kill_switch_path, "/custom/kill.json")
+        # empty string stays empty
+        self.assertEqual(config.runtime.paper_trade_sqlite_path, "")
