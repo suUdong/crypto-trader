@@ -1,213 +1,118 @@
 #!/usr/bin/env bash
-# crypto-trader Lightsail bootstrap (Ubuntu 22.04, native systemd, no Docker)
-# Idempotent — safe to re-run. Run as root: `sudo bash lightsail_bootstrap.sh`
+# crypto-trader Lightsail bootstrap — phase 2 (post-provisioning)
 #
-# Responsibilities (per docs/superpowers/plans/2026-04-07-lightsail-deployment.md §4):
-#   1. Install Python 3.12 (deadsnakes) + system packages
-#   2. Create `crypto` system user
-#   3. Create /var/lib/crypto-trader, /etc/crypto-trader directory tree
-#   4. Clone or fast-forward /opt/crypto-trader from GitHub
-#   5. Build Python venv + `pip install -e .`
-#   6. Seed /etc/crypto-trader/environment
-#   7. Seed /etc/crypto-trader/secrets.env template (HALT if unfilled)
-#   8. Install systemd units (daemon + nightly backup) + daemon-reload + enable
+# Run as root after the system-level setup is complete:
+#   sudo bash scripts/lightsail_bootstrap.sh
 #
-# Service is NOT auto-started; operator confirms after secrets are filled.
+# Preconditions (already done by provisioning):
+#   - Python 3.12 installed (deadsnakes)
+#   - `crypto` system user exists (uid 998)
+#   - /opt/crypto-trader/ exists (may be empty)
+#   - /etc/crypto-trader/environment + secrets.env created
+#   - systemd units installed + enabled
+#
+# This script:
+#   1. Creates /var/lib/crypto-trader/{artifacts,backups}  owned by crypto:crypto
+#   2. git clone --depth 1  OR  git pull --ff-only  into /opt/crypto-trader/
+#   3. Creates .venv (python3.12) if absent
+#   4. pip install -e .
+#   5. chown -R crypto:crypto /opt/crypto-trader/
+#   6. Prints summary
+#
+# --teardown  Reverses steps 1-5 for test purposes:
+#             removes /opt/crypto-trader/* (keeps dir), removes /var/lib/crypto-trader/
 
 set -euo pipefail
 
-# ---------- config ----------
+# ── config ────────────────────────────────────────────────────────────────────
 REPO_URL="${REPO_URL:-https://github.com/suUdong/crypto-trader.git}"
 REPO_BRANCH="${REPO_BRANCH:-master}"
 APP_USER="crypto"
 APP_GROUP="crypto"
 APP_DIR="/opt/crypto-trader"
 DATA_DIR="/var/lib/crypto-trader"
-ETC_DIR="/etc/crypto-trader"
 PY="python3.12"
 
-log() { printf '\033[1;34m[bootstrap]\033[0m %s\n' "$*"; }
+# ── helpers ───────────────────────────────────────────────────────────────────
+log()  { printf '\033[1;34m[bootstrap]\033[0m %s\n' "$*"; }
+ok()   { printf '\033[1;32m[bootstrap]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[bootstrap]\033[0m %s\n' "$*" >&2; }
-die() { printf '\033[1;31m[bootstrap]\033[0m %s\n' "$*" >&2; exit 1; }
+die()  { printf '\033[1;31m[bootstrap]\033[0m %s\n' "$*" >&2; exit 1; }
 
-[[ $EUID -eq 0 ]] || die "must run as root (sudo bash $0)"
+# ── root check ────────────────────────────────────────────────────────────────
+[[ $EUID -eq 0 ]] || die "must run as root:  sudo bash $0  [--teardown]"
 
-# ---------- 1. packages ----------
-log "apt update + base packages"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
-apt-get install -y --no-install-recommends \
-    software-properties-common ca-certificates curl gnupg lsb-release
-
-if ! command -v "$PY" >/dev/null 2>&1; then
-    log "adding deadsnakes PPA for $PY"
-    add-apt-repository -y ppa:deadsnakes/ppa
-    apt-get update -y
+# ── teardown mode ─────────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--teardown" ]]; then
+    warn "TEARDOWN: removing repo contents + data dir"
+    find "$APP_DIR" -mindepth 1 -delete 2>/dev/null || true
+    rm -rf "$DATA_DIR"
+    ok "teardown complete — /opt/crypto-trader/ emptied, $DATA_DIR removed"
+    exit 0
 fi
 
-apt-get install -y --no-install-recommends \
-    "$PY" "${PY}-venv" "${PY}-dev" \
-    git build-essential pkg-config \
-    sqlite3 jq tmux rsync logrotate
+# ── track what was done ───────────────────────────────────────────────────────
+STEPS_DONE=()
 
-# ---------- 2. system user ----------
-if ! id -u "$APP_USER" >/dev/null 2>&1; then
-    log "creating system user $APP_USER"
-    useradd --system --create-home --home-dir "$APP_DIR" \
-        --shell /usr/sbin/nologin "$APP_USER"
-else
-    log "user $APP_USER already exists"
-fi
+# ── 1. data directories ───────────────────────────────────────────────────────
+log "step 1: data directories"
+for dir in "$DATA_DIR" "$DATA_DIR/artifacts" "$DATA_DIR/backups"; do
+    if [[ ! -d "$dir" ]]; then
+        install -d -o "$APP_USER" -g "$APP_GROUP" -m 0750 "$dir"
+        STEPS_DONE+=("created $dir")
+    else
+        log "  $dir already exists — skip"
+    fi
+done
 
-# ---------- 3. directories ----------
-log "preparing directory tree"
-install -d -o "$APP_USER" -g "$APP_GROUP" -m 0750 "$DATA_DIR"
-install -d -o "$APP_USER" -g "$APP_GROUP" -m 0750 "$DATA_DIR/artifacts"
-install -d -o "$APP_USER" -g "$APP_GROUP" -m 0750 "$DATA_DIR/backups"
-install -d -o "$APP_USER" -g "$APP_GROUP" -m 0750 "$DATA_DIR/logs"
-install -d -o root        -g "$APP_GROUP" -m 0750 "$ETC_DIR"
-
-# ---------- 4. source ----------
+# ── 2. clone or pull ──────────────────────────────────────────────────────────
+log "step 2: repo"
 if [[ ! -d "$APP_DIR/.git" ]]; then
-    log "cloning $REPO_URL into $APP_DIR"
-    # APP_DIR exists as the user's home; clone into a temp and move .git
-    TMP_CLONE="$(mktemp -d /tmp/crypto-trader.XXXXXX)"
-    git clone --branch "$REPO_BRANCH" "$REPO_URL" "$TMP_CLONE/repo"
+    log "  cloning $REPO_URL (depth 1) into $APP_DIR"
+    TMP_CLONE="$(mktemp -d /tmp/ct-bootstrap.XXXXXX)"
+    git clone --depth 1 --branch "$REPO_BRANCH" "$REPO_URL" "$TMP_CLONE/repo"
     shopt -s dotglob
     mv "$TMP_CLONE/repo"/* "$APP_DIR"/
     shopt -u dotglob
     rm -rf "$TMP_CLONE"
-    chown -R "$APP_USER:$APP_GROUP" "$APP_DIR"
+    STEPS_DONE+=("git clone $REPO_URL → $APP_DIR")
 else
-    log "fast-forwarding existing checkout"
-    sudo -u "$APP_USER" git -C "$APP_DIR" fetch --prune origin
+    log "  existing checkout detected — pulling"
+    sudo -u "$APP_USER" git -C "$APP_DIR" fetch --depth 1 origin "$REPO_BRANCH"
     sudo -u "$APP_USER" git -C "$APP_DIR" checkout "$REPO_BRANCH"
     sudo -u "$APP_USER" git -C "$APP_DIR" pull --ff-only origin "$REPO_BRANCH"
+    STEPS_DONE+=("git pull --ff-only $APP_DIR")
 fi
 
-# ---------- 5. venv ----------
+# ── 3. python venv ────────────────────────────────────────────────────────────
+log "step 3: venv"
 if [[ ! -x "$APP_DIR/.venv/bin/python" ]]; then
-    log "creating venv"
+    log "  creating venv at $APP_DIR/.venv"
     sudo -u "$APP_USER" "$PY" -m venv "$APP_DIR/.venv"
-fi
-log "pip install -e ."
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --upgrade pip setuptools wheel
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --upgrade -e "$APP_DIR"
-
-# NOTE: daemon.toml uses relative `artifacts/*` paths. We solve this by
-# setting systemd WorkingDirectory=$DATA_DIR (below) so the daemon's CWD
-# is the persistent data dir. Avoids touching every path field in config.py
-# and keeps the in-repo `artifacts/` (with tracked historical reports)
-# untouched.
-
-# ---------- 6. environment file ----------
-ENV_FILE="$ETC_DIR/environment"
-if [[ ! -f "$ENV_FILE" ]]; then
-    log "writing $ENV_FILE"
-    cat > "$ENV_FILE" <<'EOF'
-TZ=Asia/Seoul
-PYTHONUNBUFFERED=1
-PYTHONDONTWRITEBYTECODE=1
-CT_ARTIFACTS_ROOT=/var/lib/crypto-trader/artifacts
-EOF
-    chown root:"$APP_GROUP" "$ENV_FILE"
-    chmod 0644 "$ENV_FILE"
+    STEPS_DONE+=("created venv $APP_DIR/.venv")
+else
+    log "  venv already exists — skip creation"
 fi
 
-# ---------- 7. secrets template ----------
-SECRETS_FILE="$ETC_DIR/secrets.env"
-SECRETS_FRESH=0
-if [[ ! -f "$SECRETS_FILE" ]]; then
-    log "seeding $SECRETS_FILE template (must be filled before start)"
-    cat > "$SECRETS_FILE" <<'EOF'
-# Fill in before starting crypto-trader.service
-UPBIT_ACCESS_KEY=
-UPBIT_SECRET_KEY=
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
-EOF
-    SECRETS_FRESH=1
-fi
-chown root:"$APP_GROUP" "$SECRETS_FILE"
-chmod 0640 "$SECRETS_FILE"
+# ── 4. pip install -e . ───────────────────────────────────────────────────────
+log "step 4: pip install -e ."
+sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --quiet --upgrade pip setuptools wheel
+sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --quiet -e "$APP_DIR"
+STEPS_DONE+=("pip install -e $APP_DIR")
 
-# ---------- 8. systemd units ----------
-log "installing systemd units"
-cat > /etc/systemd/system/crypto-trader.service <<EOF
-[Unit]
-Description=crypto-trader multi-wallet daemon
-After=network-online.target
-Wants=network-online.target
-StartLimitIntervalSec=300
-StartLimitBurst=5
+# ── 5. ownership ──────────────────────────────────────────────────────────────
+log "step 5: ownership"
+chown -R "$APP_USER:$APP_GROUP" "$APP_DIR"
+STEPS_DONE+=("chown -R $APP_USER:$APP_GROUP $APP_DIR")
 
-[Service]
-Type=simple
-User=$APP_USER
-Group=$APP_GROUP
-WorkingDirectory=$DATA_DIR
-EnvironmentFile=$ETC_DIR/environment
-EnvironmentFile=$ETC_DIR/secrets.env
-ExecStart=$APP_DIR/.venv/bin/python -m crypto_trader.cli run-multi --config $APP_DIR/config/daemon.toml
-Restart=always
-RestartSec=15
-
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-PrivateTmp=true
-ReadWritePaths=$DATA_DIR
-MemoryMax=1536M
-CPUQuota=150%
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-cat > /etc/systemd/system/crypto-trader-backup.service <<EOF
-[Unit]
-Description=nightly SQLite + JSONL backup
-After=crypto-trader.service
-
-[Service]
-Type=oneshot
-User=$APP_USER
-Group=$APP_GROUP
-EnvironmentFile=$ETC_DIR/environment
-ExecStart=$APP_DIR/scripts/backup.sh
-EOF
-
-cat > /etc/systemd/system/crypto-trader-backup.timer <<'EOF'
-[Unit]
-Description=nightly crypto-trader backup
-
-[Timer]
-OnCalendar=*-*-* 19:00:00 UTC
-Persistent=true
-Unit=crypto-trader-backup.service
-
-[Install]
-WantedBy=timers.target
-EOF
-
-systemctl daemon-reload
-systemctl enable crypto-trader.service >/dev/null
-systemctl enable crypto-trader-backup.timer >/dev/null
-
-log "bootstrap complete."
+# ── 6. summary ────────────────────────────────────────────────────────────────
 echo
-if [[ $SECRETS_FRESH -eq 1 ]]; then
-    warn "secrets template was just created — fill it in before starting the service:"
-    warn "    sudo -e $SECRETS_FILE"
-    warn "then:"
-    warn "    sudo systemctl start crypto-trader && journalctl -u crypto-trader -f"
-    exit 0
-fi
-
-cat <<EOF
-Next steps:
-  sudo -e $SECRETS_FILE                 # confirm secrets are populated
-  sudo systemctl start crypto-trader
-  sudo systemctl status crypto-trader
-  journalctl -u crypto-trader -f
-EOF
+ok "bootstrap complete — steps performed:"
+for s in "${STEPS_DONE[@]}"; do
+    ok "  ✓ $s"
+done
+echo
+log "next steps (operator):"
+log "  sudo systemctl start crypto-trader"
+log "  sudo systemctl status crypto-trader"
+log "  journalctl -u crypto-trader -f"
