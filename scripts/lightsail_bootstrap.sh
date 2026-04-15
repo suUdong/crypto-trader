@@ -75,13 +75,13 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
     mv "$TMP_CLONE/repo"/* "$APP_DIR"/
     shopt -u dotglob
     rm -rf "$TMP_CLONE"
+    chown -R "$APP_USER:$APP_GROUP" "$APP_DIR"
     STEPS_DONE+=("git clone $REPO_URL → $APP_DIR")
 else
     log "  existing checkout detected — pulling"
     sudo -u "$APP_USER" git -C "$APP_DIR" fetch --depth 1 origin "$REPO_BRANCH"
-    sudo -u "$APP_USER" git -C "$APP_DIR" checkout "$REPO_BRANCH"
-    sudo -u "$APP_USER" git -C "$APP_DIR" pull --ff-only origin "$REPO_BRANCH"
-    STEPS_DONE+=("git pull --ff-only $APP_DIR")
+    sudo -u "$APP_USER" git -C "$APP_DIR" reset --hard "origin/$REPO_BRANCH"
+    STEPS_DONE+=("git reset --hard origin/$REPO_BRANCH $APP_DIR")
 fi
 
 # ── 3. python venv ────────────────────────────────────────────────────────────
