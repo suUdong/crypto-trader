@@ -1,0 +1,17 @@
+.git/
+.github/
+.claude/
+.worktrees/
+tests/
+docs/
+dashboard/
+scripts/hooks/
+config/daemon.toml
+*.db
+*.jsonl
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+*.pyc
+.env
+프롬프트
