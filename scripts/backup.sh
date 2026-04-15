@@ -1,30 +1,55 @@
 #!/usr/bin/env bash
-# Nightly backup for crypto-trader (SQLite snapshot + JSONL rotation).
-# Run by crypto-trader-backup.service (oneshot timer @ 19:00 UTC = 04:00 KST).
+# scripts/backup.sh — nightly backup for crypto-trader
+# Called by: /etc/systemd/system/crypto-trader-backup.service
+# Runs as:   crypto user
+# Output:    stdout → journalctl (SyslogIdentifier=crypto-trader-backup)
 set -euo pipefail
 
-ARTIFACTS="${CT_ARTIFACTS_ROOT:-/var/lib/crypto-trader/artifacts}"
+# ── Config ────────────────────────────────────────────────────────────────────
+ARTIFACTS_ROOT="${CT_ARTIFACTS_ROOT:-/var/lib/crypto-trader/artifacts}"
 BACKUP_DIR="/var/lib/crypto-trader/backups"
-TS="$(date -u +%Y%m%dT%H%M%SZ)"
-RETENTION_DAYS="${CT_BACKUP_RETENTION_DAYS:-14}"
+RETAIN_DAYS=7
 
-mkdir -p "$BACKUP_DIR"
+DB_SRC="${ARTIFACTS_ROOT}/paper-trades.db"
+JSONL_SRC="${ARTIFACTS_ROOT}/paper-trades.jsonl"
 
-shopt -s nullglob
-for db in "$ARTIFACTS"/*.db; do
-    name="$(basename "$db" .db)"
-    out="$BACKUP_DIR/${name}.${TS}.db"
-    sqlite3 "$db" ".backup '$out'"
-    gzip -f "$out"
-done
+TIMESTAMP="$(date -u +%Y-%m-%dT%H%M%S)"
+DB_DST="${BACKUP_DIR}/paper-trades-${TIMESTAMP}.db"
+JSONL_DST="${BACKUP_DIR}/paper-trades-${TIMESTAMP}.jsonl"
 
-for jsonl in "$ARTIFACTS"/*.jsonl; do
-    name="$(basename "$jsonl" .jsonl)"
-    out="$BACKUP_DIR/${name}.${TS}.jsonl.gz"
-    gzip -c "$jsonl" > "$out"
-done
-shopt -u nullglob
+# ── Helpers ───────────────────────────────────────────────────────────────────
+log() { echo "[backup] $(date -u +%Y-%m-%dT%H:%M:%SZ)  $*"; }
 
-find "$BACKUP_DIR" -type f -name '*.gz' -mtime +"$RETENTION_DAYS" -delete
+# ── Setup ─────────────────────────────────────────────────────────────────────
+mkdir -p "${BACKUP_DIR}"
+log "backup dir: ${BACKUP_DIR}"
+log "artifacts root: ${ARTIFACTS_ROOT}"
 
-echo "[backup] complete @ $TS — kept ${RETENTION_DAYS}d"
+# ── SQLite backup ─────────────────────────────────────────────────────────────
+if [[ ! -f "${DB_SRC}" ]]; then
+    log "WARNING: DB not found (${DB_SRC}), skipping"
+else
+    sqlite3 "${DB_SRC}" ".backup '${DB_DST}'"
+    log "DB backup OK: ${DB_DST}"
+fi
+
+# ── JSONL backup ──────────────────────────────────────────────────────────────
+if [[ ! -f "${JSONL_SRC}" ]]; then
+    log "WARNING: JSONL not found (${JSONL_SRC}), skipping"
+else
+    cp "${JSONL_SRC}" "${JSONL_DST}"
+    log "JSONL backup OK: ${JSONL_DST}"
+fi
+
+# ── Prune old backups ─────────────────────────────────────────────────────────
+PRUNED=0
+while IFS= read -r -d '' old_file; do
+    rm -f "${old_file}"
+    log "pruned: ${old_file}"
+    PRUNED=$(( PRUNED + 1 ))
+done < <(find "${BACKUP_DIR}" -maxdepth 1 \
+    \( -name 'paper-trades-*.db' -o -name 'paper-trades-*.jsonl' \) \
+    -mtime "+${RETAIN_DAYS}" -print0)
+
+log "pruned ${PRUNED} old backup file(s)"
+log "done"
