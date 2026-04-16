@@ -665,35 +665,37 @@ max_position_pct = 0.05
 #   SUI vs 포트폴리오: 0.709 / SUI 변동성: 87.4% (포트폴리오 58.7%) → 추가 시 변동성 +0.9%
 #   활성화 조건: pre_bull_score ≥ 0.90 + BTC>SMA20 확인 후 symbols에 "KRW-SUI" 추가
 #   주의: Sharpe 5.0 기준 미달(최고 +3.990) — BULL 레짐 진입 후 재검증 권장
+# DISABLED 2026-04-15 — stealth_3gate_wallet_1
+# Reason: 75 trades, 16% WR, ₩-46,724 — statistically conclusive underperformance
 # 2026-04-08 RETAINED — stealth_3gate_wallet_1 (레짐 분산용)
 # Gate2(btc_ret_w<1.0)는 BUG 아닌 의도된 설계 — BTC 조정/횡보장 매집 전략.
 # 최근 12일 paper 성적(61건 WR 15% -₩6,296)은 BULL 추세장 약점 구간 반영.
 # 다음 횡보/조정장 진입 시 자동 활성화 예상 → 포트폴리오 레짐 분산 위해 유지.
-[[wallets]]
-name = "stealth_3gate_wallet_1"
-strategy = "stealth_3gate"
-initial_capital = 1_000_000.0
-paper_trading = true
-# 2026-04-06: PEPE(-399K), CELO(OHLCV에러), THETA(OHLCV에러) 제거 — paper 60건 기반 판단
-symbols = ["KRW-AVAX", "KRW-LINK", "KRW-APT", "KRW-XRP", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-ASTR"]
-
-[wallets.strategy_overrides]
-market_data_closed_only = true
-stealth_window = 36
-stealth_sma_period = 10
-rs_low = 0.4
-rs_high = 0.9
-cvd_slope_threshold = 0.0
-btc_stealth_gate = true
-btc_stealth_acc_min = 1.0  # 사이클 144 재검증 (수정된 엔진): 1.15→1.0 (W2 Sharpe 13.703)
-btc_trend_pos_gate = false
-btc_trend_window = 10
-
-# 2026-04-04: TP 최적화 — stealth_3gate 사이클 141 (TP=5%/SL=1.0% W2 Sharpe 12.126, +0.922)
-[wallets.risk_overrides]
-stop_loss_pct = 0.010
-take_profit_pct = 0.05
-risk_per_trade_pct = 0.02
+# [[wallets]]
+# name = "stealth_3gate_wallet_1"
+# strategy = "stealth_3gate"
+# initial_capital = 1_000_000.0
+# paper_trading = true
+# # 2026-04-06: PEPE(-399K), CELO(OHLCV에러), THETA(OHLCV에러) 제거 — paper 60건 기반 판단
+# symbols = ["KRW-AVAX", "KRW-LINK", "KRW-APT", "KRW-XRP", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-ASTR"]
+#
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# stealth_window = 36
+# stealth_sma_period = 10
+# rs_low = 0.4
+# rs_high = 0.9
+# cvd_slope_threshold = 0.0
+# btc_stealth_gate = true
+# btc_stealth_acc_min = 1.0  # 사이클 144 재검증 (수정된 엔진): 1.15→1.0 (W2 Sharpe 13.703)
+# btc_trend_pos_gate = false
+# btc_trend_window = 10
+#
+# # 2026-04-04: TP 최적화 — stealth_3gate 사이클 141 (TP=5%/SL=1.0% W2 Sharpe 12.126, +0.922)
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.010
+# take_profit_pct = 0.05
+# risk_per_trade_pct = 0.02
 
 # vpin_ondo_wallet: 사이클 119+122 walk-forward 검증 확정 (2026-04-04)
 # Gate1=BTC>SMA20(btc_stealth_gate), Gate2=BTC_30봉>0%(btc_30bar_gate)
@@ -843,75 +845,79 @@ risk_per_trade_pct = 0.02
 # 30거래 축적 후 검증. 자동 교체 대상 아님.
 # ============================================================================
 
-[[wallets]]
-name = "vpin_mana_wallet"
-strategy = "vpin"
-initial_capital = 1_000_000.0
-paper_trading = true
-symbols = ["KRW-MANA"]
-[wallets.strategy_overrides]
-market_data_closed_only = true
-rsi_period = 14
-momentum_lookback = 8
-max_holding_bars = 20
-vpin_low_threshold = 0.35
-vpin_high_threshold = 0.55
-vpin_momentum_threshold = 0.0007
-vpin_rsi_ceiling = 65.0
-vpin_rsi_floor = 20.0
-rsi_overbought = 75.0
-bucket_count = 24
-ema_trend_period = 20
-ema_weight = 0.5
-adx_threshold = 15.0
-btc_stealth_gate = false
-active_regimes = ["bull", "sideways", "bear"]
-[wallets.risk_overrides]
-stop_loss_pct = 0.008
-take_profit_pct = 0.07
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-cooldown_bars = 4
-atr_stop_multiplier = 0.0
-atr_tp_multiplier = 0.0
-atr_sl_multiplier = 0.0
-trail_activate_atr_mult = 1.5
-trail_sl_atr_mult = 0.4
+# DISABLED 2026-04-15 — vpin_mana_wallet
+# Reason: 9 trades, 22% WR, ₩-34,015 — statistically conclusive underperformance
+# [[wallets]]
+# name = "vpin_mana_wallet"
+# strategy = "vpin"
+# initial_capital = 1_000_000.0
+# paper_trading = true
+# symbols = ["KRW-MANA"]
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# rsi_period = 14
+# momentum_lookback = 8
+# max_holding_bars = 20
+# vpin_low_threshold = 0.35
+# vpin_high_threshold = 0.55
+# vpin_momentum_threshold = 0.0007
+# vpin_rsi_ceiling = 65.0
+# vpin_rsi_floor = 20.0
+# rsi_overbought = 75.0
+# bucket_count = 24
+# ema_trend_period = 20
+# ema_weight = 0.5
+# adx_threshold = 15.0
+# btc_stealth_gate = false
+# active_regimes = ["bull", "sideways", "bear"]
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.008
+# take_profit_pct = 0.07
+# risk_per_trade_pct = 0.01
+# partial_tp_pct = 0.5
+# cooldown_bars = 4
+# atr_stop_multiplier = 0.0
+# atr_tp_multiplier = 0.0
+# atr_sl_multiplier = 0.0
+# trail_activate_atr_mult = 1.5
+# trail_sl_atr_mult = 0.4
 
-[[wallets]]
-name = "vpin_bat_wallet"
-strategy = "vpin"
-initial_capital = 1_000_000.0
-paper_trading = true
-symbols = ["KRW-BAT"]
-[wallets.strategy_overrides]
-market_data_closed_only = true
-rsi_period = 14
-momentum_lookback = 8
-max_holding_bars = 20
-vpin_low_threshold = 0.35
-vpin_high_threshold = 0.55
-vpin_momentum_threshold = 0.0007
-vpin_rsi_ceiling = 65.0
-vpin_rsi_floor = 20.0
-rsi_overbought = 75.0
-bucket_count = 24
-ema_trend_period = 20
-ema_weight = 0.5
-adx_threshold = 15.0
-btc_stealth_gate = false
-active_regimes = ["bull", "sideways", "bear"]
-[wallets.risk_overrides]
-stop_loss_pct = 0.008
-take_profit_pct = 0.07
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-cooldown_bars = 4
-atr_stop_multiplier = 0.0
-atr_tp_multiplier = 0.0
-atr_sl_multiplier = 0.0
-trail_activate_atr_mult = 1.5
-trail_sl_atr_mult = 0.4
+# DISABLED 2026-04-15 — vpin_bat_wallet
+# Reason: 14 trades, 29% WR, ₩-19,437 — even after ATR fix, deep hole
+# [[wallets]]
+# name = "vpin_bat_wallet"
+# strategy = "vpin"
+# initial_capital = 1_000_000.0
+# paper_trading = true
+# symbols = ["KRW-BAT"]
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# rsi_period = 14
+# momentum_lookback = 8
+# max_holding_bars = 20
+# vpin_low_threshold = 0.35
+# vpin_high_threshold = 0.55
+# vpin_momentum_threshold = 0.0007
+# vpin_rsi_ceiling = 65.0
+# vpin_rsi_floor = 20.0
+# rsi_overbought = 75.0
+# bucket_count = 24
+# ema_trend_period = 20
+# ema_weight = 0.5
+# adx_threshold = 15.0
+# btc_stealth_gate = false
+# active_regimes = ["bull", "sideways", "bear"]
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.008
+# take_profit_pct = 0.07
+# risk_per_trade_pct = 0.01
+# partial_tp_pct = 0.5
+# cooldown_bars = 4
+# atr_stop_multiplier = 0.0
+# atr_tp_multiplier = 0.0
+# atr_sl_multiplier = 0.0
+# trail_activate_atr_mult = 1.5
+# trail_sl_atr_mult = 0.4
 
 [[wallets]]
 name = "vpin_pundix_wallet"
@@ -948,40 +954,42 @@ atr_sl_multiplier = 0.0
 trail_activate_atr_mult = 1.5
 trail_sl_atr_mult = 0.4
 
-[[wallets]]
-name = "vpin_orbs_wallet"
-strategy = "vpin"
-initial_capital = 1_000_000.0
-paper_trading = true
-symbols = ["KRW-ORBS"]
-[wallets.strategy_overrides]
-market_data_closed_only = true
-rsi_period = 14
-momentum_lookback = 8
-max_holding_bars = 20
-vpin_low_threshold = 0.35
-vpin_high_threshold = 0.55
-vpin_momentum_threshold = 0.0007
-vpin_rsi_ceiling = 65.0
-vpin_rsi_floor = 20.0
-rsi_overbought = 75.0
-bucket_count = 24
-ema_trend_period = 20
-ema_weight = 0.5
-adx_threshold = 15.0
-btc_stealth_gate = false
-active_regimes = ["bull", "sideways", "bear"]
-[wallets.risk_overrides]
-stop_loss_pct = 0.008
-take_profit_pct = 0.07
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-cooldown_bars = 4
-atr_stop_multiplier = 0.0
-atr_tp_multiplier = 0.0
-atr_sl_multiplier = 0.0
-trail_activate_atr_mult = 1.5
-trail_sl_atr_mult = 0.4
+# DISABLED 2026-04-15 — vpin_orbs_wallet
+# Reason: 13 trades, 23% WR, ₩-4,670 — statistically conclusive underperformance
+# [[wallets]]
+# name = "vpin_orbs_wallet"
+# strategy = "vpin"
+# initial_capital = 1_000_000.0
+# paper_trading = true
+# symbols = ["KRW-ORBS"]
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# rsi_period = 14
+# momentum_lookback = 8
+# max_holding_bars = 20
+# vpin_low_threshold = 0.35
+# vpin_high_threshold = 0.55
+# vpin_momentum_threshold = 0.0007
+# vpin_rsi_ceiling = 65.0
+# vpin_rsi_floor = 20.0
+# rsi_overbought = 75.0
+# bucket_count = 24
+# ema_trend_period = 20
+# ema_weight = 0.5
+# adx_threshold = 15.0
+# btc_stealth_gate = false
+# active_regimes = ["bull", "sideways", "bear"]
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.008
+# take_profit_pct = 0.07
+# risk_per_trade_pct = 0.01
+# partial_tp_pct = 0.5
+# cooldown_bars = 4
+# atr_stop_multiplier = 0.0
+# atr_tp_multiplier = 0.0
+# atr_sl_multiplier = 0.0
+# trail_activate_atr_mult = 1.5
+# trail_sl_atr_mult = 0.4
 
 # ── bollinger_mr (mean reversion) — 카테고리 공백 메움 ──
 [[wallets]]
