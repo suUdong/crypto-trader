@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-04-16 — 부진 4지갑 비활성화 (paper 데이터 + Codex 리뷰 기반)
+
+- **비활성화**: `stealth_3gate_wallet_1` — 75건 WR 16%, ₩-46,724. RS score 자기참조, 통계적 결론.
+- **비활성화**: `vpin_bat_wallet` — 14건 WR 29% (ATR OFF 전 0%), ₩-19,437.
+- **비활성화**: `vpin_mana_wallet` — 9건 WR 22%, ₩-34,015.
+- **비활성화**: `vpin_orbs_wallet` — 13건 WR 23%, ₩-4,670.
+- 활성 지갑: 20→16개
+- 근거: `docs/strategy-review-2026-04-16.md`
+
+## 2026-04-15 — ATR 스탑 전면 비활성화
+
+- 글로벌 `atr_stop_multiplier` 3.0→0.0
+- 개별: momentum_sol 1.5→0.0, volspike_btc 1.5→0.0, vpin_ondo 1.5→0.0
+- 근거: 101건 WR 0%, ₩-149,908 (전체 손실 75%)
+- 효과: ATR OFF 후 WR 23%→67%, 실현 PnL 양수 전환
+
+---
+
 ## 2026-04-05 11:50 UTC — bb_squeeze 포트폴리오 리밸런스 (cycle 210)
 
 - **추가**: `bb_squeeze_link_wallet` (paper, ₩500K, KRW-LINK)
