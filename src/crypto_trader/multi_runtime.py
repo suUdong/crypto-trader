@@ -402,7 +402,6 @@ class MultiSymbolRuntime:
         recovered = (
             self._last_tick_had_error
             and not self._tick_unrecoverable_error
-            and not self._tick_failed_symbols
             and bool(results)
         )
         if recovered:

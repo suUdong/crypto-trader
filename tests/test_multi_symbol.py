@@ -854,6 +854,35 @@ class TestMultiSymbolRuntime(unittest.TestCase):
         self.assertTrue(health["success"])
         self.assertEqual(health["status"], "healthy")
 
+    def test_runtime_not_degraded_when_one_symbol_has_recoverable_blip(self) -> None:
+        """Intermittent recoverable error on one symbol should not mark health degraded
+        when other symbols produce successful results in the same tick."""
+        config = _make_config(
+            symbols=["KRW-BTC", "KRW-ETH"],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        wallets = build_wallets(config)
+        market_data = MagicMock()
+        candles = _build_candles([100.0] * 240, "KRW-BTC")
+
+        def _get_ohlcv(symbol: str, interval: str = "minute60", count: int = 200) -> list[Candle]:
+            if symbol == "KRW-ETH":
+                raise RuntimeError("network timeout")
+            return candles
+
+        market_data.get_ohlcv.side_effect = _get_ohlcv
+        runtime = MultiSymbolRuntime(wallets=wallets, market_data=market_data, config=config)
+
+        with patch("crypto_trader.multi_runtime.time.sleep"):
+            runtime.run()
+
+        health = json.loads(Path(config.runtime.healthcheck_path).read_text(encoding="utf-8"))
+        self.assertTrue(health["success"])
+        self.assertEqual(health["status"], "healthy")
+        self.assertEqual(health["failure_streak"], 0)
+
     def test_runtime_re_raises_non_recoverable_fetch_errors(self) -> None:
         config = _make_config(
             symbols=["KRW-BTC"],
