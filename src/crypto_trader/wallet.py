@@ -510,7 +510,7 @@ class StrategyWallet:
             if sell_notional < self._MIN_NOTIONAL:
                 self._logger.warning(
                     "[%s] dust position %s worth ₩%.0f < min ₩%.0f — cannot sell",
-                    self._config.name,
+                    self.name,
                     symbol,
                     sell_notional,
                     self._MIN_NOTIONAL,
@@ -772,7 +772,7 @@ class StrategyWallet:
                     if order is None:
                         self._logger.warning(
                             "[%s] protective exit circuit_breaker failed — retrying in 1s",
-                            self._config.name,
+                            self.name,
                         )
                         time.sleep(1)
                         order = self.broker.submit_order(
@@ -852,7 +852,7 @@ class StrategyWallet:
                     ):
                         self._logger.warning(
                             "[%s] protective exit %s failed — retrying in 1s",
-                            self._config.name,
+                            self.name,
                             exit_reason,
                         )
                         time.sleep(1)

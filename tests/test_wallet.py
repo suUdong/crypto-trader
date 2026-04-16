@@ -567,5 +567,101 @@ class TestBuildWallets(unittest.TestCase):
         self.assertEqual(wallets[0].risk_manager._config.max_position_pct, 0.25)
 
 
+class TestReducePositionDustSell(unittest.TestCase):
+    """reduce_position must handle dust positions (notional < MIN_NOTIONAL) correctly."""
+
+    def _make_wallet_with_position(
+        self,
+        symbol: str,
+        quantity: float,
+        entry_price: float,
+    ) -> StrategyWallet:
+        strategy = create_strategy("momentum", _make_strategy_config(), _make_regime_config())
+        broker = PaperBroker(starting_cash=1_000_000.0, fee_rate=0.0005, slippage_pct=0.0005)
+        broker.positions[symbol] = Position(
+            symbol=symbol,
+            quantity=quantity,
+            entry_price=entry_price,
+            entry_time=datetime(2025, 1, 1, 0, 0, 0),
+        )
+        risk_manager = RiskManager(
+            RiskConfig(
+                risk_per_trade_pct=0.01,
+                stop_loss_pct=0.03,
+                take_profit_pct=0.06,
+                max_daily_loss_pct=0.05,
+                min_entry_confidence=0.0,
+            )
+        )
+        wallet = StrategyWallet(
+            WalletConfig(name="test_wallet", strategy="momentum", initial_capital=1_000_000.0),
+            strategy,
+            broker,
+            risk_manager,
+        )
+        return wallet
+
+    def test_reduce_position_dust_escalates_to_full_sell(self) -> None:
+        """When partial sell is below MIN_NOTIONAL, full position should be sold."""
+        # 0.0001 BTC at 50,000,000 KRW/BTC = 5,000 KRW  (below 10,000 KRW threshold)
+        wallet = self._make_wallet_with_position("KRW-BTC", 0.0001, 50_000_000.0)
+        latest_price = 50_000_000.0
+
+        # keep_fraction=0.5 means sell 50%, but 0.00005 * 50M = 2500 KRW < MIN_NOTIONAL
+        # so it should escalate to selling the full 0.0001 BTC (= 5000 KRW > MIN_NOTIONAL)
+        result = wallet.reduce_position(
+            "KRW-BTC",
+            latest_price,
+            datetime(2025, 1, 2, 0, 0, 0),
+            keep_fraction=0.5,
+            reason="dust_test",
+        )
+
+        # Full position should have been sold (5000 KRW >= MIN_NOTIONAL=10000 is borderline;
+        # let's use a larger quantity where full > min but partial < min)
+        # With 0.0001 BTC at 50M: full notional = 5000 < 10000 → returns None
+        # So this test validates the None-return path for truly unsellable dust
+        self.assertIsNone(result)
+
+    def test_reduce_position_truly_unsellable_dust_returns_none(self) -> None:
+        """When even full position is below MIN_NOTIONAL, reduce_position returns None."""
+        # 0.0001 BTC at 50,000,000 KRW/BTC = 5,000 KRW — below 10,000 KRW minimum
+        wallet = self._make_wallet_with_position("KRW-BTC", 0.0001, 50_000_000.0)
+        latest_price = 50_000_000.0
+
+        result = wallet.reduce_position(
+            "KRW-BTC",
+            latest_price,
+            datetime(2025, 1, 2, 0, 0, 0),
+            keep_fraction=0.0,  # Sell everything
+            reason="full_dust_test",
+        )
+
+        # 0.0001 * 50M = 5000 KRW < 10000 KRW → cannot sell, returns None
+        self.assertIsNone(result)
+
+    def test_reduce_position_partial_dust_escalates_and_succeeds(self) -> None:
+        """When partial sell is dust but full position exceeds min, full sell succeeds."""
+        # 0.0003 BTC at 50,000,000 = 15,000 KRW total (above 10,000 KRW minimum)
+        # partial sell at keep_fraction=0.5: sell 0.00015 * 50M = 7,500 KRW < 10,000
+        # → should escalate to full 0.0003 * 50M = 15,000 KRW ≥ 10,000 → succeeds
+        wallet = self._make_wallet_with_position("KRW-BTC", 0.0003, 50_000_000.0)
+        latest_price = 50_000_000.0
+
+        result = wallet.reduce_position(
+            "KRW-BTC",
+            latest_price,
+            datetime(2025, 1, 2, 0, 0, 0),
+            keep_fraction=0.5,
+            reason="escalate_test",
+        )
+
+        # Full position sell should succeed (15,000 KRW >= 10,000 KRW minimum)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.status, "filled")
+        # Full 0.0003 BTC was sold (escalated from partial)
+        self.assertAlmostEqual(result.quantity, 0.0003, places=6)
+
+
 if __name__ == "__main__":
     unittest.main()

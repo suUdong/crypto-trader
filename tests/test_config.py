@@ -575,3 +575,44 @@ ema_slope_min = 0.0003
         self.assertEqual(config.runtime.kill_switch_path, "/custom/kill.json")
         # empty string stays empty
         self.assertEqual(config.runtime.paper_trade_sqlite_path, "")
+
+    def test_preflight_blocks_live_high_position_pct(self) -> None:
+        """Live mode must reject max_position_pct > 0.10."""
+        config = load_config(ROOT / "config" / "example.toml", {
+            "CT_PAPER_TRADING": "false",
+            "CT_UPBIT_ACCESS_KEY": "test",
+            "CT_UPBIT_SECRET_KEY": "test",
+        })
+        from dataclasses import replace
+        config = replace(config, risk=replace(config.risk, max_position_pct=0.25))
+        from crypto_trader.config import preflight_check
+        issues = preflight_check(config)
+        errors = [msg for level, msg in issues if level == "ERROR"]
+        self.assertTrue(any("max_position_pct" in e for e in errors))
+
+    def test_preflight_blocks_live_high_risk_per_trade(self) -> None:
+        """Live mode must reject risk_per_trade_pct > 0.05."""
+        config = load_config(ROOT / "config" / "example.toml", {
+            "CT_PAPER_TRADING": "false",
+            "CT_UPBIT_ACCESS_KEY": "test",
+            "CT_UPBIT_SECRET_KEY": "test",
+        })
+        from dataclasses import replace
+
+        from crypto_trader.config import preflight_check
+        config = replace(config, risk=replace(config.risk, risk_per_trade_pct=0.10))
+        issues = preflight_check(config)
+        errors = [msg for level, msg in issues if level == "ERROR"]
+        self.assertTrue(any("risk_per_trade_pct" in e for e in errors))
+
+    def test_preflight_blocks_live_without_telegram(self) -> None:
+        """Live mode must require telegram configuration."""
+        config = load_config(ROOT / "config" / "example.toml", {
+            "CT_PAPER_TRADING": "false",
+            "CT_UPBIT_ACCESS_KEY": "test",
+            "CT_UPBIT_SECRET_KEY": "test",
+        })
+        from crypto_trader.config import preflight_check
+        issues = preflight_check(config)
+        errors = [msg for level, msg in issues if level == "ERROR"]
+        self.assertTrue(any("telegram" in e.lower() for e in errors))

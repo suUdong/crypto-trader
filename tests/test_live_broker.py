@@ -291,6 +291,77 @@ class TestReconcile:
         assert report["warnings"] == []
 
 
+class TestPollFillTimeout:
+    """Tests for fill_unconfirmed paths — _poll_fill returns None."""
+
+    def test_poll_fill_timeout_returns_rejected_buy(self, broker, mock_upbit):
+        """BUY must return rejected/fill_unconfirmed when _poll_fill times out."""
+        mock_upbit.buy_market_order.return_value = {"uuid": "order-timeout"}
+        # Simulate timeout: get_order always returns pending state until deadline
+        mock_upbit.get_order.return_value = {"state": "wait"}
+
+        request = OrderRequest(
+            symbol="KRW-BTC",
+            side=OrderSide.BUY,
+            quantity=0.001,
+            requested_at=datetime.now(UTC),
+            reason="timeout_test",
+            confidence=0.8,
+        )
+        with patch("crypto_trader.execution.live.time.sleep"), \
+             patch("crypto_trader.execution.live.time.monotonic", side_effect=[0.0, 9999.0]):
+            result = broker.submit_order(request, market_price=50_000_000.0)
+
+        assert result.status == "rejected"
+        assert result.reason == "fill_unconfirmed"
+        assert "KRW-BTC" not in broker.positions
+
+    def test_poll_fill_cancel_no_partial_returns_rejected_buy(self, broker, mock_upbit):
+        """BUY must return rejected when order is cancelled with no partial fill."""
+        mock_upbit.buy_market_order.return_value = {"uuid": "order-cancelled"}
+        mock_upbit.get_order.return_value = {
+            "state": "cancel",
+            "trades": [],
+            "executed_volume": "0",
+        }
+
+        request = OrderRequest(
+            symbol="KRW-BTC",
+            side=OrderSide.BUY,
+            quantity=0.001,
+            requested_at=datetime.now(UTC),
+            reason="cancel_test",
+            confidence=0.8,
+        )
+        with patch("crypto_trader.execution.live.time.sleep"), \
+             patch("crypto_trader.execution.live.time.monotonic", return_value=0.0):
+            result = broker.submit_order(request, market_price=50_000_000.0)
+
+        assert result.status == "rejected"
+        assert result.reason == "fill_unconfirmed"
+        assert "KRW-BTC" not in broker.positions
+
+    def test_submit_with_retry_stops_on_exception(self, broker, mock_upbit):
+        """_submit_with_retry must return None immediately on exception (no duplicate risk)."""
+        mock_upbit.buy_market_order.side_effect = RuntimeError("network failure mid-send")
+
+        request = OrderRequest(
+            symbol="KRW-BTC",
+            side=OrderSide.BUY,
+            quantity=0.001,
+            requested_at=datetime.now(UTC),
+            reason="exception_test",
+            confidence=0.8,
+        )
+        with patch("crypto_trader.execution.live.time.sleep"):
+            result = broker.submit_order(request, market_price=50_000_000.0)
+
+        # Only one call attempt — no retry after exception
+        assert mock_upbit.buy_market_order.call_count == 1
+        assert result.status == "rejected"
+        assert result.reason == "exchange_error"
+
+
 class TestDryRun:
     """Dry-run mode: validates order logic without hitting the exchange."""
 
