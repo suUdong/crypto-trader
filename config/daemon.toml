@@ -140,7 +140,7 @@ stealth_rs_high = 1.0
 stealth_sma_period = 20
 [wallets.risk_overrides]
 stop_loss_pct = 0.03
-take_profit_pct = 0.15
+take_profit_pct = 0.07
 risk_per_trade_pct = 0.02
 atr_stop_multiplier = 0.0
 breakeven_watermark = 1.0
@@ -415,7 +415,7 @@ adx_threshold = 15.0
 btc_stealth_gate = true
 active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
-stop_loss_pct = 0.008
+stop_loss_pct = 0.025
 take_profit_pct = 0.07
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
@@ -455,7 +455,7 @@ adx_threshold = 15.0
 btc_stealth_gate = true
 active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
-stop_loss_pct = 0.008
+stop_loss_pct = 0.025
 take_profit_pct = 0.07
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
@@ -553,7 +553,7 @@ adx_threshold = 15.0
 btc_stealth_gate = true
 active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
-stop_loss_pct = 0.008
+stop_loss_pct = 0.025
 take_profit_pct = 0.07
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
@@ -727,7 +727,7 @@ adx_threshold = 15.0
 btc_stealth_gate = true
 btc_30bar_gate = true
 [wallets.risk_overrides]
-stop_loss_pct = 0.015
+stop_loss_pct = 0.025
 take_profit_pct = 0.10
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
@@ -943,7 +943,7 @@ adx_threshold = 15.0
 btc_stealth_gate = false
 active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
-stop_loss_pct = 0.008
+stop_loss_pct = 0.025
 take_profit_pct = 0.07
 risk_per_trade_pct = 0.01
 partial_tp_pct = 0.5
