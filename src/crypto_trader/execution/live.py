@@ -99,6 +99,12 @@ class LiveBroker:
         order_id: str,
         candle_index: int | None,
     ) -> OrderResult:
+        if request.order_type != OrderType.MARKET:
+            logger.warning(
+                "LiveBroker converts %s order to market for %s — limit orders not supported",
+                request.order_type,
+                request.symbol,
+            )
         notional = market_price * request.quantity
         fee = notional * self._fee_rate
         total_cost = notional + fee
@@ -184,6 +190,12 @@ class LiveBroker:
         market_price: float,
         order_id: str,
     ) -> OrderResult:
+        if request.order_type != OrderType.MARKET:
+            logger.warning(
+                "LiveBroker converts %s order to market for %s — limit orders not supported",
+                request.order_type,
+                request.symbol,
+            )
         position = self.positions.get(request.symbol)
         if position is None or request.quantity > position.quantity:
             return self._rejected(request, market_price, order_id, "insufficient_position")
