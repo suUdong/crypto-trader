@@ -86,11 +86,11 @@ class TestMigration:
         assert second.inserted == 0
         assert len(store.query_trades()) == 1
 
-    def test_preserves_dual_daemon_duplicates_with_different_session_ids(
+    def test_deduplicates_same_trade_with_different_session_ids(
         self, tmp_path: Path, store: SqliteStore
     ) -> None:
-        # Reproduces the 2026-04-07 dual-daemon incident: same trade
-        # recorded twice with different session ids. Both rows must land.
+        # Same natural key (wallet, symbol, entry_time, exit_time) from
+        # different sessions is a restart duplicate — only one row kept.
         jsonl = tmp_path / "trades.jsonl"
         _write_jsonl(
             jsonl,
@@ -100,8 +100,9 @@ class TestMigration:
             ],
         )
         report = migrate_paper_trades_jsonl(jsonl, store)
-        assert report.inserted == 2
-        assert len(store.query_trades()) == 2
+        assert report.inserted == 1
+        assert report.skipped_duplicate == 1
+        assert len(store.query_trades()) == 1
 
     def test_skips_malformed_lines_without_aborting(
         self, tmp_path: Path, store: SqliteStore

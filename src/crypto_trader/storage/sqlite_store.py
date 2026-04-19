@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS trades (
     position_side TEXT NOT NULL DEFAULT 'long'
         CHECK (position_side IN ('long', 'short')),
     inserted_at   TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE (wallet, symbol, entry_time, exit_time, session_id)
+    UNIQUE (wallet, symbol, entry_time, exit_time)
 );
 """
 
@@ -212,10 +212,79 @@ class SqliteStore:
                 conn.execute("PRAGMA journal_mode=WAL;")
                 conn.execute("PRAGMA synchronous=NORMAL;")
                 conn.execute(_TRADES_DDL)
+                self._migrate_unique_key(conn)
                 for stmt in _TRADES_INDEXES:
                     conn.execute(stmt)
 
         _retry_on_lock("initialise", _run)
+
+    @staticmethod
+    def _migrate_unique_key(conn: sqlite3.Connection) -> None:
+        """Drop legacy UNIQUE that included session_id and dedup existing rows.
+
+        The old constraint was (wallet, symbol, entry_time, exit_time, session_id)
+        which allowed duplicate trades across daemon restarts. The new constraint
+        is (wallet, symbol, entry_time, exit_time). This migration:
+        1. Detects old schema by checking if the unique index includes session_id
+        2. Rebuilds the table without session_id in the UNIQUE constraint
+        3. Deduplicates rows, keeping the earliest inserted_at per natural key
+        """
+        # Check if migration is needed: old schema has session_id in the
+        # CREATE TABLE SQL (embedded UNIQUE constraint).
+        tbl_sql_row = conn.execute(
+            "SELECT sql FROM sqlite_master "
+            "WHERE type='table' AND name='trades'"
+        ).fetchone()
+        if tbl_sql_row is None:
+            return  # No trades table yet
+        tbl_sql: str = tbl_sql_row[0]
+        if "UNIQUE (wallet, symbol, entry_time, exit_time, session_id)" not in tbl_sql:
+            return  # Already migrated or fresh DB
+
+        _LOG.info("migrating trades UNIQUE key: removing session_id")
+        conn.execute("DROP TABLE IF EXISTS trades_new")
+        conn.execute(
+            """
+            CREATE TABLE trades_new (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                wallet        TEXT NOT NULL,
+                symbol        TEXT NOT NULL,
+                entry_time    TEXT NOT NULL,
+                exit_time     TEXT NOT NULL,
+                entry_price   REAL NOT NULL,
+                exit_price    REAL NOT NULL,
+                quantity      REAL NOT NULL,
+                pnl           REAL NOT NULL,
+                pnl_pct       REAL NOT NULL,
+                exit_reason   TEXT NOT NULL,
+                session_id    TEXT NOT NULL,
+                position_side TEXT NOT NULL DEFAULT 'long'
+                    CHECK (position_side IN ('long', 'short')),
+                inserted_at   TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE (wallet, symbol, entry_time, exit_time)
+            )
+            """
+        )
+        # Keep earliest record per natural key
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO trades_new (
+                wallet, symbol, entry_time, exit_time,
+                entry_price, exit_price, quantity,
+                pnl, pnl_pct, exit_reason,
+                session_id, position_side, inserted_at
+            )
+            SELECT
+                wallet, symbol, entry_time, exit_time,
+                entry_price, exit_price, quantity,
+                pnl, pnl_pct, exit_reason,
+                session_id, position_side, inserted_at
+            FROM trades
+            ORDER BY inserted_at ASC
+            """
+        )
+        conn.execute("DROP TABLE trades")
+        conn.execute("ALTER TABLE trades_new RENAME TO trades")
 
     # ── trades ────────────────────────────────────────────────────────────
 
@@ -272,14 +341,13 @@ class SqliteStore:
                     """
                     SELECT id FROM trades
                     WHERE wallet = ? AND symbol = ? AND entry_time = ?
-                      AND exit_time = ? AND session_id = ?
+                      AND exit_time = ?
                     """,
                     (
                         trade.wallet,
                         trade.symbol,
                         trade.entry_time,
                         trade.exit_time,
-                        trade.session_id,
                     ),
                 ).fetchone()
                 if row is None:

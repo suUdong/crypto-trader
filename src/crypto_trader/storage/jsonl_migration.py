@@ -111,14 +111,13 @@ def migrate_paper_trades_jsonl(
                     """
                     SELECT 1 FROM trades
                     WHERE wallet = ? AND symbol = ? AND entry_time = ?
-                      AND exit_time = ? AND session_id = ?
+                      AND exit_time = ?
                     """,
                     (
                         trade.wallet,
                         trade.symbol,
                         trade.entry_time,
                         trade.exit_time,
-                        trade.session_id,
                     ),
                 ).fetchone()
             if existing is not None:

@@ -15,13 +15,14 @@ def _trade(
     wallet: str,
     pnl_pct: float,
     exit_reason: str,
+    entry_time: str,
     exit_time: str,
     session_id: str = "s1",
 ) -> TradeRow:
     return TradeRow(
         wallet=wallet,
         symbol="KRW-DOGE",
-        entry_time=exit_time,  # exact time doesn't matter for these tests
+        entry_time=entry_time,
         exit_time=exit_time,
         entry_price=140.0,
         exit_price=140.0 * (1 + pnl_pct),
@@ -36,33 +37,36 @@ def _trade(
 @pytest.fixture()
 def populated_store(tmp_path: Path) -> SqliteStore:
     store = SqliteStore(tmp_path / "analytics.sqlite")
+    # 11 distinct doge trades (unique entry_time each)
     rows = [
         _trade(
             wallet="vpin_doge_wallet",
             pnl_pct=-0.0085,
             exit_reason="atr_stop_loss",
-            exit_time="2026-04-07T01:00:00+00:00",
-            session_id=f"s{i}",
+            entry_time=f"2026-04-07T{i:02d}:00:00+00:00",
+            exit_time=f"2026-04-07T{i:02d}:30:00+00:00",
         )
         for i in range(11)
     ]
+    # 5 distinct ondo wins
     rows += [
         _trade(
             wallet="vpin_ondo_wallet",
             pnl_pct=0.012,
             exit_reason="rsi_overbought",
-            exit_time="2026-04-07T02:00:00+00:00",
-            session_id=f"o{i}",
+            entry_time=f"2026-04-07T{12 + i}:00:00+00:00",
+            exit_time=f"2026-04-07T{12 + i}:30:00+00:00",
         )
         for i in range(5)
     ]
+    # 2 distinct ondo losses
     rows += [
         _trade(
             wallet="vpin_ondo_wallet",
             pnl_pct=-0.005,
             exit_reason="atr_stop_loss",
-            exit_time="2026-04-07T03:00:00+00:00",
-            session_id=f"o{i}_loss",
+            entry_time=f"2026-04-07T{17 + i}:00:00+00:00",
+            exit_time=f"2026-04-07T{17 + i}:30:00+00:00",
         )
         for i in range(2)
     ]
@@ -114,7 +118,8 @@ class TestExitReasonDistribution:
 class TestRecentTrades:
     def test_filters_by_iso_cutoff(self, populated_store: SqliteStore) -> None:
         view = AnalyticsView(populated_store)
-        recent = view.recent_trades(since="2026-04-07T02:30:00+00:00")
+        # ondo losses exit at 17:30 and 18:30 — cutoff after ondo wins (16:30)
+        recent = view.recent_trades(since="2026-04-07T17:00:00+00:00")
         # Only the 2 ondo loss rows have exit_time >= cutoff
         assert len(recent) == 2
         assert all(t.wallet == "vpin_ondo_wallet" for t in recent)

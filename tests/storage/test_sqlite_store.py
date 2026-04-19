@@ -99,16 +99,22 @@ class TestInsertTrade:
             count = conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
         assert count == 1
 
-    def test_dedup_distinguishes_by_session_id(self, store: SqliteStore) -> None:
+    def test_dedup_ignores_session_id(self, store: SqliteStore) -> None:
+        """Same trade from a different session must NOT create a duplicate row.
+
+        Daemon restarts assign a new session_id; positions restored from
+        checkpoint close again and re-insert — the natural key
+        (wallet, symbol, entry_time, exit_time) must be enough to dedup.
+        """
         first = store.insert_trade(_sample_trade())
         dup_with_other_session = dataclasses.replace(
             _sample_trade(), session_id="other-session"
         )
         second = store.insert_trade(dup_with_other_session)
-        assert second != first
-        # Same wallet/symbol/entry_time/pnl from a different session is the
-        # smoking gun for the dual-daemon bug. Both rows must be retained so
-        # we can detect/quantify the duplication, not silently merged.
+        assert second == first
+        with store.connection() as conn:
+            count = conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
+        assert count == 1
 
     def test_failed_insert_inside_explicit_transaction_rolls_back(
         self, store: SqliteStore
@@ -580,3 +586,62 @@ class TestConcurrency:
         with pytest.raises(sqlite3.OperationalError, match="no such table"):
             store.insert_trade(_sample_trade())
         assert call_count["n"] == 1  # no retry for non-lock errors
+
+
+class TestMigrateUniqueKey:
+    """Verify legacy DB (UNIQUE including session_id) is auto-migrated."""
+
+    def test_migration_deduplicates_existing_rows(self, tmp_path: Path) -> None:
+        """Old DB with session_id in UNIQUE → duplicates are collapsed."""
+        db_path = tmp_path / "legacy.sqlite"
+        conn = sqlite3.connect(db_path)
+        # Create old schema with session_id in UNIQUE
+        conn.execute("""
+            CREATE TABLE trades (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                wallet        TEXT NOT NULL,
+                symbol        TEXT NOT NULL,
+                entry_time    TEXT NOT NULL,
+                exit_time     TEXT NOT NULL,
+                entry_price   REAL NOT NULL,
+                exit_price    REAL NOT NULL,
+                quantity      REAL NOT NULL,
+                pnl           REAL NOT NULL,
+                pnl_pct       REAL NOT NULL,
+                exit_reason   TEXT NOT NULL,
+                session_id    TEXT NOT NULL,
+                position_side TEXT NOT NULL DEFAULT 'long',
+                inserted_at   TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE (wallet, symbol, entry_time, exit_time, session_id)
+            )
+        """)
+        # Insert 3 duplicates with different session_ids
+        for sid in ("sess-1", "sess-2", "sess-3"):
+            conn.execute(
+                "INSERT INTO trades "
+                "(wallet,symbol,entry_time,exit_time,entry_price,exit_price,"
+                "quantity,pnl,pnl_pct,exit_reason,session_id) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                ("w", "KRW-BTC", "2026-04-17T01:00", "2026-04-17T05:00",
+                 100.0, 105.0, 1.0, 5.0, 0.05, "take_profit", sid),
+            )
+        conn.commit()
+        assert conn.execute("SELECT COUNT(*) FROM trades").fetchone()[0] == 3
+        conn.close()
+
+        # Opening with SqliteStore triggers migration
+        store = SqliteStore(db_path)
+        with store.connection() as c:
+            count = c.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
+        assert count == 1  # deduplicated to 1
+
+    def test_migration_is_idempotent(self, tmp_path: Path) -> None:
+        """Already-migrated DB is not touched on second init."""
+        db_path = tmp_path / "fresh.sqlite"
+        store = SqliteStore(db_path)
+        store.insert_trade(_sample_trade())
+        # Re-init should not raise or lose data
+        store2 = SqliteStore(db_path)
+        with store2.connection() as c:
+            count = c.execute("SELECT COUNT(*) FROM trades").fetchone()[0]
+        assert count == 1
