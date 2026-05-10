@@ -13,15 +13,26 @@ logger = logging.getLogger(__name__)
 
 @register("hmm_vol_breakout")
 def _factory(strategy_config: StrategyConfig, regime_config: RegimeConfig, params: dict[str, Any]):
-    return HMMVolBreakoutStrategy(strategy_config, regime_config)
+    return HMMVolBreakoutStrategy(
+        strategy_config,
+        regime_config,
+        enabled=bool(params.get("enabled", False)),
+    )
 
 class HMMVolBreakoutStrategy:
     """Intraday Vol-Targeting Breakout with HMM Micro-Regime."""
     
-    def __init__(self, config: StrategyConfig, regime_config: RegimeConfig) -> None:
+    def __init__(
+        self,
+        config: StrategyConfig,
+        regime_config: RegimeConfig,
+        *,
+        enabled: bool = True,
+    ) -> None:
         self._config = config
         self._detector = HMMRegimeDetector()
         self._is_trained = False
+        self._enabled = enabled
 
     def evaluate(
         self,
@@ -30,6 +41,9 @@ class HMMVolBreakoutStrategy:
         *,
         symbol: str = "",
     ) -> Signal:
+        if not self._enabled:
+            return Signal(SignalAction.HOLD, "hmm_vol_breakout_disabled", 0.0)
+
         if len(candles) < 100:
             return Signal(SignalAction.HOLD, "insufficient_data", 0.0)
 
