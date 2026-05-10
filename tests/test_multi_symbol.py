@@ -1448,6 +1448,45 @@ class TestMacroRegimeRuntime(unittest.TestCase):
         self.assertEqual(runtime._last_capital_reallocation["macro_transition"], last_transition)
         self.assertEqual(runtime._last_macro_state["overall_regime"], "contractionary")
 
+    def test_macro_refresh_uses_numeric_macro_risk_multiplier(self) -> None:
+        config = _make_config(
+            symbols=["KRW-BTC"],
+            wallets=[WalletConfig("momentum_wallet", "momentum", 1_000_000.0)],
+            daemon_mode=False,
+            max_iterations=1,
+            poll_interval_seconds=0,
+        )
+        config.macro.enabled = True
+        config.macro.base_url = "http://macro.local"
+        runtime = MultiSymbolRuntime(
+            wallets=build_wallets(config),
+            market_data=FakeMarketData({"KRW-BTC": _build_candles([100.0] * 30)}),
+            config=config,
+        )
+        runtime._current_market_regime = "bull"
+        runtime._macro_client = SequenceMacroClient(
+            [
+                _make_macro_snapshot(
+                    overall_regime="expansionary",
+                    macro_risk_score=-0.6,
+                    macro_risk_level="risk_off",
+                    macro_position_size_multiplier=0.7,
+                    macro_layer_scores={"us": -0.4, "kr": -0.2, "crypto": -0.9},
+                )
+            ]
+        )
+
+        runtime._refresh_macro()
+
+        self.assertAlmostEqual(runtime._last_macro_state["position_size_multiplier"], 0.7)
+        self.assertAlmostEqual(
+            runtime._last_macro_state["wallet_multipliers"]["momentum_wallet"],
+            0.98,
+        )
+        self.assertEqual(runtime._last_macro_state["macro_risk_level"], "risk_off")
+        self.assertAlmostEqual(runtime._last_macro_state["macro_risk_score"], -0.6)
+        self.assertEqual(runtime._last_macro_state["macro_layer_scores"]["crypto"], -0.9)
+
     def test_macro_refresh_failure_marks_macro_state_unavailable(self) -> None:
         config = _make_config(
             symbols=["KRW-BTC"],

@@ -711,8 +711,12 @@ class StrategyWallet:
                     starting_equity=self.session_starting_equity,
                     current_equity=marked_equity,
                 ):
+                    # Size from marked equity, not cash. Using cash here treats
+                    # already-deployed capital as drawdown, which collapses
+                    # subsequent entries to the drawdown floor after the first
+                    # large position in concentrated paper wallets.
                     quantity = self.risk_manager.size_position(
-                        self.broker.cash,
+                        marked_equity,
                         latest_price,
                         self._macro_multiplier,
                         utc_hour=utc_hour,
