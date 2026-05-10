@@ -59,6 +59,10 @@ from crypto_trader.risk.correlation_guard import CorrelationGuard
 from crypto_trader.risk.kill_switch import KillSwitch, KillSwitchConfig, KillSwitchState
 from crypto_trader.risk.manager import RiskManager
 from crypto_trader.risk.slippage_monitor import SlippageMonitor
+from crypto_trader.risk.symbol_circuit_breaker import (
+    SymbolCircuitBreaker,
+    SymbolCircuitConfig,
+)
 from crypto_trader.risk.wallet_health import WalletHealthMonitor
 from crypto_trader.storage import SqliteStore, TradeRow
 from crypto_trader.strategy.composite import CompositeStrategy
@@ -168,6 +172,15 @@ class MultiSymbolRuntime:
         if config.slack.enabled:
             notifiers.append(SlackNotifier(config.slack))
         self._alert_manager = TradeAlertManager(notifiers)
+        self._symbol_circuit_path = Path(config.runtime.symbol_circuit_path)
+        self._symbol_circuit = SymbolCircuitBreaker(
+            SymbolCircuitConfig(),
+            on_state_change=self._on_symbol_circuit_change,
+            events_path=Path(config.runtime.symbol_circuit_events_path),
+        )
+        self._symbol_circuit.load(self._symbol_circuit_path)
+        for wallet in self._wallets:
+            wallet.circuit_breaker = self._symbol_circuit
         self._structured_logger = StructuredLogger()
         self._pnl_generator = PnLReportGenerator()
         self._last_pnl_notify: float = 0.0
@@ -259,6 +272,29 @@ class MultiSymbolRuntime:
             "strategy_edge_scores": {},
             "wallet_multipliers": {},
         }
+
+    def _on_symbol_circuit_change(
+        self, symbol: str, transition: str, reason: str
+    ) -> None:
+        """Bridge SymbolCircuitBreaker transitions into the alert pipeline.
+
+        Disable transitions fire a P0-class telegram alert; re-enable
+        transitions are logged + persisted to JSONL only (the alert is
+        informational, fire-monitor picks up the event line).
+        """
+        self._logger.warning(
+            "SYMBOL CIRCUIT %s: %s — %s", transition.upper(), symbol, reason
+        )
+        if transition == "disabled":
+            # Reuse alert_rejection — same cooldown/throttle, same delivery
+            # channels. Wallet field is intentionally generic since the gate
+            # is portfolio-wide.
+            self._alert_manager.alert_rejection(
+                wallet_name="circuit_breaker",
+                symbol=symbol,
+                side="BUY",
+                reason=f"symbol disabled — {reason}",
+            )
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         sig_name = signal.Signals(signum).name
@@ -872,6 +908,7 @@ class MultiSymbolRuntime:
                 if state.triggered:
                     break
         self._kill_switch.save(self._kill_switch_path)
+        self._symbol_circuit.save(self._symbol_circuit_path)
 
         if state.triggered:
             liquidation_orders = self._liquidate_all_positions(

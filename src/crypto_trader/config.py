@@ -166,6 +166,8 @@ class RuntimeConfig:
     network_recovery_backoff_seconds: int = 15
     daemon_alert_cooldown_seconds: int = 300
     kill_switch_path: str = "artifacts/kill-switch.json"
+    symbol_circuit_path: str = "artifacts/symbol-circuit.json"
+    symbol_circuit_events_path: str = "artifacts/circuit-breaker-events.jsonl"
     healthcheck_path: str = "artifacts/health.json"
     runtime_checkpoint_path: str = "artifacts/runtime-checkpoint.json"
     backtest_baseline_path: str = "artifacts/backtest-baseline.json"
@@ -708,6 +710,26 @@ def load_config(
                 "kill_switch_path",
                 "CT_KILL_SWITCH_PATH",
                 "artifacts/kill-switch.json",
+            )
+        ),
+        symbol_circuit_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "symbol_circuit_path",
+                "CT_SYMBOL_CIRCUIT_PATH",
+                "artifacts/symbol-circuit.json",
+            )
+        ),
+        symbol_circuit_events_path=str(
+            _read_value(
+                raw,
+                env,
+                "runtime",
+                "symbol_circuit_events_path",
+                "CT_SYMBOL_CIRCUIT_EVENTS_PATH",
+                "artifacts/circuit-breaker-events.jsonl",
             )
         ),
         healthcheck_path=str(

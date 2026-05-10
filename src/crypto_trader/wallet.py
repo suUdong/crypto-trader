@@ -32,6 +32,7 @@ from crypto_trader.models import (
 )
 from crypto_trader.operator.stealth_watchlist import read_stealth_watchlist_bool
 from crypto_trader.risk.manager import RiskManager
+from crypto_trader.risk.symbol_circuit_breaker import SymbolCircuitBreaker
 from crypto_trader.strategy.bb_squeeze_independent import BBSqueezeIndependentStrategy
 from crypto_trader.strategy.bollinger_mean_reversion import BollingerMeanReversionStrategy
 from crypto_trader.strategy.bollinger_rsi import BollingerRsiStrategy
@@ -362,12 +363,15 @@ class StrategyWallet:
         strategy: StrategyProtocol,
         broker: Broker,
         risk_manager: RiskManager,
+        *,
+        circuit_breaker: SymbolCircuitBreaker | None = None,
     ) -> None:
         self.name = wallet_config.name
         self.strategy_type = wallet_config.strategy
         self.strategy = strategy
         self.broker = broker
         self.risk_manager = risk_manager
+        self.circuit_breaker = circuit_breaker
         self.allowed_symbols: set[str] = (
             set(wallet_config.symbols) if wallet_config.symbols else set()
         )
@@ -532,6 +536,12 @@ class StrategyWallet:
             if entry_value > 0:
                 pnl_pct = (order.fill_price - position.entry_price) / position.entry_price
                 self.risk_manager.record_trade(pnl_pct)
+                if self.circuit_breaker is not None:
+                    self.circuit_breaker.record_trade(
+                        symbol,
+                        pnl_pct=pnl_pct,
+                        closed_at=requested_at,
+                    )
         return order
 
     def _marked_equity(self, symbol: str, latest_price: float) -> float:
@@ -640,6 +650,28 @@ class StrategyWallet:
                 else:
                     utc_hour = ts.hour
             vol_ratio = self._volume_ratio(candles)
+
+            # --- Symbol circuit breaker (CT P1 audit item 4): block BUYs ---
+            if (
+                position is None
+                and signal.action is SignalAction.BUY
+                and self.circuit_breaker is not None
+                and self.circuit_breaker.is_disabled(symbol, candles[-1].timestamp)
+            ):
+                cb_reason = self.circuit_breaker.disable_reason(symbol)
+                self._logger.info(
+                    "[%s] BUY blocked by symbol_circuit_breaker: %s — %s",
+                    self.name,
+                    symbol,
+                    cb_reason,
+                )
+                signal = Signal(
+                    action=SignalAction.HOLD,
+                    reason=f"symbol_circuit_breaker: {cb_reason}",
+                    confidence=signal.confidence,
+                    indicators=signal.indicators,
+                    context={**(signal.context or {}), "original_action": "BUY"},
+                )
 
             # --- active_regimes gate (fast, no I/O) — must run before macro gate ---
             if (
@@ -810,6 +842,12 @@ class StrategyWallet:
                                 order.fill_price - position.entry_price
                             ) / position.entry_price
                             self.risk_manager.record_trade(pnl_pct)
+                            if self.circuit_breaker is not None:
+                                self.circuit_breaker.record_trade(
+                                    symbol,
+                                    pnl_pct=pnl_pct,
+                                    closed_at=candles[-1].timestamp,
+                                )
                     message = (
                         f"[{self.name}] {symbol} price={latest_price:.2f} "
                         f"signal=CIRCUIT_BREAKER reason=daily_loss_limit"
@@ -904,6 +942,18 @@ class StrategyWallet:
                                 order.fill_price - position.entry_price
                             ) / position.entry_price
                             self.risk_manager.record_trade(pnl_pct)
+                            # Skip circuit breaker recording for partial TP
+                            # (position is still open; record only on full
+                            # close to avoid double-counting on the final exit).
+                            if (
+                                self.circuit_breaker is not None
+                                and exit_reason != "partial_take_profit"
+                            ):
+                                self.circuit_breaker.record_trade(
+                                    symbol,
+                                    pnl_pct=pnl_pct,
+                                    closed_at=candles[-1].timestamp,
+                                )
 
             message = (
                 f"[{self.name}] {symbol} price={latest_price:.2f} "
@@ -935,7 +985,11 @@ class StrategyWallet:
             )
 
 
-def build_wallets(config: AppConfig) -> list[StrategyWallet]:
+def build_wallets(
+    config: AppConfig,
+    *,
+    circuit_breaker: SymbolCircuitBreaker | None = None,
+) -> list[StrategyWallet]:
     wallets: list[StrategyWallet] = []
     go_live_set = set(config.trading.go_live_wallets)
     use_live = not config.trading.paper_trading and config.credentials.has_upbit_credentials
@@ -975,7 +1029,15 @@ def build_wallets(config: AppConfig) -> list[StrategyWallet]:
             atr_stop_multiplier=risk_config.atr_stop_multiplier,
             max_holding_bars=strategy_hold,
         )
-        wallets.append(StrategyWallet(wc, strategy, broker, risk_manager))
+        wallets.append(
+            StrategyWallet(
+                wc,
+                strategy,
+                broker,
+                risk_manager,
+                circuit_breaker=circuit_breaker,
+            )
+        )
     return wallets
 
 
