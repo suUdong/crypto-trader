@@ -2451,3 +2451,75 @@
 
 ---
 
+## 2026-04-19 08:22 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-04-19 08:22 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-04-19 08:25 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-04-19 08:27 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-04-19 08:29 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-05-07 22:47 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-05-07 22:47 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-05-10 22:50 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-05-10 22:50 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
