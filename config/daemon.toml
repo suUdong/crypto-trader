@@ -391,40 +391,43 @@ partial_tp_pct = 0.5
 #   c169 검증: regime-adaptive exit 대비 고정 exit가 SOL에서 우월 확인
 # 파라미터: c165 최적 VPIN=0.35 MOM=0.0007 Hold=20 CD=4
 #   ATR fixed exit: TP=5.0 SL=0.3 Trail=1.5/0.4 (RSI-dynamic 중간값)
-[[wallets]]
-name = "vpin_sol_wallet"
-strategy = "vpin"
-initial_capital = 1_000_000.0
-paper_trading = true
-symbols = ["KRW-SOL"]
-[wallets.strategy_overrides]
-market_data_closed_only = true
-rsi_period = 14
-momentum_lookback = 8
-max_holding_bars = 20
-vpin_low_threshold = 0.35
-vpin_high_threshold = 0.55
-vpin_momentum_threshold = 0.0007
-vpin_rsi_ceiling = 65.0
-vpin_rsi_floor = 20.0
-rsi_overbought = 75.0
-bucket_count = 24
-ema_trend_period = 20
-ema_weight = 0.5
-adx_threshold = 15.0
-btc_stealth_gate = true
-active_regimes = ["bull", "sideways", "bear"]
-[wallets.risk_overrides]
-stop_loss_pct = 0.025
-take_profit_pct = 0.07
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-cooldown_bars = 4
-atr_stop_multiplier = 0.0
-atr_tp_multiplier = 0.0
-atr_sl_multiplier = 0.0
-trail_activate_atr_mult = 1.5
-trail_sl_atr_mult = 0.4
+# DISABLED 2026-05-11: 31 paper trades / WR 38.7% / RR 0.80 / expectancy ₩-312/trade
+# Total drag ₩-9,677. Backtest c165 Sharpe +13.254 did not generalise to paper.
+# Block kept (commented) for recovery if forward edge returns.
+# [[wallets]]
+# name = "vpin_sol_wallet"
+# strategy = "vpin"
+# initial_capital = 1_000_000.0
+# paper_trading = true
+# symbols = ["KRW-SOL"]
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# rsi_period = 14
+# momentum_lookback = 8
+# max_holding_bars = 20
+# vpin_low_threshold = 0.35
+# vpin_high_threshold = 0.55
+# vpin_momentum_threshold = 0.0007
+# vpin_rsi_ceiling = 65.0
+# vpin_rsi_floor = 20.0
+# rsi_overbought = 75.0
+# bucket_count = 24
+# ema_trend_period = 20
+# ema_weight = 0.5
+# adx_threshold = 15.0
+# btc_stealth_gate = true
+# active_regimes = ["bull", "sideways", "bear"]
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.025
+# take_profit_pct = 0.07
+# risk_per_trade_pct = 0.01
+# partial_tp_pct = 0.5
+# cooldown_bars = 4
+# atr_stop_multiplier = 0.0
+# atr_tp_multiplier = 0.0
+# atr_sl_multiplier = 0.0
+# trail_activate_atr_mult = 1.5
+# trail_sl_atr_mult = 0.4
 
 # vpin_xrp_wallet: c165 vpin_multi 3-fold WF 검증 (2026-04-05 사이클 170)
 # 근거: c165 3-fold avg OOS Sharpe +8.707 (XRP 안정)
@@ -924,40 +927,43 @@ risk_per_trade_pct = 0.02
 # trail_activate_atr_mult = 1.5
 # trail_sl_atr_mult = 0.4
 
-[[wallets]]
-name = "vpin_pundix_wallet"
-strategy = "vpin"
-initial_capital = 1_000_000.0
-paper_trading = true
-symbols = ["KRW-PUNDIX"]
-[wallets.strategy_overrides]
-market_data_closed_only = true
-rsi_period = 14
-momentum_lookback = 8
-max_holding_bars = 20
-vpin_low_threshold = 0.35
-vpin_high_threshold = 0.55
-vpin_momentum_threshold = 0.0007
-vpin_rsi_ceiling = 65.0
-vpin_rsi_floor = 20.0
-rsi_overbought = 75.0
-bucket_count = 24
-ema_trend_period = 20
-ema_weight = 0.5
-adx_threshold = 15.0
-btc_stealth_gate = false
-active_regimes = ["bull", "sideways", "bear"]
-[wallets.risk_overrides]
-stop_loss_pct = 0.025
-take_profit_pct = 0.07
-risk_per_trade_pct = 0.01
-partial_tp_pct = 0.5
-cooldown_bars = 4
-atr_stop_multiplier = 0.0
-atr_tp_multiplier = 0.0
-atr_sl_multiplier = 0.0
-trail_activate_atr_mult = 1.5
-trail_sl_atr_mult = 0.4
+# DISABLED 2026-05-11: 22 paper trades / WR 50.0% / RR 0.76 / expectancy ₩-229/trade
+# Total drag ₩-5,048. 50% win rate but avg loss 32% larger than avg win — bad RR.
+# Block kept (commented) for recovery.
+# [[wallets]]
+# name = "vpin_pundix_wallet"
+# strategy = "vpin"
+# initial_capital = 1_000_000.0
+# paper_trading = true
+# symbols = ["KRW-PUNDIX"]
+# [wallets.strategy_overrides]
+# market_data_closed_only = true
+# rsi_period = 14
+# momentum_lookback = 8
+# max_holding_bars = 20
+# vpin_low_threshold = 0.35
+# vpin_high_threshold = 0.55
+# vpin_momentum_threshold = 0.0007
+# vpin_rsi_ceiling = 65.0
+# vpin_rsi_floor = 20.0
+# rsi_overbought = 75.0
+# bucket_count = 24
+# ema_trend_period = 20
+# ema_weight = 0.5
+# adx_threshold = 15.0
+# btc_stealth_gate = false
+# active_regimes = ["bull", "sideways", "bear"]
+# [wallets.risk_overrides]
+# stop_loss_pct = 0.025
+# take_profit_pct = 0.07
+# risk_per_trade_pct = 0.01
+# partial_tp_pct = 0.5
+# cooldown_bars = 4
+# atr_stop_multiplier = 0.0
+# atr_tp_multiplier = 0.0
+# atr_sl_multiplier = 0.0
+# trail_activate_atr_mult = 1.5
+# trail_sl_atr_mult = 0.4
 
 # DISABLED 2026-04-15 — vpin_orbs_wallet
 # Reason: 13 trades, 23% WR, ₩-4,670 — statistically conclusive underperformance
