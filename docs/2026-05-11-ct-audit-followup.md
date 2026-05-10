@@ -8,7 +8,7 @@
 | 1 | Disable MANA, BAT wallets | ✅ DONE (pre-session) | `bc09959` already disabled vpin_mana, vpin_bat, vpin_orbs, stealth_3gate_1 |
 | 2 | Time-of-day blackout (UTC 23-02) | ✅ DONE (`6db77e9`) | Implemented as `RiskConfig.entry_blackout_utc_hours = (23, 0, 1, 2)`. Audit said "KST" but data is in UTC; verified directly on `artifacts/paper-trades.jsonl` |
 | 3 | Volatility buffering (raise ATR multiplier 15-20%) | ⏭️ SKIP (already mitigated) | `atr_stop_multiplier = 0.0` globally since `5916050`. The 148 `atr_stop_loss` losses in the audit are historical, pre-disable. Re-enabling would reverse the fix that flipped paper PnL positive |
-| 4 | Symbol-level circuit breaker (3 losses / 48h auto-disable) | 🔜 P1 BACKLOG | Architectural change: requires per-symbol rolling-window loss tracking in RiskManager or StrategyWallet plus persistent state across daemon restarts |
+| 4 | Symbol-level circuit breaker (3 losses / 48h auto-disable) | ✅ DONE (`116751d`, `68bc0c2`) | `SymbolCircuitBreaker` in `src/crypto_trader/risk/symbol_circuit_breaker.py`, JSON state at `artifacts/symbol-circuit.json`, 24h cooldown, Telegram + fire-monitor JSONL alerts. Ops: `docs/2026-05-11-ct-circuit-breaker.md` |
 | 5 | Confidence floor `< 0.2` | ⏭️ ALREADY COVERED | `daemon.toml [risk] min_entry_confidence = 0.30` is already stricter than 0.20. The 5 sub-0.2 trades in the dataset have `entry_confidence = 0.0` (March pre-confidence-logging) |
 | 6 | Regime-adjusted sizing (smaller positions in late-bull) | 🔜 P1 BACKLOG | Architectural change: requires bull-late detection in macro adapter + multiplier wiring in capital_allocator |
 
