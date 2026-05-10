@@ -1095,6 +1095,91 @@ stop_loss_pct = 0.041
 take_profit_pct = 0.10
 risk_per_trade_pct = 0.01
 
+# ── CT admission candidates (2026-05-11) — paper-only, 90d Upbit 1h gate ──
+# Gate: Sharpe >= 1.0 and MDD <= 5% after 3bps fee + 4bps slippage per side.
+# Source report: crypto-strategy-research/docs/ct-candidate-90d-admission-2026-05-11.md
+[[wallets]]
+name = "ct_sol_vol_target_momentum_wallet"
+strategy = "momentum"
+initial_capital = 500_000.0
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
+momentum_lookback = 24
+momentum_entry_threshold = 0.01
+rsi_period = 14
+rsi_overbought = 65.0
+max_holding_bars = 12
+active_regimes = ["bull"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.01
+max_position_pct = 0.12
+max_concurrent_positions = 1
+atr_stop_multiplier = 0.0
+
+[[wallets]]
+name = "ct_sol_momentum_wallet"
+strategy = "momentum"
+initial_capital = 500_000.0
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
+momentum_lookback = 24
+momentum_entry_threshold = 0.01
+rsi_period = 14
+rsi_overbought = 65.0
+max_holding_bars = 12
+active_regimes = ["bull"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.01
+max_position_pct = 0.08
+max_concurrent_positions = 1
+atr_stop_multiplier = 0.0
+
+[[wallets]]
+name = "ct_sol_breakout_wallet"
+strategy = "volatility_breakout"
+initial_capital = 500_000.0
+symbols = ["KRW-SOL"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
+k_base = 0.3
+noise_lookback = 24
+ma_filter_period = 24
+max_holding_bars = 12
+active_regimes = ["bull"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.01
+max_position_pct = 0.08
+max_concurrent_positions = 1
+atr_stop_multiplier = 0.0
+
+[[wallets]]
+name = "ct_eth_breakout_wallet"
+strategy = "volatility_breakout"
+initial_capital = 500_000.0
+symbols = ["KRW-ETH"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
+k_base = 0.3
+noise_lookback = 24
+ma_filter_period = 24
+max_holding_bars = 12
+active_regimes = ["bull"]
+[wallets.risk_overrides]
+stop_loss_pct = 0.03
+take_profit_pct = 0.06
+risk_per_trade_pct = 0.01
+max_position_pct = 0.08
+max_concurrent_positions = 1
+atr_stop_multiplier = 0.0
+
 [credentials]
 upbit_access_key = ""
 upbit_secret_key = ""
