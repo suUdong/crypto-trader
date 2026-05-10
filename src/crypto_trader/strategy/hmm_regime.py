@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from enum import IntEnum
 
 import numpy as np
-from scipy.stats import norm
 
 from crypto_trader.models import Candle
 
@@ -45,7 +44,7 @@ class SimpleHMM:
                 # Likelihood of each feature (assuming independence for simplicity)
                 p = 1.0
                 for f in range(n_features):
-                    p *= norm.pdf(X[:, f], self.means[s, f], self.stds[s, f] + 1e-6)
+                    p *= _normal_pdf(X[:, f], self.means[s, f], self.stds[s, f] + 1e-6)
                 probs[:, s] = p
             
             # Normalize
@@ -68,7 +67,7 @@ class SimpleHMM:
         for s in range(self.n_states):
             p = self.pi[s]
             for f in range(x.shape[0]):
-                p *= norm.pdf(x[f], self.means[s, f], self.stds[s, f] + 1e-6)
+                p *= _normal_pdf(x[f], self.means[s, f], self.stds[s, f] + 1e-6)
             probs[s] = p
         
         total = np.sum(probs)
@@ -112,3 +111,9 @@ class HMMRegimeDetector:
         state_idx = np.argmax(probs)
         state = HMMState.TREND if state_idx == self._trend_state_idx else HMMState.NOISE
         return HMMRegimeAnalysis(state, probs[state_idx], features[-1, 1])
+
+
+def _normal_pdf(x: np.ndarray | float, mean: float, std: float) -> np.ndarray | float:
+    safe_std = max(float(std), 1e-6)
+    z = (x - mean) / safe_std
+    return np.exp(-0.5 * z * z) / (safe_std * np.sqrt(2.0 * np.pi))
