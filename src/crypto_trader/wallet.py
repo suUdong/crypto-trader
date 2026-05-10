@@ -683,6 +683,18 @@ class StrategyWallet:
                     regime_blocked = True
                     regime_reason = "btc_30bar_gate: BTC 30-bar return not positive"
 
+            # Entry-time blackout (item 2 from CT paper audit 2026-05-11):
+            # data showed UTC 23:00-02:00 = ~₩-100k cumulative across 78 trades.
+            blackout_hours = self.risk_manager._config.entry_blackout_utc_hours
+            if (
+                not regime_blocked
+                and blackout_hours
+                and utc_hour is not None
+                and utc_hour in blackout_hours
+            ):
+                regime_blocked = True
+                regime_reason = f"entry_blackout: utc_hour={utc_hour} in {tuple(blackout_hours)}"
+
             if position is None and signal.action is SignalAction.BUY and regime_blocked:
                 self._logger.info(
                     "[%s] BUY blocked by regime gate: %s (signal_confidence=%.2f)",

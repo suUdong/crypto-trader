@@ -54,6 +54,12 @@ min_entry_confidence = 0.30
 partial_tp_pct = 0.5
 cooldown_bars = 3
 max_position_pct = 0.50
+# Blackout: UTC 23:00-02:00 = KST 08:00-11:00 (Korean morning).
+# Verified on artifacts/paper-trades.jsonl (392 deduped): this window contributed
+# ₩-103,612 across 78 trades (avg ₩-1,328/trade, WR ~18%). Gemini's audit
+# labelled it "23-02 KST" but the analysis was in UTC; this is the data-correct
+# window. Empty list = no blackout.
+entry_blackout_utc_hours = [23, 0, 1, 2]
 
 [kill_switch]
 max_portfolio_drawdown_pct = 0.30

@@ -111,6 +111,8 @@ class RiskConfig:
     time_decay_bar_ratio_1: float = 0.60  # exit if loss > 1.5% at this ratio
     time_decay_bar_ratio_2: float = 0.75  # exit if any loss at this ratio
     breakeven_watermark: float = 0.012  # watermark gain to activate breakeven stop
+    # UTC hours during which new entries are blocked. Empty = no blackout.
+    entry_blackout_utc_hours: tuple[int, ...] = ()
 
 
 @dataclass(slots=True)
@@ -609,6 +611,15 @@ def load_config(
             )
         ),
     )
+    raw_blackout = raw.get("risk", {}).get("entry_blackout_utc_hours", None)
+    if raw_blackout is not None:
+        try:
+            blackout_hours = tuple(int(h) % 24 for h in raw_blackout)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"risk.entry_blackout_utc_hours must be a list of ints, got {raw_blackout!r}"
+            ) from exc
+        risk = replace(risk, entry_blackout_utc_hours=blackout_hours)
     backtest = BacktestConfig(
         initial_capital=float(
             _read_value(raw, env, "backtest", "initial_capital", "CT_INITIAL_CAPITAL", 1_000_000.0)
