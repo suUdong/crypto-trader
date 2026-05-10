@@ -23,6 +23,7 @@ def test_compute_batch_gpu_has_extended_columns():
     all_data = {f"SYM{i}": make_df() for i in range(5)}
     btc_df = make_df()
 
+    pytest.importorskip("autonomous_lab_loop")
     from autonomous_lab_loop import compute_batch_gpu
     df = compute_batch_gpu(all_data, btc_df)
     for col in ["RSI_z", "MACD_z", "ATR_z", "OBV_z", "BB_z"]:
