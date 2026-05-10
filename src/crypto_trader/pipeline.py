@@ -20,6 +20,13 @@ from crypto_trader.strategy.composite import CompositeStrategy
 from crypto_trader.strategy.evaluator import evaluate_strategy
 
 KST = timezone(timedelta(hours=9))
+# Block new entries during low-liquidity / high-drift KST windows.
+# 00:00-07:59 KST was the original "Asian off-hours" block. 2026-05-11 audit
+# (research/reports/fire-w11-ct-paper-audit.md) attributes ₩-117,938 of paper
+# loss to 23:00-02:00 KST entries — hour 23 escaped the original window, so
+# extend the blackout set to include it.
+_BLACKOUT_HOURS_KST: frozenset[int] = frozenset({23, 0, 1, 2, 3, 4, 5, 6, 7})
+# Kept as legacy aliases for any downstream code referencing the bounds.
 _LOW_LIQUIDITY_START = 0  # 00:00 KST
 _LOW_LIQUIDITY_END = 8    # 08:00 KST
 
@@ -66,11 +73,12 @@ class TradingPipeline:
             latest_price = candles[-1].close
             order: OrderResult | None = None
 
-            # Block entries during low-liquidity hours (00:00-08:00 KST)
+            # Block entries during low-liquidity / high-drift KST windows
+            # (00:00-07:59 + 23:00 — see _BLACKOUT_HOURS_KST docstring).
             kst_hour = now.astimezone(KST).hour if now.tzinfo else now.replace(
                 tzinfo=UTC
             ).astimezone(KST).hour
-            low_liquidity = _LOW_LIQUIDITY_START <= kst_hour < _LOW_LIQUIDITY_END
+            low_liquidity = kst_hour in _BLACKOUT_HOURS_KST
 
             if position is None and signal.action is SignalAction.BUY and low_liquidity:
                 self._logger.info(

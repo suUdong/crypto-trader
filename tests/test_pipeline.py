@@ -306,6 +306,58 @@ class TradingPipelineTests(unittest.TestCase):
         self.assertIsNone(result.order)
         self.assertEqual(result.signal.reason, "low_liquidity_hours")
 
+    def test_pipeline_blocks_buy_at_23_kst_hour(self) -> None:
+        """BUY signal at 23:00 KST (= 14:00 UTC) should be blocked.
+
+        2026-05-11 audit attributes ₩-117,938 paper loss to 23:00-02:00 KST
+        entries; hour 23 was previously outside the 00:00-08:00 blackout.
+        """
+        # Last candle at 2025-01-01 14:00 UTC = 2025-01-01 23:00 KST.
+        start = datetime(2024, 12, 31, 17, 0, 0)
+        candles = [
+            Candle(
+                timestamp=start + timedelta(hours=i),
+                open=close,
+                high=close * 1.01,
+                low=close * 0.99,
+                close=close,
+                volume=1_000.0,
+            )
+            for i, close in enumerate([100.0] * 20 + [90.0, 89.0])
+        ]
+        config = AppConfig(
+            trading=TradingConfig(symbol="KRW-BTC", candle_count=len(candles)),
+            strategy=StrategyConfig(
+                momentum_lookback=3,
+                momentum_entry_threshold=-0.5,
+                bollinger_window=20,
+                bollinger_stddev=1.5,
+                rsi_period=5,
+                rsi_oversold_floor=0.0,
+                rsi_recovery_ceiling=100.0,
+            ),
+            regime=RegimeConfig(),
+            drift=DriftConfig(),
+            risk=RiskConfig(),
+            backtest=BacktestConfig(
+                initial_capital=1_000.0, fee_rate=0.0, slippage_pct=0.0
+            ),
+            telegram=TelegramConfig(),
+            runtime=RuntimeConfig(),
+            credentials=CredentialsConfig(),
+        )
+        pipeline = TradingPipeline(
+            config=config,
+            market_data=FakeMarketData(candles),
+            strategy=CompositeStrategy(config.strategy, config.regime),
+            risk_manager=RiskManager(config.risk),
+            broker=PaperBroker(starting_cash=1_000.0, fee_rate=0.0, slippage_pct=0.0),
+            notifier=RecorderNotifier(),
+        )
+        result = pipeline.run_once()
+        self.assertIsNone(result.order)
+        self.assertEqual(result.signal.reason, "low_liquidity_hours")
+
     def test_pipeline_allows_buy_outside_low_liquidity_hours(self) -> None:
         """BUY signal at 09:00 KST (= 00:00 UTC) should proceed normally."""
         candles = build_candles([100.0] * 20 + [90.0, 89.0])
