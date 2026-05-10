@@ -27,7 +27,10 @@ def _make_config(**overrides) -> AppConfig:
         strategy=StrategyConfig(),
         regime=RegimeConfig(),
         drift=DriftConfig(),
-        risk=RiskConfig(),
+        # Live-safe risk defaults: the dataclass default max_position_pct is the
+        # paper-mode cap (0.50) which trips the live preflight (0.10) — set
+        # explicitly so each test only fails on the dimension it is exercising.
+        risk=RiskConfig(max_position_pct=0.10),
         backtest=BacktestConfig(),
         telegram=TelegramConfig(),
         runtime=RuntimeConfig(),
@@ -59,7 +62,9 @@ def test_missing_credentials():
 
 
 def test_telegram_not_configured_warning():
-    config = _make_config()
+    # Paper mode degrades the telegram absence to a warning; live mode
+    # treats it as an ERROR (covered by the implementation directly).
+    config = _make_config(trading=TradingConfig(paper_trading=True))
     results = preflight_check(config)
     warnings = [msg for lvl, msg in results if lvl == "WARNING"]
     assert any("telegram" in w.lower() for w in warnings)

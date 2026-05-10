@@ -45,7 +45,8 @@ class RegimeReportGeneratorTests(unittest.TestCase):
             candles=build_candles([180 - index * 2 for index in range(40)]),
         )
         self.assertEqual(report.market_regime, "bear")
-        self.assertTrue(any("tighten entries" in reason for reason in report.reasons))
+        # Reasons are Korean ("진입 조건 강화" ≈ "tighten entries")
+        self.assertTrue(any("진입 조건 강화" in reason for reason in report.reasons))
 
     def test_generate_sideways_report_stays_near_baseline(self) -> None:
         closes = [100 + (index % 3) - 1 for index in range(40)]
@@ -55,7 +56,8 @@ class RegimeReportGeneratorTests(unittest.TestCase):
             candles=build_candles(closes),
         )
         self.assertEqual(report.market_regime, "sideways")
-        self.assertTrue(any("baseline" in reason for reason in report.reasons))
+        # Reasons are Korean ("기본 파라미터" ≈ "baseline")
+        self.assertTrue(any("기본 파라미터" in reason for reason in report.reasons))
 
     def test_save_writes_report_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
