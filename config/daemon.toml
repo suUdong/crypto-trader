@@ -326,7 +326,8 @@ active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
 stop_loss_pct = 0.02
 take_profit_pct = 0.06
-risk_per_trade_pct = 0.01
+# Downsized 2026-05-11: sentinel (11 trades, WR 18.2%, expectancy -₩152/trade) — kept active for re-evaluation
+risk_per_trade_pct = 0.005
 atr_stop_multiplier = 0.0
 partial_tp_pct = 0.5
 
@@ -460,7 +461,8 @@ active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
 stop_loss_pct = 0.025
 take_profit_pct = 0.07
-risk_per_trade_pct = 0.01
+# Downsized 2026-05-11: sentinel (27 trades, WR 29.6%, expectancy -₩73/trade)
+risk_per_trade_pct = 0.005
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
@@ -558,7 +560,8 @@ active_regimes = ["bull", "sideways", "bear"]
 [wallets.risk_overrides]
 stop_loss_pct = 0.025
 take_profit_pct = 0.07
-risk_per_trade_pct = 0.01
+# Downsized 2026-05-11: sentinel (27 trades, WR 37.0%, expectancy -₩97/trade)
+risk_per_trade_pct = 0.005
 partial_tp_pct = 0.5
 cooldown_bars = 4
 atr_stop_multiplier = 0.0
@@ -1077,7 +1080,8 @@ max_holding_bars = 68
 atr_stop_multiplier = 0.0
 stop_loss_pct = 0.082
 take_profit_pct = 0.15
-risk_per_trade_pct = 0.01
+# Upsized 2026-05-11: 2nd-best wallet (19 trades, WR 63.2%, RR 4.24, expectancy +₩500/trade)
+risk_per_trade_pct = 0.015
 
 # ── volume_weighted_momentum (ARE Candidate A) — paper-only ──
 [[wallets]]
@@ -1099,7 +1103,8 @@ max_holding_bars = 28
 atr_stop_multiplier = 0.0
 stop_loss_pct = 0.041
 take_profit_pct = 0.10
-risk_per_trade_pct = 0.01
+# Upsized 2026-05-11: top-edge wallet (39 trades, RR 3.44, expectancy +₩569/trade)
+risk_per_trade_pct = 0.015
 
 # ── CT admission candidates (2026-05-11) — paper-only, 90d Upbit 1h gate ──
 # Gate: Sharpe >= 1.0 and MDD <= 5% after 3bps fee + 4bps slippage per side.
