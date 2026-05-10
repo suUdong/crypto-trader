@@ -21,11 +21,16 @@ _MAX_BACKOFF_SECONDS = 4.0
 _LOG_THROTTLE_INTERVAL = 300  # suppress repeat warnings for 5 minutes
 
 _REGIME_ALIASES: dict[str, str] = {
+    "bear": "contractionary",
+    "bearish": "contractionary",
     "expansion": "expansionary",
     "expansionary": "expansionary",
     "neutral": "neutral",
     "contraction": "contractionary",
     "contractionary": "contractionary",
+    "risk off": "contractionary",
+    "risk-off": "contractionary",
+    "risk_off": "contractionary",
 }
 
 _NUMBER_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
@@ -50,6 +55,10 @@ class MacroSnapshot:
     etf_flow_musd: float | None = None
     etf_flow_ma_20d: float | None = None
     etf_flow_std_20d: float | None = None
+    macro_risk_score: float | None = None
+    macro_risk_level: str | None = None
+    macro_position_size_multiplier: float | None = None
+    macro_layer_scores: dict[str, float] | None = None
 
 
 class MacroClient:
@@ -141,6 +150,7 @@ class MacroClient:
     @staticmethod
     def _snapshot_from_payload(data: dict[str, Any]) -> MacroSnapshot | None:
         """Normalize HTTP or local payload into MacroSnapshot."""
+        macro_risk = MacroClient._parse_macro_risk(data)
         if "regime" in data:
             regime = data.get("regime")
             crypto = data.get("crypto")
@@ -162,6 +172,10 @@ class MacroClient:
                 etf_flow_musd=crypto.get("etf_flow_musd") if crypto else None,
                 etf_flow_ma_20d=crypto.get("etf_flow_ma_20d") if crypto else None,
                 etf_flow_std_20d=crypto.get("etf_flow_std_20d") if crypto else None,
+                macro_risk_score=macro_risk["score"],
+                macro_risk_level=macro_risk["level"],
+                macro_position_size_multiplier=macro_risk["position_size_multiplier"],
+                macro_layer_scores=macro_risk["layer_scores"],
             )
 
         layers = data.get("layers")
@@ -183,6 +197,10 @@ class MacroClient:
                 etf_flow_musd=crypto_metrics.get("etf_flow_musd"),
                 etf_flow_ma_20d=crypto_metrics.get("etf_flow_ma_20d"),
                 etf_flow_std_20d=crypto_metrics.get("etf_flow_std_20d"),
+                macro_risk_score=macro_risk["score"],
+                macro_risk_level=macro_risk["level"],
+                macro_position_size_multiplier=macro_risk["position_size_multiplier"],
+                macro_layer_scores=macro_risk["layer_scores"],
             )
 
         primary_layer = data.get("primary_layer")
@@ -227,9 +245,41 @@ class MacroClient:
                 etf_flow_std_20d=MacroClient._coerce_optional_float(
                     crypto_metrics.get("etf_flow_std_20d", signals.get("etf_flow_std_20d"))
                 ),
+                macro_risk_score=macro_risk["score"],
+                macro_risk_level=macro_risk["level"],
+                macro_position_size_multiplier=macro_risk["position_size_multiplier"],
+                macro_layer_scores=macro_risk["layer_scores"],
             )
 
         return None
+
+    @staticmethod
+    def _parse_macro_risk(data: dict[str, Any]) -> dict[str, Any]:
+        macro_risk = data.get("macro_risk")
+        if not isinstance(macro_risk, dict):
+            return {
+                "score": None,
+                "level": None,
+                "position_size_multiplier": None,
+                "layer_scores": None,
+            }
+        layer_scores = macro_risk.get("layer_scores")
+        parsed_layer_scores = None
+        if isinstance(layer_scores, dict):
+            parsed_layer_scores = {
+                str(key): float(value)
+                for key, value in layer_scores.items()
+                if isinstance(value, (int, float))
+            }
+        level = macro_risk.get("level")
+        return {
+            "score": MacroClient._coerce_optional_float(macro_risk.get("score")),
+            "level": str(level) if level not in (None, "") else None,
+            "position_size_multiplier": MacroClient._coerce_optional_float(
+                macro_risk.get("position_size_multiplier")
+            ),
+            "layer_scores": parsed_layer_scores,
+        }
 
     @staticmethod
     def _coerce_optional_float(value: Any) -> float | None:
@@ -291,5 +341,11 @@ class MacroClient:
                 "btc_dominance": snapshot.btc_dominance,
                 "kimchi_premium": snapshot.kimchi_premium,
                 "fear_greed_index": snapshot.fear_greed_index,
+            },
+            "macro_risk": {
+                "score": snapshot.macro_risk_score,
+                "level": snapshot.macro_risk_level,
+                "position_size_multiplier": snapshot.macro_position_size_multiplier,
+                "layer_scores": snapshot.macro_layer_scores,
             },
         }

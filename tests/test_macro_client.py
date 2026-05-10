@@ -140,6 +140,12 @@ class TestMacroClient(unittest.TestCase):
                 "kimchi_premium": 1.4,
                 "fear_greed_index": 72,
             },
+            "macro_risk": {
+                "score": 0.42,
+                "level": "risk_on",
+                "position_size_multiplier": 1.21,
+                "layer_scores": {"us": 0.2, "kr": 0.0, "crypto": 0.8},
+            },
             "primary_layer": {
                 "name": "crypto",
                 "regime": "expansionary",
@@ -175,6 +181,11 @@ class TestMacroClient(unittest.TestCase):
         self.assertEqual(result.crypto_regime, "expansionary")
         self.assertEqual(result.fear_greed_index, 72)
         self.assertEqual(result.crypto_signals["fear_greed"], "72 (bullish)")
+        self.assertAlmostEqual(result.macro_risk_score or 0.0, 0.42)
+        self.assertEqual(result.macro_risk_level, "risk_on")
+        self.assertAlmostEqual(result.macro_position_size_multiplier or 0.0, 1.21)
+        assert result.macro_layer_scores is not None
+        self.assertAlmostEqual(result.macro_layer_scores["crypto"], 0.8)
 
     def test_get_snapshot_parses_minimal_downstream_payload_without_layers(self) -> None:
         client = MacroClient(base_url="http://macro.local")

@@ -1192,6 +1192,13 @@ class MultiSymbolRuntime:
             "changed": changed,
             "previous_regime": previous_regime,
             "confidence": round(snapshot.overall_confidence, 4) if snapshot is not None else 0.0,
+            "macro_risk_score": (
+                round(snapshot.macro_risk_score, 4)
+                if snapshot is not None and snapshot.macro_risk_score is not None
+                else None
+            ),
+            "macro_risk_level": snapshot.macro_risk_level if snapshot is not None else None,
+            "macro_layer_scores": snapshot.macro_layer_scores if snapshot is not None else None,
             "reasons": list(adjustment.reasons),
             "strategy_edge_scores": edge_scores,
             "wallet_multipliers": wallet_multipliers,

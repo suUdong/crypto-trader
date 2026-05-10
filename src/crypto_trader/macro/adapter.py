@@ -27,11 +27,16 @@ _REGIME_MULTIPLIERS: dict[str, float] = {
 }
 
 _REGIME_ALIASES: dict[str, str] = {
+    "bear": "contractionary",
+    "bearish": "contractionary",
     "expansion": "expansionary",
     "expansionary": "expansionary",
     "neutral": "neutral",
     "contraction": "contractionary",
     "contractionary": "contractionary",
+    "risk off": "contractionary",
+    "risk-off": "contractionary",
+    "risk_off": "contractionary",
 }
 
 
@@ -176,7 +181,7 @@ class MacroRegimeAdapter:
         strategy_type: str = "",
         force_fear_buy: bool = False,
         btc_bull_regime: bool | None = None,
-        fear_greed_block_threshold: int | None = None,
+        fear_greed_block_threshold: int | None = 20,
         crypto_confidence_threshold: float = 0.65,
     ) -> tuple[bool, str]:
         """Return (blocked, reason) for entry gating based on macro regime.
@@ -257,10 +262,25 @@ class MacroRegimeAdapter:
 
         reasons: list[str] = []
         regime = self.normalize_overall_regime(snapshot.overall_regime)
-        base = _REGIME_MULTIPLIERS.get(regime, 1.0)
-        reasons.append(
-            f"macro regime={regime} (confidence={snapshot.overall_confidence:.0%}) -> base={base}x"
-        )
+        if snapshot.macro_position_size_multiplier is not None:
+            base = max(
+                self.MIN_MULTIPLIER,
+                min(self.MAX_MULTIPLIER, snapshot.macro_position_size_multiplier),
+            )
+            score_text = (
+                f" score={snapshot.macro_risk_score:+.2f}"
+                if snapshot.macro_risk_score is not None
+                else ""
+            )
+            reasons.append(
+                f"macro risk={snapshot.macro_risk_level or regime}{score_text} "
+                f"(confidence={snapshot.overall_confidence:.0%}) -> base={base}x"
+            )
+        else:
+            base = _REGIME_MULTIPLIERS.get(regime, 1.0)
+            reasons.append(
+                f"macro regime={regime} (confidence={snapshot.overall_confidence:.0%}) -> base={base}x"
+            )
 
         adjustment = 0.0
 

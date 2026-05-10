@@ -41,6 +41,17 @@ class TestMacroRegimeAdapter(unittest.TestCase):
         self.assertAlmostEqual(adj.position_size_multiplier, 1.5)
         self.assertIn("expansionary", adj.reasons[0])
 
+    def test_macro_risk_multiplier_from_payload_overrides_label_base(self) -> None:
+        snapshot = _make_snapshot(
+            overall_regime="expansionary",
+            macro_risk_score=-0.6,
+            macro_risk_level="risk_off",
+            macro_position_size_multiplier=0.7,
+        )
+        adj = self.adapter.compute(snapshot)
+        self.assertAlmostEqual(adj.position_size_multiplier, 0.7)
+        self.assertIn("macro risk=risk_off", adj.reasons[0])
+
     def test_contractionary_regime_defensive(self) -> None:
         snapshot = _make_snapshot(overall_regime="contractionary")
         adj = self.adapter.compute(snapshot)
@@ -177,6 +188,18 @@ class TestShouldBlockEntry(unittest.TestCase):
         blocked, _ = self.adapter.should_block_entry(snapshot)
         self.assertTrue(blocked)
 
+    def test_risk_off_alias_blocks(self) -> None:
+        snapshot = _make_snapshot(overall_regime="risk_off", overall_confidence=0.7)
+        blocked, reason = self.adapter.should_block_entry(snapshot)
+        self.assertTrue(blocked)
+        self.assertIn("overall=contractionary", reason)
+
+    def test_bearish_alias_blocks(self) -> None:
+        snapshot = _make_snapshot(overall_regime="bearish", overall_confidence=0.7)
+        blocked, reason = self.adapter.should_block_entry(snapshot)
+        self.assertTrue(blocked)
+        self.assertIn("overall=contractionary", reason)
+
     def test_contractionary_crypto_layer_high_confidence_blocks(self) -> None:
         snapshot = _make_snapshot(
             overall_regime="neutral",
@@ -205,9 +228,15 @@ class TestShouldBlockEntry(unittest.TestCase):
         self.assertTrue(blocked)
         self.assertIn("extreme_fear", reason)
 
-    def test_fear_greed_16_does_not_block(self) -> None:
+    def test_fear_greed_16_blocks_by_default(self) -> None:
         snapshot = _make_snapshot(overall_regime="neutral", fear_greed_index=16)
-        blocked, _ = self.adapter.should_block_entry(snapshot)
+        blocked, reason = self.adapter.should_block_entry(snapshot)
+        self.assertTrue(blocked)
+        self.assertIn("extreme_fear", reason)
+
+    def test_fear_greed_gate_can_be_disabled_explicitly(self) -> None:
+        snapshot = _make_snapshot(overall_regime="neutral", fear_greed_index=16)
+        blocked, _ = self.adapter.should_block_entry(snapshot, fear_greed_block_threshold=None)
         self.assertFalse(blocked)
 
     def test_fear_greed_none_does_not_block(self) -> None:
