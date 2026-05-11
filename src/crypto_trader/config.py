@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
 import tomllib
+from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +35,16 @@ class TradingConfig:
     candle_count: int = 200
     paper_trading: bool = True
     go_live_wallets: list[str] = field(default_factory=list)
+    # Live-mode safety gates (see docs/2026-05-11-ct-live-migration.md)
+    # Auto-trigger kill switch HALT once intraday loss reaches this pct.
+    # Tighter than HARD_MAX_DAILY_LOSS_PCT to favour early revert-to-paper.
+    # Set to 0.0 to disable (defer to HARD cap only).
+    live_auto_revert_loss_pct: float = 0.02
+    # Operator-acknowledgement marker. JSON {"confirmed_at": ISO8601}.
+    # Must be present and fresh (within live_confirmation_max_age_hours)
+    # before preflight will allow live mode to start.
+    live_confirmation_path: str = "artifacts/live-confirmed.json"
+    live_confirmation_max_age_hours: float = 24.0
 
 
 @dataclass(slots=True)
@@ -415,6 +428,36 @@ def load_config(
         paper_trading=_read_bool(raw, env, "trading", "paper_trading", "CT_PAPER_TRADING", True),
         go_live_wallets=_read_string_list(
             raw, env, "trading", "go_live_wallets", "CT_GO_LIVE_WALLETS"
+        ),
+        live_auto_revert_loss_pct=float(
+            _read_value(
+                raw,
+                env,
+                "trading",
+                "live_auto_revert_loss_pct",
+                "CT_LIVE_AUTO_REVERT_LOSS_PCT",
+                0.02,
+            )
+        ),
+        live_confirmation_path=str(
+            _read_value(
+                raw,
+                env,
+                "trading",
+                "live_confirmation_path",
+                "CT_LIVE_CONFIRMATION_PATH",
+                "artifacts/live-confirmed.json",
+            )
+        ),
+        live_confirmation_max_age_hours=float(
+            _read_value(
+                raw,
+                env,
+                "trading",
+                "live_confirmation_max_age_hours",
+                "CT_LIVE_CONFIRMATION_MAX_AGE_HOURS",
+                24.0,
+            )
         ),
     )
     strategy = StrategyConfig(
@@ -1358,17 +1401,114 @@ def _validate_risk_config(prefix: str, risk: RiskConfig, errors: list[str]) -> N
         errors.append(f"{prefix}.max_concurrent_positions must be positive")
 
 
-def preflight_check(config: AppConfig) -> list[tuple[str, str]]:
+_TRUTHY_ENV_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def _env_flag_true(env: Mapping[str, str], *names: str) -> bool:
+    """Return True if any of the named env vars is set to a truthy value."""
+    for name in names:
+        value = env.get(name, "")
+        if value.strip().lower() in _TRUTHY_ENV_VALUES:
+            return True
+    return False
+
+
+def _check_live_confirmation(
+    path: Path,
+    max_age: timedelta,
+    now: datetime,
+) -> str | None:
+    """Validate operator confirmation marker. Returns error string or None."""
+    if not path.exists():
+        return (
+            f"Live confirmation marker missing: {path} — "
+            "operator must write {\"confirmed_at\": \"<ISO8601 UTC>\"} "
+            "to acknowledge live trading."
+        )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return f"Live confirmation marker {path} unreadable: {exc}"
+    raw_ts = payload.get("confirmed_at") if isinstance(payload, dict) else None
+    if not isinstance(raw_ts, str):
+        return f"Live confirmation marker {path} missing 'confirmed_at' ISO timestamp"
+    try:
+        confirmed = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+    except ValueError:
+        return f"Live confirmation marker {path} has invalid timestamp: {raw_ts}"
+    if confirmed.tzinfo is None:
+        confirmed = confirmed.replace(tzinfo=UTC)
+    age = now - confirmed
+    if age > max_age:
+        return (
+            f"Live confirmation marker {path} is stale "
+            f"(age={age}, max={max_age}) — operator must re-acknowledge."
+        )
+    if age < -timedelta(minutes=5):
+        return (
+            f"Live confirmation marker {path} timestamp is in the future "
+            f"({raw_ts}) — refuse to start."
+        )
+    return None
+
+
+def preflight_check(
+    config: AppConfig,
+    *,
+    env: Mapping[str, str] | None = None,
+    now: datetime | None = None,
+) -> list[tuple[str, str]]:
     """Run go-live preflight safety checks.
 
     Returns list of (level, message) tuples where level is 'ERROR' or 'WARNING'.
     Empty list means all checks pass.
+
+    Live-mode specific gates (any failure aborts startup):
+      * `LIVE_TRADING_ENABLED=true` env var must be set (explicit opt-in).
+      * `live_confirmation_path` JSON marker must exist and be fresh
+        (within `live_confirmation_max_age_hours`) — operator acknowledgement.
+      * `live_auto_revert_loss_pct` must be within the hard daily-loss cap.
     """
     results: list[tuple[str, str]] = []
+    env_map: Mapping[str, str] = env if env is not None else os.environ
+    current_time = now if now is not None else datetime.now(UTC)
 
     # 1. Credentials
     if not config.trading.paper_trading and not config.credentials.has_upbit_credentials:
         results.append(("ERROR", "Live trading requires Upbit API credentials"))
+
+    # 1b. Explicit env opt-in for live mode
+    if not config.trading.paper_trading:
+        if not _env_flag_true(env_map, "LIVE_TRADING_ENABLED", "CT_LIVE_TRADING_ENABLED"):
+            results.append((
+                "ERROR",
+                "Live trading requires explicit opt-in: "
+                "export LIVE_TRADING_ENABLED=true",
+            ))
+
+    # 1c. Operator confirmation timestamp file
+    if not config.trading.paper_trading:
+        confirm_err = _check_live_confirmation(
+            Path(config.trading.live_confirmation_path),
+            timedelta(hours=config.trading.live_confirmation_max_age_hours),
+            current_time,
+        )
+        if confirm_err is not None:
+            results.append(("ERROR", confirm_err))
+
+    # 1d. live_auto_revert_loss_pct sanity
+    revert_pct = config.trading.live_auto_revert_loss_pct
+    if revert_pct < 0:
+        results.append((
+            "ERROR",
+            f"trading.live_auto_revert_loss_pct ({revert_pct:.2%}) must be >= 0",
+        ))
+    elif revert_pct > HARD_MAX_DAILY_LOSS_PCT:
+        results.append((
+            "ERROR",
+            f"trading.live_auto_revert_loss_pct ({revert_pct:.2%}) exceeds "
+            f"hard cap ({HARD_MAX_DAILY_LOSS_PCT:.2%})",
+        ))
 
     # 2. Telegram alerts
     if not config.telegram.enabled:

@@ -60,6 +60,16 @@ class KillSwitch:
         self._state = KillSwitchState()
         logger.info("Kill switch manually reset")
 
+    def trigger(self, reason: str) -> KillSwitchState:
+        """Force-trigger the kill switch from outside (e.g. live auto-revert).
+
+        Idempotent — repeat triggers retain the original reason/timestamp so
+        operators can audit why the switch first fired.
+        """
+        if not self._state.triggered:
+            self._trigger(reason)
+        return self._state
+
     def check(
         self,
         current_equity: float,
