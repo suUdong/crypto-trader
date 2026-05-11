@@ -128,11 +128,10 @@ Wallets not listed continue on `PaperBroker`. Names must match
    ```
 3. **Verify preflight (dry-run):**
    ```bash
-   PYTHONPATH=src python3 -c "from crypto_trader.config import load_config, preflight_check; \
-     c = load_config('config/daemon.toml'); \
-     print('\n'.join(f'{l}: {m}' for l, m in preflight_check(c)) or 'OK')"
+   PYTHONPATH=src python3 scripts/preflight_live_check.py --config config/daemon.toml
    ```
-   Expected output: `OK`. Any `ERROR:` line aborts the cutover.
+   Expected output: `READY for live cutover.` with exit code 0. Any
+   `[ERROR]` row aborts the cutover. `--json` available for piping.
 4. **Export env in the systemd drop-in** (NOT in TOML or git):
    ```bash
    sudo systemctl edit crypto-trader
