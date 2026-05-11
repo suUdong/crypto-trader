@@ -890,6 +890,7 @@ class MultiSymbolRuntime:
                     new_trade_results.append(trade.pnl > 0)
                 self._prev_trade_count[wallet.name] = current_count
 
+        state = self._kill_switch.state
         if not new_trade_results:
             state = self._kill_switch.check(
                 current_equity=total_equity,
@@ -907,6 +908,13 @@ class MultiSymbolRuntime:
                 )
                 if state.triggered:
                     break
+
+        # Live-mode auto-revert: tighter than the kill switch's regular daily
+        # cap, fires before HARD_MAX_DAILY_LOSS_PCT to prefer early revert
+        # to paper. Idempotent — no-op if already triggered or in paper.
+        if not state.triggered:
+            state = self._maybe_trigger_live_auto_revert(state, total_equity)
+
         self._kill_switch.save(self._kill_switch_path)
         self._symbol_circuit.save(self._symbol_circuit_path)
 
@@ -941,6 +949,62 @@ class MultiSymbolRuntime:
             return
 
         self._maybe_alert_drawdown_warning(state)
+
+    def _maybe_trigger_live_auto_revert(
+        self,
+        state: KillSwitchState,
+        total_equity: float,
+    ) -> KillSwitchState:
+        """Force-halt live trading once intraday loss exceeds the revert cap.
+
+        Tighter than the regular kill switch daily-loss limit so live mode
+        falls back to paper before the HARD daily-loss cap fires. No-op for
+        paper mode, when the threshold is disabled (<=0), or when the kill
+        switch is already triggered.
+        """
+        if self._config.trading.paper_trading:
+            return state
+        threshold = self._config.trading.live_auto_revert_loss_pct
+        if threshold <= 0:
+            return state
+        if self._total_starting_equity <= 0:
+            return state
+        daily_loss_pct = (
+            self._total_starting_equity - total_equity
+        ) / self._total_starting_equity
+        if daily_loss_pct < threshold:
+            return state
+        reason = (
+            f"live_auto_paper_revert: daily_loss={daily_loss_pct:.2%} "
+            f">= revert_cap={threshold:.2%}"
+        )
+        self._logger.critical(reason)
+        triggered = self._kill_switch.trigger(reason)
+        self._write_live_revert_flag(daily_loss_pct, threshold, reason)
+        return triggered
+
+    def _write_live_revert_flag(
+        self,
+        daily_loss_pct: float,
+        threshold: float,
+        reason: str,
+    ) -> None:
+        """Persist a marker noting that live mode auto-reverted to paper."""
+        flag_path = Path(self._config.runtime.kill_switch_path).parent / (
+            "live-auto-revert.flag"
+        )
+        try:
+            flag_path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "triggered_at": datetime.now(UTC).isoformat(),
+                "reason": reason,
+                "daily_loss_pct": round(daily_loss_pct, 6),
+                "threshold_pct": round(threshold, 6),
+                "starting_equity": round(self._total_starting_equity, 2),
+            }
+            flag_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        except OSError as exc:
+            self._logger.error("Failed to write live revert flag: %s", exc)
 
     def _liquidate_all_positions(
         self,
