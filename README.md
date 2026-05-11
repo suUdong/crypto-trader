@@ -1,98 +1,158 @@
 # Crypto Trader
 
-Upbit 기반 다중 전략 자동매매 시스템. 멀티 월렛 데몬, 백테스트, 페이퍼 트레이딩, 실시간 대시보드를 지원합니다.
+Upbit KRW 마켓용 다중 전략 자동매매 시스템입니다. 현재 운영 원칙은
+**paper-first**입니다. `config/daemon.toml`의 기본값은
+`paper_trading = true`이며, live 전환은 명시적 env opt-in, 최신 확인
+마커, preflight, wallet allowlist를 모두 통과해야 합니다.
 
-## 전략 목록
+## Current Operating State
 
-| 전략 | 설명 | 주요 파라미터 |
-|------|------|--------------|
-| **Momentum** | RSI + MACD + ADX 기반 모멘텀 추종 | `momentum_lookback`, `rsi_period`, `adx_threshold` |
-| **Momentum Pullback** | 추세 유지 종목의 눌림목 재진입 하이브리드 | `momentum_lookback`, `bollinger_window`, `rsi_recovery_ceiling` |
-| **VPIN** | Volume-Synchronized Probability of Informed Trading. 주문 흐름 독성도 측정 | `vpin_low/high_threshold`, `bucket_count` |
-| **Volatility Breakout** | Larry Williams 변동성 돌파 (price > prev_close + k * range) | `k_base`, `noise_lookback`, `ma_filter_period` |
-| **Kimchi Premium** | Upbit/Binance 가격 차이(김프) 기반 역발상 매매 | `cooldown_hours`, `min_trade_interval_bars` |
-| **Volume Spike** | 비정상 거래량 급증 감지 + 방향성 확인 | `spike_mult`, `volume_window`, `min_body_ratio` |
-| **Consensus** | 다중 전략 투표 시스템 (momentum + vpin + volume_spike) | `sub_strategies`, `weights`, `min_agree` |
-| **EMA Crossover** | EMA 9/21 골든크로스/데드크로스 추세 추종 | `ema_fast`, `ema_slow` |
-| **Mean Reversion** | 볼린저밴드 하단 매수, 상단 매도 | `bollinger_window`, `bollinger_stddev` |
-| **OBI** | 호가창 매수/매도 불균형 기반 | `obi_threshold`, `max_holding_bars` |
+| 항목 | 현재값 |
+|---|---|
+| 기본 모드 | Paper trading (`paper_trading = true`) |
+| 데몬 | `config/daemon.toml`, `daemon_mode = true`, `auto_restart_enabled = true` |
+| 인터벌 | `minute60` |
+| 활성 wallet 수 | 17 |
+| 신규 admission wallet | 4개 SOL/ETH paper-only 후보 |
+| 전역 entry blackout | UTC `[23, 0, 1, 2]` + pipeline KST night gate |
+| macro sizing | `5b2476b` 이후 macro risk score/level/layer가 runtime context로 전달 |
+| symbol circuit breaker | `116751d` + `68bc0c2`, 3 losses/48h 또는 negative expectancy로 symbol cooldown |
+| live scaffold | `b24004b`~`d0f06af`, default paper 유지 + live preflight helper |
+| HMM breakout | `0d5e4cd` 이후 default-off |
 
-모든 전략은 레짐(bull/bear/sideways) 자동 감지 및 파라미터 동적 조정을 지원합니다.
+## Active Wallets
 
-## 현재 운용 월렛 (config/daemon.toml)
+HEAD의 `config/daemon.toml` 기준 활성 wallet입니다. `paper_trading`이 wallet
+별로 명시되지 않은 항목도 전역 `paper_trading = true` 때문에 paper로
+실행됩니다.
 
-총 13개 월렛, 자본금 13,000,000 KRW (페이퍼), 대상 심볼: BTC, ETH, XRP, SOL
+| Wallet | Strategy | Symbols | Capital | Risk note |
+|---|---|---|---:|---|
+| `accumulation_dood_wallet` | `accumulation_breakout` | `KRW-NEW` | 1,000,000 | `risk_per_trade_pct=0.02` |
+| `momentum_sol_wallet` | `momentum` | `KRW-RED` | 1,000,000 | `0.015`, `max_position_pct=0.10` |
+| `volspike_btc_wallet` | `volume_spike` | `KRW-BTC` | 1,000,000 | Sentinel downsized to `0.005` |
+| `vpin_xrp_wallet` | `vpin` | `KRW-XRP` | 1,000,000 | Paper, sentinel `0.005`, max position `0.05` |
+| `vpin_avax_wallet` | `vpin` | `KRW-AVAX` | 1,000,000 | Paper, sentinel `0.005`, max position `0.05` |
+| `bb_squeeze_eth_wallet` | `bb_squeeze_independent` | `KRW-ETH` | 1,000,000 | Surviving squeeze wallet |
+| `bb_squeeze_doge_wallet` | `bb_squeeze_independent` | `KRW-DOGE` | 1,000,000 | Surviving squeeze wallet |
+| `bb_squeeze_link_wallet` | `bb_squeeze_independent` | `KRW-LINK` | 1,000,000 | Paper |
+| `bb_mr_doge_wallet` | `bollinger_mr` | `KRW-DOGE` | 1,000,000 | Paper |
+| `bb_mr_xrp_wallet` | `bollinger_mr` | `KRW-XRP` | 1,000,000 | Paper |
+| `bb_mr_avax_wallet` | `bollinger_mr` | `KRW-AVAX` | 1,000,000 | Paper |
+| `pdh_pdl_btc_wallet` | `pdh_pdl_sweep_reclaim` | Major KRW basket | 1,000,000 | Winner upsized to `0.015` |
+| `vwm_btc_wallet` | `volume_weighted_momentum` | Major KRW basket | 1,000,000 | Winner upsized to `0.015` |
+| `ct_sol_vol_target_momentum_wallet` | `momentum` | `KRW-SOL` | 500,000 | New admission, max position `0.12` |
+| `ct_sol_momentum_wallet` | `momentum` | `KRW-SOL` | 500,000 | New admission, max position `0.08` |
+| `ct_sol_breakout_wallet` | `volatility_breakout` | `KRW-SOL` | 500,000 | New admission, max position `0.08` |
+| `ct_eth_breakout_wallet` | `volatility_breakout` | `KRW-ETH` | 500,000 | New admission, max position `0.08` |
 
-| 월렛 | 전략 | 심볼 | Sharpe |
-|------|------|------|--------|
-| momentum_btc | Momentum | BTC | 2.51 |
-| momentum_eth | Momentum | ETH | 4.86 |
-| kimchi_premium | Kimchi Premium | BTC/ETH/XRP/SOL | 1.22 |
-| vpin_btc | VPIN | BTC | 3.40 |
-| vpin_eth | VPIN | ETH | 2.05 |
-| vpin_sol | VPIN | SOL | 2.55 |
-| vbreak_btc | Volatility Breakout | BTC | — |
-| vbreak_eth | Volatility Breakout | ETH | — |
-| volspike_btc | Volume Spike | BTC | — |
-| volspike_eth | Volume Spike | ETH | — |
-| consensus_btc | Consensus | BTC | — |
-| ema_cross_btc | EMA Crossover | BTC | — |
-| mean_rev_eth | Mean Reversion | ETH | — |
+## Disabled Wallets
 
-## 퀵스타트
+Recent W11 disables:
+
+- `vpin_ondo_wallet`: worst active drain, disabled in `e98d7bb`.
+- `vpin_sol_wallet`: 31 paper trades, WR 38.7%, expectancy -312 KRW/trade,
+  disabled in `670ff95`.
+- `vpin_pundix_wallet`: 22 paper trades, expectancy -229 KRW/trade, disabled in
+  `670ff95`.
+
+Previously disabled blocks remain commented for audit/recovery, including
+`vpin_mana_wallet`, `vpin_bat_wallet`, `vpin_orbs_wallet`,
+`stealth_3gate_wallet_1`, `vpin_eth_wallet`, `vpin_doge_wallet`,
+`accumulation_tree_wallet`, and pre-staged `momentum_eth_wallet` /
+`momentum_xrp_wallet`.
+
+## Safety Features
+
+### Macro Sizing Integration
+
+`5b2476b` wires macro risk data from the macro adapter/client into the runtime
+regime context. Strategies and sizing logic can now consume
+`macro_risk_score`, `macro_risk_level`, and `macro_risk_layer` instead of
+running blind to macro state.
+
+### Symbol Circuit Breaker
+
+`116751d` introduced a process-wide symbol circuit breaker and `68bc0c2` wired
+it into the wallet trade pipeline. Defaults:
+
+- Disable a symbol after 3 losing closes in 48 hours.
+- Disable a symbol when expectancy is below -0.5% across at least 5 trades in
+  48 hours.
+- Cooldown: 24 hours.
+- State: `artifacts/symbol-circuit.json`.
+- Event stream: `artifacts/circuit-breaker-events.jsonl`, consumed by
+  fire-monitor surfaces.
+
+Detailed operator procedure: [docs/2026-05-11-ct-circuit-breaker.md](docs/2026-05-11-ct-circuit-breaker.md).
+
+### Live Scaffold And Preflight
+
+Live mode is scaffolded but not the default. The W11 live-safety chain
+(`b24004b`, `d6c2fb8`, `abf91a9`, `cf7b431`, `d0f06af`) added:
+
+- Explicit `LIVE_TRADING_ENABLED=true` or `CT_LIVE_TRADING_ENABLED=true`.
+- Fresh `artifacts/live-confirmed.json` operator marker, max age 24h.
+- `live_auto_revert_loss_pct = 0.02` early revert-to-paper cap.
+- Optional `live_dry_run = true` for full live path without exchange orders.
+- `go_live_wallets` allowlist for staged promotion.
+- `scripts/preflight_live_check.py` for pre-cutover verification.
+
+Canonical runbook: [docs/2026-05-11-ct-live-migration.md](docs/2026-05-11-ct-live-migration.md).
+
+## Environment Variables
+
+| Variable | Purpose |
+|---|---|
+| `CT_PAPER_TRADING` | Override paper/live flag. Keep true unless running the live runbook. |
+| `LIVE_TRADING_ENABLED` / `CT_LIVE_TRADING_ENABLED` | Required explicit opt-in when `paper_trading = false`. |
+| `CT_LIVE_DRY_RUN` | Use `LiveBroker` dry-run path without exchange orders. |
+| `CT_GO_LIVE_WALLETS` | Comma/list override for staged live wallet allowlist. |
+| `CT_UPBIT_ACCESS_KEY` / `CT_UPBIT_SECRET_KEY` | Upbit credentials. Never commit them. |
+| `CT_TELEGRAM_BOT_TOKEN` / `CT_TELEGRAM_CHAT_ID` | Telegram alert channel. Required for live preflight. |
+| `CT_SYMBOL_CIRCUIT_PATH` | Override symbol circuit state path. |
+| `CT_SYMBOL_CIRCUIT_EVENTS_PATH` | Override circuit breaker event JSONL path. |
+| `CT_POLL_INTERVAL_SECONDS` | Runtime polling interval. |
+| `CT_HEALTHCHECK_PATH` | Health artifact path. |
+
+## Activation Procedure
+
+### Paper daemon
 
 ```bash
-# 의존성 설치
 pip install -e ".[dev]"
-
-# 백테스트
-python -m crypto_trader.cli backtest --config config/example.toml
-
-# 전체 전략 백테스트
-python -m crypto_trader.cli backtest-all --config config/daemon.toml
-
-# 데몬 시작 (페이퍼 트레이딩, 내부 auto-restart 포함)
 scripts/restart_daemon.sh config/daemon.toml
-
-# 대시보드
-streamlit run dashboard/app.py
+cat artifacts/daemon-heartbeat.json
+cat artifacts/daily-performance.json | python -m json.tool
 ```
 
-## 프로젝트 구조
+### Live rehearsal only
 
-```
-src/crypto_trader/
-├── cli.py              # 28개 CLI 명령어
-├── config.py           # TOML 설정 파서
-├── multi_runtime.py    # 멀티 심볼 데몬 런타임
-├── strategy/           # 전략 모듈 (10개)
-├── risk/               # 리스크 관리 (kill switch, correlation guard)
-├── execution/          # 주문 실행 (paper broker)
-├── notifications/      # Telegram, Slack 알림
-├── monitoring/         # 성과 리포터, 구조화 로깅
-├── operator/           # 드리프트, 프로모션 게이트, 저널
-├── backtest/           # 백테스트 엔진, walk-forward
-├── data/               # Upbit/Binance/FX 클라이언트
-└── macro/              # 매크로 레짐 어댑터
-
-config/                 # TOML 설정 파일
-dashboard/              # Streamlit 대시보드
-scripts/                # 운영 진입점 + 연구 유틸 + 역사적 실험 스크립트
-artifacts/              # 런타임 아티팩트 (heartbeat, health, checkpoint, 리포트)
-```
-
-운영/연구 스크립트 표면 분류는 [scripts/README.md](scripts/README.md)를 기준으로 관리합니다.
-
-## 개발
+Do not flip live from this README alone. Use the live migration runbook. The
+minimum rehearsal shape is:
 
 ```bash
-python3 -m unittest discover -s tests -t . -v   # 테스트
-ruff check src/ tests/                            # CI 기준 린트
-mypy src                                          # 애플리케이션 패키지 타입 체크
+export LIVE_TRADING_ENABLED=true
+export CT_LIVE_DRY_RUN=true
+export CT_UPBIT_ACCESS_KEY='...'
+export CT_UPBIT_SECRET_KEY='...'
+PYTHONPATH=src python3 scripts/preflight_live_check.py --config config/daemon.toml
 ```
 
-참고:
-- 현재 레포는 전역 정적검사 적체가 있어, 대규모 정리 전까지는 changed-file 기준 `ruff`/`mypy` 검사를 병행합니다.
-- `scripts/`는 운영 표면과 역사적 실험 자산이 섞여 있으므로, 변경 시 [scripts/README.md](scripts/README.md)의 분류를 먼저 확인합니다.
+If preflight fails, remain in paper and follow
+[docs/troubleshooting.md](docs/troubleshooting.md).
 
-자세한 운영 가이드는 [docs/operations.md](docs/operations.md)를 참조하세요.
+## Development
+
+```bash
+python3 -m unittest discover -s tests -t . -v
+ruff check src/ tests/
+mypy src
+```
+
+Operational documentation starts at:
+
+- [docs/operations.md](docs/operations.md)
+- [docs/troubleshooting.md](docs/troubleshooting.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/2026-05-11-w11-summary.md](docs/2026-05-11-w11-summary.md)
