@@ -45,6 +45,11 @@ class TradingConfig:
     # before preflight will allow live mode to start.
     live_confirmation_path: str = "artifacts/live-confirmed.json"
     live_confirmation_max_age_hours: float = 24.0
+    # When true (and paper_trading=false + credentials present), LiveBroker
+    # runs every code path but skips real exchange calls — orders are
+    # simulated locally. Use for smoke-testing the live execution flow
+    # without putting capital at risk.
+    live_dry_run: bool = False
 
 
 @dataclass(slots=True)
@@ -458,6 +463,9 @@ def load_config(
                 "CT_LIVE_CONFIRMATION_MAX_AGE_HOURS",
                 24.0,
             )
+        ),
+        live_dry_run=_read_bool(
+            raw, env, "trading", "live_dry_run", "CT_LIVE_DRY_RUN", False
         ),
     )
     strategy = StrategyConfig(

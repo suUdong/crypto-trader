@@ -28,11 +28,13 @@ def _make_config(
     paper_trading: bool = True,
     go_live_wallets: list[str] | None = None,
     has_credentials: bool = False,
+    live_dry_run: bool = False,
 ) -> AppConfig:
     return AppConfig(
         trading=TradingConfig(
             paper_trading=paper_trading,
             go_live_wallets=go_live_wallets or [],
+            live_dry_run=live_dry_run,
         ),
         strategy=StrategyConfig(),
         regime=RegimeConfig(),
@@ -103,3 +105,31 @@ def test_empty_go_live_wallets_all_go_live(mock_upbit):
     )
     wallets = build_wallets(config)
     assert all(isinstance(w.broker, LiveBroker) for w in wallets)
+
+
+@patch("crypto_trader.execution.live.pyupbit.Upbit")
+def test_live_dry_run_threads_through_to_broker(mock_upbit):
+    """live_dry_run=true must propagate to LiveBroker so smoke tests
+    exercise the full live code path without hitting the exchange."""
+    from crypto_trader.execution.live import LiveBroker
+
+    config = _make_config(
+        paper_trading=False,
+        has_credentials=True,
+        live_dry_run=True,
+    )
+    wallets = build_wallets(config)
+    for wallet in wallets:
+        assert isinstance(wallet.broker, LiveBroker)
+        assert wallet.broker._dry_run is True
+
+
+@patch("crypto_trader.execution.live.pyupbit.Upbit")
+def test_live_dry_run_default_is_false(mock_upbit):
+    from crypto_trader.execution.live import LiveBroker
+
+    config = _make_config(paper_trading=False, has_credentials=True)
+    wallets = build_wallets(config)
+    for wallet in wallets:
+        assert isinstance(wallet.broker, LiveBroker)
+        assert wallet.broker._dry_run is False

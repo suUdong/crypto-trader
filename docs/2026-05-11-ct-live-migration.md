@@ -71,7 +71,24 @@ liquidates all open positions, and writes
 `artifacts/live-auto-revert.flag` so the supervisor / operator can
 confirm before re-enabling.
 
-### 1d. Credentials must be present **in env**
+### 1d. Optional dry-run rehearsal (recommended)
+
+Before the first capital-at-risk start, run the full live code path
+with simulated fills:
+
+```toml
+[trading]
+live_dry_run = true
+```
+
+(or `export CT_LIVE_DRY_RUN=true`). `LiveBroker` accepts every order,
+returns `dry-<id>` fills at market price, and never calls the exchange.
+Confirm `journalctl -u crypto-trader` shows `DRY-RUN BUY/SELL` lines,
+that telegram alerts arrive, and that the rest of the pipeline (kill
+switch, reconcile, circuits) behaves. Flip `live_dry_run = false`
+before going live for real.
+
+### 1e. Credentials must be present **in env**
 
 Never commit keys. Export before launching:
 
@@ -82,7 +99,7 @@ export CT_UPBIT_SECRET_KEY='xxxxxxxx'
 
 Empty values fall back to `PaperBroker` (see `wallet.build_wallets`).
 
-### 1e. `go_live_wallets` allowlist
+### 1f. `go_live_wallets` allowlist
 
 Stage rollouts via `[trading].go_live_wallets`. An empty list promotes
 **every** wallet — make this explicit:

@@ -1012,6 +1012,7 @@ def build_wallets(
                 secret_key=config.credentials.upbit_secret_key,
                 starting_cash=wc.initial_capital,
                 fee_rate=config.backtest.fee_rate,
+                dry_run=config.trading.live_dry_run,
             )
         else:
             broker = PaperBroker(
