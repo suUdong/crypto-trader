@@ -3,7 +3,6 @@
 자동 업데이트 이력. market_scan_loop (심볼 교체) + strategy_research_loop (파라미터 갱신).
 
 ---
-
 ## 2026-04-16 — 부진 4지갑 비활성화 (paper 데이터 + Codex 리뷰 기반)
 
 - **비활성화**: `stealth_3gate_wallet_1` — 75건 WR 16%, ₩-46,724. RS score 자기참조, 통계적 결론.
@@ -2524,6 +2523,21 @@
 ---
 
 ## 2026-05-10 22:56 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+## 2026-05-10 23:32 UTC — 심볼 교체: accumulation_dood_wallet
+
+- 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
+- 변경: `KRW-OLD` → `KRW-NEW`
+- ⚠️ daemon 재시작 안됨
+
+---
+
+## 2026-05-10 23:57 UTC — 심볼 교체: accumulation_dood_wallet
 
 - 트리거: `manual_alpha_apply / cycle=233 / source=legacy`
 - 변경: `KRW-OLD` → `KRW-NEW`

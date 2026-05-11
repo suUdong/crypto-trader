@@ -1,0 +1,156 @@
+# Paper-max survivor config — PDH/profit-lock concentration (2026-04-28)
+# Purpose: paper-only return maximization by removing historically losing wallets.
+# Survivor:
+#   - pdh_pdl_btc_wallet: best live paper wallet; BTC-regime filtered multi-symbol PDH/PDL.
+# Profit-lock is preserved as the active exit edge: PDH historical winners exited via
+# profit_lock_trailing while fixed/ATR loser wallets are removed.
+# Profit-lock note: do not set risk.trailing_stop_pct or ATR trail unless intentionally disabling
+# the hardcoded profit_lock_trailing path in risk/manager.py.
+
+[trading]
+exchange = "upbit"
+symbol = "KRW-BTC"
+symbols = ["KRW-ETH", "KRW-SOL", "KRW-BTC", "KRW-DOOD", "KRW-TREE", "KRW-XRP", "KRW-DOGE", "KRW-LINK", "KRW-ONDO", "KRW-AVAX", "KRW-APT", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-ASTR", "KRW-CELO", "KRW-PEPE", "KRW-THETA"]
+interval = "minute60"
+candle_count = 200
+paper_trading = true
+# Staged rollout: only these wallets go live when paper_trading=false.
+# Empty list = all wallets go live. Start with smallest wallet first.
+go_live_wallets = []
+
+[strategy]
+momentum_lookback = 12
+momentum_entry_threshold = 0.001
+momentum_exit_threshold = -0.01
+bollinger_window = 20
+bollinger_stddev = 1.8
+rsi_period = 14
+rsi_oversold_floor = 20.0
+rsi_recovery_ceiling = 75.0
+rsi_overbought = 80.0
+max_holding_bars = 36
+adx_threshold = 10.0
+
+[regime]
+short_lookback = 10
+long_lookback = 30
+bull_threshold_pct = 0.03
+bear_threshold_pct = -0.03
+
+[drift]
+bull_return_tolerance_pct = 0.15
+sideways_return_tolerance_pct = 0.08
+bear_return_tolerance_pct = 0.05
+bull_error_rate_threshold = 0.25
+sideways_error_rate_threshold = 0.20
+bear_error_rate_threshold = 0.10
+
+[risk]
+risk_per_trade_pct = 0.50
+stop_loss_pct = 0.05
+take_profit_pct = 0.08
+max_daily_loss_pct = 0.05
+max_concurrent_positions = 3
+trailing_stop_pct = 0.0
+atr_stop_multiplier = 0.0
+min_entry_confidence = 0.30
+partial_tp_pct = 0.5
+cooldown_bars = 3
+max_position_pct = 0.50
+
+[kill_switch]
+max_portfolio_drawdown_pct = 0.30
+max_daily_loss_pct = 0.15
+max_consecutive_losses = 30
+max_strategy_drawdown_pct = 0.20
+cooldown_minutes = 10
+
+[backtest]
+initial_capital = 1_000_000.0
+fee_rate = 0.0005
+slippage_pct = 0.0005
+
+[telegram]
+# Set via environment variables (never commit real tokens):
+#   export CT_TELEGRAM_BOT_TOKEN="123456:ABC-DEF..."
+#   export CT_TELEGRAM_CHAT_ID="-100123456789"
+# When both are set, alerts are sent for: trade fills, kill switch triggers,
+# drawdown warnings, order rejections, errors, daemon restarts, daily PnL.
+bot_token = ""
+chat_id = ""
+
+[macro]
+enabled = true
+base_url = "http://127.0.0.1:8000"
+timeout_seconds = 5.0
+
+[runtime]
+log_level = "INFO"
+log_file_path = "artifacts/paper-max/daemon.log"
+poll_interval_seconds = 60
+max_iterations = 0
+daemon_mode = true
+auto_restart_enabled = true
+restart_backoff_seconds = 15
+max_restart_attempts = 0
+network_recovery_backoff_seconds = 15
+daemon_alert_cooldown_seconds = 300
+kill_switch_path = "artifacts/paper-max/kill-switch.json"
+healthcheck_path = "artifacts/paper-max/health.json"
+runtime_checkpoint_path = "artifacts/paper-max/runtime-checkpoint.json"
+backtest_baseline_path = "artifacts/paper-max/backtest-baseline.json"
+regime_report_path = "artifacts/paper-max/regime-report.json"
+drift_calibration_path = "artifacts/paper-max/drift-calibration.json"
+operator_report_path = "artifacts/paper-max/operator-report.md"
+strategy_run_journal_path = "artifacts/paper-max/strategy-runs.jsonl"
+paper_trade_journal_path = "artifacts/paper-max/paper-trades.jsonl"
+# Phase 1 DB introduction: SQLite mirror for dashboard/analytics reads.
+# JSONL above remains the source of truth; daemon dual-writes on every
+# _persist_journal tick. Mirror failures are logged but never block the
+# tick (see multi_runtime.py:_persist_journal).
+paper_trade_sqlite_path = "artifacts/paper-max/paper-trades.db"
+position_snapshot_path = "artifacts/paper-max/positions.json"
+daily_performance_path = "artifacts/paper-max/daily-performance.json"
+drift_report_path = "artifacts/paper-max/drift-report.json"
+promotion_gate_path = "artifacts/paper-max/promotion-gate.json"
+daily_memo_path = "artifacts/paper-max/daily-memo.md"
+strategy_report_path = "artifacts/paper-max/strategy-report.md"
+
+# === SURVIVOR WALLETS ONLY ===
+
+[[wallets]]
+name = "pdh_pdl_btc_wallet"
+strategy = "pdh_pdl_sweep_reclaim"
+initial_capital = 2_000_000.0
+paper_trading = true
+symbols = ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-XRP", "KRW-DOGE", "KRW-LINK", "KRW-ONDO", "KRW-AVAX", "KRW-APT", "KRW-ADA", "KRW-DOT", "KRW-ATOM", "KRW-PEPE", "KRW-THETA"]
+[wallets.strategy_overrides]
+market_data_closed_only = true
+use_prev_day = true
+n = 22
+eps = 0.0018262133038232326
+L = 93
+clv_min = 0.6868883402451547
+rvol_min = 2.076067713758879
+hold_bars = 3
+btc_sma_period = 251
+liquidity_min_krw_24h = 1000000000.0
+trail_pct = 0.08183584818420675
+activation_pct = 0.032930819383335294
+max_holding_bars = 68
+[wallets.risk_overrides]
+# Paper-max sizing: 4% risk / 8.2% stop ~= 49% position cap per entry.
+max_position_pct = 0.50
+max_concurrent_positions = 3
+max_daily_loss_pct = 0.05
+atr_stop_multiplier = 0.0
+stop_loss_pct = 0.082
+take_profit_pct = 0.15
+risk_per_trade_pct = 0.04
+
+# Excluded: vwm_btc_wallet had profit-lock winners but negative full-wallet expectancy
+# (15 trades, -1,614 KRW, -0.134% on turnover), so not included in survivor config.
+
+[credentials]
+upbit_access_key = ""
+upbit_secret_key = ""
