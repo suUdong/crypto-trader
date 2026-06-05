@@ -1,5 +1,7 @@
 # crypto-trader
 
+@~/workspace/claude-base/RULES.md
+
 Upbit multi-strategy auto-trading. Backtesting, paper, live. FIRE workspace: `~/workspace/WORKSPACE.md`.
 
 ## *** 과최적화 금지 — 최우선 원칙 ***
